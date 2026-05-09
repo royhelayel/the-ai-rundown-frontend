@@ -171,6 +171,12 @@ const TheAIRundown = () => {
       if (error) throw error;
       if (!data) { setNewsNotAvailable(true); setNewsSummary(null); return; }
       setNewsSummary(data); setNewsNotAvailable(false);
+      if (user) {
+        fetch(`${BACKEND_URL}/api/metrics/track`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, eventType: 'news_view', category: selectedCategory, day: selectedDay, time: selectedTime })
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Error fetching news:', error);
       setNewsNotAvailable(true); setNewsSummary(null);

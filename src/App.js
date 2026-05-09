@@ -17,7 +17,8 @@ const TheAIRundown = () => {
   const [authMode, setAuthMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('World News');
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [customCategories, setCustomCategories] = useState([]);
@@ -53,15 +54,14 @@ const TheAIRundown = () => {
   const [showTimeRightArrow, setShowTimeRightArrow] = useState(true);
 
   const defaultCategories = [
-    'All',
+    'World News',
     'Technology',
     'Business',
     'Politics',
     'Sports',
     'Entertainment',
     'Science',
-    'Health',
-    'World News'
+    'Health'
   ];
 
   const timesOfDay = [
@@ -72,9 +72,10 @@ const TheAIRundown = () => {
     { value: 'Evening', label: 'Evening', time: '6 PM - 12 AM' }
   ];
 
-  function getDaysOfWeek() {
+  function getDaysOfWeek(offset = 0) {
     const days = [];
-    for (let i = -6; i <= 0; i++) {
+    const base = offset * 7;
+    for (let i = base - 6; i <= base; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
       const uaeDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
@@ -86,7 +87,7 @@ const TheAIRundown = () => {
     return days;
   }
 
-  const daysOfWeek = getDaysOfWeek();
+  const daysOfWeek = getDaysOfWeek(weekOffset);
   const allCategories = [...defaultCategories, ...customCategories];
 
   // Helper: Get current time slot based on UAE timezone
@@ -95,7 +96,6 @@ const TheAIRundown = () => {
     const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
     const hour = uaeTime.getHours();
     
-    if (hour >= 0 && hour < 6) return 'Night';
     if (hour >= 6 && hour < 10) return 'Morning';
     if (hour >= 10 && hour < 14) return 'Noon';
     if (hour >= 14 && hour < 18) return 'Afternoon';
@@ -121,15 +121,14 @@ const TheAIRundown = () => {
   };
 
   useEffect(() => {
-    setSelectedDay(daysOfWeek[daysOfWeek.length - 1].fullDate);
+    setSelectedDay(getDaysOfWeek(0)[6].fullDate);
     
     const now = new Date();
     const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
     const hour = uaeTime.getHours();
     
-    let defaultTime = 'Morning';
-    if (hour >= 0 && hour < 6) defaultTime = 'Night';
-    else if (hour >= 6 && hour < 10) defaultTime = 'Morning';
+    let defaultTime = 'Evening';
+    if (hour >= 6 && hour < 10) defaultTime = 'Morning';
     else if (hour >= 10 && hour < 14) defaultTime = 'Noon';
     else if (hour >= 14 && hour < 18) defaultTime = 'Afternoon';
     else if (hour >= 18 && hour < 24) defaultTime = 'Evening';
@@ -642,14 +641,34 @@ const TheAIRundown = () => {
           )}
 
           {windowWidth > 900 && !isCustomCategory && (
-            <div style={{ marginBottom: '0.75rem' }}>
-              <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem' }}>
+            <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={() => {
+                  const newOffset = weekOffset - 1;
+                  setWeekOffset(newOffset);
+                  setSelectedDay(getDaysOfWeek(newOffset)[6].fullDate);
+                }}
+                disabled={weekOffset <= -3}
+                style={{ padding: '0.4rem 0.6rem', background: weekOffset <= -3 ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.04)', border: 'none', borderRadius: '5px', cursor: weekOffset <= -3 ? 'default' : 'pointer', color: weekOffset <= -3 ? '#cbd5e1' : '#6b7280', flexShrink: 0, fontSize: '1rem' }}>
+                ‹
+              </button>
+              <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem', flex: 1 }}>
                 {availableDays.map(day => (
                   <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={{ padding: '0.6rem 0.95rem', background: selectedDay === day.fullDate ? '#6366f1' : 'rgba(0, 0, 0, 0.04)', color: selectedDay === day.fullDate ? 'white' : '#6b7280', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.2s ease' }}>
                     {day.label} {day.date}
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => {
+                  const newOffset = weekOffset + 1;
+                  setWeekOffset(newOffset);
+                  setSelectedDay(getDaysOfWeek(newOffset)[6].fullDate);
+                }}
+                disabled={weekOffset >= 0}
+                style={{ padding: '0.4rem 0.6rem', background: weekOffset >= 0 ? 'rgba(0,0,0,0.02)' : 'rgba(0,0,0,0.04)', border: 'none', borderRadius: '5px', cursor: weekOffset >= 0 ? 'default' : 'pointer', color: weekOffset >= 0 ? '#cbd5e1' : '#6b7280', flexShrink: 0, fontSize: '1rem' }}>
+                ›
+              </button>
             </div>
           )}
 

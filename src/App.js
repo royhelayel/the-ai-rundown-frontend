@@ -41,6 +41,7 @@ const TheAIRundown = () => {
   const categoryScrollRef = useRef(null);
   const dayScrollRef = useRef(null);
   const timeScrollRef = useRef(null);
+  const pollTimerRef = useRef(null);
 
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
@@ -185,6 +186,8 @@ const TheAIRundown = () => {
 
   const handleGenerateCustomCategory = async () => {
     if (!customCategories.includes(selectedCategory)) return;
+    // Cancel any in-flight poll from a previous attempt
+    if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     try {
       setNewsLoading(true);
       const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
@@ -199,11 +202,11 @@ const TheAIRundown = () => {
         attempts++;
         const { data } = await supabase.from('news_summaries').select('*')
           .eq('category', category).eq('day', day).eq('time_slot', time).maybeSingle();
-        if (data) { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); }
-        else if (attempts < 36) setTimeout(poll, 5000);
-        else { setNewsLoading(false); setNewsNotAvailable(true); }
+        if (data) { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); pollTimerRef.current = null; }
+        else if (attempts < 36) { pollTimerRef.current = setTimeout(poll, 5000); }
+        else { setNewsLoading(false); setNewsNotAvailable(true); pollTimerRef.current = null; }
       };
-      setTimeout(poll, 5000);
+      pollTimerRef.current = setTimeout(poll, 5000);
     } catch (error) { console.error('Error generating:', error); setNewsLoading(false); }
   };
 

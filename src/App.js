@@ -118,14 +118,19 @@ const TheAIRundown = () => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setEmailPreferences(userData.emailPreferences || { night: false, morning: false, noon: false, afternoon: false, evening: false });
-        supabase.from('custom_categories').select('category_name').eq('user_id', userData.id)
-          .then(({ data }) => {
-            const cats = data?.map(c => c.category_name) || [];
-            setCustomCategories(cats);
-            const updated = { ...userData, categories: cats };
-            localStorage.setItem('newsdigest_user', JSON.stringify(updated));
-            setUser(updated);
-          });
+        // Refresh categories and email preferences from Supabase
+        Promise.all([
+          supabase.from('custom_categories').select('category_name').eq('user_id', userData.id),
+          supabase.from('users').select('email_preferences').eq('id', userData.id).single()
+        ]).then(([catRes, prefRes]) => {
+          const cats = catRes.data?.map(c => c.category_name) || [];
+          const prefs = prefRes.data?.email_preferences || userData.emailPreferences || { night: false, morning: false, noon: false, afternoon: false, evening: false };
+          setCustomCategories(cats);
+          setEmailPreferences(prefs);
+          const updated = { ...userData, categories: cats, emailPreferences: prefs };
+          localStorage.setItem('newsdigest_user', JSON.stringify(updated));
+          setUser(updated);
+        });
       }
     } catch (error) { console.error('Init error:', error); }
   }, []);
@@ -232,7 +237,12 @@ const TheAIRundown = () => {
         if (userProfile.verification_status !== 'verified') { alert('Please verify your email first.'); return; }
         const { data: categoriesData } = await supabase.from('custom_categories').select('category_name').eq('user_id', authData.user.id);
         const categories = categoriesData?.map(c => c.category_name) || [];
-        const userData = { id: authData.user.id, email: authData.user.email, categories, emailPreferences: { night: false, morning: false, noon: false, afternoon: false, evening: false } };
+        const userData = {
+          id: authData.user.id,
+          email: authData.user.email,
+          categories,
+          emailPreferences: userProfile.email_preferences || { night: false, morning: false, noon: false, afternoon: false, evening: false }
+        };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData); setCustomCategories(categories); setEmailPreferences(userData.emailPreferences || {});
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword('');
@@ -258,10 +268,20 @@ const TheAIRundown = () => {
     if (selectedCategory === categoryToDelete) setSelectedCategory('World News');
   };
 
-  const handleEmailPreferenceToggle = (timeValue) => {
+  const handleEmailPreferenceToggle = async (timeValue) => {
     const updated = { ...emailPreferences, [timeValue]: !emailPreferences[timeValue] };
     setEmailPreferences(updated);
-    if (user) { const userData = { ...user, emailPreferences: updated }; localStorage.setItem('newsdigest_user', JSON.stringify(userData)); setUser(userData); }
+    if (user) {
+      const userData = { ...user, emailPreferences: updated };
+      localStorage.setItem('newsdigest_user', JSON.stringify(userData));
+      setUser(userData);
+      // Persist to backend (uses service role to bypass RLS)
+      fetch(`${BACKEND_URL}/api/user/email-preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, preferences: updated })
+      }).catch(err => console.error('Failed to save email preferences:', err));
+    }
   };
 
   const checkScrollPosition = (ref, setLeftArrow, setRightArrow) => {

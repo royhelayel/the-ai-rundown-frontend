@@ -141,10 +141,18 @@ const TheAIRundown = () => {
       if (savedUser) {
         const userData = JSON.parse(savedUser);
         setUser(userData);
-        setCustomCategories(userData.categories || []);
         setEmailPreferences(userData.emailPreferences || {
           night: false, morning: false, noon: false, afternoon: false, evening: false
         });
+        // Fetch fresh categories from Supabase
+        supabase.from('custom_categories').select('category_name').eq('user_id', userData.id)
+          .then(({ data }) => {
+            const cats = data?.map(c => c.category_name) || [];
+            setCustomCategories(cats);
+            const updated = { ...userData, categories: cats };
+            localStorage.setItem('newsdigest_user', JSON.stringify(updated));
+            setUser(updated);
+          });
       }
     } catch (error) {
       console.error('Init error:', error);
@@ -349,10 +357,17 @@ const TheAIRundown = () => {
           return;
         }
 
+        const { data: categoriesData } = await supabase
+          .from('custom_categories')
+          .select('category_name')
+          .eq('user_id', authData.user.id);
+
+        const categories = categoriesData?.map(c => c.category_name) || [];
+
         const userData = {
           id: authData.user.id,
           email: authData.user.email,
-          categories: [],
+          categories,
           emailPreferences: {
             night: false, morning: false, noon: false, afternoon: false, evening: false
           }
@@ -360,7 +375,7 @@ const TheAIRundown = () => {
 
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData);
-        setCustomCategories(userData.categories || []);
+        setCustomCategories(categories);
         setEmailPreferences(userData.emailPreferences || {});
         setShowAuth(false);
         setShowMobileMenu(false);
@@ -376,8 +391,18 @@ const TheAIRundown = () => {
     }
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.trim() || !user) return;
+
+    const { error } = await supabase
+      .from('custom_categories')
+      .insert({ user_id: user.id, category_name: newCategory.trim() });
+
+    if (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category: ' + error.message);
+      return;
+    }
 
     const updated = {
       ...user,
@@ -390,7 +415,18 @@ const TheAIRundown = () => {
     setShowCategoryModal(false);
   };
 
-  const handleDeleteCategory = (categoryToDelete) => {
+  const handleDeleteCategory = async (categoryToDelete) => {
+    const { error } = await supabase
+      .from('custom_categories')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('category_name', categoryToDelete);
+
+    if (error) {
+      console.error('Error deleting category:', error);
+      return;
+    }
+
     const updated = {
       ...user,
       categories: user.categories.filter(cat => cat !== categoryToDelete)

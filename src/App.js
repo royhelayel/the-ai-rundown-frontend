@@ -242,32 +242,51 @@ const TheAIRundown = () => {
   };
 
   const handleGenerateCustomCategory = async () => {
-    if (customCategories.includes(selectedCategory)) {
-      try {
-        setNewsLoading(true);
-        const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user.id,
-            category: selectedCategory,
-            day: selectedDay,
-            timeSlot: selectedTime
-          })
-        });
+    if (!customCategories.includes(selectedCategory)) return;
+    try {
+      setNewsLoading(true);
+      const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          category: selectedCategory,
+          day: selectedDay,
+          timeSlot: selectedTime
+        })
+      });
 
-        if (response.ok) {
-          setTimeout(() => {
-            setNewsSummary(null);
-            handleFetchNews();
-          }, 15000);
+      if (!response.ok) { setNewsLoading(false); return; }
+
+      // Poll every 5s until news appears (max 3 minutes)
+      const category = selectedCategory;
+      const day = selectedDay;
+      const time = selectedTime;
+      let attempts = 0;
+      const poll = async () => {
+        attempts++;
+        const { data } = await supabase
+          .from('news_summaries')
+          .select('*')
+          .eq('category', category)
+          .eq('day', day)
+          .eq('time_slot', time)
+          .maybeSingle();
+        if (data) {
+          setNewsSummary(data);
+          setNewsNotAvailable(false);
+          setNewsLoading(false);
+        } else if (attempts < 36) {
+          setTimeout(poll, 5000);
         } else {
           setNewsLoading(false);
+          setNewsNotAvailable(true);
         }
-      } catch (error) {
-        console.error('Error generating custom category news:', error);
-        setNewsLoading(false);
-      }
+      };
+      setTimeout(poll, 5000);
+    } catch (error) {
+      console.error('Error generating custom category news:', error);
+      setNewsLoading(false);
     }
   };
 
@@ -282,6 +301,12 @@ const TheAIRundown = () => {
       handleFetchNews();
     }
   }, [selectedCategory, selectedDay, selectedTime]);
+
+  useEffect(() => {
+    if (newsNotAvailable && customCategories.includes(selectedCategory) && user) {
+      handleGenerateCustomCategory();
+    }
+  }, [newsNotAvailable, selectedCategory]);
 
   const handleAuth = async () => {
     if (!email || !password) return;
@@ -616,7 +641,7 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {windowWidth > 900 && (
+          {windowWidth > 900 && !isCustomCategory && (
             <div style={{ marginBottom: '0.75rem' }}>
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem' }}>
                 {availableDays.map(day => (
@@ -628,7 +653,7 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {windowWidth > 750 && (
+          {windowWidth > 750 && !isCustomCategory && (
             <div style={{ marginBottom: '2.5rem' }}>
               <div ref={timeScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem' }}>
                 {availableTimes.map(time => (
@@ -637,6 +662,22 @@ const TheAIRundown = () => {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {windowWidth > 750 && isCustomCategory && (
+            <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap' }}>
+              {availableDays.map(day => (
+                <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={{ padding: '0.6rem 0.95rem', background: selectedDay === day.fullDate ? '#6366f1' : 'rgba(0, 0, 0, 0.04)', color: selectedDay === day.fullDate ? 'white' : '#6b7280', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.2s ease' }}>
+                  {day.label} {day.date}
+                </button>
+              ))}
+              <span style={{ color: '#cbd5e1', fontSize: '1rem' }}>|</span>
+              {availableTimes.map(time => (
+                <button key={time.value} onClick={() => setSelectedTime(time.value)} style={{ padding: '0.6rem 0.95rem', background: selectedTime === time.value ? '#ec4899' : 'rgba(0, 0, 0, 0.04)', color: selectedTime === time.value ? 'white' : '#6b7280', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.2s ease' }}>
+                  {time.label}
+                </button>
+              ))}
             </div>
           )}
 
@@ -726,11 +767,6 @@ const TheAIRundown = () => {
                 <Clock size={48} color="#cbd5e1" style={{ marginBottom: '1.5rem' }} />
                 <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '0.5rem', color: '#64748b' }}>News Not Yet Available</h3>
                 <p style={{ fontSize: '0.95rem', marginBottom: '1rem' }}>This summary hasn't been generated yet.</p>
-                {customCategories.includes(selectedCategory) && (
-                  <button onClick={handleGenerateCustomCategory} style={{ padding: '0.65rem 1.5rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.95rem', marginTop: '1rem' }}>
-                    Generate Now
-                  </button>
-                )}
               </div>
             ) : newsSummary ? (
               <div>

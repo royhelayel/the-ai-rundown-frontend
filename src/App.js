@@ -766,22 +766,22 @@ const TheAIRundown = () => {
                     window._trackCategory = (name) => { setNewCategory(name); setShowCategoryModal(true); };
                     const raw = newsSummary.content || '';
                     // Split off ## Sources section
-                    const srcMatch = raw.match(/^## Sources\s*\n([\s\S]*)$/m);
-                    const mainContent = srcMatch ? raw.slice(0, raw.indexOf(srcMatch[0])).trim() : raw.trim();
-                    const sourceLinks = srcMatch
-                      ? [...srcMatch[1].matchAll(/[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)].map(m => ({ title: m[1], url: m[2] }))
-                      : [];
+                    const sourcesStart = raw.search(/^## Sources\s*$/m);
+                    const mainContent = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
+                    const sourcesSection = sourcesStart > -1 ? raw.slice(sourcesStart) : '';
+                    const sourceLinks = [...sourcesSection.matchAll(/[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
+                      .map(m => ({ title: m[1], url: m[2] }));
                     const html = mainContent
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      // Heading with embedded link: ## [Title](URL)
-                      .replace(/^#{1,3} \[(.+?)\]\(([^)]+)\)\s*$/gm, (_, text, url) => {
+                      // Linked heading ## [Title](URL) — clickable story headline + Track button
+                      .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
                         const safe = text.replace(/'/g, '&#39;');
-                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:1.05rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
+                        const safeUrl = url.replace(/"/g, '%22');
+                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.05rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
                       })
-                      // Plain heading: ## Title
+                      // Plain heading ## Title — section label only, no track button
                       .replace(/^#{1,3} (.+)$/gm, (_, text) => {
-                        const safe = text.replace(/'/g, '&#39;');
-                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><span style="font-size:1.05rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
+                        return `<div style="font-size:1.05rem;font-weight:800;color:#374151;margin:0.95rem 0 0.2rem;line-height:1.3;">${text}</div>`;
                       })
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.15rem 0 0.15rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.9rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.18rem;"></div>')

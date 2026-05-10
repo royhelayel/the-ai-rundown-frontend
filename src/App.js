@@ -972,7 +972,7 @@ const TheAIRundown = () => {
                 <div style={{ display: 'grid', gap: '0.55rem' }}>
                   {customCategories.map(category => {
                     const desc = customCategoryDescriptions[category];
-                    const hasDesc = desc && desc !== category;
+                    const hasDesc = !!desc;
                     return (
                       <div key={category} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem 0.9rem', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', border: '1px solid #f3f4f6', gap: '0.6rem' }}>
                         <div style={{ minWidth: 0 }}>

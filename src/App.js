@@ -825,21 +825,30 @@ const TheAIRundown = () => {
                     const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
                     const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
 
-                    // Pre-process: merge bare URL lines into the heading above them
-                    const mergedContent = mainContent.split('\n').reduce((acc, line) => {
-                      const trimmed = line.trim();
-                      const isUrl = /^https?:\/\/\S+$/.test(trimmed);
-                      if (isUrl && acc.length > 0) {
-                        const prev = acc[acc.length - 1];
-                        const headingMatch = prev.match(/^(#{1,3} )(.+)$/);
-                        if (headingMatch && !headingMatch[2].includes('](')) {
-                          acc[acc.length - 1] = `${headingMatch[1]}[${headingMatch[2].trim()}](${trimmed})`;
-                          return acc;
+                    // Pre-process: normalize all heading+URL variants into ## [Title](url)
+                    const mergedContent = mainContent
+                      .split('\n')
+                      .reduce((acc, line) => {
+                        const trimmed = line.trim();
+                        // Case 1: bare URL on its own line after a heading → merge up
+                        if (/^https?:\/\/\S+$/.test(trimmed) && acc.length > 0) {
+                          const prev = acc[acc.length - 1];
+                          const m = prev.match(/^(#{1,3} )(.+)$/);
+                          if (m && !m[2].includes('](')) {
+                            acc[acc.length - 1] = `${m[1]}[${m[2].trim()}](${trimmed})`;
+                            return acc;
+                          }
                         }
-                      }
-                      acc.push(line);
-                      return acc;
-                    }, []).join('\n');
+                        acc.push(line);
+                        return acc;
+                      }, [])
+                      .join('\n')
+                      // Case 2: URL trailing inside heading text: ## Title https://url → ## [Title](url)
+                      .replace(/^(#{1,3} )(.+?)\s+(https?:\/\/\S+)$/gm, '$1[$2]($3)')
+                      // Case 3: auto-linked trailing URL: ## Title [url](url) → ## [Title](url)
+                      .replace(/^(#{1,3} )(.+?)\s+\[https?:\/\/[^\]]*\]\((https?:\/\/\S+)\)$/gm, '$1[$2]($3)')
+                      // Strip any remaining bare URL lines
+                      .replace(/^https?:\/\/\S+$/gm, '');
 
                     // Render main summary
                     const html = mergedContent

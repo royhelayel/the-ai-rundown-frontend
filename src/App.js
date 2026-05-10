@@ -805,7 +805,7 @@ const TheAIRundown = () => {
                     </div>
                   </div>
                   {(() => {
-                    window._trackCategory = (name) => { setNewCategory(name.slice(0, 25)); setNewCategoryDescription(name); setShowCategoryModal(true); };
+                    window._trackCategory = (headline) => { setNewCategory(''); setNewCategoryDescription(headline); setShowCategoryModal(true); };
                     const raw = newsSummary.content || '';
 
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
@@ -970,14 +970,21 @@ const TheAIRundown = () => {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '0.55rem' }}>
-                  {customCategories.map(category => (
-                    <div key={category} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0.9rem', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
-                      <span style={{ fontWeight: '600', color: '#111827', fontSize: '0.88rem' }}>{category}</span>
-                      <button onClick={() => handleDeleteCategory(category)} style={{ padding: '0.3rem 0.45rem', background: 'rgba(231,76,60,0.08)', border: 'none', borderRadius: '6px', color: '#e74c3c', cursor: 'pointer' }}>
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  ))}
+                  {customCategories.map(category => {
+                    const desc = customCategoryDescriptions[category];
+                    const hasDesc = desc && desc !== category;
+                    return (
+                      <div key={category} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem 0.9rem', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', border: '1px solid #f3f4f6', gap: '0.6rem' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.88rem' }}>{category}</div>
+                          {hasDesc && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem', lineHeight: '1.4', wordBreak: 'break-word' }}>{desc}</div>}
+                        </div>
+                        <button onClick={() => handleDeleteCategory(category)} style={{ padding: '0.3rem 0.45rem', background: 'rgba(231,76,60,0.08)', border: 'none', borderRadius: '6px', color: '#e74c3c', cursor: 'pointer', flexShrink: 0 }}>
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

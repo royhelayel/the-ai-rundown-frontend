@@ -800,6 +800,10 @@ const TheAIRundown = () => {
                       .replace(/^#{1,3} (.+)$/gm, (_, text) =>
                         `<div style="font-size:1.02rem;font-weight:800;color:#374151;margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;line-height:1.3;">${text}</div>`
                       )
+                      // "Why this matters" line — styled distinctly before general bold replacement
+                      .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
+                        `<div style="margin:0.45rem 0 0.9rem;padding:0.38rem 0.7rem;background:rgba(99,102,241,0.05);border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:0.82rem;color:#4b5563;line-height:1.5;"><strong style="color:#6366f1;font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.03em;">Why this matters</strong><br>${text}</div>`
+                      )
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
                       .replace(/\n/g, '');

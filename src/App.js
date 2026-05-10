@@ -772,7 +772,11 @@ const TheAIRundown = () => {
                     const sourceLinks = [...sourcesSection.matchAll(/[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
                       .map(m => ({ title: m[1], url: m[2] }));
                     const html = mainContent
+                      // Remove orphaned lines that are just punctuation or empty bullets
+                      .replace(/^[-*.]\s*$/gm, '')
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
+                      // Italic _text_ — used for availability disclaimers
+                      .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')
                       // Linked heading ## [Title](URL) — clickable story headline + Track button
                       .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
                         const safe = text.replace(/'/g, '&#39;');
@@ -783,6 +787,7 @@ const TheAIRundown = () => {
                       .replace(/^#{1,3} (.+)$/gm, (_, text) => {
                         return `<div style="font-size:1.05rem;font-weight:800;color:#374151;margin:0.95rem 0 0.2rem;line-height:1.3;">${text}</div>`;
                       })
+                      // Bullet points with content only
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.15rem 0 0.15rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.9rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.18rem;"></div>')
                       .replace(/\n/g, '<br style="line-height:0.6;">');

@@ -42,6 +42,8 @@ const TheAIRundown = () => {
   const dayScrollRef = useRef(null);
   const timeScrollRef = useRef(null);
   const pollTimerRef = useRef(null);
+  const progressIntervalRef = useRef(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
 
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
@@ -184,30 +186,49 @@ const TheAIRundown = () => {
     } finally { setNewsLoading(false); }
   };
 
+  const startProgressBar = () => {
+    setGenerationProgress(0);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    // Advance to ~88% over 15 seconds, then hold until poll completes
+    let pct = 0;
+    progressIntervalRef.current = setInterval(() => {
+      pct += (88 - pct) * 0.07;
+      setGenerationProgress(Math.min(pct, 88));
+    }, 400);
+  };
+
+  const finishProgressBar = (cb) => {
+    if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
+    setGenerationProgress(100);
+    setTimeout(() => { setGenerationProgress(0); cb(); }, 400);
+  };
+
   const handleGenerateCustomCategory = async () => {
     if (!customCategories.includes(selectedCategory)) return;
-    // Cancel any in-flight poll from a previous attempt
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     try {
       setNewsLoading(true);
+      startProgressBar();
       const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, category: selectedCategory, day: selectedDay, timeSlot: selectedTime })
       });
-      if (!response.ok) { setNewsLoading(false); return; }
+      if (!response.ok) { finishProgressBar(() => setNewsLoading(false)); return; }
       const category = selectedCategory, day = selectedDay, time = selectedTime;
       let attempts = 0;
       const poll = async () => {
         attempts++;
         const { data } = await supabase.from('news_summaries').select('*')
           .eq('category', category).eq('day', day).eq('time_slot', time).maybeSingle();
-        if (data) { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); pollTimerRef.current = null; }
-        else if (attempts < 36) { pollTimerRef.current = setTimeout(poll, 5000); }
-        else { setNewsLoading(false); setNewsNotAvailable(true); pollTimerRef.current = null; }
+        if (data) {
+          finishProgressBar(() => { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); });
+          pollTimerRef.current = null;
+        } else if (attempts < 36) { pollTimerRef.current = setTimeout(poll, 5000); }
+        else { finishProgressBar(() => { setNewsLoading(false); setNewsNotAvailable(true); }); pollTimerRef.current = null; }
       };
       pollTimerRef.current = setTimeout(poll, 5000);
-    } catch (error) { console.error('Error generating:', error); setNewsLoading(false); }
+    } catch (error) { console.error('Error generating:', error); finishProgressBar(() => setNewsLoading(false)); }
   };
 
   useEffect(() => {
@@ -614,15 +635,29 @@ const TheAIRundown = () => {
             <div style={{ padding: '1.75rem 2rem' }}>
               {newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  <div style={{ display: 'inline-block', animation: 'spin 2s linear infinite' }}>
-                    <Loader size={48} color="#6366f1" strokeWidth={1.5} />
-                  </div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '1.5rem 0 0.4rem', color: '#111827' }}>
-                    {customCategories.includes(selectedCategory) ? 'Generating Custom News' : 'Loading Your News'}
-                  </h3>
-                  <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>
-                    {customCategories.includes(selectedCategory) ? 'Searching the web and compiling…' : 'Retrieving pre-generated news…'}
-                  </p>
+                  {customCategories.includes(selectedCategory) ? (
+                    <div style={{ maxWidth: '360px', margin: '0 auto' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.35rem', color: '#111827' }}>
+                        Generating Custom News
+                      </h3>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>
+                        {generationProgress < 30 ? 'Searching the web…' : generationProgress < 65 ? 'Reading sources…' : generationProgress < 90 ? 'Compiling summary…' : 'Almost done…'}
+                      </p>
+                      <div style={{ background: '#f3f4f6', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', width: `${generationProgress}%`, transition: 'width 0.4s ease' }} />
+                      </div>
+                      <p style={{ color: '#d1d5db', fontSize: '0.75rem', margin: '0.6rem 0 0' }}>{Math.round(generationProgress)}%</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'inline-block', animation: 'spin 2s linear infinite' }}>
+                        <Loader size={48} color="#6366f1" strokeWidth={1.5} />
+                      </div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '1.5rem 0 0.4rem', color: '#111827' }}>Loading Your News</h3>
+                      <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>Retrieving pre-generated news…</p>
+                    </>
+                  )}
                 </div>
               ) : newsNotAvailable ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>

@@ -361,6 +361,10 @@ const TheAIRundown = () => {
     flexShrink: 0,
     transition: 'all 0.15s ease',
     opacity: disabled ? 0.45 : 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    lineHeight: 1.2,
   });
 
   const navArrow = (disabled) => ({
@@ -568,7 +572,7 @@ const TheAIRundown = () => {
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {availableDays.map(day => (
                   <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
-                    {day.label} {day.date}
+                    {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
               </div>
@@ -581,13 +585,14 @@ const TheAIRundown = () => {
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
                 <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
-                  {day.label} {day.date}
+                  {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                 </button>
               ))}
               <span style={{ color: '#e5e7eb', margin: '0 0.1rem', userSelect: 'none' }}>|</span>
               {availableTimes.map(time => (
                 <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
-                  {time.label}
+                  <span>{time.label}</span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
                 </button>
               ))}
             </div>
@@ -632,7 +637,7 @@ const TheAIRundown = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableDays.map(day => (
                   <button key={day.fullDate} onClick={() => { setSelectedDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
-                    {day.label} {day.date}
+                    {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
               </div>
@@ -648,8 +653,9 @@ const TheAIRundown = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableTimes.map(time => (
-                  <button key={time.value} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={isTimeFuture(time.value)} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : isTimeFuture(time.value) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isTimeFuture(time.value) ? 0.45 : 1 }}>
-                    {time.label}
+                  <button key={time.value} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={isTimeFuture(time.value)} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : isTimeFuture(time.value) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isTimeFuture(time.value) ? 0.45 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{time.label}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{time.time}</span>
                   </button>
                 ))}
               </div>
@@ -664,7 +670,8 @@ const TheAIRundown = () => {
               <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 {availableTimes.map(time => (
                   <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
-                    {time.label}
+                    <span>{time.label}</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
                   </button>
                 ))}
               </div>

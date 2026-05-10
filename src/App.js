@@ -85,9 +85,10 @@ const TheAIRundown = () => {
     const now = new Date();
     const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
     const hour = uaeTime.getHours();
-    if (hour >= 6 && hour < 10) return 'Morning';
-    if (hour >= 10 && hour < 14) return 'Noon';
-    if (hour >= 14 && hour < 18) return 'Afternoon';
+    if (hour < 6)  return 'Night';
+    if (hour < 10) return 'Morning';
+    if (hour < 14) return 'Noon';
+    if (hour < 18) return 'Afternoon';
     return 'Evening';
   };
 
@@ -107,7 +108,10 @@ const TheAIRundown = () => {
   const isTimeFuture = (timeValue) => {
     if (selectedDay !== today) return false;
     const idx = timesOfDay.findIndex(t => t.value === timeValue);
-    return isCustomCategory ? idx > currentTimeIndex : idx >= currentTimeIndex;
+    if (isCustomCategory) return idx > currentTimeIndex;
+    // When Night is current (index 0), all other slots are from the previous cycle — not future
+    if (currentTimeIndex === 0) return timeValue === 'Night';
+    return idx >= currentTimeIndex;
   };
 
   // Always show all slots; isTimeFuture handles which are disabled

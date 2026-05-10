@@ -825,14 +825,31 @@ const TheAIRundown = () => {
                     const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
                     const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
 
+                    // Pre-process: merge bare URL lines into the heading above them
+                    const mergedContent = mainContent.split('\n').reduce((acc, line) => {
+                      const trimmed = line.trim();
+                      const isUrl = /^https?:\/\/\S+$/.test(trimmed);
+                      if (isUrl && acc.length > 0) {
+                        const prev = acc[acc.length - 1];
+                        const headingMatch = prev.match(/^(#{1,3} )(.+)$/);
+                        if (headingMatch && !headingMatch[2].includes('](')) {
+                          acc[acc.length - 1] = `${headingMatch[1]}[${headingMatch[2].trim()}](${trimmed})`;
+                          return acc;
+                        }
+                      }
+                      acc.push(line);
+                      return acc;
+                    }, []).join('\n');
+
                     // Render main summary
-                    const html = mainContent
+                    const html = mergedContent
                       // Fix ## alone on its own line — join with next line
                       .replace(/^(#{1,3})\s*\n(?!\s*\n)/gm, '$1 ')
                       // Fix missing [ in ## Title](URL)
                       .replace(/^(#{1,3} )(?!\[)([^\n]+\]\(https?:\/\/)/gm, '$1[$2')
-                      // Remove orphaned lines that are just punctuation or empty bullets
+                      // Remove orphaned lines that are just punctuation, empty bullets, or bare URLs
                       .replace(/^[-*.]\s*$/gm, '')
+                      .replace(/^https?:\/\/\S+$/gm, '')
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       // Italic _text_ — used for availability disclaimers
                       .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')

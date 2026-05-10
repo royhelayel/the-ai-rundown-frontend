@@ -22,7 +22,9 @@ const TheAIRundown = () => {
   const [selectedDay, setSelectedDay] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [customCategories, setCustomCategories] = useState([]);
+  const [customCategoryDescriptions, setCustomCategoryDescriptions] = useState({});
   const [newCategory, setNewCategory] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
     categories: [],
@@ -129,13 +131,15 @@ const TheAIRundown = () => {
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         // Refresh categories and email preferences from Supabase
         Promise.all([
-          supabase.from('custom_categories').select('category_name').eq('user_id', userData.id),
+          supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id),
           supabase.from('users').select('email_preferences').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
+          const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
           const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
           const prefs = normalizeEmailPrefs(rawPrefs);
           setCustomCategories(cats);
+          setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);
           const updated = { ...userData, categories: cats, emailPreferences: prefs };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
@@ -220,7 +224,7 @@ const TheAIRundown = () => {
       const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, category: selectedCategory, day: selectedDay, timeSlot: selectedTime })
+        body: JSON.stringify({ user_id: user.id, category: selectedCategory, description: customCategoryDescriptions[selectedCategory] || selectedCategory, day: selectedDay, timeSlot: selectedTime })
       });
       if (!response.ok) { finishProgressBar(() => setNewsLoading(false)); return; }
       const category = selectedCategory, day = selectedDay, time = selectedTime;
@@ -276,8 +280,9 @@ const TheAIRundown = () => {
         const { data: userProfile, error: profileError } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
         if (profileError) { alert('Failed to load user profile'); return; }
         if (userProfile.verification_status !== 'verified') { alert('Please verify your email first.'); return; }
-        const { data: categoriesData } = await supabase.from('custom_categories').select('category_name').eq('user_id', authData.user.id);
+        const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id);
         const categories = categoriesData?.map(c => c.category_name) || [];
+        const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
         const userData = {
           id: authData.user.id,
           email: authData.user.email,
@@ -285,7 +290,7 @@ const TheAIRundown = () => {
           emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {})
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-        setUser(userData); setCustomCategories(categories); setEmailPreferences(userData.emailPreferences);
+        setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword('');
       } catch (error) { alert('Error during sign-in: ' + error.message); }
     }
@@ -293,11 +298,18 @@ const TheAIRundown = () => {
 
   const handleAddCategory = async () => {
     if (!newCategory.trim() || !user) return;
-    const { error } = await supabase.from('custom_categories').insert({ user_id: user.id, category_name: newCategory.trim() });
+    const title = newCategory.trim().slice(0, 25);
+    const description = newCategoryDescription.trim() || title;
+    const { error } = await supabase.from('custom_categories').insert({ user_id: user.id, category_name: title, category_description: description });
     if (error) { alert('Failed to add category: ' + error.message); return; }
-    const updated = { ...user, categories: [...(user.categories || []), newCategory.trim()] };
+    const updated = { ...user, categories: [...(user.categories || []), title] };
     localStorage.setItem('newsdigest_user', JSON.stringify(updated));
-    setUser(updated); setCustomCategories(updated.categories); setNewCategory(''); setShowCategoryModal(false);
+    setUser(updated);
+    setCustomCategories(updated.categories);
+    setCustomCategoryDescriptions(prev => ({ ...prev, [title]: description }));
+    setNewCategory('');
+    setNewCategoryDescription('');
+    setShowCategoryModal(false);
   };
 
   const handleDeleteCategory = async (categoryToDelete) => {
@@ -560,13 +572,43 @@ const TheAIRundown = () => {
       {/* ── Add Category Modal ── */}
       {showCategoryModal && user && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '380px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '1.2rem', color: '#111827' }}>Add Custom Category</h2>
-            <input type="text" placeholder="e.g., Los Angeles Lakers" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem' }} />
-            <button onClick={handleAddCategory} style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem' }}>
+          <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '1.4rem', color: '#111827' }}>Add Custom Category</h2>
+
+            <div style={{ marginBottom: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Category Title</label>
+                <span style={{ fontSize: '0.75rem', color: newCategory.length >= 25 ? '#ef4444' : '#9ca3af' }}>{newCategory.length}/25</span>
+              </div>
+              <input
+                type="text"
+                placeholder="e.g., Lakers"
+                value={newCategory}
+                maxLength={25}
+                onChange={(e) => setNewCategory(e.target.value)}
+                style={{ width: '100%', padding: '0.78rem 1rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', boxSizing: 'border-box' }}
+              />
+              <p style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: '0.3rem', marginBottom: 0 }}>Shown on the category pill — keep it short</p>
+            </div>
+
+            <div style={{ marginBottom: '1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Description</label>
+                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>used for news generation</span>
+              </div>
+              <textarea
+                placeholder="e.g., Los Angeles Lakers NBA playoffs, trades, and team news"
+                value={newCategoryDescription}
+                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                rows={3}
+                style={{ width: '100%', padding: '0.78rem 1rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <button onClick={handleAddCategory} disabled={!newCategory.trim()} style={{ width: '100%', padding: '0.82rem', background: newCategory.trim() ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#e5e7eb', color: newCategory.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: '999px', cursor: newCategory.trim() ? 'pointer' : 'not-allowed', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', transition: 'all 0.15s' }}>
               Add Category
             </button>
-            <button onClick={() => setShowCategoryModal(false)} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
+            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
               Cancel
             </button>
           </div>
@@ -763,7 +805,7 @@ const TheAIRundown = () => {
                     </div>
                   </div>
                   {(() => {
-                    window._trackCategory = (name) => { setNewCategory(name); setShowCategoryModal(true); };
+                    window._trackCategory = (name) => { setNewCategory(name.slice(0, 25)); setNewCategoryDescription(name); setShowCategoryModal(true); };
                     const raw = newsSummary.content || '';
 
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.

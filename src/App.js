@@ -768,11 +768,16 @@ const TheAIRundown = () => {
 
                     // Split off ## Sources section
                     const sourcesStart = raw.search(/^## Sources\s*$/m);
-                    const mainContent = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
+                    const beforeSources = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
                     const sourcesSection = sourcesStart > -1 ? raw.slice(sourcesStart) : '';
                     const sourceLinks = [...sourcesSection.matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
                       .map(m => ({ title: m[1], url: m[2] }))
                       .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i); // dedupe
+
+                    // Extract top note (content before first ## heading, e.g. _Note: ..._)
+                    const firstStoryIdx = beforeSources.search(/^#{1,3} /m);
+                    const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
+                    const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
 
                     // Render main summary
                     const html = mainContent
@@ -803,6 +808,13 @@ const TheAIRundown = () => {
 
                     return (
                       <>
+                        {/* Date availability note — shown above sources */}
+                        {topNote && (
+                          <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}>
+                            {topNote.replace(/^_+|_+$/g, '')}
+                          </p>
+                        )}
+
                         {/* Sources cards — shown at top */}
                         {sourceLinks.length > 0 && (
                           <div style={{ marginBottom: '1.5rem' }}>

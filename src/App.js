@@ -762,18 +762,48 @@ const TheAIRundown = () => {
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.95rem', lineHeight: '1.6', color: '#1e293b', whiteSpace: 'pre-wrap' }}
-                    dangerouslySetInnerHTML={{ __html: newsSummary.content
+                  {(() => {
+                    window._trackCategory = (name) => { setNewCategory(name); setShowCategoryModal(true); };
+                    const raw = newsSummary.content || '';
+                    // Split off ## Sources section
+                    const srcMatch = raw.match(/^## Sources\s*\n([\s\S]*)$/m);
+                    const mainContent = srcMatch ? raw.slice(0, raw.indexOf(srcMatch[0])).trim() : raw.trim();
+                    const sourceLinks = srcMatch
+                      ? [...srcMatch[1].matchAll(/[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)].map(m => ({ title: m[1], url: m[2] }))
+                      : [];
+                    const html = mainContent
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      .replace(/^(#{1,3})\s+(.+)$/gm, (_, hashes, text) => {
-                        const level = hashes.length;
-                        const sizes = { 1: '1.3rem', 2: '1.12rem', 3: '1.02rem' };
-                        return `<h${level+2} style="font-size:${sizes[level]};font-weight:800;color:#111827;margin:1rem 0 0.3rem;line-height:1.25;">${text}</h${level+2}>`;
+                      // Heading with embedded link: ## [Title](URL)
+                      .replace(/^#{1,3} \[(.+?)\]\(([^)]+)\)\s*$/gm, (_, text, url) => {
+                        const safe = text.replace(/'/g, '&#39;');
+                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><a href="${url}" target="_blank" rel="noopener noreferrer" style="font-size:1.05rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
                       })
-                      .replace(/^- (.+)$/gm, '<div style="margin:0.25rem 0 0.25rem 1rem;padding-left:0.65rem;border-left:2px solid #e5e7eb;color:#374151;">$1</div>')
-                      .replace(/\n\n/g, '<div style="height:0.35rem;"></div>')
-                    }}
-                  />
+                      // Plain heading: ## Title
+                      .replace(/^#{1,3} (.+)$/gm, (_, text) => {
+                        const safe = text.replace(/'/g, '&#39;');
+                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><span style="font-size:1.05rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
+                      })
+                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.15rem 0 0.15rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.9rem;line-height:1.5;">$1</div>')
+                      .replace(/\n\n+/g, '<div style="height:0.18rem;"></div>')
+                      .replace(/\n/g, '<br style="line-height:0.6;">');
+                    return (
+                      <>
+                        <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />
+                        {sourceLinks.length > 0 && (
+                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.5rem' }}>Sources</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                              {sourceLinks.map((s, i) => (
+                                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>↗</span>{s.title}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>

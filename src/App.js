@@ -765,47 +765,72 @@ const TheAIRundown = () => {
                   {(() => {
                     window._trackCategory = (name) => { setNewCategory(name); setShowCategoryModal(true); };
                     const raw = newsSummary.content || '';
+
                     // Split off ## Sources section
                     const sourcesStart = raw.search(/^## Sources\s*$/m);
                     const mainContent = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
                     const sourcesSection = sourcesStart > -1 ? raw.slice(sourcesStart) : '';
-                    const sourceLinks = [...sourcesSection.matchAll(/[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
-                      .map(m => ({ title: m[1], url: m[2] }));
+                    const sourceLinks = [...sourcesSection.matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
+                      .map(m => ({ title: m[1], url: m[2] }))
+                      .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i); // dedupe
+
+                    // Render main summary
                     const html = mainContent
+                      // Fix ## alone on its own line — join with next line
+                      .replace(/^(#{1,3})\s*\n(?!\s*\n)/gm, '$1 ')
+                      // Fix missing [ in ## Title](URL)
+                      .replace(/^(#{1,3} )(?!\[)([^\n]+\]\(https?:\/\/)/gm, '$1[$2')
                       // Remove orphaned lines that are just punctuation or empty bullets
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       // Italic _text_ — used for availability disclaimers
                       .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')
-                      // Linked heading ## [Title](URL) — clickable story headline + Track button
+                      // Linked heading ## [Title](URL) — clickable + Track button
                       .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
                         const safe = text.replace(/'/g, '&#39;');
                         const safeUrl = url.replace(/"/g, '%22');
-                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:0.95rem 0 0.2rem;flex-wrap:wrap;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.05rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
+                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:1.1rem 0 0.25rem;flex-wrap:wrap;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.02rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
                       })
-                      // Plain heading ## Title — section label only, no track button
-                      .replace(/^#{1,3} (.+)$/gm, (_, text) => {
-                        return `<div style="font-size:1.05rem;font-weight:800;color:#374151;margin:0.95rem 0 0.2rem;line-height:1.3;">${text}</div>`;
-                      })
-                      // Bullet points with content only
-                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.15rem 0 0.15rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.9rem;line-height:1.5;">$1</div>')
-                      .replace(/\n\n+/g, '<div style="height:0.18rem;"></div>')
-                      .replace(/\n/g, '<br style="line-height:0.6;">');
+                      // Plain heading — no track button
+                      .replace(/^#{1,3} (.+)$/gm, (_, text) =>
+                        `<div style="font-size:1.02rem;font-weight:800;color:#374151;margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;line-height:1.3;">${text}</div>`
+                      )
+                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
+                      .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
+                      .replace(/\n/g, '');
+
+                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+
                     return (
                       <>
-                        <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />
+                        {/* Sources cards — shown at top */}
                         {sourceLinks.length > 0 && (
-                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.5rem' }}>Sources</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                              {sourceLinks.map((s, i) => (
-                                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>↗</span>{s.title}
-                                </a>
-                              ))}
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 0.65rem' }}>Sources</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.55rem' }}>
+                              {sourceLinks.map((s, i) => {
+                                const domain = getDomain(s.url);
+                                const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                                return (
+                                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s', cursor: 'pointer' }}
+                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
+                                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                      <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                      <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                                    </div>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
+                                    <span style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: '600', marginTop: 'auto' }}>Read article ↗</span>
+                                  </a>
+                                );
+                              })}
                             </div>
+                            <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
                           </div>
                         )}
+
+                        {/* Summary */}
+                        <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />
                       </>
                     );
                   })()}

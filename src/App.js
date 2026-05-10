@@ -25,11 +25,8 @@ const TheAIRundown = () => {
   const [newCategory, setNewCategory] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
-    night: { enabled: false, categories: [] },
-    morning: { enabled: false, categories: [] },
-    noon: { enabled: false, categories: [] },
-    afternoon: { enabled: false, categories: [] },
-    evening: { enabled: false, categories: [] },
+    categories: [],
+    night: false, morning: false, noon: false, afternoon: false, evening: false,
   });
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsSummary, setNewsSummary] = useState(null);
@@ -315,12 +312,19 @@ const TheAIRundown = () => {
   const normalizeEmailPrefs = (raw) => {
     const slots = ['night', 'morning', 'noon', 'afternoon', 'evening'];
     const out = {};
+    // Categories: new flat format has raw.categories array; old per-slot format had categories inside each slot
+    if (Array.isArray(raw.categories) && raw.categories.length) {
+      out.categories = raw.categories;
+    } else {
+      const firstSlotWithCats = slots.find(s => raw[s]?.categories?.length);
+      out.categories = firstSlotWithCats ? raw[firstSlotWithCats].categories : [...defaultCategories];
+    }
+    // Slot enabled flags
     slots.forEach(slot => {
-      if (typeof raw[slot] === 'boolean') {
-        out[slot] = { enabled: raw[slot], categories: raw[slot] ? [...defaultCategories] : [] };
-      } else {
-        out[slot] = raw[slot] || { enabled: false, categories: [] };
-      }
+      const pref = raw[slot];
+      if (typeof pref === 'boolean') out[slot] = pref;
+      else if (pref && typeof pref === 'object') out[slot] = pref.enabled || false;
+      else out[slot] = false;
     });
     return out;
   };
@@ -339,20 +343,15 @@ const TheAIRundown = () => {
     }
   };
 
-  const handleEmailPreferenceToggle = (timeValue) => {
-    const current = emailPreferences[timeValue] || { enabled: false, categories: [] };
-    const nowEnabled = !current.enabled;
-    saveEmailPrefs({
-      ...emailPreferences,
-      [timeValue]: { enabled: nowEnabled, categories: nowEnabled ? [...defaultCategories] : current.categories }
-    });
+  const handleEmailSlotToggle = (slotKey) => {
+    saveEmailPrefs({ ...emailPreferences, [slotKey]: !emailPreferences[slotKey] });
   };
 
-  const handleCategoryEmailToggle = (timeValue, category) => {
-    const current = emailPreferences[timeValue] || { enabled: true, categories: [] };
-    const cats = current.categories || [];
+  const handleCategoryEmailToggle = (category) => {
+    const cats = emailPreferences.categories || [];
+    if (cats.includes(category) && cats.length === 1) return; // must keep at least one
     const newCats = cats.includes(category) ? cats.filter(c => c !== category) : [...cats, category];
-    saveEmailPrefs({ ...emailPreferences, [timeValue]: { ...current, categories: newCats } });
+    saveEmailPrefs({ ...emailPreferences, categories: newCats });
   };
 
   const checkScrollPosition = (ref, setLeftArrow, setRightArrow) => {
@@ -800,38 +799,34 @@ const TheAIRundown = () => {
                 <Mail size={20} color="#6366f1" strokeWidth={2.5} />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#111827' }}>Email Digest Preferences</h3>
               </div>
-              <div style={{ display: 'grid', gap: '0.65rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.78rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Categories to receive</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  {defaultCategories.map(cat => {
+                    const active = (emailPreferences.categories || []).includes(cat);
+                    const isLast = active && (emailPreferences.categories || []).length === 1;
+                    return (
+                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} title={isLast ? 'At least one category must be selected' : ''} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? '#6366f1' : 'white', color: active ? 'white' : '#6b7280', border: active ? 'none' : '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isLast ? 'not-allowed' : 'pointer', opacity: isLast ? 0.6 : 1, transition: 'all 0.12s ease' }}>
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1rem' }} />
+              <p style={{ fontSize: '0.78rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.55rem' }}>
                 {timesOfDay.map(time => {
                   const slotKey = time.value.toLowerCase();
-                  const slotPref = emailPreferences[slotKey] || { enabled: false, categories: [] };
-                  const isEnabled = slotPref.enabled;
-                  const selectedCats = slotPref.categories || [];
+                  const isEnabled = !!emailPreferences[slotKey];
                   return (
-                    <div key={time.value} style={{ border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', transition: 'all 0.15s ease' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.9rem 1rem', cursor: 'pointer', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'white' }}>
-                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailPreferenceToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#111827' }}>{time.label}</div>
-                          <div style={{ fontSize: '0.77rem', color: '#9ca3af' }}>{time.time}</div>
-                        </div>
-                        {isEnabled && <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: '600' }}>{selectedCats.length} categor{selectedCats.length === 1 ? 'y' : 'ies'}</span>}
-                      </label>
-                      {isEnabled && (
-                        <div style={{ padding: '0.6rem 1rem 0.9rem', borderTop: '1px solid #f3f4f6', background: 'white' }}>
-                          <p style={{ fontSize: '0.73rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.5rem' }}>Categories to receive</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                            {defaultCategories.map(cat => {
-                              const active = selectedCats.includes(cat);
-                              return (
-                                <button key={cat} onClick={() => handleCategoryEmailToggle(slotKey, cat)} style={{ padding: '0.28rem 0.75rem', fontSize: '0.77rem', fontWeight: active ? '700' : '500', background: active ? '#6366f1' : 'white', color: active ? 'white' : '#6b7280', border: active ? 'none' : '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', transition: 'all 0.12s ease' }}>
-                                  {cat}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.8rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                      <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#111827' }}>{time.label}</div>
+                        <div style={{ fontSize: '0.73rem', color: '#9ca3af' }}>{time.time}</div>
+                      </div>
+                    </label>
                   );
                 })}
               </div>

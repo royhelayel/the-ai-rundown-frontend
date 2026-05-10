@@ -99,14 +99,16 @@ const TheAIRundown = () => {
     ? timesOfDay[currentTimeIndex - 1].value
     : timesOfDay[timesOfDay.length - 1].value;
 
-  // A slot is "future" when viewing today and the slot hasn't started yet
+  // Pre-defined: disable current + future (news generated at end of slot, not during)
+  // Custom: disable only future (current slot is generatable on demand)
   const isTimeFuture = (timeValue) => {
     if (selectedDay !== today) return false;
-    return timesOfDay.findIndex(t => t.value === timeValue) > currentTimeIndex;
+    const idx = timesOfDay.findIndex(t => t.value === timeValue);
+    return isCustomCategory ? idx > currentTimeIndex : idx >= currentTimeIndex;
   };
 
-  // Custom: past + current only. Pre-defined: all (future ones are disabled, not hidden)
-  const availableTimes = isCustomCategory ? timesOfDay.slice(0, currentTimeIndex + 1) : timesOfDay;
+  // Always show all slots; isTimeFuture handles which are disabled
+  const availableTimes = timesOfDay;
   const availableDays  = isCustomCategory ? daysOfWeek.filter(d => d.fullDate === today) : daysOfWeek;
 
   const handleSelectCategory = (category) => {
@@ -237,10 +239,8 @@ const TheAIRundown = () => {
 
   useEffect(() => {
     if (!selectedTime) return;
-    if (isCustomCategory && !availableTimes.find(t => t.value === selectedTime))
-      setSelectedTime(currentTimeSlot);
-    else if (!isCustomCategory && isTimeFuture(selectedTime))
-      setSelectedTime(lastCompletedTimeSlot);
+    if (isTimeFuture(selectedTime))
+      setSelectedTime(isCustomCategory ? currentTimeSlot : lastCompletedTimeSlot);
   }, [isCustomCategory, selectedDay, selectedTime]);
 
   useEffect(() => {

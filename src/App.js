@@ -25,7 +25,11 @@ const TheAIRundown = () => {
   const [newCategory, setNewCategory] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
-    night: false, morning: false, noon: false, afternoon: false, evening: false
+    night: { enabled: false, categories: [] },
+    morning: { enabled: false, categories: [] },
+    noon: { enabled: false, categories: [] },
+    afternoon: { enabled: false, categories: [] },
+    evening: { enabled: false, categories: [] },
   });
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsSummary, setNewsSummary] = useState(null);
@@ -125,14 +129,15 @@ const TheAIRundown = () => {
       if (savedUser) {
         const userData = JSON.parse(savedUser);
         setUser(userData);
-        setEmailPreferences(userData.emailPreferences || { night: false, morning: false, noon: false, afternoon: false, evening: false });
+        setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         // Refresh categories and email preferences from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name').eq('user_id', userData.id),
           supabase.from('users').select('email_preferences').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
-          const prefs = prefRes.data?.email_preferences || userData.emailPreferences || { night: false, morning: false, noon: false, afternoon: false, evening: false };
+          const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
+          const prefs = normalizeEmailPrefs(rawPrefs);
           setCustomCategories(cats);
           setEmailPreferences(prefs);
           const updated = { ...userData, categories: cats, emailPreferences: prefs };
@@ -280,10 +285,10 @@ const TheAIRundown = () => {
           id: authData.user.id,
           email: authData.user.email,
           categories,
-          emailPreferences: userProfile.email_preferences || { night: false, morning: false, noon: false, afternoon: false, evening: false }
+          emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {})
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-        setUser(userData); setCustomCategories(categories); setEmailPreferences(userData.emailPreferences || {});
+        setUser(userData); setCustomCategories(categories); setEmailPreferences(userData.emailPreferences);
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword('');
       } catch (error) { alert('Error during sign-in: ' + error.message); }
     }
@@ -307,20 +312,47 @@ const TheAIRundown = () => {
     if (selectedCategory === categoryToDelete) setSelectedCategory('World News');
   };
 
-  const handleEmailPreferenceToggle = async (timeValue) => {
-    const updated = { ...emailPreferences, [timeValue]: !emailPreferences[timeValue] };
+  const normalizeEmailPrefs = (raw) => {
+    const slots = ['night', 'morning', 'noon', 'afternoon', 'evening'];
+    const out = {};
+    slots.forEach(slot => {
+      if (typeof raw[slot] === 'boolean') {
+        out[slot] = { enabled: raw[slot], categories: raw[slot] ? [...defaultCategories] : [] };
+      } else {
+        out[slot] = raw[slot] || { enabled: false, categories: [] };
+      }
+    });
+    return out;
+  };
+
+  const saveEmailPrefs = (updated) => {
     setEmailPreferences(updated);
     if (user) {
       const userData = { ...user, emailPreferences: updated };
       localStorage.setItem('newsdigest_user', JSON.stringify(userData));
       setUser(userData);
-      // Persist to backend (uses service role to bypass RLS)
       fetch(`${BACKEND_URL}/api/user/email-preferences`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, preferences: updated })
       }).catch(err => console.error('Failed to save email preferences:', err));
     }
+  };
+
+  const handleEmailPreferenceToggle = (timeValue) => {
+    const current = emailPreferences[timeValue] || { enabled: false, categories: [] };
+    const nowEnabled = !current.enabled;
+    saveEmailPrefs({
+      ...emailPreferences,
+      [timeValue]: { enabled: nowEnabled, categories: nowEnabled ? [...defaultCategories] : current.categories }
+    });
+  };
+
+  const handleCategoryEmailToggle = (timeValue, category) => {
+    const current = emailPreferences[timeValue] || { enabled: true, categories: [] };
+    const cats = current.categories || [];
+    const newCats = cats.includes(category) ? cats.filter(c => c !== category) : [...cats, category];
+    saveEmailPrefs({ ...emailPreferences, [timeValue]: { ...current, categories: newCats } });
   };
 
   const checkScrollPosition = (ref, setLeftArrow, setRightArrow) => {
@@ -768,16 +800,40 @@ const TheAIRundown = () => {
                 <Mail size={20} color="#6366f1" strokeWidth={2.5} />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#111827' }}>Email Digest Preferences</h3>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.65rem' }}>
-                {timesOfDay.map(time => (
-                  <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.9rem 1rem', background: emailPreferences[time.value.toLowerCase()] ? 'rgba(99,102,241,0.06)' : 'rgba(0,0,0,0.02)', border: emailPreferences[time.value.toLowerCase()] ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={emailPreferences[time.value.toLowerCase()] || false} onChange={() => handleEmailPreferenceToggle(time.value.toLowerCase())} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }} />
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#111827' }}>{time.label}</div>
-                      <div style={{ fontSize: '0.77rem', color: '#9ca3af' }}>{time.time}</div>
+              <div style={{ display: 'grid', gap: '0.65rem' }}>
+                {timesOfDay.map(time => {
+                  const slotKey = time.value.toLowerCase();
+                  const slotPref = emailPreferences[slotKey] || { enabled: false, categories: [] };
+                  const isEnabled = slotPref.enabled;
+                  const selectedCats = slotPref.categories || [];
+                  return (
+                    <div key={time.value} style={{ border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', transition: 'all 0.15s ease' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.9rem 1rem', cursor: 'pointer', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'white' }}>
+                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailPreferenceToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#111827' }}>{time.label}</div>
+                          <div style={{ fontSize: '0.77rem', color: '#9ca3af' }}>{time.time}</div>
+                        </div>
+                        {isEnabled && <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: '600' }}>{selectedCats.length} categor{selectedCats.length === 1 ? 'y' : 'ies'}</span>}
+                      </label>
+                      {isEnabled && (
+                        <div style={{ padding: '0.6rem 1rem 0.9rem', borderTop: '1px solid #f3f4f6', background: 'white' }}>
+                          <p style={{ fontSize: '0.73rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.5rem' }}>Categories to receive</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {defaultCategories.map(cat => {
+                              const active = selectedCats.includes(cat);
+                              return (
+                                <button key={cat} onClick={() => handleCategoryEmailToggle(slotKey, cat)} style={{ padding: '0.28rem 0.75rem', fontSize: '0.77rem', fontWeight: active ? '700' : '500', background: active ? '#6366f1' : 'white', color: active ? 'white' : '#6b7280', border: active ? 'none' : '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', transition: 'all 0.12s ease' }}>
+                                  {cat}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

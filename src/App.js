@@ -810,9 +810,12 @@ const TheAIRundown = () => {
                       <>
                         {/* Date availability note — shown above sources */}
                         {topNote && (
-                          <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}>
-                            {topNote.replace(/^_+|_+$/g, '')}
-                          </p>
+                          <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}
+                            dangerouslySetInnerHTML={{ __html: topNote
+                              .replace(/^_+|_+$/g, '')
+                              .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#6b7280;font-weight:700;">$1</strong>')
+                            }}
+                          />
                         )}
 
                         {/* Sources cards — shown at top */}

@@ -208,6 +208,7 @@ const TheAIRundown = () => {
 
   const handleGenerateCustomCategory = async () => {
     if (!customCategories.includes(selectedCategory)) return;
+    if (selectedTime !== currentTimeSlot || selectedDay !== today) return;
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     try {
       setNewsLoading(true);
@@ -247,8 +248,10 @@ const TheAIRundown = () => {
   }, [selectedCategory, selectedDay, selectedTime]);
 
   useEffect(() => {
-    if (newsNotAvailable && customCategories.includes(selectedCategory) && user) handleGenerateCustomCategory();
-  }, [newsNotAvailable, selectedCategory]);
+    const isCurrentSlot = selectedTime === currentTimeSlot && selectedDay === today;
+    if (newsNotAvailable && customCategories.includes(selectedCategory) && user && isCurrentSlot)
+      handleGenerateCustomCategory();
+  }, [newsNotAvailable, selectedCategory, selectedTime, selectedDay]);
 
   const handleAuth = async () => {
     if (!email || !password) return;

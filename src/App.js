@@ -766,8 +766,8 @@ const TheAIRundown = () => {
                     window._trackCategory = (name) => { setNewCategory(name); setShowCategoryModal(true); };
                     const raw = newsSummary.content || '';
 
-                    // Split off ## Sources section
-                    const sourcesStart = raw.search(/^## Sources\s*$/m);
+                    // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
+                    const sourcesStart = raw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
                     const beforeSources = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
                     const sourcesSection = sourcesStart > -1 ? raw.slice(sourcesStart) : '';
                     const sourceLinks = [...sourcesSection.matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]

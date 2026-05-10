@@ -93,28 +93,31 @@ const TheAIRundown = () => {
   const today = daysOfWeek[daysOfWeek.length - 1]?.fullDate;
 
   const isCustomCategory = customCategories.includes(selectedCategory);
-  const availableTimes = isCustomCategory ? timesOfDay.slice(currentTimeIndex) : timesOfDay;
+
+  // Last completed slot = the one just before the current one (for pre-defined default)
+  const lastCompletedTimeSlot = currentTimeIndex > 0
+    ? timesOfDay[currentTimeIndex - 1].value
+    : timesOfDay[timesOfDay.length - 1].value;
+
+  // A slot is "future" when viewing today and the slot hasn't started yet
+  const isTimeFuture = (timeValue) => {
+    if (selectedDay !== today) return false;
+    return timesOfDay.findIndex(t => t.value === timeValue) > currentTimeIndex;
+  };
+
+  // Custom: past + current only. Pre-defined: all (future ones are disabled, not hidden)
+  const availableTimes = isCustomCategory ? timesOfDay.slice(0, currentTimeIndex + 1) : timesOfDay;
   const availableDays  = isCustomCategory ? daysOfWeek.filter(d => d.fullDate === today) : daysOfWeek;
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
-    if (customCategories.includes(category)) {
-      setSelectedDay(today);
-      setSelectedTime(currentTimeSlot);
-    }
+    setSelectedDay(today);
+    setSelectedTime(customCategories.includes(category) ? currentTimeSlot : lastCompletedTimeSlot);
   };
 
   useEffect(() => {
     setSelectedDay(getDaysOfWeek(0)[6].fullDate);
-    const now = new Date();
-    const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-    const hour = uaeTime.getHours();
-    let defaultTime = 'Evening';
-    if (hour >= 6 && hour < 10)  defaultTime = 'Morning';
-    else if (hour >= 10 && hour < 14) defaultTime = 'Noon';
-    else if (hour >= 14 && hour < 18) defaultTime = 'Afternoon';
-    else if (hour >= 18 && hour < 24) defaultTime = 'Evening';
-    setSelectedTime(defaultTime);
+    setSelectedTime(lastCompletedTimeSlot);
     try {
       const savedUser = localStorage.getItem('newsdigest_user');
       if (savedUser) {
@@ -232,9 +235,12 @@ const TheAIRundown = () => {
   };
 
   useEffect(() => {
-    if (isCustomCategory && selectedTime && !availableTimes.find(t => t.value === selectedTime))
+    if (!selectedTime) return;
+    if (isCustomCategory && !availableTimes.find(t => t.value === selectedTime))
       setSelectedTime(currentTimeSlot);
-  }, [isCustomCategory, availableTimes, selectedTime, currentTimeSlot]);
+    else if (!isCustomCategory && isTimeFuture(selectedTime))
+      setSelectedTime(lastCompletedTimeSlot);
+  }, [isCustomCategory, selectedDay, selectedTime]);
 
   useEffect(() => {
     if (selectedCategory && selectedDay && selectedTime) handleFetchNews();
@@ -339,18 +345,19 @@ const TheAIRundown = () => {
     lineHeight: 1.4,
   });
 
-  const timePill = (active) => ({
+  const timePill = (active, disabled = false) => ({
     padding: '0.3rem 0.9rem',
     background: active ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : 'white',
-    color: active ? 'white' : '#6b7280',
-    border: active ? 'none' : '1.5px solid #e5e7eb',
+    color: active ? 'white' : disabled ? '#d1d5db' : '#6b7280',
+    border: active ? 'none' : `1.5px solid ${disabled ? '#f3f4f6' : '#e5e7eb'}`,
     borderRadius: '999px',
-    cursor: 'pointer',
+    cursor: disabled ? 'not-allowed' : 'pointer',
     fontSize: '0.78rem',
     fontWeight: active ? '700' : '500',
     whiteSpace: 'nowrap',
     flexShrink: 0,
     transition: 'all 0.15s ease',
+    opacity: disabled ? 0.45 : 1,
   });
 
   const navArrow = (disabled) => ({
@@ -560,7 +567,7 @@ const TheAIRundown = () => {
               ))}
               <span style={{ color: '#e5e7eb', margin: '0 0.1rem', userSelect: 'none' }}>|</span>
               {availableTimes.map(time => (
-                <button key={time.value} onClick={() => setSelectedTime(time.value)} style={timePill(selectedTime === time.value)}>
+                <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
                   {time.label}
                 </button>
               ))}
@@ -610,7 +617,7 @@ const TheAIRundown = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableTimes.map(time => (
-                  <button key={time.value} onClick={() => { setSelectedTime(time.value); setShowTimeMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
+                  <button key={time.value} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={isTimeFuture(time.value)} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : isTimeFuture(time.value) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isTimeFuture(time.value) ? 0.45 : 1 }}>
                     {time.label}
                   </button>
                 ))}
@@ -625,7 +632,7 @@ const TheAIRundown = () => {
             {windowWidth > 750 && !isCustomCategory && (
               <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 {availableTimes.map(time => (
-                  <button key={time.value} onClick={() => setSelectedTime(time.value)} style={timePill(selectedTime === time.value)}>
+                  <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
                     {time.label}
                   </button>
                 ))}

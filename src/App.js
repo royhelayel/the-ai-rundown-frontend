@@ -17,6 +17,7 @@ const TheAIRundown = () => {
   const [authMode, setAuthMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState(null); // { type: 'info'|'error'|'success', text: string }
   const [selectedCategory, setSelectedCategory] = useState('World News');
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState('');
@@ -265,25 +266,41 @@ const TheAIRundown = () => {
 
   const handleAuth = async () => {
     if (!email || !password) return;
+    setAuthMessage(null);
     if (authMode === 'signup') {
       try {
-        setShowAuth(false);
         const res = await fetch(`${BACKEND_URL}/api/auth/send-verification`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        if (!res.ok) { const e = await res.json(); alert('Failed to sign up: ' + e.error); setShowAuth(true); return; }
-        alert(`Verification email sent to ${email}! Please check your email.`);
-        setEmail(''); setPassword(''); setAuthMode('signin');
-      } catch (error) { alert('Error during sign-up: ' + error.message); setShowAuth(true); }
+        if (!res.ok) {
+          const e = await res.json();
+          const msg = e.error || '';
+          if (msg.toLowerCase().includes('already verified')) {
+            setAuthMessage({ type: 'info', text: `You already have a verified account with this email. Switch to Sign In below to log in.` });
+          } else {
+            setAuthMessage({ type: 'error', text: msg || 'Something went wrong. Please try again.' });
+          }
+          return;
+        }
+        const data = await res.json();
+        if (data.resent) {
+          setAuthMessage({ type: 'info', text: `Looks like you've already started signing up! We've resent a verification link to ${email} — check your inbox and click the link to complete your account setup.` });
+        } else {
+          setAuthMessage({ type: 'success', text: `Almost there! We've sent a verification link to ${email}. Check your inbox and click the link to activate your account.` });
+        }
+        setPassword('');
+      } catch (error) {
+        setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' });
+      }
     } else {
       try {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-        if (authError) { alert('Failed to sign in: ' + authError.message); return; }
-        if (!authData.user) { alert('Sign-in failed. Please try again.'); return; }
+        if (authError) { setAuthMessage({ type: 'error', text: authError.message }); return; }
+        if (!authData.user) { setAuthMessage({ type: 'error', text: 'Sign-in failed. Please try again.' }); return; }
         const { data: userProfile, error: profileError } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
-        if (profileError) { alert('Failed to load user profile'); return; }
-        if (userProfile.verification_status !== 'verified') { alert('Please verify your email first.'); return; }
+        if (profileError) { setAuthMessage({ type: 'error', text: 'Failed to load user profile.' }); return; }
+        if (userProfile.verification_status !== 'verified') { setAuthMessage({ type: 'info', text: 'Please verify your email first. Check your inbox for the verification link.' }); return; }
         const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id);
         const categories = categoriesData?.map(c => c.category_name) || [];
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
@@ -295,8 +312,8 @@ const TheAIRundown = () => {
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
-        setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword('');
-      } catch (error) { alert('Error during sign-in: ' + error.message); }
+        setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword(''); setAuthMessage(null);
+      } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); }
     }
   };
 
@@ -558,15 +575,25 @@ const TheAIRundown = () => {
             <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '1.5rem', textAlign: 'center', color: '#111827' }}>
               {authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </h2>
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
+            {authMessage && (
+              <div style={{
+                marginBottom: '1.1rem', padding: '0.85rem 1rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: '1.5',
+                background: authMessage.type === 'error' ? '#fef2f2' : authMessage.type === 'success' ? '#f0fdf4' : '#eff6ff',
+                color: authMessage.type === 'error' ? '#991b1b' : authMessage.type === 'success' ? '#166534' : '#1e40af',
+                border: `1.5px solid ${authMessage.type === 'error' ? '#fecaca' : authMessage.type === 'success' ? '#bbf7d0' : '#bfdbfe'}`
+              }}>
+                {authMessage.text}
+              </div>
+            )}
+            <input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
             <button onClick={handleAuth} style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem' }}>
               {authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
-            <button onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+            <button onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
               {authMode === 'signin' ? 'Create Account Instead' : 'Sign In Instead'}
             </button>
-            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); }} style={{ width: '100%', padding: '0.7rem', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.88rem' }}>
+            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); setAuthMessage(null); }} style={{ width: '100%', padding: '0.7rem', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.88rem' }}>
               Close
             </button>
           </div>
@@ -861,15 +888,32 @@ const TheAIRundown = () => {
                     const html = mergedContent
                       // Fix ## alone on its own line — join with next line
                       .replace(/^(#{1,3})\s*\n(?!\s*\n)/gm, '$1 ')
-                      // Fix missing [ in ## Title](URL)
+                      // Fix missing [ in ## Title](URL) — backward compat for old stored content
                       .replace(/^(#{1,3} )(?!\[)([^\n]+\]\(https?:\/\/)/gm, '$1[$2')
                       // Remove orphaned lines that are just punctuation, empty bullets, or bare URLs
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
+                      // Coverage line — row of source badges (must come before **bold** replacement)
+                      .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, (_, links) => {
+                        const badges = [...links.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)].map(([, text, url]) => {
+                          let domain = '';
+                          try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+                          return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.22rem;padding:0.18rem 0.55rem 0.18rem 0.32rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:999px;text-decoration:none;margin:0 0.22rem 0.2rem 0;"><img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#374151;">${text}</span></a>`;
+                        }).join('');
+                        return `<div style="display:flex;flex-wrap:wrap;align-items:center;margin:0.2rem 0 0.5rem;">${badges}</div>`;
+                      })
+                      // Perspectives differ — amber callout (must come before **bold** replacement)
+                      .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
+                        `<div style="margin:0.3rem 0 0.6rem;font-size:0.81rem;color:#92400e;line-height:1.55;background:#fffbeb;padding:0.5rem 0.75rem;border-radius:8px;border-left:3px solid #f59e0b;"><span style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:#b45309;font-style:normal;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
+                      )
+                      // "Why this matters" — subtle gray italic
+                      .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
+                      )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       // Italic _text_ — used for availability disclaimers
                       .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')
-                      // Linked heading ## [Title](URL) — source line + headline + Track button
+                      // Linked heading ## [Title](URL) — backward compat for old stored content
                       .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
                         const safe = text.replace(/'/g, '&#39;');
                         const safeUrl = url.replace(/"/g, '%22');
@@ -878,14 +922,11 @@ const TheAIRundown = () => {
                         const sourceLine = domain ? `<div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.3rem;"><img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="13" height="13" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.04em;">${domain}</span></div>` : '';
                         return `<div style="margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;">${sourceLine}<div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.02rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div>`;
                       })
-                      // Plain heading — no track button
-                      .replace(/^#{1,3} (.+)$/gm, (_, text) =>
-                        `<div style="font-size:1.02rem;font-weight:800;color:#374151;margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;line-height:1.3;">${text}</div>`
-                      )
-                      // "Why this matters" — subtle gray italic
-                      .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
-                      )
+                      // Plain heading — new synthesized headline format with Track button
+                      .replace(/^#{1,3} (.+)$/gm, (_, text) => {
+                        const safe = text.replace(/'/g, '&#39;');
+                        return `<div style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div>`;
+                      })
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
                       .replace(/\n/g, '');

@@ -51,6 +51,11 @@ const TheAIRundown = () => {
   const pollTimerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [parsedStories, setParsedStories] = useState([]);
+  const goToLastStoryRef = useRef(false);
+  const storyNavRef = useRef({});
 
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
@@ -58,6 +63,45 @@ const TheAIRundown = () => {
   const [showDayRightArrow, setShowDayRightArrow] = useState(true);
 
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health'];
+
+  const parseStories = (raw) => {
+    if (!raw) return [];
+    const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
+    const content = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
+    const chunks = content.split(/(?=^#{1,3} )/m).filter(c => /^#{1,3} /.test(c.trim()));
+    return chunks.map(chunk => {
+      const lines = chunk.trim().split('\n');
+      const headingRaw = lines[0].replace(/^#{1,3}\s+/, '').trim();
+      const headline = headingRaw.replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
+      const rest = lines.slice(1).join('\n');
+      const coverageMatch = rest.match(/\*\*Coverage:\*\*\s*(.+)/);
+      const coverage = coverageMatch ? coverageMatch[1] : '';
+      const bullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]).slice(0, 3);
+      const perspMatch = rest.match(/\*\*Perspectives differ:\*\*\s*(.+)/);
+      const whyMatch = rest.match(/\*\*Why this matters:\*\*\s*(.+)/);
+      if (!headline || bullets.length === 0) return null;
+      return { headline, coverage, bullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
+    }).filter(Boolean);
+  };
+
+  const renderCoveragePills = (coverage) => {
+    const matches = [...coverage.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)];
+    if (!matches.length) return null;
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', margin: '0.6rem 0 0.9rem' }}>
+        {matches.map(([, text, url], i) => {
+          let domain = '';
+          try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+          return (
+            <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} alt="" />
+              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{text}</span>
+            </a>
+          );
+        })}
+      </div>
+    );
+  };
 
   const timesOfDay = [
     { value: 'Morning', label: 'Morning', time: '6 AM' },
@@ -156,6 +200,38 @@ const TheAIRundown = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
+
+  useEffect(() => {
+    const stories = parseStories(newsSummary?.content);
+    setParsedStories(stories);
+    if (goToLastStoryRef.current && stories.length > 0) {
+      setStoryIndex(stories.length - 1);
+      goToLastStoryRef.current = false;
+    }
+  }, [newsSummary]);
+
+  useEffect(() => {
+    if (!goToLastStoryRef.current) setStoryIndex(0);
+  }, [selectedCategory, selectedDay, selectedTime]);
+
+  useEffect(() => {
+    if (viewMode !== 'stories') return;
+    const handler = (e) => {
+      const { idx, stories, cats, cat } = storyNavRef.current;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        if (idx < stories.length - 1) { setStoryIndex(i => i + 1); }
+        else { const ci = cats.indexOf(cat); if (ci < cats.length - 1) { handleSelectCategory(cats[ci + 1]); setStoryIndex(0); } }
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        if (idx > 0) { setStoryIndex(i => i - 1); }
+        else { const ci = cats.indexOf(cat); if (ci > 0) { goToLastStoryRef.current = true; handleSelectCategory(cats[ci - 1]); } }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [viewMode]);
 
   useEffect(() => {
     const categoryRef = categoryScrollRef.current;
@@ -874,10 +950,21 @@ const TheAIRundown = () => {
                 </div>
               ) : newsSummary ? (
                 <div>
+                  {/* keep ref fresh for keyboard handler */}
+                  {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
-                    <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: '0 0 0.5rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                      {newsSummary.category}
-                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
+                      <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                        {newsSummary.category}
+                      </h2>
+                      <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0 }}>
+                        {[['digest','≡ Digest'],['stories','▶ Stories']].map(([mode, label]) => (
+                          <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                         <Calendar size={11} />
@@ -893,7 +980,87 @@ const TheAIRundown = () => {
                       </div>
                     </div>
                   </div>
-                  {(() => {
+                  {viewMode === 'stories' ? (() => {
+                    const story = parsedStories[storyIndex];
+                    const catIdx = allCategories.indexOf(selectedCategory);
+                    const prevCat = catIdx > 0 ? allCategories[catIdx - 1] : null;
+                    const nextCat = catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+                    const isFirst = storyIndex === 0;
+                    const isLast = storyIndex === parsedStories.length - 1;
+
+                    const goNext = () => {
+                      if (!isLast) { setStoryIndex(i => i + 1); }
+                      else if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); }
+                    };
+                    const goPrev = () => {
+                      if (!isFirst) { setStoryIndex(i => i - 1); }
+                      else if (prevCat) { goToLastStoryRef.current = true; handleSelectCategory(prevCat); }
+                    };
+
+                    if (!story) return <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>No stories available.</div>;
+
+                    return (
+                      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+                        {/* Progress dots */}
+                        <div style={{ display: 'flex', gap: '5px', marginBottom: '1.5rem' }}>
+                          {parsedStories.map((_, i) => (
+                            <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i < storyIndex ? '#6366f1' : i === storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.5 : 0.3, transition: 'all 0.2s' }} />
+                          ))}
+                        </div>
+
+                        {/* Counter */}
+                        <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem' }}>
+                          Story {storyIndex + 1} of {parsedStories.length}
+                        </div>
+
+                        {/* Headline */}
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.25, margin: '0 0 0.75rem' }}>
+                          {story.headline}
+                        </h3>
+
+                        {/* Coverage pills */}
+                        {story.coverage && renderCoveragePills(story.coverage)}
+
+                        {/* Bullets */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0 1rem' }}>
+                          {story.bullets.map((b, i) => (
+                            <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }}>
+                              <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: '#e5e7eb', marginTop: '0.4rem', alignSelf: 'stretch' }} />
+                              <span>{b}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Perspectives differ */}
+                        {story.perspectives && (
+                          <div style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55, fontStyle: 'italic' }}>
+                            <span style={{ fontStyle: 'normal', fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
+                            &nbsp;&nbsp;{story.perspectives}
+                          </div>
+                        )}
+
+                        {/* Why this matters */}
+                        {story.why && (
+                          <div style={{ margin: '0.4rem 0 1.25rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55, fontStyle: 'italic' }}>
+                            <span style={{ fontStyle: 'normal', fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
+                            &nbsp;&nbsp;{story.why}
+                          </div>
+                        )}
+
+                        {/* Navigation */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                            <ChevronLeft size={15} />
+                            {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
+                          </button>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : '#111827', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                            {isLast && nextCat ? <span>{nextCat}</span> : 'Next'}
+                            <ChevronRight size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })() : (() => {
                     window._trackCategory = (headline) => {
                       if (customCategories.length > 0) {
                         if (!window.confirm(`This will replace your current tracked category "${customCategories[0]}". Continue?`)) return;

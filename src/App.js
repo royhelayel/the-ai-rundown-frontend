@@ -62,6 +62,8 @@ const TheAIRundown = () => {
   const [showDayLeftArrow, setShowDayLeftArrow] = useState(false);
   const [showDayRightArrow, setShowDayRightArrow] = useState(true);
 
+  const CUSTOM_CATEGORIES_ENABLED = false;
+
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health'];
 
   const parseStories = (raw) => {
@@ -628,7 +630,7 @@ const TheAIRundown = () => {
                     {category}
                   </button>
                 ))}
-                {customCategories.length > 0 && (
+                {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
                   <>
                     <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
                     {customCategories.map(category => (
@@ -651,9 +653,11 @@ const TheAIRundown = () => {
           <div style={{ background: 'white', borderTop: '1px solid #f3f4f6', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {user && (
               <>
-                <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.6rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
-                  <Plus size={14} /> Add Custom Category
-                </button>
+                {CUSTOM_CATEGORIES_ENABLED && (
+                  <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.6rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
+                    <Plus size={14} /> Add Custom Category
+                  </button>
+                )}
                 <button onClick={() => { setCurrentView('settings'); setShowMobileMenu(false); }} style={{ padding: '0.6rem 1rem', background: 'none', border: '1px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <Settings size={14} /> Settings
                 </button>
@@ -704,7 +708,7 @@ const TheAIRundown = () => {
       )}
 
       {/* ── Add Category Modal ── */}
-      {showCategoryModal && user && (
+      {CUSTOM_CATEGORIES_ENABLED && showCategoryModal && user && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '1.4rem', color: '#111827' }}>Add Custom Category</h2>
@@ -810,11 +814,11 @@ const TheAIRundown = () => {
             )}
           </div>
 
-          {/* Day navigation — standard categories */}
+          {/* Day + Time navigation — standard categories */}
           {windowWidth > 900 && !isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
-              <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {availableDays.map(day => (
                   <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
@@ -822,6 +826,13 @@ const TheAIRundown = () => {
                 ))}
               </div>
               <button onClick={() => { const n = weekOffset + 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset >= 0} style={navArrow(weekOffset >= 0)}>›</button>
+              <div style={{ width: '1px', height: '20px', background: '#e5e7eb', margin: '0 0.2rem' }} />
+              {availableTimes.map(time => (
+                <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
+                  <span>{time.label}</span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
+                </button>
+              ))}
             </div>
           )}
 
@@ -849,7 +860,7 @@ const TheAIRundown = () => {
                     {category}
                   </button>
                 ))}
-                {customCategories.length > 0 && (
+                {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
                   <>
                     <div style={{ margin: '0.5rem 0 0.25rem', padding: '0 0.9rem' }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Custom</span>
@@ -903,17 +914,6 @@ const TheAIRundown = () => {
           {/* ── News Card ── */}
           <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
 
-            {/* Time selector — top-left inside card */}
-            {windowWidth > 750 && !isCustomCategory && (
-              <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                {availableTimes.map(time => (
-                  <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
-                    <span>{time.label}</span>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
-                  </button>
-                ))}
-              </div>
-            )}
 
             <div style={{ padding: '1.75rem 2rem' }}>
               {newsLoading ? (
@@ -1033,16 +1033,16 @@ const TheAIRundown = () => {
 
                         {/* Perspectives differ */}
                         {story.perspectives && (
-                          <div style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55, fontStyle: 'italic' }}>
-                            <span style={{ fontStyle: 'normal', fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
+                          <div style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55 }}>
+                            <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
                             &nbsp;&nbsp;{story.perspectives}
                           </div>
                         )}
 
                         {/* Why this matters */}
                         {story.why && (
-                          <div style={{ margin: '0.4rem 0 1.25rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55, fontStyle: 'italic' }}>
-                            <span style={{ fontStyle: 'normal', fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
+                          <div style={{ margin: '0.4rem 0 1.25rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55 }}>
+                            <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
                             &nbsp;&nbsp;{story.why}
                           </div>
                         )}
@@ -1136,17 +1136,17 @@ const TheAIRundown = () => {
                       })
                       // Perspectives differ — same style as Why this matters
                       .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
                       )
                       // "Why this matters" — subtle gray italic
                       .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       // Plain heading — synthesized headline (plain, non-clickable) with Track button
                       .replace(/^#{1,3} (.+)$/gm, (_, text) => {
                         const safe = text.replace(/'/g, '&#39;');
-                        return `<div style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div>`;
+                        return `<div style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span></div>`;
                       })
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
@@ -1255,7 +1255,7 @@ const TheAIRundown = () => {
               </div>
             </div>
 
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+            {CUSTOM_CATEGORIES_ENABLED && <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <Search size={20} color="#ec4899" strokeWidth={2.5} />
@@ -1295,7 +1295,7 @@ const TheAIRundown = () => {
                   })}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           <button onClick={() => setCurrentView('home')} style={{ marginTop: '1.4rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>

@@ -29,8 +29,10 @@ const TheAIRundown = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({
     categories: [],
-    night: false, morning: false, noon: false, afternoon: false, evening: false,
+    morning: false, evening: false,
   });
+  const [categoryLockedToday, setCategoryLockedToday] = useState(false);
+  const [categorySuggestions, setCategorySuggestions] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsSummary, setNewsSummary] = useState(null);
   const [currentView, setCurrentView] = useState('home');
@@ -57,11 +59,8 @@ const TheAIRundown = () => {
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health'];
 
   const timesOfDay = [
-    { value: 'Night',     label: 'Night',     time: '12 AM – 6 AM' },
-    { value: 'Morning',   label: 'Morning',   time: '6 AM – 10 AM' },
-    { value: 'Noon',      label: 'Noon',      time: '10 AM – 2 PM' },
-    { value: 'Afternoon', label: 'Afternoon', time: '2 PM – 6 PM' },
-    { value: 'Evening',   label: 'Evening',   time: '6 PM – 12 AM' },
+    { value: 'Morning', label: 'Morning', time: '6 AM' },
+    { value: 'Evening', label: 'Evening', time: '6 PM' },
   ];
 
   function getDaysOfWeek(offset = 0) {
@@ -85,34 +84,28 @@ const TheAIRundown = () => {
   const getCurrentTimeSlot = () => {
     const now = new Date();
     const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-    const hour = uaeTime.getHours();
-    if (hour < 6)  return 'Night';
-    if (hour < 10) return 'Morning';
-    if (hour < 14) return 'Noon';
-    if (hour < 18) return 'Afternoon';
-    return 'Evening';
+    return uaeTime.getHours() >= 18 ? 'Evening' : 'Morning';
   };
 
   const currentTimeSlot = getCurrentTimeSlot();
-  const currentTimeIndex = timesOfDay.findIndex(t => t.value === currentTimeSlot);
   const today = daysOfWeek[daysOfWeek.length - 1]?.fullDate;
 
   const isCustomCategory = customCategories.includes(selectedCategory);
 
-  // Last completed slot = the one just before the current one (for pre-defined default)
-  const lastCompletedTimeSlot = currentTimeIndex > 0
-    ? timesOfDay[currentTimeIndex - 1].value
-    : timesOfDay[timesOfDay.length - 1].value;
+  // Last completed slot
+  const lastCompletedTimeSlot = (() => {
+    const now = new Date();
+    const hour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).getHours();
+    return hour >= 18 ? 'Evening' : 'Morning';
+  })();
 
-  // Pre-defined: disable current + future (news generated at end of slot, not during)
-  // Custom: disable only future (current slot is generatable on demand)
   const isTimeFuture = (timeValue) => {
     if (selectedDay !== today) return false;
-    const idx = timesOfDay.findIndex(t => t.value === timeValue);
-    if (isCustomCategory) return idx > currentTimeIndex;
-    // When Night is current (index 0), all other slots are from the previous cycle — not future
-    if (currentTimeIndex === 0) return timeValue === 'Night';
-    return idx >= currentTimeIndex;
+    const now = new Date();
+    const hour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).getHours();
+    if (timeValue === 'Morning') return hour < 6;
+    if (timeValue === 'Evening') return hour < 18;
+    return false;
   };
 
   // Always show all slots; isTimeFuture handles which are disabled
@@ -136,7 +129,7 @@ const TheAIRundown = () => {
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         // Refresh categories and email preferences from Supabase
         Promise.all([
-          supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id),
+          supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
           supabase.from('users').select('email_preferences').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
@@ -181,17 +174,22 @@ const TheAIRundown = () => {
 
   const handleFetchNews = async () => {
     if (!selectedCategory || !selectedDay || !selectedTime) return;
-    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === selectedTime) return;
+    const isCustom = customCategories.includes(selectedCategory);
+    // For custom, always use 'Daily' time slot
+    const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
+    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot) return;
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
-      const isCustom = customCategories.includes(selectedCategory);
-      let q = supabase.from('news_summaries').select('*')
-        .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime);
-      if (isCustom && user) {
-        q = q.eq('user_id', user.id);
+      let q;
+      if (isCustom) {
+        const sharedKey = (customCategoryDescriptions[selectedCategory] || selectedCategory).toLowerCase().trim();
+        q = supabase.from('news_summaries').select('*')
+          .eq('shared_key', sharedKey).is('user_id', null).eq('day', selectedDay).eq('time_slot', 'Daily');
       } else {
-        q = q.is('user_id', null);
+        q = supabase.from('news_summaries').select('*')
+          .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime)
+          .is('user_id', null).is('shared_key', null);
       }
       const { data, error } = await q.maybeSingle();
       if (error) throw error;
@@ -228,30 +226,35 @@ const TheAIRundown = () => {
 
   const handleGenerateCustomCategory = async () => {
     if (!customCategories.includes(selectedCategory)) return;
-    if (selectedTime !== currentTimeSlot || selectedDay !== today) return;
+    if (selectedDay !== today) return;
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     try {
       setNewsLoading(true);
       startProgressBar();
+      const sharedKey = (customCategoryDescriptions[selectedCategory] || selectedCategory).toLowerCase().trim();
+      const description = customCategoryDescriptions[selectedCategory] || selectedCategory;
       const response = await fetch(`${BACKEND_URL}/api/generate/custom-category`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, category: selectedCategory, description: customCategoryDescriptions[selectedCategory] || selectedCategory, day: selectedDay, timeSlot: selectedTime })
+        body: JSON.stringify({ user_id: user.id, category: selectedCategory, description, day: selectedDay, timeSlot: 'Daily' })
       });
       if (!response.ok) { finishProgressBar(() => setNewsLoading(false)); return; }
-      const category = selectedCategory, day = selectedDay, time = selectedTime, userId = user.id;
+      const res = await response.json();
+      const category = selectedCategory, day = selectedDay;
+      // If already exists, start polling immediately
+      const initialDelay = res.status === 'already_exists' ? 0 : 5000;
       let attempts = 0;
       const poll = async () => {
         attempts++;
         const { data } = await supabase.from('news_summaries').select('*')
-          .eq('category', category).eq('day', day).eq('time_slot', time).eq('user_id', userId).maybeSingle();
+          .eq('shared_key', sharedKey).is('user_id', null).eq('day', day).eq('time_slot', 'Daily').maybeSingle();
         if (data) {
           finishProgressBar(() => { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); });
           pollTimerRef.current = null;
         } else if (attempts < 36) { pollTimerRef.current = setTimeout(poll, 5000); }
         else { finishProgressBar(() => { setNewsLoading(false); setNewsNotAvailable(true); }); pollTimerRef.current = null; }
       };
-      pollTimerRef.current = setTimeout(poll, 5000);
+      pollTimerRef.current = setTimeout(poll, initialDelay);
     } catch (error) { console.error('Error generating:', error); finishProgressBar(() => setNewsLoading(false)); }
   };
 
@@ -308,7 +311,7 @@ const TheAIRundown = () => {
         const { data: userProfile, error: profileError } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
         if (profileError) { setAuthMessage({ type: 'error', text: 'Failed to load user profile.' }); return; }
         if (userProfile.verification_status !== 'verified') { setAuthMessage({ type: 'info', text: 'Please verify your email first. Check your inbox for the verification link.' }); return; }
-        const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id);
+        const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id).is('deleted_at', null);
         const categories = categoriesData?.map(c => c.category_name) || [];
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
         const userData = {
@@ -328,29 +331,43 @@ const TheAIRundown = () => {
     if (!newCategory.trim() || !user) return;
     const title = newCategory.trim().slice(0, 25);
     const description = newCategoryDescription.trim() || title;
-    const { error } = await supabase.from('custom_categories').insert({ user_id: user.id, category_name: title, category_description: description });
-    if (error) { alert('Failed to add category: ' + error.message); return; }
-    const updated = { ...user, categories: [...(user.categories || []), title] };
+    const res = await fetch(`${BACKEND_URL}/api/user/custom-category`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, category_name: title, category_description: description })
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      setAuthMessage({ type: 'error', text: e.error || 'Failed to save category.' });
+      return;
+    }
+    // Replace existing category in state (only 1 allowed)
+    const updated = { ...user, categories: [title] };
     localStorage.setItem('newsdigest_user', JSON.stringify(updated));
     setUser(updated);
-    setCustomCategories(updated.categories);
-    setCustomCategoryDescriptions(prev => ({ ...prev, [title]: description }));
-    setNewCategory('');
-    setNewCategoryDescription('');
-    setShowCategoryModal(false);
+    setCustomCategories([title]);
+    setCustomCategoryDescriptions({ [title]: description });
+    setNewCategory(''); setNewCategoryDescription(''); setShowCategoryModal(false);
+    setSelectedCategory(title); setSelectedDay(today);
   };
 
   const handleDeleteCategory = async (categoryToDelete) => {
-    const { error } = await supabase.from('custom_categories').delete().eq('user_id', user.id).eq('category_name', categoryToDelete);
-    if (error) { console.error('Error deleting category:', error); return; }
-    const updated = { ...user, categories: user.categories.filter(cat => cat !== categoryToDelete) };
+    const res = await fetch(`${BACKEND_URL}/api/user/custom-category`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, category_name: categoryToDelete })
+    });
+    if (!res.ok) { console.error('Error deleting category'); return; }
+    const updated = { ...user, categories: [] };
     localStorage.setItem('newsdigest_user', JSON.stringify(updated));
-    setUser(updated); setCustomCategories(updated.categories);
+    setUser(updated); setCustomCategories([]);
+    setCustomCategoryDescriptions({});
+    setCategoryLockedToday(true);
     if (selectedCategory === categoryToDelete) setSelectedCategory('World News');
   };
 
   const normalizeEmailPrefs = (raw) => {
-    const slots = ['night', 'morning', 'noon', 'afternoon', 'evening'];
+    const slots = ['morning', 'evening'];
     const out = {};
     // Categories: new flat format has raw.categories array; old per-slot format had categories inside each slot
     if (Array.isArray(raw.categories) && raw.categories.length) {
@@ -613,6 +630,12 @@ const TheAIRundown = () => {
           <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '1.4rem', color: '#111827' }}>Add Custom Category</h2>
 
+            {customCategories.length > 0 && (
+              <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#fffbeb', border: '1.5px solid #f59e0b', borderRadius: '10px', fontSize: '0.83rem', color: '#92400e' }}>
+                ⚠️ You already track "{customCategories[0]}". Saving will replace it.
+              </div>
+            )}
+
             <div style={{ marginBottom: '1.1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Category Title</label>
@@ -629,7 +652,7 @@ const TheAIRundown = () => {
               <p style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: '0.3rem', marginBottom: 0 }}>Shown on the category pill — keep it short</p>
             </div>
 
-            <div style={{ marginBottom: '1.4rem' }}>
+            <div style={{ marginBottom: '1.4rem', position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Description</label>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>used for news generation</span>
@@ -637,16 +660,46 @@ const TheAIRundown = () => {
               <textarea
                 placeholder="e.g., Los Angeles Lakers NBA playoffs, trades, and team news"
                 value={newCategoryDescription}
-                onChange={(e) => setNewCategoryDescription(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewCategoryDescription(val);
+                  if (val.trim().length > 2) {
+                    clearTimeout(window._suggTimeout);
+                    window._suggTimeout = setTimeout(async () => {
+                      try {
+                        const res = await fetch(`${BACKEND_URL}/api/categories/suggestions?q=${encodeURIComponent(val)}`);
+                        const suggestions = await res.json();
+                        setCategorySuggestions(Array.isArray(suggestions) ? suggestions : []);
+                      } catch { setCategorySuggestions([]); }
+                    }, 300);
+                  } else {
+                    setCategorySuggestions([]);
+                  }
+                }}
                 rows={3}
                 style={{ width: '100%', padding: '0.78rem 1rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
+              {categorySuggestions.length > 0 && (
+                <div style={{ position: 'absolute', left: 0, right: 0, background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '180px', overflowY: 'auto' }}>
+                  {categorySuggestions.map((s, i) => (
+                    <button key={i} onClick={() => { setNewCategoryDescription(s.description); setCategorySuggestions([]); }} style={{ display: 'block', width: '100%', padding: '0.6rem 1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#374151', borderBottom: i < categorySuggestions.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                      {s.description}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <button onClick={handleAddCategory} disabled={!newCategory.trim()} style={{ width: '100%', padding: '0.82rem', background: newCategory.trim() ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#e5e7eb', color: newCategory.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: '999px', cursor: newCategory.trim() ? 'pointer' : 'not-allowed', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', transition: 'all 0.15s' }}>
-              Add Category
-            </button>
-            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
+            {categoryLockedToday ? (
+              <div style={{ marginBottom: '0.6rem', padding: '0.75rem 1rem', background: '#f3f4f6', borderRadius: '10px', fontSize: '0.83rem', color: '#6b7280', textAlign: 'center' }}>
+                You've used your category change for today. You can create a new one tomorrow.
+              </div>
+            ) : (
+              <button onClick={handleAddCategory} disabled={!newCategory.trim()} style={{ width: '100%', padding: '0.82rem', background: newCategory.trim() ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#e5e7eb', color: newCategory.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: '999px', cursor: newCategory.trim() ? 'pointer' : 'not-allowed', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', transition: 'all 0.15s' }}>
+                {customCategories.length > 0 ? 'Replace & Save' : 'Add Category'}
+              </button>
+            )}
+            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); setCategorySuggestions([]); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
               Cancel
             </button>
           </div>
@@ -669,7 +722,7 @@ const TheAIRundown = () => {
                 📅 {availableDays.find(d => d.fullDate === selectedDay)?.label || 'Days'}
               </button>
             )}
-            {windowWidth <= 750 && (
+            {windowWidth <= 750 && !isCustomCategory && (
               <button onClick={() => setShowTimeMenu(!showTimeMenu)} style={{ padding: '0.42rem 0.9rem', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#374151', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem' }}>
                 🕐 {availableTimes.find(t => t.value === selectedTime)?.label || 'Times'}
               </button>
@@ -691,19 +744,12 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {/* Day + time row — custom categories */}
+          {/* Day row — custom categories (no time pills for custom) */}
           {windowWidth > 750 && isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
                 <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
                   {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
-                </button>
-              ))}
-              <span style={{ color: '#e5e7eb', margin: '0 0.1rem', userSelect: 'none' }}>|</span>
-              {availableTimes.map(time => (
-                <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
-                  <span>{time.label}</span>
-                  <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
                 </button>
               ))}
             </div>
@@ -756,7 +802,7 @@ const TheAIRundown = () => {
           )}
 
           {/* Slide-out: times */}
-          {showTimeMenu && windowWidth <= 750 && slidePanel(
+          {showTimeMenu && windowWidth <= 750 && !isCustomCategory && slidePanel(
             <div style={{ padding: '1.4rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#111827' }}>Times</h3>
@@ -843,7 +889,14 @@ const TheAIRundown = () => {
                     </div>
                   </div>
                   {(() => {
-                    window._trackCategory = (headline) => { setNewCategory(''); setNewCategoryDescription(headline); setShowCategoryModal(true); };
+                    window._trackCategory = (headline) => {
+                      if (customCategories.length > 0) {
+                        if (!window.confirm(`This will replace your current tracked category "${customCategories[0]}". Continue?`)) return;
+                      }
+                      setNewCategory('');
+                      setNewCategoryDescription(headline);
+                      setShowCategoryModal(true);
+                    };
                     const raw = newsSummary.content || '';
 
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
@@ -1047,9 +1100,15 @@ const TheAIRundown = () => {
                   <Search size={20} color="#ec4899" strokeWidth={2.5} />
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#111827' }}>Your Custom Categories</h3>
                 </div>
-                <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.48rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.3)', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
-                  <Plus size={14} /> Add Category
-                </button>
+                {categoryLockedToday ? (
+                  <button disabled style={{ padding: '0.48rem 1rem', background: '#f3f4f6', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#9ca3af', cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
+                    Available Tomorrow
+                  </button>
+                ) : (
+                  <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.48rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.3)', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
+                    <Plus size={14} /> {customCategories.length > 0 ? 'Change Category' : 'Add Category'}
+                  </button>
+                )}
               </div>
               {customCategories.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2.25rem', color: '#9ca3af' }}>

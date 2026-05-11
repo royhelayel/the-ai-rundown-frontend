@@ -33,6 +33,7 @@ const TheAIRundown = () => {
   });
   const [categoryLockedToday, setCategoryLockedToday] = useState(false);
   const [categorySuggestions, setCategorySuggestions] = useState([]);
+  const [selectedSharedKey, setSelectedSharedKey] = useState(null);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsSummary, setNewsSummary] = useState(null);
   const [currentView, setCurrentView] = useState('home');
@@ -331,10 +332,12 @@ const TheAIRundown = () => {
     if (!newCategory.trim() || !user) return;
     const title = newCategory.trim().slice(0, 25);
     const description = newCategoryDescription.trim() || title;
+    const body = { user_id: user.id, category_name: title, category_description: description };
+    if (selectedSharedKey) body.shared_key_override = selectedSharedKey;
     const res = await fetch(`${BACKEND_URL}/api/user/custom-category`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.id, category_name: title, category_description: description })
+      body: JSON.stringify(body)
     });
     if (!res.ok) {
       const e = await res.json();
@@ -347,7 +350,7 @@ const TheAIRundown = () => {
     setUser(updated);
     setCustomCategories([title]);
     setCustomCategoryDescriptions({ [title]: description });
-    setNewCategory(''); setNewCategoryDescription(''); setShowCategoryModal(false);
+    setNewCategory(''); setNewCategoryDescription(''); setSelectedSharedKey(null); setShowCategoryModal(false);
     setSelectedCategory(title); setSelectedDay(today);
   };
 
@@ -663,6 +666,7 @@ const TheAIRundown = () => {
                 onChange={(e) => {
                   const val = e.target.value;
                   setNewCategoryDescription(val);
+                  setSelectedSharedKey(null);
                   if (val.trim().length > 2) {
                     clearTimeout(window._suggTimeout);
                     window._suggTimeout = setTimeout(async () => {
@@ -671,7 +675,7 @@ const TheAIRundown = () => {
                         const suggestions = await res.json();
                         setCategorySuggestions(Array.isArray(suggestions) ? suggestions : []);
                       } catch { setCategorySuggestions([]); }
-                    }, 300);
+                    }, 700);
                   } else {
                     setCategorySuggestions([]);
                   }
@@ -682,8 +686,9 @@ const TheAIRundown = () => {
               {categorySuggestions.length > 0 && (
                 <div style={{ position: 'absolute', left: 0, right: 0, background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '180px', overflowY: 'auto' }}>
                   {categorySuggestions.map((s, i) => (
-                    <button key={i} onClick={() => { setNewCategoryDescription(s.description); setCategorySuggestions([]); }} style={{ display: 'block', width: '100%', padding: '0.6rem 1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#374151', borderBottom: i < categorySuggestions.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                      {s.description}
+                    <button key={i} onClick={() => { setNewCategoryDescription(s.description); setSelectedSharedKey(s.shared_key); setCategorySuggestions([]); }} style={{ display: 'block', width: '100%', padding: '0.6rem 1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#374151', borderBottom: i < categorySuggestions.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                      <div style={{ fontWeight: '500' }}>{s.description}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.1rem' }}>Join existing category · no generation needed</div>
                     </button>
                   ))}
                 </div>
@@ -699,7 +704,7 @@ const TheAIRundown = () => {
                 {customCategories.length > 0 ? 'Replace & Save' : 'Add Category'}
               </button>
             )}
-            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); setCategorySuggestions([]); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
+            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); setSelectedSharedKey(null); setCategorySuggestions([]); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
               Cancel
             </button>
           </div>

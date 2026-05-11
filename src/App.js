@@ -825,12 +825,24 @@ const TheAIRundown = () => {
                     const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
                     const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
 
-                    // Pre-process: normalize all heading+URL variants into ## [Title](url)
+                    // Normalize heading: extract any embedded URL → ## [clean title](url)
+                    const normalizeHeading = (line) => {
+                      const m = line.match(/^(#{1,3} )(.+)$/);
+                      if (!m) return line;
+                      const [, hashes, text] = m;
+                      if (/^\[.+\]\(https?:\/\/[^)]+\)\s*$/.test(text)) return line; // already clean
+                      const urlMatch = text.match(/(https?:\/\/[^\s)]+)/);
+                      if (!urlMatch) return line;
+                      const url = urlMatch[1];
+                      const title = text.replace(urlMatch[0], '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
+                      return `${hashes}[${title || url}](${url})`;
+                    };
+
+                    // Pre-process line by line: merge bare URL lines then normalize headings
                     const mergedContent = mainContent
                       .split('\n')
                       .reduce((acc, line) => {
                         const trimmed = line.trim();
-                        // Case 1: bare URL on its own line after a heading → merge up
                         if (/^https?:\/\/\S+$/.test(trimmed) && acc.length > 0) {
                           const prev = acc[acc.length - 1];
                           const m = prev.match(/^(#{1,3} )(.+)$/);
@@ -839,15 +851,10 @@ const TheAIRundown = () => {
                             return acc;
                           }
                         }
-                        acc.push(line);
+                        acc.push(/^#{1,3} /.test(line) ? normalizeHeading(line) : line);
                         return acc;
                       }, [])
                       .join('\n')
-                      // Case 2: URL trailing inside heading text: ## Title https://url → ## [Title](url)
-                      .replace(/^(#{1,3} )(.+?)\s+(https?:\/\/\S+)$/gm, '$1[$2]($3)')
-                      // Case 3: auto-linked trailing URL: ## Title [url](url) → ## [Title](url)
-                      .replace(/^(#{1,3} )(.+?)\s+\[https?:\/\/[^\]]*\]\((https?:\/\/\S+)\)$/gm, '$1[$2]($3)')
-                      // Strip any remaining bare URL lines
                       .replace(/^https?:\/\/\S+$/gm, '');
 
                     // Render main summary
@@ -862,19 +869,22 @@ const TheAIRundown = () => {
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       // Italic _text_ — used for availability disclaimers
                       .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')
-                      // Linked heading ## [Title](URL) — clickable + Track button
+                      // Linked heading ## [Title](URL) — favicon + clickable + Track button
                       .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
                         const safe = text.replace(/'/g, '&#39;');
                         const safeUrl = url.replace(/"/g, '%22');
-                        return `<div style="display:flex;align-items:baseline;gap:0.45rem;margin:1.1rem 0 0.25rem;flex-wrap:wrap;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.02rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div>`;
+                        let domain = '';
+                        try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+                        const favicon = domain ? `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="13" height="13" style="border-radius:2px;flex-shrink:0;margin-top:3px;opacity:0.85;" onerror="this.style.display='none'" />` : '';
+                        return `<div style="display:flex;align-items:flex-start;gap:0.4rem;margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><div style="display:flex;align-items:flex-start;gap:0.35rem;flex:1;min-width:0;">${favicon}<div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.02rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div></div>`;
                       })
                       // Plain heading — no track button
                       .replace(/^#{1,3} (.+)$/gm, (_, text) =>
                         `<div style="font-size:1.02rem;font-weight:800;color:#374151;margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;line-height:1.3;">${text}</div>`
                       )
-                      // "Why this matters" line — styled distinctly before general bold replacement
+                      // "Why this matters" — subtle gray italic
                       .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.45rem 0 0.9rem;padding:0.38rem 0.7rem;background:rgba(99,102,241,0.05);border-left:3px solid #6366f1;border-radius:0 6px 6px 0;font-size:0.82rem;color:#6b7280;line-height:1.5;"><strong style="color:#6366f1;font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.03em;">Why this matters</strong><br>${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')

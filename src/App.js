@@ -917,17 +917,17 @@ const TheAIRundown = () => {
                     const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
                     const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
 
-                    // Normalize heading: extract any embedded URL → ## [clean title](url)
+                    // Normalize heading: strip any embedded URL, keep plain title only
                     const normalizeHeading = (line) => {
                       const m = line.match(/^(#{1,3} )(.+)$/);
                       if (!m) return line;
                       const [, hashes, text] = m;
-                      if (/^\[.+\]\(https?:\/\/[^)]+\)\s*$/.test(text)) return line; // already clean
-                      const urlMatch = text.match(/(https?:\/\/[^\s)]+)/);
-                      if (!urlMatch) return line;
-                      const url = urlMatch[1];
-                      const title = text.replace(urlMatch[0], '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
-                      return `${hashes}[${title || url}](${url})`;
+                      // ## [Title](URL) → ## Title
+                      const linkedMatch = text.match(/^\[(.+?)\]\(https?:\/\/[^)]+\)\s*$/);
+                      if (linkedMatch) return `${hashes}${linkedMatch[1]}`;
+                      // Strip bare URL anywhere in heading text
+                      const stripped = text.replace(/(https?:\/\/[^\s)]+)/g, '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
+                      return `${hashes}${stripped || text}`;
                     };
 
                     // Pre-process line by line: merge bare URL lines then normalize headings
@@ -967,27 +967,16 @@ const TheAIRundown = () => {
                         }).join('');
                         return `<div style="display:flex;flex-wrap:wrap;align-items:center;margin:0.2rem 0 0.5rem;">${badges}</div>`;
                       })
-                      // Perspectives differ — amber callout (must come before **bold** replacement)
+                      // Perspectives differ — same style as Why this matters
                       .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.6rem;font-size:0.81rem;color:#92400e;line-height:1.55;background:#fffbeb;padding:0.5rem 0.75rem;border-radius:8px;border-left:3px solid #f59e0b;"><span style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:#b45309;font-style:normal;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
                       )
                       // "Why this matters" — subtle gray italic
                       .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;font-style:italic;"><span style="font-style:normal;font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      // Italic _text_ — used for availability disclaimers
-                      .replace(/_(.*?)_/g, '<em style="color:#9ca3af;font-style:italic;">$1</em>')
-                      // Linked heading ## [Title](URL) — backward compat for old stored content
-                      .replace(/^#{1,3} \[(.+?)\]\(([^)\s]+)\)/gm, (_, text, url) => {
-                        const safe = text.replace(/'/g, '&#39;');
-                        const safeUrl = url.replace(/"/g, '%22');
-                        let domain = '';
-                        try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
-                        const sourceLine = domain ? `<div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.3rem;"><img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="13" height="13" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.04em;">${domain}</span></div>` : '';
-                        return `<div style="margin:1.1rem 0 0.25rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;">${sourceLine}<div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="font-size:1.02rem;font-weight:800;color:#111827;text-decoration:underline;text-decoration-color:#d1d5db;text-underline-offset:2px;line-height:1.3;">${text}</a><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div>`;
-                      })
-                      // Plain heading — new synthesized headline format with Track button
+                      // Plain heading — synthesized headline (plain, non-clickable) with Track button
                       .replace(/^#{1,3} (.+)$/gm, (_, text) => {
                         const safe = text.replace(/'/g, '&#39;');
                         return `<div style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><div style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span><button onclick="window._trackCategory('${safe}')" title="Track this topic" style="flex-shrink:0;padding:0.1rem 0.38rem;font-size:0.65rem;font-weight:700;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:999px;color:#6366f1;cursor:pointer;line-height:1.5;">+ Track</button></div></div>`;

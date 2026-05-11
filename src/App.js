@@ -559,7 +559,7 @@ const TheAIRundown = () => {
   );
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+    <div style={viewMode === 'stories' && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
       <style>{`
         html { overflow-y: scroll; }
         body { overflow-y: scroll; }
@@ -571,7 +571,7 @@ const TheAIRundown = () => {
       {/* ── Header ── */}
       <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         {/* Brand row */}
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? '0.6rem 2rem' : '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
           <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, cursor: 'pointer' }}>
             <Sparkles size={28} color="#6366f1" />
             <h1 style={{ fontSize: '1.7rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -617,8 +617,8 @@ const TheAIRundown = () => {
           )}
         </div>
 
-        {/* Category nav */}
-        {windowWidth > 1100 && (
+        {/* Category nav — hidden in stories mode */}
+        {windowWidth > 1100 && !(viewMode === 'stories' && currentView === 'home') && (
           <div style={{ borderTop: '1px solid #f3f4f6' }}>
             <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 0.5rem', display: 'flex', alignItems: 'stretch' }}>
               {showCategoryLeftArrow && (
@@ -793,7 +793,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0.6rem 1.5rem 0.75rem' } : { maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons */}
           <div style={{ marginBottom: '0.6rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -814,8 +814,8 @@ const TheAIRundown = () => {
             )}
           </div>
 
-          {/* Day + Time navigation — standard categories */}
-          {windowWidth > 900 && !isCustomCategory && (
+          {/* Day + Time navigation — standard categories, hidden in stories mode */}
+          {viewMode !== 'stories' && windowWidth > 900 && !isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
@@ -836,8 +836,8 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {/* Day row — custom categories (no time pills for custom) */}
-          {windowWidth > 750 && isCustomCategory && (
+          {/* Day row — custom categories (no time pills for custom), hidden in stories mode */}
+          {viewMode !== 'stories' && windowWidth > 750 && isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
                 <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
@@ -912,10 +912,10 @@ const TheAIRundown = () => {
           )}
 
           {/* ── News Card ── */}
-          <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
+          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
 
 
-            <div style={{ padding: '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : { padding: '1.75rem 2rem' }}>
               {newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   {customCategories.includes(selectedCategory) ? (
@@ -949,10 +949,10 @@ const TheAIRundown = () => {
                   <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated yet.</p>
                 </div>
               ) : newsSummary ? (
-                <div>
+                <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}
                   {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
-                  <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
+                  {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
                       <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         {newsSummary.category}
@@ -979,7 +979,7 @@ const TheAIRundown = () => {
                         <span>{new Date(newsSummary.generated_at).toLocaleString('en-US', { timeZone: 'Asia/Dubai' })}</span>
                       </div>
                     </div>
-                  </div>
+                  </div>)}
                   {viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
                     const catIdx = allCategories.indexOf(selectedCategory);
@@ -999,63 +999,85 @@ const TheAIRundown = () => {
 
                     if (!story) return <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>No stories available.</div>;
 
+                    const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : newsSummary.day; })();
+
                     return (
-                      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-                        {/* Progress dots */}
-                        <div style={{ display: 'flex', gap: '5px', marginBottom: '1.5rem' }}>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+
+                        {/* Progress bar — flush to top, 4px */}
+                        <div style={{ display: 'flex', gap: '3px', flexShrink: 0, marginBottom: '0.6rem' }}>
                           {parsedStories.map((_, i) => (
-                            <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i < storyIndex ? '#6366f1' : i === storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.5 : 0.3, transition: 'all 0.2s' }} />
+                            <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '4px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.6 : 0.3, transition: 'all 0.2s' }} />
                           ))}
                         </div>
 
-                        {/* Counter */}
-                        <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem' }}>
-                          Story {storyIndex + 1} of {parsedStories.length}
+                        {/* Compact header: category · day · time  |  count  [≡ Digest] */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, marginBottom: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '0.22rem 0.6rem', borderRadius: '999px', flexShrink: 0 }}>
+                              {newsSummary.category}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '500' }}>·</span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>{dayLabel}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '500' }}>·</span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>{newsSummary.time_slot}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
+                            <button onClick={() => setViewMode('digest')} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
+                          </div>
                         </div>
 
-                        {/* Headline */}
-                        <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.25, margin: '0 0 0.75rem' }}>
-                          {story.headline}
-                        </h3>
+                        {/* Scrollable body */}
+                        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-                        {/* Coverage pills */}
-                        {story.coverage && renderCoveragePills(story.coverage)}
+                          {/* Headline */}
+                          <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.25, margin: '0 0 0.6rem' }}>
+                            {story.headline}
+                          </h3>
 
-                        {/* Bullets */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0 1rem' }}>
-                          {story.bullets.map((b, i) => (
-                            <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }}>
-                              <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: '#e5e7eb', marginTop: '0.4rem', alignSelf: 'stretch' }} />
-                              <span>{b}</span>
+                          {/* Coverage pills */}
+                          {story.coverage && renderCoveragePills(story.coverage)}
+
+                          {/* Bullets */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
+                            {story.bullets.map((b, i) => (
+                              <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
+                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: '#e5e7eb', marginTop: '0.4rem', alignSelf: 'stretch' }} />
+                                <span>{b}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Spacer pushes perspectives/why down when content is short */}
+                          <div style={{ flex: 1 }} />
+
+                          {/* Perspectives differ */}
+                          {story.perspectives && (
+                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
+                              <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
+                              &nbsp;&nbsp;{story.perspectives}
                             </div>
-                          ))}
+                          )}
+
+                          {/* Why this matters */}
+                          {story.why && (
+                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
+                              <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
+                              &nbsp;&nbsp;{story.why}
+                            </div>
+                          )}
                         </div>
 
-                        {/* Perspectives differ */}
-                        {story.perspectives && (
-                          <div style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55 }}>
-                            <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
-                            &nbsp;&nbsp;{story.perspectives}
-                          </div>
-                        )}
-
-                        {/* Why this matters */}
-                        {story.why && (
-                          <div style={{ margin: '0.4rem 0 1.25rem', fontSize: '0.82rem', color: '#9ca3af', lineHeight: 1.55 }}>
-                            <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
-                            &nbsp;&nbsp;{story.why}
-                          </div>
-                        )}
-
-                        {/* Navigation */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
-                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s' }}>
-                            <ChevronLeft size={15} />
+                        {/* Navigation pinned to bottom */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', marginTop: '0.5rem', flexShrink: 0 }}>
+                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                            <ChevronLeft size={14} />
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
                           </button>
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : '#111827', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.82rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : '#111827', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
                             {isLast && nextCat ? <span>{nextCat}</span> : 'Next'}
-                            <ChevronRight size={15} />
+                            <ChevronRight size={14} />
                           </button>
                         </div>
                       </div>

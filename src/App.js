@@ -793,10 +793,10 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0.6rem 1.5rem 0.75rem' } : { maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem 3rem 2rem' }}>
 
-          {/* Mobile trigger buttons */}
-          <div style={{ marginBottom: '0.6rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Mobile trigger buttons — hidden in stories mode */}
+          <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {windowWidth <= 1100 && (
               <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} style={{ padding: '0.42rem 0.9rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem' }}>
                 ☰ {selectedCategory}
@@ -912,10 +912,18 @@ const TheAIRundown = () => {
           )}
 
           {/* ── News Card ── */}
-          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
+          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', maxHeight: 'calc(100vh - 100px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
 
+            {/* Progress bar — flush to very top of card, outside padding */}
+            {viewMode === 'stories' && parsedStories.length > 0 && (
+              <div style={{ display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
+                {parsedStories.map((_, i) => (
+                  <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.65 : 0.25, transition: 'all 0.2s' }} />
+                ))}
+              </div>
+            )}
 
-            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : { padding: '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: '1.75rem 2rem' }}>
               {newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   {customCategories.includes(selectedCategory) ? (
@@ -1003,13 +1011,6 @@ const TheAIRundown = () => {
 
                     return (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-
-                        {/* Progress bar — flush to top, 4px */}
-                        <div style={{ display: 'flex', gap: '3px', flexShrink: 0, marginBottom: '0.6rem' }}>
-                          {parsedStories.map((_, i) => (
-                            <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '4px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.6 : 0.3, transition: 'all 0.2s' }} />
-                          ))}
-                        </div>
 
                         {/* Compact header: category · day · time  |  count  [≡ Digest] */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, marginBottom: '0.75rem' }}>

@@ -185,8 +185,15 @@ const TheAIRundown = () => {
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
-      const { data, error } = await supabase.from('news_summaries').select('*')
-        .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime).maybeSingle();
+      const isCustom = customCategories.includes(selectedCategory);
+      let q = supabase.from('news_summaries').select('*')
+        .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime);
+      if (isCustom && user) {
+        q = q.eq('user_id', user.id);
+      } else {
+        q = q.is('user_id', null);
+      }
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       if (!data) { setNewsNotAvailable(true); setNewsSummary(null); return; }
       setNewsSummary(data); setNewsNotAvailable(false);
@@ -232,12 +239,12 @@ const TheAIRundown = () => {
         body: JSON.stringify({ user_id: user.id, category: selectedCategory, description: customCategoryDescriptions[selectedCategory] || selectedCategory, day: selectedDay, timeSlot: selectedTime })
       });
       if (!response.ok) { finishProgressBar(() => setNewsLoading(false)); return; }
-      const category = selectedCategory, day = selectedDay, time = selectedTime;
+      const category = selectedCategory, day = selectedDay, time = selectedTime, userId = user.id;
       let attempts = 0;
       const poll = async () => {
         attempts++;
         const { data } = await supabase.from('news_summaries').select('*')
-          .eq('category', category).eq('day', day).eq('time_slot', time).maybeSingle();
+          .eq('category', category).eq('day', day).eq('time_slot', time).eq('user_id', userId).maybeSingle();
         if (data) {
           finishProgressBar(() => { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); });
           pollTimerRef.current = null;

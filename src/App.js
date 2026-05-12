@@ -1340,7 +1340,18 @@ const TheAIRundown = () => {
                       .join('\n')
                       .replace(/^https?:\/\/\S+$/gm, '');
 
-                    // Render main summary
+                    // Build URL → story-index map so source cards can scroll to the right story
+                    const urlToStoryIdx = {};
+                    let _sIdx = -1;
+                    mergedContent.split('\n').forEach(line => {
+                      if (/^#{1,3} /.test(line)) _sIdx++;
+                      [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+                        if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
+                      });
+                    });
+
+                    // Render main summary — headings get id="digest-story-N" for scroll targets
+                    let _hCount = -1;
                     const html = mergedContent
                       // Fix ## alone on its own line — join with next line
                       .replace(/^(#{1,3})\s*\n(?!\s*\n)/gm, '$1 ')
@@ -1367,10 +1378,10 @@ const TheAIRundown = () => {
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      // Plain heading — synthesized headline (plain, non-clickable) with Track button
+                      // Plain heading — inject id for scroll-to targeting
                       .replace(/^#{1,3} (.+)$/gm, (_, text) => {
-                        const safe = text.replace(/'/g, '&#39;');
-                        return `<div style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span></div>`;
+                        _hCount++;
+                        return `<div id="digest-story-${_hCount}" style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span></div>`;
                       })
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
@@ -1391,45 +1402,63 @@ const TheAIRundown = () => {
                         )}
 
                         {/* Sources cards — shown at top */}
-                        {sourceLinks.length > 0 && (
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
-                              <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
-                              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
-                            </div>
-                            {/* Both states use flex wrap; collapsed clips to 1 row via maxHeight */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', overflow: 'hidden', width: '100%', maxHeight: showAllSources ? 'none' : '9.5rem' }}>
-                              {sourceLinks.map((s, i) => {
-                                const domain = getDomain(s.url);
-                                const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-                                return (
-                                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                                    style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s', cursor: 'pointer', flex: '1 1 150px', maxWidth: '175px' }}
-                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
-                                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                      <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                      <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                        {sourceLinks.length > 0 && (() => {
+                          // Estimate how many cards fit in one row based on screen width
+                          const perRow = windowWidth >= 1100 ? 6 : windowWidth >= 900 ? 5 : windowWidth >= 650 ? 4 : windowWidth >= 450 ? 3 : 2;
+                          const visible = showAllSources ? sourceLinks : sourceLinks.slice(0, perRow);
+                          const hiddenCount = sourceLinks.length - perRow;
+                          return (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
+                                <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
+                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', width: '100%' }}>
+                                {visible.map((s, i) => {
+                                  const domain = getDomain(s.url);
+                                  const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                                  const storyIdx = urlToStoryIdx[s.url];
+                                  return (
+                                    <div key={i}
+                                      style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', transition: 'box-shadow 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
+                                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
+                                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                        <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                                      </div>
+                                      <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{s.title}</span>
+                                      <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.3rem', borderTop: '1px solid #f3f4f6' }}>
+                                        {storyIdx !== undefined && (
+                                          <button
+                                            onClick={() => document.getElementById(`digest-story-${storyIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                            style={{ flex: 1, fontSize: '0.62rem', fontWeight: '700', color: '#6366f1', background: 'rgba(99,102,241,0.07)', border: 'none', borderRadius: '5px', padding: '0.28rem 0.3rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                            View Summary
+                                          </button>
+                                        )}
+                                        <a href={s.url} target="_blank" rel="noopener noreferrer"
+                                          style={{ flex: 1, fontSize: '0.62rem', fontWeight: '700', color: '#374151', background: '#f0f0f0', borderRadius: '5px', padding: '0.28rem 0.3rem', textDecoration: 'none', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                          Go to source ↗
+                                        </a>
+                                      </div>
                                     </div>
-                                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
-                                    <span style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: '600', marginTop: 'auto' }}>Read article ↗</span>
-                                  </a>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
+                              {!showAllSources && hiddenCount > 0 && (
+                                <button onClick={() => setShowAllSources(true)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  View all <span style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '999px', padding: '0.05rem 0.45rem' }}>+{hiddenCount} more</span>
+                                </button>
+                              )}
+                              {showAllSources && (
+                                <button onClick={() => setShowAllSources(false)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem 0' }}>
+                                  Show less ↑
+                                </button>
+                              )}
+                              <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
                             </div>
-                            {!showAllSources && (
-                              <button onClick={() => setShowAllSources(true)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                View all <span style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '999px', padding: '0.05rem 0.45rem' }}>{sourceLinks.length}</span>
-                              </button>
-                            )}
-                            {showAllSources && (
-                              <button onClick={() => setShowAllSources(false)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem 0' }}>
-                                Show less ↑
-                              </button>
-                            )}
-                            <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* Summary */}
                         <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />

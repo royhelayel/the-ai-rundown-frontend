@@ -635,22 +635,25 @@ const TheAIRundown = () => {
   });
 
   const timePill = (active, disabled = false) => ({
-    padding: '0.3rem 0.9rem',
-    background: active ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : 'white',
-    color: active ? 'white' : disabled ? '#d1d5db' : '#6b7280',
-    border: active ? 'none' : `1.5px solid ${disabled ? '#f3f4f6' : '#e5e7eb'}`,
+    padding: '0.35rem 1.1rem',
+    background: active
+      ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)'
+      : disabled ? '#f3f4f6' : '#f0f0f5',
+    color: active ? 'white' : disabled ? '#c4c4d0' : '#4b4b6b',
+    border: 'none',
     borderRadius: '999px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     fontSize: '0.78rem',
-    fontWeight: active ? '700' : '500',
+    fontWeight: active ? '700' : '600',
     whiteSpace: 'nowrap',
     flexShrink: 0,
     transition: 'all 0.15s ease',
-    opacity: disabled ? 0.45 : 1,
+    opacity: disabled ? 0.5 : 1,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     lineHeight: 1.2,
+    boxShadow: active ? '0 2px 10px rgba(99,102,241,0.35)' : 'none',
   });
 
   const navArrow = (disabled) => ({

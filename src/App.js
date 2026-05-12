@@ -119,65 +119,43 @@ const TheAIRundown = () => {
     );
   };
 
-  // ── Narration helpers (all reads go through refs to avoid stale closures) ──
-
-  // Pick the most natural-sounding voice available
-  const pickVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    const priority = [
-      v => v.name === 'Samantha',                          // macOS best
-      v => v.name === 'Karen',
-      v => v.name === 'Daniel',
-      v => /Google (US|UK) English/.test(v.name),
-      v => /Microsoft.*Natural/.test(v.name),
-      v => /Microsoft.*Online/.test(v.name) && v.lang.startsWith('en'),
-      v => v.name.includes('Enhanced') && v.lang.startsWith('en'),
-      v => v.lang === 'en-US' && !v.name.toLowerCase().includes('compact'),
-      v => v.lang.startsWith('en'),
-    ];
-    for (const test of priority) {
-      const found = voices.find(test);
-      if (found) return found;
-    }
-    return null;
-  };
+  // ── Narration helpers (ElevenLabs TTS via backend, all reads through refs) ──
 
   const stopNarration = () => {
-    window.speechSynthesis?.cancel();
-    narrationStateRef.current.active = false;
-    narrationStateRef.current.pendingLoad = false;
+    const st = narrationStateRef.current;
+    if (st.audio) { st.audio.pause(); st.audio = null; }
+    st.active = false;
+    st.pendingLoad = false;
     setIsNarrating(false);
   };
   narrateFnRef.current.stop = stopNarration;
 
-  // Speak sentences one by one with a natural pause between them
-  const speakSentences = (sentences, onDone) => {
-    if (!narrationStateRef.current.active || sentences.length === 0) { onDone(); return; }
-    const [first, ...rest] = sentences;
-    if (!first.trim()) { speakSentences(rest, onDone); return; }
-    const utt = new SpeechSynthesisUtterance(first.trim());
-    const voice = pickVoice();
-    if (voice) utt.voice = voice;
-    utt.rate = 0.92;
-    utt.pitch = 1.0;
-    utt.volume = 1.0;
-    utt.onend = () => {
-      if (!narrationStateRef.current.active) return;
-      if (rest.length === 0) { onDone(); return; }
-      setTimeout(() => narrateFnRef.current.speakSentences(rest, onDone), 280);
-    };
-    utt.onerror = () => narrateFnRef.current.stop();
-    window.speechSynthesis.speak(utt);
-  };
-  narrateFnRef.current.speakSentences = speakSentences;
-
-  // Split text into sentences for natural pacing
-  const splitSentences = (text) =>
-    text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-
   const speakText = (text, onDone) => {
-    if (!narrationStateRef.current.active) return;
-    narrateFnRef.current.speakSentences(splitSentences(text), onDone);
+    if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
+    fetch(`${BACKEND_URL}/api/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.trim() }),
+    })
+      .then(r => { if (!r.ok) throw new Error('tts failed'); return r.blob(); })
+      .then(blob => {
+        if (!narrationStateRef.current.active) return;
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        narrationStateRef.current.audio = audio;
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          narrationStateRef.current.audio = null;
+          if (narrationStateRef.current.active) onDone();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          narrationStateRef.current.audio = null;
+          narrateFnRef.current.stop();
+        };
+        audio.play().catch(() => narrateFnRef.current.stop());
+      })
+      .catch(() => narrateFnRef.current.stop());
   };
   narrateFnRef.current.speakText = speakText;
 
@@ -200,12 +178,12 @@ const TheAIRundown = () => {
     if (idx >= stories.length) { narrateFnRef.current.goNext(); return; }
     const story = stories[idx];
     setStoryIndex(idx);
-    // Build natural-sounding script with clear transitions
     const parts = [story.headline + '.'];
     story.bullets.forEach(b => parts.push(b + '.'));
     if (story.perspectives) parts.push('On the other hand... ' + story.perspectives + '.');
     if (story.why) parts.push('Here is why this matters. ' + story.why + '.');
-    narrateFnRef.current.speakSentences(parts, () => {
+    const script = parts.join(' ');
+    narrateFnRef.current.speakText(script, () => {
       if (!narrationStateRef.current.active) return;
       setTimeout(() => narrateFnRef.current.narrateStory(idx + 1), 600);
     });
@@ -232,22 +210,16 @@ const TheAIRundown = () => {
   narrateFnRef.current.narrateDigest = narrateDigestContent;
 
   const startNarration = () => {
-    if (!window.speechSynthesis) return;
     if (isNarrating) { narrateFnRef.current.stop(); return; }
-    window.speechSynthesis.cancel();
     narrationStateRef.current.active = true;
     narrationStateRef.current.pendingLoad = false;
+    narrationStateRef.current.audio = null;
     setIsNarrating(true);
-    // Voices may not be loaded yet on first call — wait if needed
-    const begin = () => {
-      if (viewMode === 'stories') {
-        narrateFnRef.current.narrateStory(storyIndex);
-      } else {
-        narrateFnRef.current.narrateDigest(newsSummary?.content);
-      }
-    };
-    if (window.speechSynthesis.getVoices().length > 0) { begin(); return; }
-    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; begin(); };
+    if (viewMode === 'stories') {
+      narrateFnRef.current.narrateStory(storyIndex);
+    } else {
+      narrateFnRef.current.narrateDigest(newsSummary?.content);
+    }
   };
 
   const timesOfDay = [

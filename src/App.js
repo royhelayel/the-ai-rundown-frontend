@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 
@@ -52,6 +52,7 @@ const TheAIRundown = () => {
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
+  const [storiesPicker, setStoriesPicker] = useState(null); // null | 'category' | 'day' | 'time'
 
   const enterStories = () => {
     setViewMode('stories');
@@ -1177,16 +1178,60 @@ const TheAIRundown = () => {
 
                     const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : newsSummary.day; })();
 
+                    const pickerItemStyle = (active) => ({
+                      width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px',
+                      cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500',
+                      background: active ? 'rgba(99,102,241,0.08)' : 'transparent',
+                      color: active ? '#6366f1' : '#374151', transition: 'background 0.12s',
+                    });
+
                     return (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
+                        {/* Stories picker popover — fixed so it escapes card overflow */}
+                        {storiesPicker && (
+                          <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
+                            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
+                              {storiesPicker === 'category' && (
+                                <>
+                                  <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
+                                  {allCategories.map(cat => (
+                                    <button key={cat} style={pickerItemStyle(cat === selectedCategory)} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
+                                  ))}
+                                </>
+                              )}
+                              {storiesPicker === 'day' && (
+                                <>
+                                  <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
+                                  {availableDays.map(day => (
+                                    <button key={day.fullDate} style={pickerItemStyle(day.fullDate === selectedDay)} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
+                                      {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                              {storiesPicker === 'time' && (
+                                <>
+                                  <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
+                                  {availableTimes.map(time => (
+                                    <button key={time.value} disabled={isTimeFuture(time.value)} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: isTimeFuture(time.value) ? 0.4 : 1, cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
+                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Compact header */}
                         <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
-                          {/* Row 1: pill + controls perfectly on same baseline */}
+                          {/* Row 1: pill (clickable) + controls */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '0.22rem 0.6rem', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: storiesPicker === 'category' ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.1)', padding: '0.22rem 0.55rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
                               {newsSummary.category}
-                            </span>
+                              <ChevronDown size={10} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                            </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                               <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
                               <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
@@ -1195,10 +1240,18 @@ const TheAIRundown = () => {
                               <button onClick={exitStories} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
                             </div>
                           </div>
-                          {/* Row 2: day · time */}
-                          <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: '500', marginTop: '0.2rem', display: 'block', whiteSpace: 'nowrap' }}>
-                            {dayLabel} · {newsSummary.time_slot}
-                          </span>
+                          {/* Row 2: day (clickable) · time (clickable) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                              {dayLabel}
+                              <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                            </button>
+                            <span style={{ fontSize: '0.68rem', color: '#d1d5db' }}>·</span>
+                            <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                              {newsSummary.time_slot}
+                              <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Scrollable body */}

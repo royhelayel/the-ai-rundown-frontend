@@ -711,7 +711,7 @@ const TheAIRundown = () => {
       {/* ── Header ── */}
       <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         {/* Brand row */}
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '0.75rem' : '2rem'}` : `1.25rem ${isMobile ? '0.75rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
           <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, cursor: 'pointer' }}>
             <Sparkles size={28} color="#6366f1" />
             <h1 style={{ fontSize: '1.7rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -953,7 +953,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.5rem 0 2rem' : '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1083,7 +1083,7 @@ const TheAIRundown = () => {
               </div>
             )}
 
-            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '0.75rem 0.5rem' : '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
               {newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   {customCategories.includes(selectedCategory) ? (

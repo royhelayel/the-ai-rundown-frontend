@@ -711,7 +711,7 @@ const TheAIRundown = () => {
       {/* ── Header ── */}
       <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         {/* Brand row */}
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? '0.6rem 2rem' : '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
           <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, cursor: 'pointer' }}>
             <Sparkles size={28} color="#6366f1" />
             <h1 style={{ fontSize: '1.7rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -933,7 +933,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1063,7 +1063,7 @@ const TheAIRundown = () => {
               </div>
             )}
 
-            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1rem 0.75rem' : '1.75rem 2rem' }}>
               {newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   {customCategories.includes(selectedCategory) ? (
@@ -1397,12 +1397,8 @@ const TheAIRundown = () => {
                               <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
                               <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
                             </div>
-                            {/* Collapsed: single flex row, overflow hidden → fills the line naturally */}
-                            {/* Expanded: wraps to full grid */}
-                            <div style={showAllSources
-                              ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.55rem' }
-                              : { display: 'flex', flexWrap: 'nowrap', gap: '0.55rem', overflow: 'hidden' }
-                            }>
+                            {/* Collapsed: single row, overflow hidden. Expanded: wraps. Both use flex so card size stays identical. */}
+                            <div style={{ display: 'flex', flexWrap: showAllSources ? 'wrap' : 'nowrap', gap: '0.55rem', overflow: showAllSources ? 'visible' : 'hidden' }}>
                               {sourceLinks.map((s, i) => {
                                 const domain = getDomain(s.url);
                                 const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;

@@ -339,7 +339,8 @@ const TheAIRundown = () => {
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
 
   useEffect(() => {
-    const stories = parseStories(newsSummary?.content);
+    // Use stories_content for stories mode if available, fallback to digest content
+    const stories = parseStories(newsSummary?.stories_content || newsSummary?.content);
     setParsedStories(stories);
     if (goToLastStoryRef.current && stories.length > 0) {
       setStoryIndex(stories.length - 1);

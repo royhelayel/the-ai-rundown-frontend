@@ -240,16 +240,25 @@ const TheAIRundown = () => {
     { value: 'Evening', label: 'Evening', time: '6 PM' },
   ];
 
+  // Returns the current UAE date as YYYY-MM-DD, correctly for all browser timezones
+  const toUAEDate = (d = new Date()) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(d);
+
+  // Returns current UAE hour 0–23, correctly for all browser timezones
+  const getUAEHour = () => {
+    const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai', hour: 'numeric', hour12: false }));
+    return h === 24 ? 0 : h;
+  };
+
   function getDaysOfWeek(offset = 0) {
     const days = [];
     const base = offset * 7;
     for (let i = base - 6; i <= base; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
-      const uaeDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-      const fullDate = uaeDate.toISOString().split('T')[0];
-      const dayName = uaeDate.toLocaleDateString('en-US', { weekday: 'short' });
-      const dateNum = uaeDate.getDate();
+      const fullDate = toUAEDate(date);
+      const dayName = new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'Asia/Dubai' }).format(date);
+      const dateNum = parseInt(new Intl.DateTimeFormat('en', { day: 'numeric', timeZone: 'Asia/Dubai' }).format(date));
       days.push({ label: dayName, date: dateNum, fullDate });
     }
     return days;
@@ -258,31 +267,19 @@ const TheAIRundown = () => {
   const daysOfWeek = getDaysOfWeek(weekOffset);
   const allCategories = [...defaultCategories, ...customCategories];
 
-  const getCurrentTimeSlot = () => {
-    const now = new Date();
-    const uaeTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-    return uaeTime.getHours() >= 18 ? 'Evening' : 'Morning';
-  };
+  const getCurrentTimeSlot = () => getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
   const currentTimeSlot = getCurrentTimeSlot();
-  const today = (() => {
-    const now = new Date();
-    return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).toISOString().split('T')[0];
-  })();
+  const today = toUAEDate();
 
   const isCustomCategory = customCategories.includes(selectedCategory);
 
   // Last completed slot
-  const lastCompletedTimeSlot = (() => {
-    const now = new Date();
-    const hour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).getHours();
-    return hour >= 18 ? 'Evening' : 'Morning';
-  })();
+  const lastCompletedTimeSlot = getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
   const isTimeFuture = (timeValue) => {
     if (selectedDay !== today) return false;
-    const now = new Date();
-    const hour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).getHours();
+    const hour = getUAEHour();
     if (timeValue === 'Morning') return hour < 6;
     if (timeValue === 'Evening') return hour < 18;
     return false;
@@ -1283,9 +1280,6 @@ const TheAIRundown = () => {
                               </div>
                             ))}
                           </div>
-
-                          {/* Spacer pushes perspectives/why down when content is short */}
-                          <div style={{ flex: 1 }} />
 
                           {/* Perspectives differ */}
                           {story.perspectives && (

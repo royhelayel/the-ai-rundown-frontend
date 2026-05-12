@@ -1391,48 +1391,49 @@ const TheAIRundown = () => {
                         )}
 
                         {/* Sources cards — shown at top */}
-                        {sourceLinks.length > 0 && (() => {
-                          const PREVIEW = 3;
-                          const visible = showAllSources ? sourceLinks : sourceLinks.slice(0, PREVIEW);
-                          const hidden  = sourceLinks.length - PREVIEW;
-                          return (
-                            <div style={{ marginBottom: '1.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
-                                <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
-                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.55rem' }}>
-                                {visible.map((s, i) => {
-                                  const domain = getDomain(s.url);
-                                  const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-                                  return (
-                                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s', cursor: 'pointer' }}
-                                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
-                                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                        <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                        <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
-                                      </div>
-                                      <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
-                                      <span style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: '600', marginTop: 'auto' }}>Read article ↗</span>
-                                    </a>
-                                  );
-                                })}
-                              </div>
-                              {!showAllSources && hidden > 0 && (
-                                <button onClick={() => setShowAllSources(true)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  View all <span style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '999px', padding: '0.05rem 0.45rem' }}>+{hidden} more</span>
-                                </button>
-                              )}
-                              {showAllSources && sourceLinks.length > PREVIEW && (
-                                <button onClick={() => setShowAllSources(false)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem 0' }}>
-                                  Show less ↑
-                                </button>
-                              )}
-                              <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
+                        {sourceLinks.length > 0 && (
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
+                              <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
+                              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
                             </div>
-                          );
-                        })()}
+                            {/* Collapsed: single flex row, overflow hidden → fills the line naturally */}
+                            {/* Expanded: wraps to full grid */}
+                            <div style={showAllSources
+                              ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.55rem' }
+                              : { display: 'flex', flexWrap: 'nowrap', gap: '0.55rem', overflow: 'hidden' }
+                            }>
+                              {sourceLinks.map((s, i) => {
+                                const domain = getDomain(s.url);
+                                const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+                                return (
+                                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                                    style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s', cursor: 'pointer', flexShrink: 0, width: '175px' }}
+                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
+                                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                      <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                      <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                                    </div>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
+                                    <span style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: '600', marginTop: 'auto' }}>Read article ↗</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                            {!showAllSources && (
+                              <button onClick={() => setShowAllSources(true)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                View all <span style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '999px', padding: '0.05rem 0.45rem' }}>{sourceLinks.length}</span>
+                              </button>
+                            )}
+                            {showAllSources && (
+                              <button onClick={() => setShowAllSources(false)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem 0' }}>
+                                Show less ↑
+                              </button>
+                            )}
+                            <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
+                          </div>
+                        )}
 
                         {/* Summary */}
                         <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />

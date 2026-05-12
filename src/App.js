@@ -1388,13 +1388,7 @@ const TheAIRundown = () => {
                     const renderStoryBody = (lines) => lines.join('\n')
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
-                      .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, (_, links) => {
-                        const badges = [...links.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)].map(([, text, url]) => {
-                          let d = ''; try { d = new URL(url).hostname.replace(/^www\./, ''); } catch {}
-                          return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.22rem;padding:0.18rem 0.55rem 0.18rem 0.32rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:999px;text-decoration:none;margin:0 0.22rem 0.2rem 0;"><img src="https://www.google.com/s2/favicons?domain=${d}&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#374151;">${text}</span></a>`;
-                        }).join('');
-                        return `<div style="display:flex;flex-wrap:wrap;align-items:center;margin:0.2rem 0 0.5rem;">${badges}</div>`;
-                      })
+                      .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story
                       .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
                       )

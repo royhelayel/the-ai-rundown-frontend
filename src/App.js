@@ -52,6 +52,15 @@ const TheAIRundown = () => {
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
+
+  const enterStories = () => {
+    setViewMode('stories');
+    try { document.documentElement.requestFullscreen?.(); } catch {}
+  };
+  const exitStories = () => {
+    setViewMode('digest');
+    try { if (document.fullscreenElement) document.exitFullscreen?.(); } catch {}
+  };
   const [storyIndex, setStoryIndex] = useState(0);
   const [parsedStories, setParsedStories] = useState([]);
   const goToLastStoryRef = useRef(false);
@@ -1066,7 +1075,7 @@ const TheAIRundown = () => {
           )}
 
           {/* ── News Card ── */}
-          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100vh - 100px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
+          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 80px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
 
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && parsedStories.length > 0 && (
@@ -1125,7 +1134,7 @@ const TheAIRundown = () => {
                         </button>
                         <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
                           {[['digest','≡ Digest'],['stories','▶ Stories']].map(([mode, label]) => (
-                            <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
+                            <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
                               {label}
                             </button>
                           ))}
@@ -1171,23 +1180,24 @@ const TheAIRundown = () => {
                     return (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
-                        {/* Compact header: category · day · time  |  count  [≡ Digest] */}
+                        {/* Compact header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, marginBottom: '0.75rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', minWidth: 0 }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '0.22rem 0.6rem', borderRadius: '999px', flexShrink: 0 }}>
+                          {/* Left: category pill + day/time on second line */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '0.22rem 0.6rem', borderRadius: '999px', alignSelf: 'flex-start', whiteSpace: 'nowrap' }}>
                               {newsSummary.category}
                             </span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '500' }}>·</span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>{dayLabel}</span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '500' }}>·</span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>{newsSummary.time_slot}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: '500', paddingLeft: '0.1rem', whiteSpace: 'nowrap' }}>
+                              {dayLabel} · {newsSummary.time_slot}
+                            </span>
                           </div>
+                          {/* Right: count + narrate + digest */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                             <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
                             <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
                               {isNarrating ? <VolumeX size={12} /> : <Volume2 size={12} />}
                             </button>
-                            <button onClick={() => setViewMode('digest')} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
+                            <button onClick={exitStories} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
                           </div>
                         </div>
 
@@ -1233,7 +1243,7 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Navigation pinned to bottom */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', marginTop: '0.5rem', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0 }}>
                           <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
                             <ChevronLeft size={14} />
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}

@@ -1181,7 +1181,7 @@ const TheAIRundown = () => {
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
                         {/* Compact header */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, marginBottom: '0.75rem' }}>
                           {/* Left: category pill + day/time on second line */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0 }}>
                             <span style={{ fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: 'rgba(99,102,241,0.1)', padding: '0.22rem 0.6rem', borderRadius: '999px', alignSelf: 'flex-start', whiteSpace: 'nowrap' }}>

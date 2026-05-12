@@ -726,6 +726,16 @@ const TheAIRundown = () => {
                   <Plus size={15} /> Add Category
                 </button>
               )}
+              {currentView === 'home' && (
+                <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0 }}>
+                  {[['digest', '≡ Digest'], ['stories', '▶ Stories']].map(([mode, label]) => (
+                    <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
+                      style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {user ? (
                 <div style={{ position: 'relative' }}>
                   <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ padding: '0.5rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
@@ -791,6 +801,16 @@ const TheAIRundown = () => {
         {/* Mobile menu */}
         {isMobile && showMobileMenu && (
           <div style={{ background: 'white', borderTop: '1px solid #f3f4f6', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {currentView === 'home' && (
+              <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', alignSelf: 'flex-start' }}>
+                {[['digest', '≡ Digest'], ['stories', '▶ Stories']].map(([mode, label]) => (
+                  <button key={mode} onClick={() => { mode === 'stories' ? enterStories() : exitStories(); setShowMobileMenu(false); }}
+                    style={{ padding: '0.35rem 1rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {user && (
               <>
                 {CUSTOM_CATEGORIES_ENABLED && (
@@ -1105,18 +1125,9 @@ const TheAIRundown = () => {
                       <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         {newsSummary.category}
                       </h2>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                        <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                          {isNarrating ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                        </button>
-                        <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                          {[['digest','≡ Digest'],['stories','▶ Stories']].map(([mode, label]) => (
-                            <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                        {isNarrating ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                      </button>
                     </div>
                     <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>

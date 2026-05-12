@@ -723,22 +723,24 @@ const TheAIRundown = () => {
             </h1>
           </div>
 
+          {/* View toggle — always visible, icon-only on small screens */}
+          {currentView === 'home' && (
+            <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0, marginLeft: 'auto' }}>
+              {[['digest', '≡', '≡ Digest'], ['stories', '▶', '▶ Stories']].map(([mode, icon, label]) => (
+                <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
+                  style={{ padding: windowWidth < 480 ? '0.3rem 0.55rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.85rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                  {windowWidth < 480 ? icon : label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
               {user && CUSTOM_CATEGORIES_ENABLED && (
                 <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.55rem 1.1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
                   <Plus size={15} /> Add Category
                 </button>
-              )}
-              {currentView === 'home' && (
-                <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0 }}>
-                  {[['digest', '≡ Digest'], ['stories', '▶ Stories']].map(([mode, label]) => (
-                    <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
-                      style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
               )}
               {user ? (
                 <div style={{ position: 'relative' }}>

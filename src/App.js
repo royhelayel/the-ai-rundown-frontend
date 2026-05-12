@@ -253,7 +253,10 @@ const TheAIRundown = () => {
   };
 
   const currentTimeSlot = getCurrentTimeSlot();
-  const today = daysOfWeek[daysOfWeek.length - 1]?.fullDate;
+  const today = (() => {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })).toISOString().split('T')[0];
+  })();
 
   const isCustomCategory = customCategories.includes(selectedCategory);
 
@@ -662,11 +665,12 @@ const TheAIRundown = () => {
     background: 'none',
     border: 'none',
     cursor: disabled ? 'default' : 'pointer',
-    color: disabled ? '#d1d5db' : '#9ca3af',
+    color: disabled ? '#e5e7eb' : '#6b7280',
     flexShrink: 0,
-    fontSize: '1rem',
+    fontSize: '1.1rem',
     lineHeight: 1,
     userSelect: 'none',
+    opacity: disabled ? 0.4 : 1,
   });
 
   // Keep handleSelectCategory ref always fresh (used by narration callbacks)
@@ -1220,7 +1224,6 @@ const TheAIRundown = () => {
                               <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
                                 {isNarrating ? <VolumeX size={12} /> : <Volume2 size={12} />}
                               </button>
-                              <button onClick={exitStories} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
                             </div>
                           </div>
                           {/* Row 2: day (clickable) · time (clickable) */}
@@ -1441,15 +1444,15 @@ const TheAIRundown = () => {
                                         <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
                                       </div>
                                       <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{s.title}</span>
-                                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: 'auto', paddingTop: '0.35rem', borderTop: '1px solid #f3f4f6' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '0.35rem', borderTop: '1px solid #f3f4f6' }}>
                                         {storyIdx !== undefined && (
                                           <button onClick={() => document.getElementById(`digest-story-${storyIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', color: '#6366f1', whiteSpace: 'nowrap' }}>
-                                            Read ↓
+                                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', color: '#6366f1', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                            Read <ChevronDown size={11} strokeWidth={2.5} />
                                           </button>
                                         )}
                                         <a href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                          style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textDecoration: 'none', whiteSpace: 'nowrap', marginLeft: 'auto' }}>
                                           Visit ↗
                                         </a>
                                       </div>

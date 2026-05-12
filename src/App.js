@@ -81,6 +81,18 @@ const TheAIRundown = () => {
 
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health'];
 
+  const CATEGORY_COLORS = {
+    'World News':    '#6366f1',
+    'Technology':    '#0891b2',
+    'Business':      '#d97706',
+    'Politics':      '#e11d48',
+    'Sports':        '#16a34a',
+    'Entertainment': '#9333ea',
+    'Science':       '#2563eb',
+    'Health':        '#db2777',
+  };
+  const catColor = CATEGORY_COLORS[selectedCategory] || '#6366f1';
+
   const parseStories = (raw) => {
     if (!raw) return [];
     const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
@@ -716,9 +728,9 @@ const TheAIRundown = () => {
       <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         {/* Brand row */}
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
-          <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, cursor: 'pointer' }}>
-            <Sparkles size={28} color="#6366f1" />
-            <h1 style={{ fontSize: '1.7rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, cursor: 'pointer' }}>
+            <Sparkles size={18} color="#6366f1" />
+            <h1 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               The News Rundown
             </h1>
           </div>
@@ -782,7 +794,7 @@ const TheAIRundown = () => {
               )}
               <div ref={categoryScrollRef} style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {defaultCategories.map(category => (
-                  <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? '2.5px solid #6366f1' : '2.5px solid transparent', color: selectedCategory === category ? '#111827' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
+                  <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? '#111827' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
                     {category}
                   </button>
                 ))}
@@ -1136,7 +1148,7 @@ const TheAIRundown = () => {
                   {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
-                      <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                      <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, color: catColor, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         {newsSummary.category}
                       </h2>
                       <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
@@ -1360,7 +1372,7 @@ const TheAIRundown = () => {
                       .join('\n')
                       .replace(/^https?:\/\/\S+$/gm, '');
 
-                    // Build URL → story-index map so source cards can scroll to the right story
+                    // Build URL → story-index map (used for per-story source filtering)
                     const urlToStoryIdx = {};
                     let _sIdx = -1;
                     mergedContent.split('\n').forEach(line => {
@@ -1370,123 +1382,104 @@ const TheAIRundown = () => {
                       });
                     });
 
-                    // Render main summary — headings get id="digest-story-N" for scroll targets
-                    let _hCount = -1;
-                    const html = mergedContent
-                      // Fix ## alone on its own line — join with next line
-                      .replace(/^(#{1,3})\s*\n(?!\s*\n)/gm, '$1 ')
-                      // Fix missing [ in ## Title](URL) — backward compat for old stored content
-                      .replace(/^(#{1,3} )(?!\[)([^\n]+\]\(https?:\/\/)/gm, '$1[$2')
-                      // Remove orphaned lines that are just punctuation, empty bullets, or bare URLs
+                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+
+                    // Body renderer — same transforms as before but no heading line
+                    const renderStoryBody = (lines) => lines.join('\n')
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
-                      // Coverage line — row of source badges (must come before **bold** replacement)
                       .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, (_, links) => {
                         const badges = [...links.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)].map(([, text, url]) => {
-                          let domain = '';
-                          try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
-                          return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.22rem;padding:0.18rem 0.55rem 0.18rem 0.32rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:999px;text-decoration:none;margin:0 0.22rem 0.2rem 0;"><img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#374151;">${text}</span></a>`;
+                          let d = ''; try { d = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+                          return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.22rem;padding:0.18rem 0.55rem 0.18rem 0.32rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:999px;text-decoration:none;margin:0 0.22rem 0.2rem 0;"><img src="https://www.google.com/s2/favicons?domain=${d}&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" onerror="this.style.display='none'" /><span style="font-size:0.68rem;font-weight:700;color:#374151;">${text}</span></a>`;
                         }).join('');
                         return `<div style="display:flex;flex-wrap:wrap;align-items:center;margin:0.2rem 0 0.5rem;">${badges}</div>`;
                       })
-                      // Perspectives differ — same style as Why this matters
                       .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
                       )
-                      // "Why this matters" — subtle gray italic
                       .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      // Plain heading — inject id for scroll-to targeting
-                      .replace(/^#{1,3} (.+)$/gm, (_, text) => {
-                        _hCount++;
-                        return `<div id="digest-story-${_hCount}" style="margin:1.1rem 0 0.2rem;padding-top:0.6rem;border-top:1px solid #f3f4f6;"><span style="font-size:1.02rem;font-weight:800;color:#111827;line-height:1.3;">${text}</span></div>`;
-                      })
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
                       .replace(/\n/g, '');
 
-                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+                    // Split into per-story chunks by heading lines
+                    const storyChunks = [];
+                    let _ci = -1;
+                    mergedContent.split('\n').forEach(line => {
+                      if (/^#{1,3} /.test(line)) {
+                        _ci++;
+                        storyChunks.push({ heading: line.replace(/^#{1,3} /, ''), bodyLines: [], idx: _ci });
+                      } else if (_ci >= 0) {
+                        storyChunks[_ci].bodyLines.push(line);
+                      }
+                    });
+
+                    const showSourceCards = windowWidth >= 600;
 
                     return (
                       <>
-                        {/* Date availability note — shown above sources */}
                         {topNote && (
                           <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}
-                            dangerouslySetInnerHTML={{ __html: topNote
-                              .replace(/^_+|_+$/g, '')
-                              .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#6b7280;font-weight:700;">$1</strong>')
-                            }}
+                            dangerouslySetInnerHTML={{ __html: topNote.replace(/^_+|_+$/g, '').replace(/\*\*(.+?)\*\*/g, '<strong style="color:#6b7280;font-weight:700;">$1</strong>') }}
                           />
                         )}
-
-                        {/* Sources cards — shown at top */}
-                        {sourceLinks.length > 0 && (() => {
-                          // Sort sources to match the order stories appear in the digest
-                          const sortedLinks = [...sourceLinks].sort((a, b) => {
-                            const ia = urlToStoryIdx[a.url] ?? 999;
-                            const ib = urlToStoryIdx[b.url] ?? 999;
-                            return ia - ib;
-                          });
-                          // Estimate how many cards fit in one row based on screen width
-                          const perRow = windowWidth >= 1100 ? 6 : windowWidth >= 900 ? 5 : windowWidth >= 650 ? 4 : windowWidth >= 450 ? 3 : 2;
-                          const visible = showAllSources ? sortedLinks : sortedLinks.slice(0, perRow);
-                          const hiddenCount = sortedLinks.length - perRow;
-                          return (
-                            <div style={{ marginBottom: '1.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
-                                <p style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Sources</p>
-                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
-                              </div>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', width: '100%' }}>
-                                {visible.map((s, i) => {
-                                  const domain = getDomain(s.url);
-                                  const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-                                  const storyIdx = urlToStoryIdx[s.url];
-                                  return (
-                                    <div key={i}
-                                      style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '10px', transition: 'box-shadow 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
-                                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.12)'}
-                                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                        <img src={favicon} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                        <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {storyChunks.map((chunk, i) => {
+                            const storySources = sourceLinks.filter(s => urlToStoryIdx[s.url] === chunk.idx);
+                            const bodyHtml = renderStoryBody(chunk.bodyLines);
+                            return (
+                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                                <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>
+                                  {chunk.heading}
+                                </div>
+                                <div style={{ fontSize: '0.88rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+                                {storySources.length > 0 && (
+                                  <div style={{ marginTop: '0.85rem' }}>
+                                    {showSourceCards ? (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
+                                        {storySources.map((s, j) => {
+                                          const domain = getDomain(s.url);
+                                          return (
+                                            <div key={j}
+                                              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', transition: 'box-shadow 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
+                                              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)'}
+                                              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+                                              </div>
+                                              <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{s.title}</span>
+                                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: '0.35rem', borderTop: '1px solid #f3f4f6' }}>
+                                                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textDecoration: 'none', whiteSpace: 'nowrap' }}>Visit ↗</a>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
-                                      <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{s.title}</span>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '0.35rem', borderTop: '1px solid #f3f4f6' }}>
-                                        {storyIdx !== undefined && (
-                                          <button onClick={() => document.getElementById(`digest-story-${storyIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', color: '#6366f1', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                            Read <ChevronDown size={11} strokeWidth={2.5} />
-                                          </button>
-                                        )}
-                                        <a href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textDecoration: 'none', whiteSpace: 'nowrap', marginLeft: 'auto' }}>
-                                          Visit ↗
-                                        </a>
+                                    ) : (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                        {storySources.map((s, j) => {
+                                          const domain = getDomain(s.url);
+                                          return (
+                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                            </a>
+                                          );
+                                        })}
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              {!showAllSources && hiddenCount > 0 && (
-                                <button onClick={() => setShowAllSources(true)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', padding: '0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  View all <span style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '999px', padding: '0.05rem 0.45rem' }}>+{hiddenCount} more</span>
-                                </button>
-                              )}
-                              {showAllSources && (
-                                <button onClick={() => setShowAllSources(false)} style={{ marginTop: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', padding: '0.25rem 0' }}>
-                                  Show less ↑
-                                </button>
-                              )}
-                              <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '1.25rem' }} />
-                            </div>
-                          );
-                        })()}
-
-                        {/* Summary */}
-                        <div style={{ fontSize: '0.92rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: html }} />
+                            );
+                          })}
+                        </div>
                       </>
                     );
                   })()}

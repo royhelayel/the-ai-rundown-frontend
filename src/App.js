@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 
@@ -56,6 +56,10 @@ const TheAIRundown = () => {
   const [parsedStories, setParsedStories] = useState([]);
   const goToLastStoryRef = useRef(false);
   const storyNavRef = useRef({});
+  const [isNarrating, setIsNarrating] = useState(false);
+  const narrationStateRef = useRef({ active: false, pendingLoad: false });
+  const narrateFnRef = useRef({});
+  const handleSelectCategoryRef = useRef(null);
 
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
@@ -103,6 +107,82 @@ const TheAIRundown = () => {
         })}
       </div>
     );
+  };
+
+  // ── Narration helpers (all reads go through refs to avoid stale closures) ──
+  const stopNarration = () => {
+    window.speechSynthesis?.cancel();
+    narrationStateRef.current.active = false;
+    narrationStateRef.current.pendingLoad = false;
+    setIsNarrating(false);
+  };
+  narrateFnRef.current.stop = stopNarration;
+
+  const speakText = (text, onDone) => {
+    if (!narrationStateRef.current.active) return;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 1.05;
+    utt.onend = () => { if (narrationStateRef.current.active) onDone(); };
+    utt.onerror = () => narrateFnRef.current.stop();
+    window.speechSynthesis.speak(utt);
+  };
+  narrateFnRef.current.speakText = speakText;
+
+  const goNextCategoryNarration = () => {
+    const { cats, cat } = storyNavRef.current;
+    const catIdx = cats.indexOf(cat);
+    const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
+    if (nextCat && narrationStateRef.current.active) {
+      narrationStateRef.current.pendingLoad = true;
+      handleSelectCategoryRef.current?.(nextCat);
+    } else {
+      narrateFnRef.current.stop();
+    }
+  };
+  narrateFnRef.current.goNext = goNextCategoryNarration;
+
+  const narrateStoryFrom = (idx) => {
+    if (!narrationStateRef.current.active) return;
+    const { stories } = storyNavRef.current;
+    if (idx >= stories.length) { narrateFnRef.current.goNext(); return; }
+    const story = stories[idx];
+    setStoryIndex(idx);
+    let text = story.headline + '. ';
+    story.bullets.forEach(b => { text += b + '. '; });
+    if (story.perspectives) text += 'Perspectives differ. ' + story.perspectives + '. ';
+    if (story.why) text += 'Why this matters. ' + story.why + '.';
+    narrateFnRef.current.speakText(text, () => narrateFnRef.current.narrateStory(idx + 1));
+  };
+  narrateFnRef.current.narrateStory = narrateStoryFrom;
+
+  const narrateDigestContent = (content) => {
+    if (!narrationStateRef.current.active || !content) return;
+    const text = content
+      .replace(/#{1,3}\s+\[?([^\]\n]+)\]?[^\n]*/g, '$1. ')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^[-*]\s+/gm, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\n{2,}/g, '. ')
+      .replace(/\n/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    narrateFnRef.current.speakText(text, () => narrateFnRef.current.goNext());
+  };
+  narrateFnRef.current.narrateDigest = narrateDigestContent;
+
+  const startNarration = () => {
+    if (!window.speechSynthesis) return;
+    if (isNarrating) { narrateFnRef.current.stop(); return; }
+    window.speechSynthesis.cancel();
+    narrationStateRef.current.active = true;
+    narrationStateRef.current.pendingLoad = false;
+    setIsNarrating(true);
+    if (viewMode === 'stories') {
+      narrateFnRef.current.narrateStory(storyIndex);
+    } else {
+      narrateFnRef.current.narrateDigest(newsSummary?.content);
+    }
   };
 
   const timesOfDay = [
@@ -548,6 +628,25 @@ const TheAIRundown = () => {
     userSelect: 'none',
   });
 
+  // Keep handleSelectCategory ref always fresh (used by narration callbacks)
+  handleSelectCategoryRef.current = handleSelectCategory;
+
+  // Trigger narration when new category content finishes loading
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!narrationStateRef.current.pendingLoad || !narrationStateRef.current.active) return;
+    narrationStateRef.current.pendingLoad = false;
+    if (viewMode === 'stories' && parsedStories.length > 0) {
+      setStoryIndex(0);
+      setTimeout(() => narrateFnRef.current.narrateStory?.(0), 200);
+    } else if (viewMode !== 'stories' && newsSummary?.content) {
+      setTimeout(() => narrateFnRef.current.narrateDigest?.(newsSummary.content), 200);
+    }
+  }, [parsedStories, newsSummary]);
+
+  // Stop narration on unmount
+  useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
+
   /* ── Slide-out panel shared wrapper ── */
   const slidePanel = (children) => (
     <div style={{ position: 'fixed', inset: 0, zIndex: 999 }}>
@@ -965,12 +1064,17 @@ const TheAIRundown = () => {
                       <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         {newsSummary.category}
                       </h2>
-                      <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0 }}>
-                        {[['digest','≡ Digest'],['stories','▶ Stories']].map(([mode, label]) => (
-                          <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
-                            {label}
-                          </button>
-                        ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                        <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                          {isNarrating ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                        </button>
+                        <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
+                          {[['digest','≡ Digest'],['stories','▶ Stories']].map(([mode, label]) => (
+                            <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
@@ -1023,8 +1127,11 @@ const TheAIRundown = () => {
                             <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '500' }}>·</span>
                             <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>{newsSummary.time_slot}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                             <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
+                            <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                              {isNarrating ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                            </button>
                             <button onClick={() => setViewMode('digest')} style={{ padding: '0.25rem 0.7rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>≡ Digest</button>
                           </div>
                         </div>

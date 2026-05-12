@@ -1106,7 +1106,7 @@ const TheAIRundown = () => {
                         <Loader size={48} color="#6366f1" strokeWidth={1.5} />
                       </div>
                       <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '1.5rem 0 0.4rem', color: '#111827' }}>Loading Your News</h3>
-                      <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>Retrieving pre-generated news…</p>
+                      <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>Retrieving news…</p>
                     </>
                   )}
                 </div>
@@ -1130,10 +1130,6 @@ const TheAIRundown = () => {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Calendar size={11} />
-                        <span>{(() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? `${d.label}, ${d.date}` : newsSummary.day; })()}</span>
-                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                         <Clock size={11} />
                         <span>{newsSummary.time_slot}</span>
@@ -1414,10 +1410,16 @@ const TheAIRundown = () => {
 
                         {/* Sources cards — shown at top */}
                         {sourceLinks.length > 0 && (() => {
+                          // Sort sources to match the order stories appear in the digest
+                          const sortedLinks = [...sourceLinks].sort((a, b) => {
+                            const ia = urlToStoryIdx[a.url] ?? 999;
+                            const ib = urlToStoryIdx[b.url] ?? 999;
+                            return ia - ib;
+                          });
                           // Estimate how many cards fit in one row based on screen width
                           const perRow = windowWidth >= 1100 ? 6 : windowWidth >= 900 ? 5 : windowWidth >= 650 ? 4 : windowWidth >= 450 ? 3 : 2;
-                          const visible = showAllSources ? sourceLinks : sourceLinks.slice(0, perRow);
-                          const hiddenCount = sourceLinks.length - perRow;
+                          const visible = showAllSources ? sortedLinks : sortedLinks.slice(0, perRow);
+                          const hiddenCount = sortedLinks.length - perRow;
                           return (
                             <div style={{ marginBottom: '1.5rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.65rem' }}>
@@ -1439,17 +1441,16 @@ const TheAIRundown = () => {
                                         <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
                                       </div>
                                       <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{s.title}</span>
-                                      <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.3rem', borderTop: '1px solid #f3f4f6' }}>
+                                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: 'auto', paddingTop: '0.35rem', borderTop: '1px solid #f3f4f6' }}>
                                         {storyIdx !== undefined && (
-                                          <button
-                                            onClick={() => document.getElementById(`digest-story-${storyIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                                            style={{ flex: 1, fontSize: '0.62rem', fontWeight: '700', color: '#6366f1', background: 'rgba(99,102,241,0.07)', border: 'none', borderRadius: '5px', padding: '0.28rem 0.3rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                            View Summary
+                                          <button onClick={() => document.getElementById(`digest-story-${storyIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', color: '#6366f1', whiteSpace: 'nowrap' }}>
+                                            Read ↓
                                           </button>
                                         )}
                                         <a href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ flex: 1, fontSize: '0.62rem', fontWeight: '700', color: '#374151', background: '#f0f0f0', borderRadius: '5px', padding: '0.28rem 0.3rem', textDecoration: 'none', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                          Go to source ↗
+                                          style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                          Visit ↗
                                         </a>
                                       </div>
                                     </div>

@@ -122,7 +122,7 @@ export const VerificationPage = () => {
                 Email Verified!
               </h1>
               <p style={{ color: '#64748b', marginBottom: '2rem' }}>
-                Your email has been verified. You can now sign in and start using The AI Rundown.
+                Your email has been verified. You can now sign in and start using The News Rundown.
               </p>
               <a href="/" style={{ 
                 display: 'inline-block',

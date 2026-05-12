@@ -715,7 +715,7 @@ const TheAIRundown = () => {
           <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, cursor: 'pointer' }}>
             <Sparkles size={28} color="#6366f1" />
             <h1 style={{ fontSize: '1.7rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              The Rundown
+              The News Rundown
             </h1>
           </div>
 

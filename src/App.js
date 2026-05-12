@@ -721,7 +721,7 @@ const TheAIRundown = () => {
 
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-              {user && (
+              {user && CUSTOM_CATEGORIES_ENABLED && (
                 <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.55rem 1.1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
                   <Plus size={15} /> Add Category
                 </button>
@@ -1507,11 +1507,11 @@ const TheAIRundown = () => {
                   <button disabled style={{ padding: '0.48rem 1rem', background: '#f3f4f6', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#9ca3af', cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
                     Available Tomorrow
                   </button>
-                ) : (
+                ) : CUSTOM_CATEGORIES_ENABLED ? (
                   <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.48rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.3)', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
                     <Plus size={14} /> {customCategories.length > 0 ? 'Change Category' : 'Add Category'}
                   </button>
-                )}
+                ) : null}
               </div>
               {customCategories.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2.25rem', color: '#9ca3af' }}>

@@ -728,9 +728,9 @@ const TheAIRundown = () => {
       <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         {/* Brand row */}
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
-          <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, cursor: 'pointer' }}>
-            <Sparkles size={18} color="#6366f1" />
-            <h1 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: windowWidth < 480 ? '0.4rem' : '0.65rem', flexShrink: 0, cursor: 'pointer' }}>
+            <Sparkles size={windowWidth < 480 ? 16 : windowWidth < 640 ? 20 : 26} color="#6366f1" />
+            <h1 style={{ fontSize: windowWidth < 480 ? '0.95rem' : windowWidth < 640 ? '1.2rem' : '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', whiteSpace: 'nowrap' }}>
               The News Rundown
             </h1>
           </div>

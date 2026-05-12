@@ -638,23 +638,23 @@ const TheAIRundown = () => {
   const timePill = (active, disabled = false) => ({
     padding: '0.35rem 1.1rem',
     background: active
-      ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)'
-      : disabled ? '#ededf5' : '#e8e8f4',
-    color: active ? 'white' : disabled ? '#a0a0c0' : '#3b3b6b',
-    border: active ? 'none' : `1.5px solid ${disabled ? '#d8d8ee' : '#c8c8e8'}`,
+      ? 'linear-gradient(135deg, #4338ca 0%, #be185d 100%)'
+      : disabled ? '#f3f4f6' : 'white',
+    color: active ? 'white' : disabled ? '#b0b0b8' : '#374151',
+    border: active ? 'none' : `1.5px solid ${disabled ? '#e5e7eb' : '#d1d5db'}`,
     borderRadius: '999px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     fontSize: '0.78rem',
-    fontWeight: active ? '700' : '700',
+    fontWeight: '700',
     whiteSpace: 'nowrap',
     flexShrink: 0,
     transition: 'all 0.15s ease',
-    opacity: disabled ? 0.6 : 1,
+    opacity: disabled ? 0.5 : 1,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     lineHeight: 1.2,
-    boxShadow: active ? '0 2px 10px rgba(99,102,241,0.35)' : 'none',
+    boxShadow: active ? '0 2px 12px rgba(67,56,202,0.45)' : 'none',
   });
 
   const navArrow = (disabled) => ({
@@ -1398,7 +1398,7 @@ const TheAIRundown = () => {
                               <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white', background: '#9ca3af', borderRadius: '999px', padding: '0.05rem 0.45rem', lineHeight: 1.6 }}>{sourceLinks.length}</span>
                             </div>
                             {/* Both states use flex wrap; collapsed clips to 1 row via maxHeight */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', overflow: 'hidden', maxHeight: showAllSources ? 'none' : '9.5rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', overflow: 'hidden', width: '100%', maxHeight: showAllSources ? 'none' : '9.5rem' }}>
                               {sourceLinks.map((s, i) => {
                                 const domain = getDomain(s.url);
                                 const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;

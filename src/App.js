@@ -137,11 +137,31 @@ const TheAIRundown = () => {
   const stopNarration = () => {
     const st = narrationStateRef.current;
     if (st.audio) { st.audio.pause(); st.audio = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     st.active = false;
     st.pendingLoad = false;
     setIsNarrating(false);
   };
   narrateFnRef.current.stop = stopNarration;
+
+  // Browser Web Speech API fallback — used when Fish Audio is unavailable
+  const speakWithBrowser = (text, onDone) => {
+    if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text.trim());
+    utter.rate = 0.92;
+    utter.pitch = 1.0;
+    utter.lang = 'en-US';
+    // Prefer an English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const enVoice = voices.find(v => v.lang.startsWith('en') && !v.localService === false)
+      || voices.find(v => v.lang.startsWith('en'));
+    if (enVoice) utter.voice = enVoice;
+    utter.onend = () => { if (narrationStateRef.current.active) onDone(); };
+    utter.onerror = () => narrateFnRef.current.stop();
+    narrationStateRef.current.browserUtter = utter;
+    window.speechSynthesis.speak(utter);
+  };
 
   const speakText = (text, onDone) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
@@ -168,7 +188,10 @@ const TheAIRundown = () => {
         };
         audio.play().catch(() => narrateFnRef.current.stop());
       })
-      .catch(() => narrateFnRef.current.stop());
+      .catch(() => {
+        // Fish Audio unavailable — fall back to browser speech synthesis
+        if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
+      });
   };
   narrateFnRef.current.speakText = speakText;
 

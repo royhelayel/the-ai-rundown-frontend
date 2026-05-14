@@ -326,7 +326,9 @@ const TheAIRundown = () => {
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
-    setSelectedDay(today);
+    // Custom categories only support today — reset day for them.
+    // Default/regional categories preserve whatever date the user has selected.
+    if (customCategories.includes(category)) setSelectedDay(today);
     setSelectedTime(customCategories.includes(category) ? currentTimeSlot : lastCompletedTimeSlot);
   };
 

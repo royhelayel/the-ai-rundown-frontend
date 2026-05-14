@@ -309,13 +309,9 @@ const TheAIRundown = () => {
   // Last completed slot
   const lastCompletedTimeSlot = getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
-  const isTimeFuture = (timeValue) => {
-    if (selectedDay !== today) return false;
-    const hour = getUAEHour();
-    if (timeValue === 'Morning') return hour < 6;
-    if (timeValue === 'Evening') return hour < 18;
-    return false;
-  };
+  // All slots are always selectable — admin can pre-generate any slot at any time.
+  // If content doesn't exist yet the "not available" empty state shows instead.
+  const isTimeFuture = () => false;
 
   // Always show all slots; isTimeFuture handles which are disabled
   const availableTimes = timesOfDay;
@@ -500,11 +496,6 @@ const TheAIRundown = () => {
     } catch (error) { console.error('Error generating:', error); finishProgressBar(() => setNewsLoading(false)); }
   };
 
-  useEffect(() => {
-    if (!selectedTime) return;
-    if (isTimeFuture(selectedTime))
-      setSelectedTime(isCustomCategory ? currentTimeSlot : lastCompletedTimeSlot);
-  }, [isCustomCategory, selectedDay, selectedTime]);
 
   useEffect(() => {
     if (selectedCategory && selectedDay && selectedTime) handleFetchNews();

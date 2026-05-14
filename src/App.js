@@ -76,6 +76,10 @@ const TheAIRundown = () => {
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
 
+  const [feedCategories, setFeedCategories] = useState([]);
+  const [showFeedPicker, setShowFeedPicker] = useState(false);
+  const [feedPickerDraft, setFeedPickerDraft] = useState([]);
+
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
   const [showDayLeftArrow, setShowDayLeftArrow] = useState(false);
@@ -100,7 +104,10 @@ const TheAIRundown = () => {
     'QAT':           '#86198f',
     'LEB':           '#c2410c',
   };
-  const catColor = CATEGORY_COLORS[selectedCategory] || '#6366f1';
+  const MY_FEED_COLOR = '#6366f1';
+  const catColor = selectedCategory === 'My Feed'
+    ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)
+    : CATEGORY_COLORS[selectedCategory] || '#6366f1';
 
   const parseStories = (raw) => {
     if (!raw) return [];
@@ -332,19 +339,25 @@ const TheAIRundown = () => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
-        // Refresh categories and email preferences from Supabase
+        const savedFeed = userData.feedCategories || [];
+        setFeedCategories(savedFeed);
+        if (savedFeed.length > 0) setSelectedCategory('My Feed');
+        // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
-          supabase.from('users').select('email_preferences').eq('id', userData.id).single()
+          supabase.from('users').select('email_preferences, feed_categories').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
           const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
           const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
           const prefs = normalizeEmailPrefs(rawPrefs);
+          const feed = prefRes.data?.feed_categories || savedFeed;
           setCustomCategories(cats);
           setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);
-          const updated = { ...userData, categories: cats, emailPreferences: prefs };
+          setFeedCategories(feed);
+          if (feed.length > 0) setSelectedCategory('My Feed');
+          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
         });
@@ -364,6 +377,8 @@ const TheAIRundown = () => {
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
 
   useEffect(() => {
+    // My Feed sets parsedStories directly in handleFetchNews — skip re-parsing
+    if (selectedCategory === 'My Feed') return;
     // Use stories_content for stories mode if available, fallback to digest content
     const stories = parseStories(newsSummary?.stories_content || newsSummary?.content);
     setParsedStories(stories);
@@ -412,6 +427,56 @@ const TheAIRundown = () => {
 
   const handleFetchNews = async () => {
     if (!selectedCategory || !selectedDay || !selectedTime) return;
+
+    // ── My Feed: parallel fetch for all selected categories ──
+    if (selectedCategory === 'My Feed') {
+      if (!user || feedCategories.length === 0) return;
+      setNewsLoading(true); setNewsNotAvailable(false); setNewsSummary(null);
+      try {
+        const results = await Promise.all(
+          feedCategories.map(cat =>
+            supabase.from('news_summaries').select('*')
+              .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
+              .is('user_id', null).is('shared_key', null).maybeSingle()
+          )
+        );
+        const merged = [];
+        results.forEach(({ data }, idx) => {
+          if (!data) return;
+          const cat = feedCategories[idx];
+          const color = CATEGORY_COLORS[cat] || '#6366f1';
+          const stories = parseStories(data.stories_content || data.content);
+          // Build per-story source links from digest content
+          const digestRaw = data.content || '';
+          const srcStart = digestRaw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
+          const allSrcLinks = srcStart > -1
+            ? [...digestRaw.slice(srcStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
+                .map(m => ({ title: m[1], url: m[2] }))
+                .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
+            : [];
+          const urlToIdx = {};
+          let _i = -1;
+          digestRaw.slice(0, srcStart > -1 ? srcStart : digestRaw.length).split('\n').forEach(line => {
+            if (/^#{1,3} /.test(line)) _i++;
+            [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+              if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
+            });
+          });
+          stories.forEach((story, si) => {
+            merged.push({ ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) });
+          });
+        });
+        if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
+        setNewsSummary({ category: 'My Feed', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
+        setParsedStories(merged);
+        setNewsNotAvailable(false);
+      } catch (err) {
+        console.error('My Feed fetch error:', err);
+        setNewsNotAvailable(true); setNewsSummary(null);
+      } finally { setNewsLoading(false); }
+      return;
+    }
+
     const isCustom = customCategories.includes(selectedCategory);
     // For custom, always use 'Daily' time slot
     const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
@@ -547,14 +612,18 @@ const TheAIRundown = () => {
         const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id).is('deleted_at', null);
         const categories = categoriesData?.map(c => c.category_name) || [];
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
+        const feed = userProfile.feed_categories || [];
         const userData = {
           id: authData.user.id,
           email: authData.user.email,
           categories,
-          emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {})
+          emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
+          feedCategories: feed,
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
+        setFeedCategories(feed);
+        if (feed.length > 0) setSelectedCategory('My Feed');
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword(''); setAuthMessage(null);
       } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); }
     }
@@ -633,6 +702,23 @@ const TheAIRundown = () => {
         body: JSON.stringify({ userId: user.id, preferences: updated })
       }).catch(err => console.error('Failed to save email preferences:', err));
     }
+  };
+
+  const saveFeedCategories = (cats) => {
+    setFeedCategories(cats);
+    const userData = { ...user, feedCategories: cats };
+    localStorage.setItem('newsdigest_user', JSON.stringify(userData));
+    setUser(userData);
+    fetch(`${BACKEND_URL}/api/user/feed-categories`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, categories: cats })
+    }).catch(err => console.error('Failed to save feed categories:', err));
+  };
+
+  const toggleFeedPickerCat = (cat) => {
+    setFeedPickerDraft(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
   };
 
   const handleEmailSlotToggle = (slotKey) => {
@@ -815,6 +901,11 @@ const TheAIRundown = () => {
                 <button onClick={() => { categoryScrollRef.current.scrollBy({ left: -200, behavior: 'smooth' }); }} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.4rem', fontSize: '1.1rem' }}>‹</button>
               )}
               <div ref={categoryScrollRef} style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
+                {/* ── My Feed pinned tab ── */}
+                <button onClick={() => { if (!user) { setShowAuth(true); setAuthMode('signin'); } else if (feedCategories.length === 0) { setFeedPickerDraft([]); setShowFeedPicker(true); } else handleSelectCategory('My Feed'); }} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === 'My Feed' ? `2.5px solid ${MY_FEED_COLOR}` : '2.5px solid transparent', color: selectedCategory === 'My Feed' ? MY_FEED_COLOR : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === 'My Feed' ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  ★ My Feed
+                </button>
+                <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
                 {defaultCategories.map((category, idx) => (
                   <React.Fragment key={category}>
                     {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
@@ -869,6 +960,50 @@ const TheAIRundown = () => {
           </div>
         )}
       </header>
+
+      {/* ── My Feed Picker Modal ── */}
+      {showFeedPicker && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowFeedPicker(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: '540px', maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)' }}>
+            {/* Handle bar */}
+            <div style={{ width: '36px', height: '4px', background: '#e5e7eb', borderRadius: '99px', margin: '0 auto 1.25rem' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: '#111827' }}>Customize My Feed</h3>
+              <button onClick={() => setShowFeedPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.25rem' }}><X size={18} /></button>
+            </div>
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to select. Numbers show the order stories appear.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              {defaultCategories.map((cat, idx) => {
+                const pos = feedPickerDraft.indexOf(cat);
+                const isSelected = pos !== -1;
+                const color = CATEGORY_COLORS[cat] || '#6366f1';
+                return (
+                  <React.Fragment key={cat}>
+                    {REGIONAL_CATEGORIES.includes(cat) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
+                      <div style={{ width: '100%', height: '1px', background: '#f3f4f6', margin: '0.15rem 0' }} />
+                    )}
+                    <button onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                      {isSelected && (
+                        <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
+                      )}
+                      {cat}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>{feedPickerDraft.length} {feedPickerDraft.length === 1 ? 'category' : 'categories'} selected</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {feedPickerDraft.length > 0 && (
+                  <button onClick={() => setFeedPickerDraft([])} style={{ padding: '0.55rem 1rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', color: '#6b7280', fontSize: '0.82rem', fontWeight: '600' }}>Clear</button>
+                )}
+                <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory('My Feed'); }} style={{ padding: '0.55rem 1.4rem', background: feedPickerDraft.length === 0 ? '#f3f4f6' : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: feedPickerDraft.length === 0 ? '#9ca3af' : 'white', border: 'none', borderRadius: '999px', cursor: feedPickerDraft.length === 0 ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.88rem', transition: 'all 0.15s' }}>Save Feed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Auth Modal ── */}
       {showAuth && (
@@ -1050,6 +1185,11 @@ const TheAIRundown = () => {
                 <button onClick={() => setShowCategoryMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {/* My Feed in mobile panel */}
+                <button onClick={() => { if (!user) { setShowAuth(true); setAuthMode('signin'); setShowCategoryMenu(false); } else if (feedCategories.length === 0) { setFeedPickerDraft([]); setShowFeedPicker(true); setShowCategoryMenu(false); } else { handleSelectCategory('My Feed'); setShowCategoryMenu(false); } }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === 'My Feed' ? `${MY_FEED_COLOR}14` : 'transparent', color: selectedCategory === 'My Feed' ? MY_FEED_COLOR : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === 'My Feed' ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  ★ My Feed
+                </button>
+                <div style={{ height: '1px', background: '#f3f4f6', margin: '0.15rem 0' }} />
                 {defaultCategories.map((category, idx) => (
                   <React.Fragment key={category}>
                     {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
@@ -1161,7 +1301,26 @@ const TheAIRundown = () => {
             )}
 
             <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
-              {newsLoading ? (
+              {selectedCategory === 'My Feed' && !user ? (
+                /* Guest: sign-in prompt */
+                <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>★</div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: '0 0 0.5rem', color: '#111827' }}>My Feed</h3>
+                  <p style={{ fontSize: '0.88rem', color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.6 }}>Sign in to build your personal feed — choose your categories and it follows you across all your devices.</p>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ padding: '0.65rem 1.5rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem' }}>Sign in</button>
+                    <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ padding: '0.65rem 1.5rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>Create account</button>
+                  </div>
+                </div>
+              ) : selectedCategory === 'My Feed' && user && feedCategories.length === 0 ? (
+                /* Logged in but no feed configured yet */
+                <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>★</div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: '0 0 0.5rem', color: '#111827' }}>Build Your Feed</h3>
+                  <p style={{ fontSize: '0.88rem', color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.6 }}>Choose the categories you want — tap them in the order you'd like stories to appear.</p>
+                  <button onClick={() => { setFeedPickerDraft([]); setShowFeedPicker(true); }} style={{ padding: '0.7rem 1.8rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem' }}>Choose Categories</button>
+                </div>
+              ) : newsLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   {customCategories.includes(selectedCategory) ? (
                     <div style={{ maxWidth: '360px', margin: '0 auto' }}>
@@ -1199,9 +1358,17 @@ const TheAIRundown = () => {
                   {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
-                      <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, color: catColor, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                        {newsSummary.category}
-                      </h2>
+                      <div>
+                        <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, color: catColor, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                          {selectedCategory === 'My Feed' ? '★ My Feed' : newsSummary.category}
+                        </h2>
+                        {selectedCategory === 'My Feed' && (
+                          <button onClick={() => { setFeedPickerDraft([...feedCategories]); setShowFeedPicker(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{feedCategories.join(' · ')}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>✎</span>
+                          </button>
+                        )}
+                      </div>
                       <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
                         {isNarrating ? <VolumeX size={15} /> : <Volume2 size={15} />}
                       </button>
@@ -1211,40 +1378,95 @@ const TheAIRundown = () => {
                         <Clock size={11} />
                         <span>{newsSummary.time_slot}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Sparkles size={11} />
-                        <span>{new Date(newsSummary.generated_at).toLocaleString('en-US', { timeZone: 'Asia/Dubai' })}</span>
-                      </div>
+                      {selectedCategory !== 'My Feed' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Sparkles size={11} />
+                          <span>{new Date(newsSummary.generated_at).toLocaleString('en-US', { timeZone: 'Asia/Dubai' })}</span>
+                        </div>
+                      )}
+                      {selectedCategory === 'My Feed' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Sparkles size={11} />
+                          <span>{parsedStories.length} stories</span>
+                        </div>
+                      )}
                     </div>
                   </div>)}
-                  {viewMode === 'stories' ? (() => {
+                  {viewMode !== 'stories' && selectedCategory === 'My Feed' ? (() => {
+                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {parsedStories.map((story, i) => (
+                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                            <div style={{ marginBottom: '0.45rem' }}>
+                              <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
+                            </div>
+                            <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>{story.headline}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
+                              {story.bullets.map((b, bi) => (
+                                <div key={bi} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
+                                  <div style={{ width: '2.5px', minWidth: '2.5px', borderRadius: '99px', background: story.feedCatColor, opacity: 0.35, marginTop: '0.35rem', alignSelf: 'stretch' }} />
+                                  <span>{b}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
+                            {story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
+                            {story.storySources?.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.65rem' }}>
+                                {story.storySources.map((s, j) => {
+                                  const domain = getDomain(s.url);
+                                  return (
+                                    <a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                      <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
                     const catIdx = allCategories.indexOf(selectedCategory);
-                    const prevCat = catIdx > 0 ? allCategories[catIdx - 1] : null;
-                    const nextCat = catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+                    // In My Feed: no cross-category nav, story carries its own color/category
+                    const isMyFeed = selectedCategory === 'My Feed';
+                    const prevCat = !isMyFeed && catIdx > 0 ? allCategories[catIdx - 1] : null;
+                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
                     const isFirst = storyIndex === 0;
                     const isLast = storyIndex === parsedStories.length - 1;
 
-                    // Extract per-story sources from the digest content (stories_content has no Coverage lines)
-                    // Stories and digest cover the same stories in the same order, so index matching is reliable.
-                    const digestRaw = newsSummary?.content || '';
-                    const digestSourcesStart = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
-                    const digestSourceLinks = digestSourcesStart > -1
-                      ? [...digestRaw.slice(digestSourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
-                          .map(m => ({ title: m[1], url: m[2] }))
-                          .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                      : [];
-                    const digestUrlToIdx = {};
-                    let _dIdx = -1;
-                    digestRaw.slice(0, digestSourcesStart > -1 ? digestSourcesStart : digestRaw.length)
-                      .split('\n').forEach(line => {
-                        if (/^#{1,3} /.test(line)) _dIdx++;
-                        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-                          if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
-                        });
-                      });
-                    const storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
+                    // Per-story color/label: My Feed uses per-story metadata; regular uses catColor
+                    const storyColor = isMyFeed && story?.feedCatColor ? story.feedCatColor : catColor;
+                    const storyLabel = isMyFeed && story?.feedCategory ? story.feedCategory : newsSummary.category;
+
+                    // Sources: My Feed stories carry pre-extracted storySources; regular extracts from digest
+                    let storySources = [];
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+                    if (isMyFeed) {
+                      storySources = story?.storySources || [];
+                    } else {
+                      const digestRaw = newsSummary?.content || '';
+                      const digestSourcesStart = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                      const digestSourceLinks = digestSourcesStart > -1
+                        ? [...digestRaw.slice(digestSourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
+                            .map(m => ({ title: m[1], url: m[2] }))
+                            .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
+                        : [];
+                      const digestUrlToIdx = {};
+                      let _dIdx = -1;
+                      digestRaw.slice(0, digestSourcesStart > -1 ? digestSourcesStart : digestRaw.length)
+                        .split('\n').forEach(line => {
+                          if (/^#{1,3} /.test(line)) _dIdx++;
+                          [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+                            if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
+                          });
+                        });
+                      storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
+                    }
 
                     const goNext = () => {
                       if (!isLast) { setStoryIndex(i => i + 1); }
@@ -1309,8 +1531,8 @@ const TheAIRundown = () => {
                         <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
                           {/* Row 1: pill (clickable) + controls */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: catColor, background: storiesPicker === 'category' ? `${catColor}28` : `${catColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
-                              {newsSummary.category}
+                            <button onClick={() => isMyFeed ? (setFeedPickerDraft([...feedCategories]), setShowFeedPicker(true)) : setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: storyColor, background: storiesPicker === 'category' ? `${storyColor}28` : `${storyColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                              {isMyFeed ? '★ My Feed' : storyLabel}
                               <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
@@ -1346,7 +1568,7 @@ const TheAIRundown = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
                             {story.bullets.map((b, i) => (
                               <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
-                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: catColor, opacity: 0.35, marginTop: '0.4rem', alignSelf: 'stretch' }} />
+                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: storyColor, opacity: 0.35, marginTop: '0.4rem', alignSelf: 'stretch' }} />
                                 <span>{b}</span>
                               </div>
                             ))}
@@ -1391,7 +1613,7 @@ const TheAIRundown = () => {
                             <ChevronLeft size={14} />
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
                           </button>
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : catColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
                             {isLast && nextCat ? <span>{nextCat}</span> : 'Next'}
                             <ChevronRight size={14} />
                           </button>

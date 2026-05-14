@@ -57,7 +57,10 @@ const TheAIRundown = () => {
 
   const enterStories = () => {
     setViewMode('stories');
-    try { document.documentElement.requestFullscreen?.(); } catch {}
+    // Only go fullscreen on mobile/tablet (< 1024px) — desktop keeps normal layout
+    if (window.innerWidth < 1024) {
+      try { document.documentElement.requestFullscreen?.(); } catch {}
+    }
   };
   const exitStories = () => {
     setViewMode('digest');

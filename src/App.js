@@ -840,16 +840,6 @@ const TheAIRundown = () => {
         {/* Mobile menu */}
         {isMobile && showMobileMenu && (
           <div style={{ background: 'white', borderTop: '1px solid #f3f4f6', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {currentView === 'home' && (
-              <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', alignSelf: 'flex-start' }}>
-                {[['digest', '≡ Digest'], ['stories', '▶ Stories']].map(([mode, label]) => (
-                  <button key={mode} onClick={() => { mode === 'stories' ? enterStories() : exitStories(); setShowMobileMenu(false); }}
-                    style={{ padding: '0.35rem 1rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
             {user && (
               <>
                 {CUSTOM_CATEGORIES_ENABLED && (

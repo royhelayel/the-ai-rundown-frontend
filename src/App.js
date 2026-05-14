@@ -70,6 +70,7 @@ const TheAIRundown = () => {
   const [parsedStories, setParsedStories] = useState([]);
   const goToLastStoryRef = useRef(false);
   const storyNavRef = useRef({});
+  const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
   const narrationStateRef = useRef({ active: false, pendingLoad: false });
   const narrateFnRef = useRef({});
@@ -743,6 +744,7 @@ const TheAIRundown = () => {
       <style>{`
         html { overflow-y: scroll; }
         body { overflow-y: scroll; }
+        ${viewMode === 'stories' && isMobile ? 'html, body { overflow: hidden !important; position: fixed; width: 100%; }' : ''}
         * { box-sizing: border-box; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
@@ -1112,7 +1114,34 @@ const TheAIRundown = () => {
           )}
 
           {/* ── News Card ── */}
-          <div style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 80px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}>
+          <div
+            style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 80px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            onTouchStart={viewMode === 'stories' ? (e) => {
+              swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            } : undefined}
+            onTouchEnd={viewMode === 'stories' ? (e) => {
+              if (!swipeTouchRef.current) return;
+              const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
+              const dy = e.changedTouches[0].clientY - swipeTouchRef.current.y;
+              swipeTouchRef.current = null;
+              // Only fire when horizontal movement is dominant and exceeds 50px threshold
+              if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+              const catIdx = allCategories.indexOf(selectedCategory);
+              const isFirst = storyIndex === 0;
+              const isLast  = storyIndex === parsedStories.length - 1;
+              const prevCat = catIdx > 0 ? allCategories[catIdx - 1] : null;
+              const nextCat = catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+              if (dx < 0) {
+                // Swipe left → next
+                if (!isLast) setStoryIndex(i => i + 1);
+                else if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); }
+              } else {
+                // Swipe right → previous
+                if (!isFirst) setStoryIndex(i => i - 1);
+                else if (prevCat) { goToLastStoryRef.current = true; handleSelectCategory(prevCat); }
+              }
+            } : undefined}
+          >
 
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && parsedStories.length > 0 && (

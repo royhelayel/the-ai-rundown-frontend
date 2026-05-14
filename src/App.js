@@ -83,7 +83,8 @@ const TheAIRundown = () => {
 
   const CUSTOM_CATEGORIES_ENABLED = false;
 
-  const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health'];
+  const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
+  const REGIONAL_CATEGORIES = ['UAE','KSA','QAT','LEB'];
 
   const CATEGORY_COLORS = {
     'World News':    '#6366f1',
@@ -94,6 +95,10 @@ const TheAIRundown = () => {
     'Entertainment': '#9333ea',
     'Science':       '#2563eb',
     'Health':        '#db2777',
+    'UAE':           '#0369a1',
+    'KSA':           '#166534',
+    'QAT':           '#86198f',
+    'LEB':           '#c2410c',
   };
   const catColor = CATEGORY_COLORS[selectedCategory] || '#6366f1';
 
@@ -819,10 +824,15 @@ const TheAIRundown = () => {
                 <button onClick={() => { categoryScrollRef.current.scrollBy({ left: -200, behavior: 'smooth' }); }} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.4rem', fontSize: '1.1rem' }}>‹</button>
               )}
               <div ref={categoryScrollRef} style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
-                {defaultCategories.map(category => (
-                  <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
-                    {category}
-                  </button>
+                {defaultCategories.map((category, idx) => (
+                  <React.Fragment key={category}>
+                    {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
+                      <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
+                    )}
+                    <button onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
+                      {category}
+                    </button>
+                  </React.Fragment>
                 ))}
                 {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
                   <>
@@ -1049,10 +1059,17 @@ const TheAIRundown = () => {
                 <button onClick={() => setShowCategoryMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {defaultCategories.map(category => (
-                  <button key={category} onClick={() => { handleSelectCategory(category); setShowCategoryMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === category ? 'rgba(99,102,241,0.08)' : 'transparent', color: selectedCategory === category ? '#6366f1' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
-                    {category}
-                  </button>
+                {defaultCategories.map((category, idx) => (
+                  <React.Fragment key={category}>
+                    {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
+                      <div style={{ margin: '0.4rem 0 0.15rem 0.9rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Regional</span>
+                      </div>
+                    )}
+                    <button onClick={() => { handleSelectCategory(category); setShowCategoryMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === category ? `${CATEGORY_COLORS[category] || '#6366f1'}14` : 'transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
+                      {category}
+                    </button>
+                  </React.Fragment>
                 ))}
                 {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
                   <>

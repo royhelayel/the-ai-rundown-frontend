@@ -1188,6 +1188,27 @@ const TheAIRundown = () => {
                     const isFirst = storyIndex === 0;
                     const isLast = storyIndex === parsedStories.length - 1;
 
+                    // Extract per-story sources from the digest content (stories_content has no Coverage lines)
+                    // Stories and digest cover the same stories in the same order, so index matching is reliable.
+                    const digestRaw = newsSummary?.content || '';
+                    const digestSourcesStart = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                    const digestSourceLinks = digestSourcesStart > -1
+                      ? [...digestRaw.slice(digestSourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
+                          .map(m => ({ title: m[1], url: m[2] }))
+                          .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
+                      : [];
+                    const digestUrlToIdx = {};
+                    let _dIdx = -1;
+                    digestRaw.slice(0, digestSourcesStart > -1 ? digestSourcesStart : digestRaw.length)
+                      .split('\n').forEach(line => {
+                        if (/^#{1,3} /.test(line)) _dIdx++;
+                        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+                          if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
+                        });
+                      });
+                    const storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
+                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+
                     const goNext = () => {
                       if (!isLast) { setStoryIndex(i => i + 1); }
                       else if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); }
@@ -1284,9 +1305,6 @@ const TheAIRundown = () => {
                             {story.headline}
                           </h3>
 
-                          {/* Coverage pills */}
-                          {story.coverage && renderCoveragePills(story.coverage)}
-
                           {/* Bullets */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
                             {story.bullets.map((b, i) => (
@@ -1310,6 +1328,28 @@ const TheAIRundown = () => {
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
                               <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
                               &nbsp;&nbsp;{story.why}
+                            </div>
+                          )}
+
+                          {/* Source cards — pulled from digest content, matched by story index */}
+                          {storySources.length > 0 && (
+                            <div style={{ marginTop: '0.85rem', display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
+                              {storySources.map((s, j) => {
+                                const domain = getDomain(s.url);
+                                return (
+                                  <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                    style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', flex: '1 1 130px', maxWidth: '160px', textDecoration: 'none' }}
+                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'}
+                                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                      <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
+                                      <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0 }}>↗</span>
+                                    </div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

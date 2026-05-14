@@ -1360,22 +1360,16 @@ const TheAIRundown = () => {
                             </div>
                           )}
 
-                          {/* Source cards — pulled from digest content, matched by story index */}
+                          {/* Source pills — pulled from digest content, matched by story index */}
                           {storySources.length > 0 && (
-                            <div style={{ marginTop: '0.85rem', display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.75rem' }}>
                               {storySources.map((s, j) => {
                                 const domain = getDomain(s.url);
                                 return (
                                   <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                    style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', flex: '1 1 130px', maxWidth: '160px', textDecoration: 'none' }}
-                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'}
-                                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                      <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
-                                      <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0 }}>↗</span>
-                                    </div>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                    <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
                                   </a>
                                 );
                               })}

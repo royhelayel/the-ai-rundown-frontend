@@ -820,7 +820,7 @@ const TheAIRundown = () => {
               )}
               <div ref={categoryScrollRef} style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {defaultCategories.map(category => (
-                  <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? '#111827' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
+                  <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
                     {category}
                   </button>
                 ))}
@@ -828,7 +828,7 @@ const TheAIRundown = () => {
                   <>
                     <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
                     {customCategories.map(category => (
-                      <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? '2.5px solid #ec4899' : '2.5px solid transparent', color: selectedCategory === category ? '#111827' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
+                      <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? '2.5px solid #ec4899' : '2.5px solid transparent', color: selectedCategory === category ? '#ec4899' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
                         {category}
                       </button>
                     ))}
@@ -1251,11 +1251,11 @@ const TheAIRundown = () => {
 
                     const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : newsSummary.day; })();
 
-                    const pickerItemStyle = (active) => ({
+                    const pickerItemStyle = (active, color = catColor) => ({
                       width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px',
                       cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500',
-                      background: active ? 'rgba(99,102,241,0.08)' : 'transparent',
-                      color: active ? '#6366f1' : '#374151', transition: 'background 0.12s',
+                      background: active ? `${color}18` : 'transparent',
+                      color: active ? color : '#374151', transition: 'background 0.12s',
                     });
 
                     return (
@@ -1269,7 +1269,7 @@ const TheAIRundown = () => {
                                 <>
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
                                   {allCategories.map(cat => (
-                                    <button key={cat} style={pickerItemStyle(cat === selectedCategory)} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
+                                    <button key={cat} style={pickerItemStyle(cat === selectedCategory, CATEGORY_COLORS[cat] || '#ec4899')} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
                                   ))}
                                 </>
                               )}
@@ -1301,7 +1301,7 @@ const TheAIRundown = () => {
                         <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
                           {/* Row 1: pill (clickable) + controls */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6366f1', background: storiesPicker === 'category' ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.1)', padding: '0.22rem 0.55rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: catColor, background: storiesPicker === 'category' ? `${catColor}28` : `${catColor}14`, padding: '0.22rem 0.55rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
                               {newsSummary.category}
                               <ChevronDown size={10} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
@@ -1338,7 +1338,7 @@ const TheAIRundown = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
                             {story.bullets.map((b, i) => (
                               <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
-                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: '#e5e7eb', marginTop: '0.4rem', alignSelf: 'stretch' }} />
+                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: catColor, opacity: 0.35, marginTop: '0.4rem', alignSelf: 'stretch' }} />
                                 <span>{b}</span>
                               </div>
                             ))}
@@ -1383,7 +1383,7 @@ const TheAIRundown = () => {
                             <ChevronLeft size={14} />
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
                           </button>
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : '#111827', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : catColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
                             {isLast && nextCat ? <span>{nextCat}</span> : 'Next'}
                             <ChevronRight size={14} />
                           </button>

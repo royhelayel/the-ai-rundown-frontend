@@ -987,7 +987,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: '0.75rem 1rem calc(3.5rem + env(safe-area-inset-bottom, 0px))' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: isMobile ? '0.75rem 1rem calc(3.5rem + env(safe-area-inset-bottom, 0px))' : '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>

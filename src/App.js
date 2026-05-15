@@ -470,22 +470,29 @@ const TheAIRundown = () => {
           const cat = feedCategories[idx];
           const color = CATEGORY_COLORS[cat] || '#6366f1';
           const stories = parseStories(data.stories_content || data.content);
-          // Build per-story source links from digest content
+          // Build per-story source links from Coverage lines in digest content
           const digestRaw = data.content || '';
-          const srcStart = digestRaw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
-          const allSrcLinks = srcStart > -1
-            ? [...digestRaw.slice(srcStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
-                .map(m => ({ title: m[1], url: m[2] }))
-                .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
-            : [];
+          const srcEnd = digestRaw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
+          const digestBody = digestRaw.slice(0, srcEnd > -1 ? srcEnd : digestRaw.length);
+          const _rawLinks = [];
           const urlToIdx = {};
           let _i = -1;
-          digestRaw.slice(0, srcStart > -1 ? srcStart : digestRaw.length).split('\n').forEach(line => {
+          digestBody.split('\n').forEach(line => {
             if (/^#{1,3} /.test(line)) _i++;
-            [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-              if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
-            });
+            const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+            if (cov && _i >= 0) {
+              [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                .forEach(([, title, url]) => {
+                  _rawLinks.push({ title, url });
+                  if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
+                });
+            } else {
+              [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+                if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
+              });
+            }
           });
+          const allSrcLinks = _rawLinks.filter((s, i, a) => a.findIndex(x => x.url === s.url) === i);
           stories.forEach((story, si) => {
             merged.push({ ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) });
           });

@@ -339,7 +339,11 @@ const TheAIRundown = () => {
   };
 
   const availableTimes = timesOfDay;
-  const availableDays  = isCustomCategory ? daysOfWeek.filter(d => d.fullDate === today) : daysOfWeek;
+  // Today is only shown once at least one time slot has a completion marker
+  const todayHasSlot = timesOfDay.some(t => completedSlots.has(`${today}|${t.value}`));
+  const availableDays = isCustomCategory
+    ? daysOfWeek.filter(d => d.fullDate === today && todayHasSlot)
+    : daysOfWeek.filter(d => d.fullDate !== today || todayHasSlot);
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
@@ -849,6 +853,15 @@ const TheAIRundown = () => {
 
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
+
+  // If the user is on today but today has no completed slots yet, fall back to the most recent past day
+  useEffect(() => {
+    if (selectedDay === today && !todayHasSlot) {
+      const yesterday = getDaysOfWeek(0)[5].fullDate;
+      setSelectedDay(yesterday);
+      setSelectedTime('Evening');
+    }
+  }, [completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch completion markers — tells us which day+slot combos have finished generating
   useEffect(() => {

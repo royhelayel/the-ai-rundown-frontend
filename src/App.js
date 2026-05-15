@@ -1544,13 +1544,50 @@ const TheAIRundown = () => {
                       storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
                     }
 
+                    // Cancel in-flight audio without ending the narration session
+                    const cancelAudioKeepActive = () => {
+                      const st = narrationStateRef.current;
+                      st.active = false; // block any pending onDone callbacks
+                      if (st.audio) { st.audio.pause(); st.audio = null; }
+                      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                      st.active = true; // re-enable for next narration
+                    };
+
                     const goNext = () => {
-                      if (!isLast) { setStoryIndex(i => i + 1); }
-                      else if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); }
+                      if (!isLast) {
+                        const newIdx = storyIndex + 1;
+                        setStoryIndex(newIdx);
+                        if (isNarrating) {
+                          cancelAudioKeepActive();
+                          setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150);
+                        }
+                      } else if (nextCat) {
+                        handleSelectCategory(nextCat);
+                        setStoryIndex(0);
+                        if (isNarrating) {
+                          cancelAudioKeepActive();
+                          narrationStateRef.current.pendingLoad = true;
+                        }
+                      }
                     };
                     const goPrev = () => {
-                      if (!isFirst) { setStoryIndex(i => i - 1); }
-                      else if (prevCat) { goToLastStoryRef.current = true; handleSelectCategory(prevCat); }
+                      if (!isFirst) {
+                        const newIdx = storyIndex - 1;
+                        setStoryIndex(newIdx);
+                        if (isNarrating) {
+                          cancelAudioKeepActive();
+                          setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150);
+                        }
+                      } else if (prevCat) {
+                        if (isNarrating) {
+                          // When narrating, start prev category from story 0 (not last)
+                          cancelAudioKeepActive();
+                          narrationStateRef.current.pendingLoad = true;
+                        } else {
+                          goToLastStoryRef.current = true;
+                        }
+                        handleSelectCategory(prevCat);
+                      }
                     };
 
                     if (!story) return <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>No stories available.</div>;
@@ -1696,7 +1733,7 @@ const TheAIRundown = () => {
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
                           </button>
                           {!isMyFeed && nextCat && (
-                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); }} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.85rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, fontSize: '0.75rem', fontWeight: '700', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.85rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, fontSize: '0.75rem', fontWeight: '700', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                               Skip Category
                               <ChevronRight size={12} />
                               <ChevronRight size={12} style={{ marginLeft: '-6px' }} />

@@ -1337,11 +1337,89 @@ const TheAIRundown = () => {
                   )}
                 </div>
               ) : newsNotAvailable ? (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>News Not Yet Available</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated yet.</p>
-                </div>
+                viewMode === 'stories' ? (() => {
+                  const isMyFeed = selectedCategory === 'My Rundown';
+                  const headerColor = catColor;
+                  const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
+                  const pickerItemStyle = (active, color = catColor) => ({ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500', background: active ? `${color}18` : 'transparent', color: active ? color : '#374151', transition: 'background 0.12s' });
+                  return (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                      {/* Picker popover */}
+                      {storiesPicker && (
+                        <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
+                          <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
+                            {storiesPicker === 'category' && (
+                              <>
+                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
+                                {user && feedCategories.length > 0 && (
+                                  <>
+                                    <button style={pickerItemStyle(selectedCategory === 'My Rundown', MY_FEED_COLOR)} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button>
+                                    <div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} />
+                                  </>
+                                )}
+                                {allCategories.map(cat => (
+                                  <button key={cat} style={pickerItemStyle(cat === selectedCategory, CATEGORY_COLORS[cat] || '#ec4899')} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
+                                ))}
+                              </>
+                            )}
+                            {storiesPicker === 'day' && (
+                              <>
+                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
+                                {availableDays.map(day => (
+                                  <button key={day.fullDate} style={pickerItemStyle(day.fullDate === selectedDay)} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
+                                    {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            {storiesPicker === 'time' && (
+                              <>
+                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
+                                {availableTimes.map(time => (
+                                  <button key={time.value} style={pickerItemStyle(time.value === selectedTime)} onClick={() => { setSelectedTime(time.value); setStoriesPicker(null); }}>
+                                    {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {/* Compact header */}
+                      <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: headerColor, background: storiesPicker === 'category' ? `${headerColor}28` : `${headerColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                            {isMyFeed ? '★ My Rundown' : selectedCategory}
+                            <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                          <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                            {dayLabel}
+                            <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                          </button>
+                          <span style={{ fontSize: '0.68rem', color: '#d1d5db' }}>·</span>
+                          <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                            {selectedTime}
+                            <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Not available message */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem' }}>
+                        <Clock size={36} color="#e5e7eb" style={{ marginBottom: '0.75rem' }} />
+                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: '#374151' }}>News Not Yet Available</h3>
+                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>This slot hasn't been generated yet.</p>
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                    <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>News Not Yet Available</h3>
+                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated yet.</p>
+                  </div>
+                )
               ) : newsSummary ? (
                 <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}

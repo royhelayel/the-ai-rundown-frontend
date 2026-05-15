@@ -906,7 +906,7 @@ const TheAIRundown = () => {
       <style>{`
         html { overflow-y: scroll; }
         body { overflow-y: scroll; }
-        ${viewMode === 'stories' && isMobile ? 'html, body { overflow: hidden !important; position: fixed; width: 100%; }' : ''}
+        ${viewMode === 'stories' && isMobile && currentView === 'home' ? 'html, body { overflow: hidden !important; position: fixed; width: 100%; }' : ''}
         * { box-sizing: border-box; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }

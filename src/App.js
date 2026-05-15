@@ -925,10 +925,10 @@ const TheAIRundown = () => {
 
           {/* View toggle — always visible, icon-only on small screens */}
           {currentView === 'home' && (
-            <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: '3px', flexShrink: 0, marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: windowWidth < 480 ? '2px' : '3px', flexShrink: 0, marginLeft: 'auto' }}>
               {[['digest', '≡', '≡ Digest'], ['stories', '▶', '▶ Stories']].map(([mode, icon, label]) => (
                 <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
-                  style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                  style={{ padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                   {label}
                 </button>
               ))}

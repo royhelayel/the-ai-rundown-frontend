@@ -888,8 +888,8 @@ const TheAIRundown = () => {
           )}
         </div>
 
-        {/* Category nav — hidden in stories mode */}
-        {windowWidth > 1100 && !(viewMode === 'stories' && currentView === 'home') && (
+        {/* Category nav — hidden in stories mode and settings */}
+        {windowWidth > 1100 && !(viewMode === 'stories' && currentView === 'home') && currentView !== 'settings' && (
           <div style={{ borderTop: '1px solid #f3f4f6' }}>
             <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 0.5rem', display: 'flex', alignItems: 'stretch' }}>
               {showCategoryLeftArrow && (
@@ -968,22 +968,17 @@ const TheAIRundown = () => {
             </div>
             <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to select. Numbers show the order stories appear.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {defaultCategories.map((cat, idx) => {
+              {defaultCategories.map((cat) => {
                 const pos = feedPickerDraft.indexOf(cat);
                 const isSelected = pos !== -1;
                 const color = CATEGORY_COLORS[cat] || '#6366f1';
                 return (
-                  <React.Fragment key={cat}>
-                    {REGIONAL_CATEGORIES.includes(cat) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
-                      <div style={{ width: '100%', height: '1px', background: '#f3f4f6', margin: '0.15rem 0' }} />
+                  <button key={cat} onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                    {isSelected && (
+                      <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
                     )}
-                    <button onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
-                      {isSelected && (
-                        <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
-                      )}
-                      {cat}
-                    </button>
-                  </React.Fragment>
+                    {cat}
+                  </button>
                 );
               })}
             </div>
@@ -1805,12 +1800,6 @@ const TheAIRundown = () => {
       {/* ── Settings View ── */}
       {currentView === 'settings' && (
         <main style={{ maxWidth: '680px', margin: '0 auto', padding: isMobile ? '1.5rem 1rem 3rem' : '2rem 2rem 3rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
-            <button onClick={() => setCurrentView('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.1rem', display: 'flex', alignItems: 'center' }}>
-              <ChevronLeft size={20} />
-            </button>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, color: '#111827' }}>Settings</h2>
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
@@ -1867,7 +1856,7 @@ const TheAIRundown = () => {
                 <>
                   <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to add or remove. Numbers show story order.</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {defaultCategories.map((cat, idx) => {
+                    {defaultCategories.map((cat) => {
                       const pos = feedCategories.indexOf(cat);
                       const isSelected = pos !== -1;
                       const color = CATEGORY_COLORS[cat] || '#6366f1';
@@ -1875,17 +1864,12 @@ const TheAIRundown = () => {
                         ? feedCategories.filter(c => c !== cat)
                         : [...feedCategories, cat];
                       return (
-                        <React.Fragment key={cat}>
-                          {REGIONAL_CATEGORIES.includes(cat) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
-                            <div style={{ width: '100%', height: '1px', background: '#f3f4f6', margin: '0.1rem 0' }} />
+                        <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                          {isSelected && (
+                            <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
                           )}
-                          <button onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
-                            {isSelected && (
-                              <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
-                            )}
-                            {cat}
-                          </button>
-                        </React.Fragment>
+                          {cat}
+                        </button>
                       );
                     })}
                   </div>
@@ -1905,19 +1889,24 @@ const TheAIRundown = () => {
                 </div>
                 <div style={{ marginBottom: '1rem' }}>
                   <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
-                  {(() => {
-                    const active = (emailPreferences.categories || []).includes('My Rundown');
-                    return (
-                      <button onClick={() => handleCategoryEmailToggle('My Rundown')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.38rem 0.95rem', borderRadius: '999px', background: active ? MY_FEED_COLOR : 'transparent', color: active ? 'white' : '#374151', border: `1.5px solid ${active ? MY_FEED_COLOR : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', transition: 'all 0.15s' }}>
-                        ★ My Rundown
-                      </button>
-                    );
-                  })()}
-                  <p style={{ margin: '0.55rem 0 0', fontSize: '0.75rem', color: '#9ca3af', lineHeight: 1.5 }}>
-                    {feedCategories.length > 0
-                      ? `Delivers your feed: ${feedCategories.join(' · ')}`
-                      : 'Set up My Rundown above to personalise your digest.'}
-                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {(() => {
+                      const myRundownActive = (emailPreferences.categories || []).includes('My Rundown');
+                      return (
+                        <button onClick={() => handleCategoryEmailToggle('My Rundown')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.32rem 0.8rem', borderRadius: '999px', background: myRundownActive ? MY_FEED_COLOR : 'transparent', color: myRundownActive ? 'white' : '#374151', border: `1.5px solid ${myRundownActive ? MY_FEED_COLOR : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', transition: 'all 0.15s' }}>
+                          ★ My Rundown
+                        </button>
+                      );
+                    })()}
+                    {defaultCategories.map(cat => {
+                      const active = (emailPreferences.categories || []).includes(cat);
+                      return (
+                        <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? (CATEGORY_COLORS[cat] || '#6366f1') : 'transparent', color: active ? 'white' : '#374151', border: `1.5px solid ${active ? (CATEGORY_COLORS[cat] || '#6366f1') : '#e5e7eb'}`, borderRadius: '999px', cursor: 'pointer', transition: 'all 0.12s ease' }}>
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1rem' }} />
                 <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
@@ -1940,6 +1929,10 @@ const TheAIRundown = () => {
             )}
 
           </div>
+
+          <button onClick={() => setCurrentView('home')} style={{ marginTop: '1.4rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
+            ← Back to News
+          </button>
         </main>
       )}
     </div>

@@ -1930,19 +1930,39 @@ const TheAIRundown = () => {
                                 </div>
                                 <div style={{ fontSize: '0.88rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
                                 {storySources.length > 0 && (
-                                  <div style={{ marginTop: '0.85rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {storySources.map((s, j) => {
-                                      const domain = getDomain(s.url);
-                                      return (
-                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
-                                          onMouseEnter={e => e.currentTarget.style.borderColor = '#c7d2fe'}
-                                          onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}>
-                                          <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
-                                        </a>
-                                      );
-                                    })}
+                                  <div style={{ marginTop: '0.85rem' }}>
+                                    {windowWidth >= 600 ? (
+                                      /* Wide: source cards */
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {storySources.map((s, j) => {
+                                          const domain = getDomain(s.url);
+                                          return (
+                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 0.75rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', minWidth: '120px' }}
+                                              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.08)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
+                                              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
+                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={16} height={16} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>{domain}</span>
+                                              <span style={{ fontSize: '0.6rem', color: '#c4c9d4', flexShrink: 0 }}>↗</span>
+                                            </a>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      /* Narrow: pills */
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                        {storySources.map((s, j) => {
+                                          const domain = getDomain(s.url);
+                                          return (
+                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                            </a>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

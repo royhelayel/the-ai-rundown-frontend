@@ -2077,6 +2077,10 @@ const TheAIRundown = () => {
       {currentView === 'settings' && (
         <main style={{ maxWidth: '680px', margin: '0 auto', padding: isMobile ? '1.5rem 1rem 3rem' : '2rem 2rem 3rem' }}>
 
+          <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1.25rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
+            ← Back to News
+          </button>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* ── Account card ── */}
@@ -2206,9 +2210,6 @@ const TheAIRundown = () => {
 
           </div>
 
-          <button onClick={() => setCurrentView('home')} style={{ marginTop: '1.4rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
-            ← Back to News
-          </button>
         </main>
       )}
     </div>

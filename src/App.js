@@ -317,11 +317,18 @@ const TheAIRundown = () => {
   // Last completed slot
   const lastCompletedTimeSlot = getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
-  // All slots are always selectable — admin can pre-generate any slot at any time.
-  // If content doesn't exist yet the "not available" empty state shows instead.
-  const isTimeFuture = () => false;
+  // A time slot is "future" only when viewing today — past days always have both slots accessible.
+  const isTimeFuture = (timeSlot) => {
+    if (selectedDay !== today) return false;
+    const hour = getUAEHour();
+    if (timeSlot === 'Morning') return hour < 6;
+    if (timeSlot === 'Evening') return hour < 18;
+    return false;
+  };
 
-  // Always show all slots; isTimeFuture handles which are disabled
+  // A day is "future" if it's after today — should never appear in the list but guarded anyway.
+  const isDayFuture = (fullDate) => fullDate > today;
+
   const availableTimes = timesOfDay;
   const availableDays  = isCustomCategory ? daysOfWeek.filter(d => d.fullDate === today) : daysOfWeek;
 
@@ -749,13 +756,14 @@ const TheAIRundown = () => {
   const isMobile = windowWidth < 768;
 
   /* ── Shared pill styles (inspired by attached image) ── */
-  const dayPill = (active) => ({
+  const dayPill = (active, disabled = false) => ({
     padding: '0.45rem 1rem',
     background: active ? '#111827' : 'white',
-    color: active ? 'white' : '#374151',
+    color: active ? 'white' : disabled ? '#d1d5db' : '#374151',
     border: active ? 'none' : '1.5px solid #e5e7eb',
     borderRadius: '999px',
-    cursor: 'pointer',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
     fontSize: '0.82rem',
     fontWeight: active ? '700' : '500',
     whiteSpace: 'nowrap',
@@ -1140,7 +1148,7 @@ const TheAIRundown = () => {
               <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
+                  <button key={day.fullDate} onClick={() => !isDayFuture(day.fullDate) && setSelectedDay(day.fullDate)} disabled={isDayFuture(day.fullDate)} style={dayPill(selectedDay === day.fullDate, isDayFuture(day.fullDate))}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1160,7 +1168,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && windowWidth > 750 && isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
-                <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate)}>
+                <button key={day.fullDate} onClick={() => !isDayFuture(day.fullDate) && setSelectedDay(day.fullDate)} disabled={isDayFuture(day.fullDate)} style={dayPill(selectedDay === day.fullDate, isDayFuture(day.fullDate))}>
                   {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                 </button>
               ))}
@@ -1225,7 +1233,7 @@ const TheAIRundown = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => { setSelectedDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
+                  <button key={day.fullDate} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setShowDayMenu(false); } }} disabled={isDayFuture(day.fullDate)} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : isDayFuture(day.fullDate) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isDayFuture(day.fullDate) ? 0.5 : 1 }}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1366,7 +1374,7 @@ const TheAIRundown = () => {
                               <>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
                                 {availableDays.map(day => (
-                                  <button key={day.fullDate} style={pickerItemStyle(day.fullDate === selectedDay)} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
+                                  <button key={day.fullDate} disabled={isDayFuture(day.fullDate)} style={{ ...pickerItemStyle(day.fullDate === selectedDay), opacity: isDayFuture(day.fullDate) ? 0.4 : 1, cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setStoriesPicker(null); } }}>
                                     {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
                                   </button>
                                 ))}
@@ -1376,7 +1384,7 @@ const TheAIRundown = () => {
                               <>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
                                 {availableTimes.map(time => (
-                                  <button key={time.value} style={pickerItemStyle(time.value === selectedTime)} onClick={() => { setSelectedTime(time.value); setStoriesPicker(null); }}>
+                                  <button key={time.value} disabled={isTimeFuture(time.value)} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: isTimeFuture(time.value) ? 0.4 : 1, cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
                                     {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
                                   </button>
                                 ))}
@@ -1581,7 +1589,7 @@ const TheAIRundown = () => {
                                 <>
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
                                   {availableDays.map(day => (
-                                    <button key={day.fullDate} style={pickerItemStyle(day.fullDate === selectedDay)} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
+                                    <button key={day.fullDate} disabled={isDayFuture(day.fullDate)} style={{ ...pickerItemStyle(day.fullDate === selectedDay), opacity: isDayFuture(day.fullDate) ? 0.4 : 1, cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setStoriesPicker(null); } }}>
                                       {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
                                     </button>
                                   ))}

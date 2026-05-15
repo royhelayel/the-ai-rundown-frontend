@@ -955,8 +955,8 @@ const TheAIRundown = () => {
           )}
 
           {isMobile && (
-            <button onClick={() => setShowMobileMenu(!showMobileMenu)} style={{ padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1' }}>
-              {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+            <button onClick={() => { setCurrentView(currentView === 'settings' ? 'home' : 'settings'); setShowMobileMenu(false); }} style={{ padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: currentView === 'settings' ? '#ec4899' : '#6366f1' }}>
+              {currentView === 'settings' ? <X size={24} /> : <Menu size={24} />}
             </button>
           )}
         </div>

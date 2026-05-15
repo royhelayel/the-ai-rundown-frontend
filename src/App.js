@@ -1626,7 +1626,9 @@ const TheAIRundown = () => {
                     // In My Rundown: no cross-category nav, story carries its own color/category
                     const isMyFeed = selectedCategory === 'My Rundown';
                     const prevCat = !isMyFeed && catIdx > 0 ? allCategories[catIdx - 1] : null;
-                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1
+                      ? allCategories[catIdx + 1]
+                      : isMyFeed && allCategories.length > 0 ? allCategories[0] : null;
                     const isFirst = storyIndex === 0;
                     const isLast = storyIndex === parsedStories.length - 1;
 

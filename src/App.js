@@ -1880,7 +1880,7 @@ const TheAIRundown = () => {
                               <ChevronLeft size={13} strokeWidth={2.5} />
                               <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
                             </button>
-                          ) : <div style={{ width: '36px', flexShrink: 0 }} />}
+                          ) : <div style={{ width: '38px', flexShrink: 0 }} />}
 
                           {/* ← Previous story */}
                           <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
@@ -1895,12 +1895,12 @@ const TheAIRundown = () => {
                           </button>
 
                           {/* >> next category */}
-                          {!isMyFeed && nextCat ? (
-                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={nextCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, flexShrink: 0 }}>
+                          {(isMyFeed && allCategories.length > 0) || (!isMyFeed && nextCat) ? (
+                            <button onClick={() => { const dest = isMyFeed ? allCategories[0] : nextCat; handleSelectCategory(dest); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={isMyFeed ? allCategories[0] : nextCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, flexShrink: 0 }}>
                               <ChevronRight size={13} strokeWidth={2.5} />
                               <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
                             </button>
-                          ) : <div style={{ width: '36px', flexShrink: 0 }} />}
+                          ) : <div style={{ width: '38px', flexShrink: 0 }} />}
                         </div>
                       </div>
                     );

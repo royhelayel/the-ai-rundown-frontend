@@ -487,7 +487,7 @@ const TheAIRundown = () => {
             if (cov && _i >= 0) {
               [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                 .forEach(([, title, url]) => {
-                  _rawLinks.push({ outlet: title, title, url });
+                  _rawLinks.push({ outlet: title, title: '', url });
                   if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
                 });
             } else {
@@ -1631,7 +1631,7 @@ const TheAIRundown = () => {
                         if (cov && _dIdx >= 0) {
                           [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                             .forEach(([, title, url]) => {
-                              _dLinks.push({ outlet: title, title, url });
+                              _dLinks.push({ outlet: title, title: '', url });
                               if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
                             });
                         } else {
@@ -1640,7 +1640,15 @@ const TheAIRundown = () => {
                           });
                         }
                       });
-                      const digestSourceLinks = _dLinks.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
+                      // Build title map from ## Sources section
+                      const dTitleMap = {};
+                      if (digestSourcesEnd > -1) {
+                        [...digestRaw.slice(digestSourcesEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                          .forEach(([, t, u]) => { if (!dTitleMap[u]) dTitleMap[u] = t; });
+                      }
+                      const digestSourceLinks = _dLinks
+                        .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
+                        .map(s => ({ ...s, title: dTitleMap[s.url] || '' }));
                       storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
                     }
 
@@ -1914,7 +1922,7 @@ const TheAIRundown = () => {
                         // Extract every [Title](URL) pair from this Coverage line
                         [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                           .forEach(([, title, url]) => {
-                            _rawSourceLinks.push({ outlet: title, title, url });
+                            _rawSourceLinks.push({ outlet: title, title: '', url });
                             if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
                           });
                       } else {

@@ -1380,9 +1380,12 @@ const TheAIRundown = () => {
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && parsedStories.length > 0 && (
               <div style={{ display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
-                {parsedStories.map((_, i) => (
-                  <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? '#6366f1' : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.65 : 0.25, transition: 'all 0.2s' }} />
-                ))}
+                {parsedStories.map((s, i) => {
+                  const dotColor = s?.feedCatColor || catColor || '#6366f1';
+                  return (
+                    <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? dotColor : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.65 : 0.25, transition: 'all 0.2s' }} />
+                  );
+                })}
               </div>
             )}
 
@@ -1626,9 +1629,7 @@ const TheAIRundown = () => {
                     // In My Rundown: no cross-category nav, story carries its own color/category
                     const isMyFeed = selectedCategory === 'My Rundown';
                     const prevCat = !isMyFeed && catIdx > 0 ? allCategories[catIdx - 1] : null;
-                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1
-                      ? allCategories[catIdx + 1]
-                      : isMyFeed && allCategories.length > 0 ? allCategories[0] : null;
+                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
                     const isFirst = storyIndex === 0;
                     const isLast = storyIndex === parsedStories.length - 1;
 
@@ -1695,6 +1696,14 @@ const TheAIRundown = () => {
                         }
                       } else if (nextCat) {
                         handleSelectCategory(nextCat);
+                        setStoryIndex(0);
+                        if (isNarrating) {
+                          cancelAudioKeepActive();
+                          narrationStateRef.current.pendingLoad = true;
+                        }
+                      } else if (isMyFeed && allCategories.length > 0) {
+                        // End of My Rundown — jump to first regular category
+                        handleSelectCategory(allCategories[0]);
                         setStoryIndex(0);
                         if (isNarrating) {
                           cancelAudioKeepActive();

@@ -38,6 +38,7 @@ const TheAIRundown = () => {
   const [newsSummary, setNewsSummary] = useState(null);
   const [currentView, setCurrentView] = useState('home');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [fontSize, setFontSize] = useState(() => localStorage.getItem('rundown_font_size') || 'normal');
   const [newsNotAvailable, setNewsNotAvailable] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
@@ -377,6 +378,11 @@ const TheAIRundown = () => {
   }, []);
 
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSize === 'large' ? '18px' : '16px';
+    localStorage.setItem('rundown_font_size', fontSize);
+  }, [fontSize]);
 
   useEffect(() => {
     // My Rundown sets parsedStories directly in handleFetchNews — skip re-parsing
@@ -729,7 +735,6 @@ const TheAIRundown = () => {
 
   const handleCategoryEmailToggle = (category) => {
     const cats = emailPreferences.categories || [];
-    if (cats.includes(category) && cats.length === 1) return; // must keep at least one
     const newCats = cats.includes(category) ? cats.filter(c => c !== category) : [...cats, category];
     saveEmailPrefs({ ...emailPreferences, categories: newCats });
   };
@@ -865,24 +870,12 @@ const TheAIRundown = () => {
                 </button>
               )}
               {user ? (
-                <div style={{ position: 'relative' }}>
-                  <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ padding: '0.5rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
-                    <User size={15} /> {user.email}
-                  </button>
-                  {showUserMenu && (
-                    <div style={{ position: 'absolute', top: '100%', right: 0, background: 'white', border: '1px solid #f0f0f0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', marginTop: '0.5rem', zIndex: 1000, minWidth: '160px', overflow: 'hidden' }}>
-                      <button onClick={() => { setCurrentView('settings'); setShowUserMenu(false); }} style={{ width: '100%', padding: '0.7rem 1.1rem', background: 'none', border: 'none', borderBottom: '1px solid #f5f5f5', textAlign: 'left', cursor: 'pointer', fontSize: '0.88rem', color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Settings size={14} /> Settings
-                      </button>
-                      <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); setShowUserMenu(false); setCurrentView('home'); }} style={{ width: '100%', padding: '0.7rem 1.1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '0.88rem', color: '#e74c3c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <LogOut size={14} /> Sign Out
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.5rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
+                  <User size={15} /> {user.email}
+                </button>
               ) : (
-                <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ padding: '0.55rem 1.3rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>
-                  Sign In
+                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.55rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
+                  <Settings size={15} /> Settings
                 </button>
               )}
             </div>
@@ -955,8 +948,8 @@ const TheAIRundown = () => {
               </>
             )}
             {!user && (
-              <button onClick={() => { setShowAuth(true); setAuthMode('signin'); setShowMobileMenu(false); }} style={{ padding: '0.6rem 1.3rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>
-                Sign In
+              <button onClick={() => { setCurrentView('settings'); setShowMobileMenu(false); }} style={{ padding: '0.6rem 1rem', background: 'none', border: '1px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Settings size={14} /> Settings
               </button>
             )}
           </div>
@@ -1500,6 +1493,12 @@ const TheAIRundown = () => {
                               {storiesPicker === 'category' && (
                                 <>
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
+                                  {user && feedCategories.length > 0 && (
+                                    <>
+                                      <button style={pickerItemStyle(selectedCategory === 'My Rundown', MY_FEED_COLOR)} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button>
+                                      <div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} />
+                                    </>
+                                  )}
                                   {allCategories.map(cat => (
                                     <button key={cat} style={pickerItemStyle(cat === selectedCategory, CATEGORY_COLORS[cat] || '#ec4899')} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
                                   ))}
@@ -1533,7 +1532,7 @@ const TheAIRundown = () => {
                         <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
                           {/* Row 1: pill (clickable) + controls */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <button onClick={() => isMyFeed ? (setFeedPickerDraft([...feedCategories]), setShowFeedPicker(true)) : setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: storyColor, background: storiesPicker === 'category' ? `${storyColor}28` : `${storyColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: storyColor, background: storiesPicker === 'category' ? `${storyColor}28` : `${storyColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
                               {isMyFeed ? '★ My Rundown' : storyLabel}
                               <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
@@ -1610,12 +1609,19 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Navigation pinned to bottom */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0 }}>
-                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.4rem' }}>
+                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
                             <ChevronLeft size={14} />
                             {isFirst && prevCat ? <span style={{ color: '#6366f1' }}>{prevCat}</span> : 'Previous'}
                           </button>
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s' }}>
+                          {!isMyFeed && nextCat && (
+                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); }} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.85rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, fontSize: '0.75rem', fontWeight: '700', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                              Skip Category
+                              <ChevronRight size={12} />
+                              <ChevronRight size={12} style={{ marginLeft: '-6px' }} />
+                            </button>
+                          )}
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.9rem', background: isLast && nextCat ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
                             {isLast && nextCat ? <span>{nextCat}</span> : 'Next'}
                             <ChevronRight size={14} />
                           </button>
@@ -1797,96 +1803,143 @@ const TheAIRundown = () => {
       )}
 
       {/* ── Settings View ── */}
-      {currentView === 'settings' && user && (
-        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '900', marginBottom: '1.5rem', background: 'linear-gradient(135deg, #1a1a2e 0%, #64748b 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Settings & Preferences
-          </h2>
-          <div style={{ display: 'grid', gap: '1.25rem' }}>
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.1rem' }}>
-                <Mail size={20} color="#6366f1" strokeWidth={2.5} />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#111827' }}>Email Digest Preferences</h3>
+      {currentView === 'settings' && (
+        <main style={{ maxWidth: '680px', margin: '0 auto', padding: isMobile ? '1.5rem 1rem 3rem' : '2rem 2rem 3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
+            <button onClick={() => setCurrentView('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.1rem', display: 'flex', alignItems: 'center' }}>
+              <ChevronLeft size={20} />
+            </button>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, color: '#111827' }}>Settings</h2>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+            {/* ── Account card ── */}
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
+                <User size={18} color="#6366f1" strokeWidth={2.5} />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Account</h3>
               </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.78rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Categories to receive</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {defaultCategories.map(cat => {
-                    const active = (emailPreferences.categories || []).includes(cat);
-                    const isLast = active && (emailPreferences.categories || []).length === 1;
-                    return (
-                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} title={isLast ? 'At least one category must be selected' : ''} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? '#6366f1' : 'white', color: active ? 'white' : '#6b7280', border: active ? 'none' : '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isLast ? 'not-allowed' : 'pointer', opacity: isLast ? 0.6 : 1, transition: 'all 0.12s ease' }}>
-                        {cat}
-                      </button>
-                    );
-                  })}
+              {user ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>{user.email}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.15rem' }}>Signed in</div>
+                  </div>
+                  <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); setCurrentView('home'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(231,76,60,0.06)', border: '1.5px solid rgba(231,76,60,0.2)', borderRadius: '999px', color: '#e74c3c', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
+                    <LogOut size={14} /> Sign Out
+                  </button>
                 </div>
-              </div>
-              <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1rem' }} />
-              <p style={{ fontSize: '0.78rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.55rem' }}>
-                {timesOfDay.map(time => {
-                  const slotKey = time.value.toLowerCase();
-                  const isEnabled = !!emailPreferences[slotKey];
-                  return (
-                    <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.8rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-                      <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#111827' }}>{time.label}</div>
-                        <div style={{ fontSize: '0.73rem', color: '#9ca3af' }}>{time.time}</div>
-                      </div>
-                    </label>
-                  );
-                })}
+              ) : (
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Sign In</button>
+                  <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Font Size card ── */}
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#6366f1', lineHeight: 1 }}>Aa</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Text Size</h3>
+                </div>
+                <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                  {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
+                    <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'white' : 'transparent', color: fontSize === val ? '#111827' : '#9ca3af', boxShadow: fontSize === val ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {CUSTOM_CATEGORIES_ENABLED && <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <Search size={20} color="#ec4899" strokeWidth={2.5} />
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#111827' }}>Your Custom Categories</h3>
-                </div>
-                {categoryLockedToday ? (
-                  <button disabled style={{ padding: '0.48rem 1rem', background: '#f3f4f6', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#9ca3af', cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
-                    Available Tomorrow
-                  </button>
-                ) : CUSTOM_CATEGORIES_ENABLED ? (
-                  <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.48rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.3)', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.83rem', fontWeight: '700' }}>
-                    <Plus size={14} /> {customCategories.length > 0 ? 'Change Category' : 'Add Category'}
-                  </button>
-                ) : null}
+            {/* ── My Rundown card ── */}
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>My Rundown</h3>
               </div>
-              {customCategories.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.25rem', color: '#9ca3af' }}>
-                  <p style={{ fontSize: '0.95rem', marginBottom: '0.3rem' }}>No custom categories yet</p>
-                  <p style={{ fontSize: '0.83rem' }}>Create your first personalized news category</p>
-                </div>
+              {!user ? (
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.83rem', color: '#9ca3af', lineHeight: 1.5 }}>Sign in to build your personal feed and have it follow you across devices.</p>
               ) : (
-                <div style={{ display: 'grid', gap: '0.55rem' }}>
-                  {customCategories.map(category => {
-                    const desc = customCategoryDescriptions[category];
-                    const hasDesc = !!desc;
+                <>
+                  <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to add or remove. Numbers show story order.</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {defaultCategories.map((cat, idx) => {
+                      const pos = feedCategories.indexOf(cat);
+                      const isSelected = pos !== -1;
+                      const color = CATEGORY_COLORS[cat] || '#6366f1';
+                      const newCats = isSelected
+                        ? feedCategories.filter(c => c !== cat)
+                        : [...feedCategories, cat];
+                      return (
+                        <React.Fragment key={cat}>
+                          {REGIONAL_CATEGORIES.includes(cat) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
+                            <div style={{ width: '100%', height: '1px', background: '#f3f4f6', margin: '0.1rem 0' }} />
+                          )}
+                          <button onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                            {isSelected && (
+                              <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
+                            )}
+                            {cat}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                  {feedCategories.length === 0 && (
+                    <p style={{ margin: '0.75rem 0 0', fontSize: '0.78rem', color: '#f59e0b' }}>Select at least one category to activate My Rundown.</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* ── Email Digest card (logged-in only) ── */}
+            {user && (
+              <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
+                  <Mail size={18} color="#6366f1" strokeWidth={2.5} />
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Email Digest</h3>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
+                  {(() => {
+                    const active = (emailPreferences.categories || []).includes('My Rundown');
                     return (
-                      <div key={category} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem 0.9rem', background: 'rgba(0,0,0,0.02)', borderRadius: '8px', border: '1px solid #f3f4f6', gap: '0.6rem' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.88rem' }}>{category}</div>
-                          {hasDesc && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem', lineHeight: '1.4', wordBreak: 'break-word' }}>{desc}</div>}
+                      <button onClick={() => handleCategoryEmailToggle('My Rundown')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.38rem 0.95rem', borderRadius: '999px', background: active ? MY_FEED_COLOR : 'transparent', color: active ? 'white' : '#374151', border: `1.5px solid ${active ? MY_FEED_COLOR : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                        ★ My Rundown
+                      </button>
+                    );
+                  })()}
+                  <p style={{ margin: '0.55rem 0 0', fontSize: '0.75rem', color: '#9ca3af', lineHeight: 1.5 }}>
+                    {feedCategories.length > 0
+                      ? `Delivers your feed: ${feedCategories.join(' · ')}`
+                      : 'Set up My Rundown above to personalise your digest.'}
+                  </p>
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1rem' }} />
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
+                  {timesOfDay.map(time => {
+                    const slotKey = time.value.toLowerCase();
+                    const isEnabled = !!emailPreferences[slotKey];
+                    return (
+                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#111827' }}>{time.label}</div>
+                          <div style={{ fontSize: '0.73rem', color: '#9ca3af' }}>{time.time}</div>
                         </div>
-                        <button onClick={() => handleDeleteCategory(category)} style={{ padding: '0.3rem 0.45rem', background: 'rgba(231,76,60,0.08)', border: 'none', borderRadius: '6px', color: '#e74c3c', cursor: 'pointer', flexShrink: 0 }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
-              )}
-            </div>}
-          </div>
+              </div>
+            )}
 
-          <button onClick={() => setCurrentView('home')} style={{ marginTop: '1.4rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
-            ← Back to News
-          </button>
+          </div>
         </main>
       )}
     </div>

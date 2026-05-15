@@ -1625,11 +1625,12 @@ const TheAIRundown = () => {
                     );
                   })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
-                    const catIdx = allCategories.indexOf(selectedCategory);
-                    // In My Rundown: no cross-category nav, story carries its own color/category
                     const isMyFeed = selectedCategory === 'My Rundown';
-                    const prevCat = !isMyFeed && catIdx > 0 ? allCategories[catIdx - 1] : null;
-                    const nextCat = !isMyFeed && catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+                    // Unified nav list: My Rundown (if logged in) + all categories — no special casing
+                    const navCategories = user ? ['My Rundown', ...allCategories] : allCategories;
+                    const catIdx = navCategories.indexOf(selectedCategory);
+                    const prevCat = catIdx > 0 ? navCategories[catIdx - 1] : null;
+                    const nextCat = catIdx < navCategories.length - 1 ? navCategories[catIdx + 1] : null;
                     const isFirst = storyIndex === 0;
                     const isLast = storyIndex === parsedStories.length - 1;
 
@@ -1696,14 +1697,6 @@ const TheAIRundown = () => {
                         }
                       } else if (nextCat) {
                         handleSelectCategory(nextCat);
-                        setStoryIndex(0);
-                        if (isNarrating) {
-                          cancelAudioKeepActive();
-                          narrationStateRef.current.pendingLoad = true;
-                        }
-                      } else if (isMyFeed && allCategories.length > 0) {
-                        // End of My Rundown — jump to first regular category
-                        handleSelectCategory(allCategories[0]);
                         setStoryIndex(0);
                         if (isNarrating) {
                           cancelAudioKeepActive();
@@ -1875,7 +1868,7 @@ const TheAIRundown = () => {
                         {/* Navigation pinned to bottom */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
                           {/* << prev category */}
-                          {!isMyFeed && prevCat ? (
+                          {prevCat ? (
                             <button onClick={() => { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={prevCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', color: '#6366f1', flexShrink: 0 }}>
                               <ChevronLeft size={13} strokeWidth={2.5} />
                               <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
@@ -1889,14 +1882,14 @@ const TheAIRundown = () => {
                           </button>
 
                           {/* Next story → */}
-                          <button onClick={goNext} disabled={isLast && !nextCat && !isMyFeed} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: (isLast && !nextCat && !isMyFeed) ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: (isLast && !nextCat && !isMyFeed) ? 'not-allowed' : 'pointer', color: (isLast && !nextCat && !isMyFeed) ? '#9ca3af' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
                             Next
                             <ChevronRight size={14} />
                           </button>
 
                           {/* >> next category */}
-                          {(isMyFeed && allCategories.length > 0) || (!isMyFeed && nextCat) ? (
-                            <button onClick={() => { const dest = isMyFeed ? allCategories[0] : nextCat; handleSelectCategory(dest); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={isMyFeed ? allCategories[0] : nextCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, flexShrink: 0 }}>
+                          {nextCat ? (
+                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={nextCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, flexShrink: 0 }}>
                               <ChevronRight size={13} strokeWidth={2.5} />
                               <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
                             </button>

@@ -78,6 +78,7 @@ const TheAIRundown = () => {
   const handleSelectCategoryRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
+  const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [showFeedPicker, setShowFeedPicker] = useState(false);
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
@@ -328,6 +329,14 @@ const TheAIRundown = () => {
 
   // A day is "future" if it's after today — should never appear in the list but guarded anyway.
   const isDayFuture = (fullDate) => fullDate > today;
+
+  // True when a time slot should be blocked — either not yet reached, or still generating.
+  // Past days are always fully accessible. Only today's slots can be "generating".
+  const isSlotUnavailable = (day, timeSlot) => {
+    if (isTimeFuture(timeSlot)) return true; // clock hasn't reached this slot yet
+    if (day !== today) return false; // past days are always ready
+    return !completedSlots.has(`${today}|${timeSlot}`); // today: only show when marker written
+  };
 
   const availableTimes = timesOfDay;
   const availableDays  = isCustomCategory ? daysOfWeek.filter(d => d.fullDate === today) : daysOfWeek;
@@ -826,6 +835,25 @@ const TheAIRundown = () => {
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
 
+  // Fetch completion markers — tells us which day+slot combos have finished generating
+  useEffect(() => {
+    const fetchCompleted = async () => {
+      try {
+        const { data } = await supabase
+          .from('news_summaries')
+          .select('day, time_slot')
+          .eq('category', '__completed__')
+          .is('user_id', null)
+          .is('shared_key', null);
+        if (data) setCompletedSlots(new Set(data.map(r => `${r.day}|${r.time_slot}`)));
+      } catch (_) {}
+    };
+    fetchCompleted();
+    // Poll every 30 s so the UI unlocks automatically when generation finishes
+    const interval = setInterval(fetchCompleted, 30000);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Slide-out panel shared wrapper ── */
   const slidePanel = (children) => (
     <div style={{ position: 'fixed', inset: 0, zIndex: 999 }}>
@@ -1155,12 +1183,16 @@ const TheAIRundown = () => {
                 <button onClick={() => { const n = weekOffset + 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset >= 0} style={navArrow(weekOffset >= 0)}>›</button>
               </div>
               <div style={{ width: '1px', height: '20px', background: '#e5e7eb', margin: '0 0.2rem' }} />
-              {availableTimes.map(time => (
-                <button key={time.value} onClick={() => !isTimeFuture(time.value) && setSelectedTime(time.value)} disabled={isTimeFuture(time.value)} style={timePill(selectedTime === time.value, isTimeFuture(time.value))}>
-                  <span>{time.label}</span>
-                  <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
-                </button>
-              ))}
+              {availableTimes.map(time => {
+                const unavail = isSlotUnavailable(selectedDay, time.value);
+                const generating = !isTimeFuture(time.value) && unavail;
+                return (
+                  <button key={time.value} onClick={() => !unavail && setSelectedTime(time.value)} disabled={unavail} style={timePill(selectedTime === time.value, unavail)}>
+                    <span>{time.label}</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{generating ? '…' : time.time}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -1249,12 +1281,16 @@ const TheAIRundown = () => {
                 <button onClick={() => setShowTimeMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {availableTimes.map(time => (
-                  <button key={time.value} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={isTimeFuture(time.value)} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : isTimeFuture(time.value) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isTimeFuture(time.value) ? 0.45 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{time.label}</span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{time.time}</span>
-                  </button>
-                ))}
+                {availableTimes.map(time => {
+                  const unavail = isSlotUnavailable(selectedDay, time.value);
+                  const generating = !isTimeFuture(time.value) && unavail;
+                  return (
+                    <button key={time.value} onClick={() => { if (!unavail) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={unavail} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : unavail ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: unavail ? 0.45 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{time.label}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{generating ? 'Generating…' : time.time}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1383,11 +1419,15 @@ const TheAIRundown = () => {
                             {storiesPicker === 'time' && (
                               <>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                                {availableTimes.map(time => (
-                                  <button key={time.value} disabled={isTimeFuture(time.value)} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: isTimeFuture(time.value) ? 0.4 : 1, cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                    {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
-                                  </button>
-                                ))}
+                                {availableTimes.map(time => {
+                                  const unavail = isSlotUnavailable(selectedDay, time.value);
+                                  const generating = !isTimeFuture(time.value) && unavail;
+                                  return (
+                                    <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
+                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{generating ? 'Generating…' : time.time}</span>
+                                    </button>
+                                  );
+                                })}
                               </>
                             )}
                           </div>
@@ -1635,11 +1675,15 @@ const TheAIRundown = () => {
                               {storiesPicker === 'time' && (
                                 <>
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                                  {availableTimes.map(time => (
-                                    <button key={time.value} disabled={isTimeFuture(time.value)} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: isTimeFuture(time.value) ? 0.4 : 1, cursor: isTimeFuture(time.value) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isTimeFuture(time.value)) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
-                                    </button>
-                                  ))}
+                                  {availableTimes.map(time => {
+                                    const unavail = isSlotUnavailable(selectedDay, time.value);
+                                    const generating = !isTimeFuture(time.value) && unavail;
+                                    return (
+                                      <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
+                                        {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{generating ? 'Generating…' : time.time}</span>
+                                      </button>
+                                    );
+                                  })}
                                 </>
                               )}
                             </div>

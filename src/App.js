@@ -1878,8 +1878,16 @@ const TheAIRundown = () => {
                         });
                       }
                     });
-                    // Dedupe by URL
-                    const sourceLinks = _rawSourceLinks.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
+                    // Build title map from ## Sources section (full article headlines)
+                    const titleMap = {};
+                    if (sourcesStart > -1) {
+                      [...raw.slice(sourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                        .forEach(([, title, url]) => { if (!titleMap[url]) titleMap[url] = title; });
+                    }
+                    // Dedupe by URL; enrich with article title from ## Sources when available
+                    const sourceLinks = _rawSourceLinks
+                      .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
+                      .map(s => ({ ...s, title: titleMap[s.url] || s.title }));
 
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
@@ -1932,18 +1940,23 @@ const TheAIRundown = () => {
                                 {storySources.length > 0 && (
                                   <div style={{ marginTop: '0.85rem' }}>
                                     {windowWidth >= 600 ? (
-                                      /* Wide: source cards */
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                      /* Wide: source cards with title */
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
                                         {storySources.map((s, j) => {
                                           const domain = getDomain(s.url);
                                           return (
                                             <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 0.75rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', minWidth: '120px' }}
-                                              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.08)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
+                                              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
+                                              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
                                               onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
-                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={16} height={16} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap' }}>{domain}</span>
-                                              <span style={{ fontSize: '0.6rem', color: '#c4c9d4', flexShrink: 0 }}>↗</span>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
+                                                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
+                                                <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
+                                              </div>
+                                              {s.title && (
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
+                                              )}
                                             </a>
                                           );
                                         })}

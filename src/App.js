@@ -1566,21 +1566,28 @@ const TheAIRundown = () => {
                       storySources = story?.storySources || [];
                     } else {
                       const digestRaw = newsSummary?.content || '';
-                      const digestSourcesStart = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
-                      const digestSourceLinks = digestSourcesStart > -1
-                        ? [...digestRaw.slice(digestSourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
-                            .map(m => ({ title: m[1], url: m[2] }))
-                            .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                        : [];
+                      const digestSourcesEnd = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                      const digestBody = digestRaw.slice(0, digestSourcesEnd > -1 ? digestSourcesEnd : digestRaw.length);
+                      // Parse sourceLinks and urlToIdx from Coverage lines (same approach as digest view)
+                      const _dLinks = [];
                       const digestUrlToIdx = {};
                       let _dIdx = -1;
-                      digestRaw.slice(0, digestSourcesStart > -1 ? digestSourcesStart : digestRaw.length)
-                        .split('\n').forEach(line => {
-                          if (/^#{1,3} /.test(line)) _dIdx++;
+                      digestBody.split('\n').forEach(line => {
+                        if (/^#{1,3} /.test(line)) _dIdx++;
+                        const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+                        if (cov && _dIdx >= 0) {
+                          [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                            .forEach(([, title, url]) => {
+                              _dLinks.push({ title, url });
+                              if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
+                            });
+                        } else {
                           [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
                             if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
                           });
-                        });
+                        }
+                      });
+                      const digestSourceLinks = _dLinks.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
                       storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
                     }
 
@@ -1849,7 +1856,7 @@ const TheAIRundown = () => {
                     let _sIdx = -1;
                     mergedContent.split('\n').forEach(line => {
                       if (/^#{1,3} /.test(line)) _sIdx++;
-                      const covMatch = line.match(/^\*\*Coverage:\*\*\s*(.+)$/);
+                      const covMatch = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
                       if (covMatch && _sIdx >= 0) {
                         // Extract every [Title](URL) pair from this Coverage line
                         [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
@@ -1898,8 +1905,6 @@ const TheAIRundown = () => {
                       }
                     });
 
-                    const showSourceCards = windowWidth >= 600;
-
                     return (
                       <>
                         {topNote && (
@@ -1918,42 +1923,19 @@ const TheAIRundown = () => {
                                 </div>
                                 <div style={{ fontSize: '0.88rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
                                 {storySources.length > 0 && (
-                                  <div style={{ marginTop: '0.85rem' }}>
-                                    {showSourceCards ? (
-                                      /* Wide: clickable cards, no visit button */
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                                        {storySources.map((s, j) => {
-                                          const domain = getDomain(s.url);
-                                          return (
-                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', transition: 'box-shadow 0.15s', flex: '1 1 150px', maxWidth: '175px', textDecoration: 'none', cursor: 'pointer' }}
-                                              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'}
-                                              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
-                                                <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
-                                              </div>
-                                              <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
-                                            </a>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      /* Narrow: pills only */
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                        {storySources.map((s, j) => {
-                                          const domain = getDomain(s.url);
-                                          return (
-                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
-                                            </a>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
+                                  <div style={{ marginTop: '0.85rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                    {storySources.map((s, j) => {
+                                      const domain = getDomain(s.url);
+                                      return (
+                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
+                                          onMouseEnter={e => e.currentTarget.style.borderColor = '#c7d2fe'}
+                                          onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}>
+                                          <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                        </a>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>

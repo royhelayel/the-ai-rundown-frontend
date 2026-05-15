@@ -1860,6 +1860,7 @@ const TheAIRundown = () => {
 
                     // Body renderer — same transforms as before but no heading line
                     const renderStoryBody = (lines) => lines.join('\n')
+                      .replace(/^-{2,}\s*$/gm, '') // strip markdown horizontal rules (--- or --)
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
                       .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story

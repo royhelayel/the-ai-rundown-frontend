@@ -112,6 +112,14 @@ const TheAIRundown = () => {
     ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)
     : CATEGORY_COLORS[selectedCategory] || '#6366f1';
 
+  // Normalise a URL for matching: lower-case host+path, strip trailing slash & query/hash
+  const normalizeUrl = (url) => {
+    try {
+      const u = new URL(url);
+      return (u.hostname + u.pathname).replace(/\/+$/, '').toLowerCase();
+    } catch { return url.toLowerCase(); }
+  };
+
   const parseStories = (raw) => {
     if (!raw) return [];
     const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
@@ -497,15 +505,15 @@ const TheAIRundown = () => {
               });
             }
           });
-          // Build title map from ## Sources section for article headlines
+          // Build title map from ## Sources section for article headlines (keyed by normalised URL)
           const titleMap = {};
           if (srcEnd > -1) {
             [...digestRaw.slice(srcEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-              .forEach(([, title, url]) => { if (!titleMap[url]) titleMap[url] = title; });
+              .forEach(([, title, url]) => { const k = normalizeUrl(url); if (!titleMap[k]) titleMap[k] = title; });
           }
           const allSrcLinks = _rawLinks
             .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
-            .map(s => ({ ...s, title: titleMap[s.url] || s.title }));
+            .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
           stories.forEach((story, si) => {
             merged.push({ ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) });
           });
@@ -1588,9 +1596,7 @@ const TheAIRundown = () => {
                                             <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
                                             <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
                                           </div>
-                                          {s.title && (
-                                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
-                                          )}
+                                          <span style={{ fontSize: '0.7rem', fontWeight: s.title ? '600' : '400', color: s.title ? '#1e293b' : '#9ca3af', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: s.title ? 'normal' : 'italic' }}>{s.title || s.outlet || domain}</span>
                                         </a>
                                       );
                                     })}
@@ -1656,15 +1662,15 @@ const TheAIRundown = () => {
                           });
                         }
                       });
-                      // Build title map from ## Sources section
+                      // Build title map from ## Sources section (keyed by normalised URL)
                       const dTitleMap = {};
                       if (digestSourcesEnd > -1) {
                         [...digestRaw.slice(digestSourcesEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                          .forEach(([, t, u]) => { if (!dTitleMap[u]) dTitleMap[u] = t; });
+                          .forEach(([, t, u]) => { const k = normalizeUrl(u); if (!dTitleMap[k]) dTitleMap[k] = t; });
                       }
                       const digestSourceLinks = _dLinks
                         .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                        .map(s => ({ ...s, title: dTitleMap[s.url] || '' }));
+                        .map(s => ({ ...s, title: dTitleMap[normalizeUrl(s.url)] || '' }));
                       storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
                     }
 
@@ -1949,16 +1955,16 @@ const TheAIRundown = () => {
                         });
                       }
                     });
-                    // Build title map from ## Sources section (full article headlines)
+                    // Build title map from ## Sources section (keyed by normalised URL)
                     const titleMap = {};
                     if (sourcesStart > -1) {
                       [...raw.slice(sourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                        .forEach(([, title, url]) => { if (!titleMap[url]) titleMap[url] = title; });
+                        .forEach(([, title, url]) => { const k = normalizeUrl(url); if (!titleMap[k]) titleMap[k] = title; });
                     }
                     // Dedupe by URL; enrich with article title from ## Sources when available
                     const sourceLinks = _rawSourceLinks
                       .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                      .map(s => ({ ...s, title: titleMap[s.url] || s.title }));
+                      .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
 
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
@@ -2025,9 +2031,7 @@ const TheAIRundown = () => {
                                                 <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
                                                 <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
                                               </div>
-                                              {s.title && (
-                                                <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</span>
-                                              )}
+                                              <span style={{ fontSize: '0.7rem', fontWeight: s.title ? '600' : '400', color: s.title ? '#1e293b' : '#9ca3af', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: s.title ? 'normal' : 'italic' }}>{s.title || s.outlet || domain}</span>
                                             </a>
                                           );
                                         })}

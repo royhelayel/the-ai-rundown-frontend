@@ -1345,11 +1345,12 @@ const TheAIRundown = () => {
               // Only fire when horizontal movement is dominant and exceeds 50px threshold
               if (Math.abs(dx) >= 50 && Math.abs(dx) >= Math.abs(dy) * 1.5) {
                 swipeTouchRef.current.swiped = true;
-                const catIdx = allCategories.indexOf(selectedCategory);
+                const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
+                const catIdx = _navCats.indexOf(selectedCategory);
                 const isFirst = storyIndex === 0;
                 const isLast  = storyIndex === parsedStories.length - 1;
-                const prevCat = catIdx > 0 ? allCategories[catIdx - 1] : null;
-                const nextCat = catIdx < allCategories.length - 1 ? allCategories[catIdx + 1] : null;
+                const prevCat = catIdx > 0 ? _navCats[catIdx - 1] : null;
+                const nextCat = catIdx < _navCats.length - 1 ? _navCats[catIdx + 1] : null;
                 if (dx < 0) {
                   // Swipe left → next
                   if (!isLast) setStoryIndex(i => i + 1);
@@ -1626,8 +1627,8 @@ const TheAIRundown = () => {
                   })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
                     const isMyFeed = selectedCategory === 'My Rundown';
-                    // Unified nav list: My Rundown (if logged in) + all categories — no special casing
-                    const navCategories = user ? ['My Rundown', ...allCategories] : allCategories;
+                    // Unified nav list: My Rundown (if configured) + all categories — no special casing
+                    const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
                     const catIdx = navCategories.indexOf(selectedCategory);
                     const prevCat = catIdx > 0 ? navCategories[catIdx - 1] : null;
                     const nextCat = catIdx < navCategories.length - 1 ? navCategories[catIdx + 1] : null;

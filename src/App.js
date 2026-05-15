@@ -1875,20 +1875,16 @@ const TheAIRundown = () => {
                           </button>
 
                           {/* << prev category */}
-                          {prevCat ? (
-                            <button onClick={() => { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={prevCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', color: '#6366f1', flexShrink: 0 }}>
-                              <ChevronLeft size={13} strokeWidth={2.5} />
-                              <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                            </button>
-                          ) : <div style={{ width: '38px', flexShrink: 0 }} />}
+                          <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? '#e5e7eb' : '#f0f0f0'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? '#6366f1' : '#d1d5db', flexShrink: 0 }}>
+                            <ChevronLeft size={13} strokeWidth={2.5} />
+                            <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
+                          </button>
 
                           {/* >> next category */}
-                          {nextCat ? (
-                            <button onClick={() => { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } }} title={nextCat} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${storyColor}`, borderRadius: '999px', cursor: 'pointer', color: storyColor, flexShrink: 0 }}>
-                              <ChevronRight size={13} strokeWidth={2.5} />
-                              <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                            </button>
-                          ) : <div style={{ width: '38px', flexShrink: 0 }} />}
+                          <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? storyColor : '#f0f0f0'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? storyColor : '#d1d5db', flexShrink: 0 }}>
+                            <ChevronRight size={13} strokeWidth={2.5} />
+                            <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
+                          </button>
 
                           {/* Next story → */}
                           <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>

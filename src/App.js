@@ -1846,15 +1846,30 @@ const TheAIRundown = () => {
                       .join('\n')
                       .replace(/^https?:\/\/\S+$/gm, '');
 
-                    // Build URL → story-index map (used for per-story source filtering)
+                    // Build URL → story-index map AND sourceLinks from Coverage lines directly.
+                    // Coverage lines are the ground truth — no dependency on ## Sources section.
                     const urlToStoryIdx = {};
+                    const _rawSourceLinks = [];
                     let _sIdx = -1;
                     mergedContent.split('\n').forEach(line => {
                       if (/^#{1,3} /.test(line)) _sIdx++;
-                      [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-                        if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
-                      });
+                      const covMatch = line.match(/^\*\*Coverage:\*\*\s*(.+)$/);
+                      if (covMatch && _sIdx >= 0) {
+                        // Extract every [Title](URL) pair from this Coverage line
+                        [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                          .forEach(([, title, url]) => {
+                            _rawSourceLinks.push({ title, url });
+                            if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
+                          });
+                      } else {
+                        // Still index other URLs (headings etc.) for urlToStoryIdx
+                        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+                          if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
+                        });
+                      }
                     });
+                    // Dedupe by URL
+                    const sourceLinks = _rawSourceLinks.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
 
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 

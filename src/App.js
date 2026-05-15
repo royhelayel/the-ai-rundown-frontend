@@ -487,7 +487,7 @@ const TheAIRundown = () => {
             if (cov && _i >= 0) {
               [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                 .forEach(([, title, url]) => {
-                  _rawLinks.push({ title, url });
+                  _rawLinks.push({ outlet: title, title, url });
                   if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
                 });
             } else {
@@ -1569,7 +1569,7 @@ const TheAIRundown = () => {
                                           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                             <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                            <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
+                                            <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
                                             <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
                                           </div>
                                           {s.title && (
@@ -1586,7 +1586,7 @@ const TheAIRundown = () => {
                                       return (
                                         <a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
                                           <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
                                         </a>
                                       );
                                     })}
@@ -1631,7 +1631,7 @@ const TheAIRundown = () => {
                         if (cov && _dIdx >= 0) {
                           [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                             .forEach(([, title, url]) => {
-                              _dLinks.push({ title, url });
+                              _dLinks.push({ outlet: title, title, url });
                               if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
                             });
                         } else {
@@ -1822,7 +1822,7 @@ const TheAIRundown = () => {
                                   <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
                                     <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
                                   </a>
                                 );
                               })}
@@ -1914,7 +1914,7 @@ const TheAIRundown = () => {
                         // Extract every [Title](URL) pair from this Coverage line
                         [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                           .forEach(([, title, url]) => {
-                            _rawSourceLinks.push({ title, url });
+                            _rawSourceLinks.push({ outlet: title, title, url });
                             if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
                           });
                       } else {
@@ -1997,7 +1997,7 @@ const TheAIRundown = () => {
                                               onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                                 <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{domain}</span>
+                                                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
                                                 <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
                                               </div>
                                               {s.title && (
@@ -2016,7 +2016,7 @@ const TheAIRundown = () => {
                                             <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
                                               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
                                               <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{domain}</span>
+                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
                                             </a>
                                           );
                                         })}

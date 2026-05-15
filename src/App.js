@@ -1804,10 +1804,6 @@ const TheAIRundown = () => {
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
                     const sourcesStart = raw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
                     const beforeSources = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
-                    const sourcesSection = sourcesStart > -1 ? raw.slice(sourcesStart) : '';
-                    const sourceLinks = [...sourcesSection.matchAll(/[-*\d.]\s*\[([^\]]+)\]\(([^)\s]+)\)/g)]
-                      .map(m => ({ title: m[1], url: m[2] }))
-                      .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i); // dedupe
 
                     // Extract top note (content before first ## heading, e.g. _Note: ..._)
                     const firstStoryIdx = beforeSources.search(/^#{1,3} /m);

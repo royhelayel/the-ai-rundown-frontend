@@ -449,7 +449,9 @@ const TheAIRundown = () => {
           const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
           const prefs = normalizeEmailPrefs(rawPrefs);
           const feed = prefRes.data?.feed_categories || savedFeed;
-          const lang = prefRes.data?.news_language || 'en';
+          // Prefer DB value; fall back to whatever is stored locally (avoids overwriting
+          // an Arabic selection made before the user logged in)
+          const lang = prefRes.data?.news_language || localStorage.getItem('rundown_news_language') || 'en';
           setCustomCategories(cats);
           setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);

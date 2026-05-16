@@ -1842,6 +1842,8 @@ const TheAIRundown = () => {
                   </div>)}
                   {viewMode !== 'stories' && selectedCategory === 'My Rundown' ? (() => {
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+                    const labelPerspectives = newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ';
+                    const labelWhy = newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters';
                     return (
                       <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         {parsedStories.map((story, i) => (
@@ -1858,8 +1860,8 @@ const TheAIRundown = () => {
                                 </div>
                               ))}
                             </div>}
-                            {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
-                            {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
+                            {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{labelPerspectives}</span>&nbsp;&nbsp;{story.perspectives}</div>}
+                            {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{labelWhy}</span>&nbsp;&nbsp;{story.why}</div>}
                             {story.storySources?.length > 0 && (
                               <div style={{ marginTop: depthLevel === 'headlines' ? '0.5rem' : '0.85rem' }}>
                                 {windowWidth >= 600 ? (
@@ -2151,7 +2153,7 @@ const TheAIRundown = () => {
                           {/* Perspectives differ */}
                           {displayPerspectives && (
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
-                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
+                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>
                               &nbsp;&nbsp;{displayPerspectives}
                             </div>
                           )}
@@ -2159,7 +2161,7 @@ const TheAIRundown = () => {
                           {/* Why this matters */}
                           {displayWhy && (
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
-                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
+                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters'}</span>
                               &nbsp;&nbsp;{displayWhy}
                             </div>
                           )}
@@ -2356,10 +2358,10 @@ const TheAIRundown = () => {
                       .replace(/^https?:\/\/\S+$/gm, '')
                       .replace(/^\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story
                       .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/^\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters'}</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0;margin-inline-start:0.8rem;padding-inline-start:0.55rem;border-inline-start:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')

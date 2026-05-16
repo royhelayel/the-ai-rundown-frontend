@@ -508,10 +508,11 @@ const TheAIRundown = () => {
             .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
             .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
           stories.forEach((story, si) => {
-            const enriched = { ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) };
+            const storyImage = ((data.source_articles || []).find(a => a.imageUrl && urlToIdx[a.url] === si) || {}).imageUrl || '';
+            const enriched = { ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si), storyImage };
             merged.push(enriched);
             const deep = deepStoriesForCat[si];
-            deepMerged.push(deep ? { ...deep, feedCategory: cat, feedCatColor: color, storySources: enriched.storySources } : enriched);
+            deepMerged.push(deep ? { ...deep, feedCategory: cat, feedCatColor: color, storySources: enriched.storySources, storyImage } : enriched);
           });
         });
         if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
@@ -1352,7 +1353,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: `linear-gradient(160deg, ${catColor}cc, ${catColor}77)`, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1396,19 +1397,49 @@ const TheAIRundown = () => {
             } : undefined}
           >
 
+            {/* Full-bleed background image for Stories mode */}
+            {viewMode === 'stories' && (() => {
+              let imgUrl = '';
+              if (newsSummary && parsedStories.length > 0) {
+                const _cur = parsedStories[storyIndex];
+                if (selectedCategory === 'My Rundown') {
+                  imgUrl = _cur?.storyImage || '';
+                } else if (newsSummary.source_articles?.length > 0) {
+                  const _c = newsSummary.content || '';
+                  const _cEnd = _c.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                  const _cBody = _cEnd > -1 ? _c.slice(0, _cEnd) : _c;
+                  const _cMap = {};
+                  let _ci2 = -1;
+                  _cBody.split('\n').forEach(l => {
+                    if (/^#{1,3} /.test(l)) _ci2++;
+                    [...l.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, u]) => { if (_cMap[u] === undefined) _cMap[u] = _ci2; });
+                  });
+                  imgUrl = (newsSummary.source_articles.find(a => a.imageUrl && _cMap[a.url] === storyIndex) || {}).imageUrl || '';
+                }
+              }
+              return imgUrl ? (
+                <>
+                  <img
+                    src={imgUrl}
+                    alt=""
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', zIndex: 0 }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.82) 100%)' }} />
+                </>
+              ) : null;
+            })()}
+
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && parsedStories.length > 0 && (
-              <div style={{ display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
-                {parsedStories.map((s, i) => {
-                  const dotColor = s?.feedCatColor || catColor || '#6366f1';
-                  return (
-                    <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? dotColor : '#e5e7eb', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.65 : 0.25, transition: 'all 0.2s' }} />
-                  );
-                })}
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
+                {parsedStories.map((s, i) => (
+                  <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.7 : 1, transition: 'all 0.2s' }} />
+                ))}
               </div>
             )}
 
-            <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
               {selectedCategory === 'My Rundown' && !user ? (
                 /* Guest: sign-in prompt */
                 <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
@@ -1626,18 +1657,18 @@ const TheAIRundown = () => {
                       {/* Compact header */}
                       <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                          <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: headerColor, background: storiesPicker === 'category' ? `${headerColor}28` : `${headerColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                          <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
                             {isMyFeed ? '★ My Rundown' : selectedCategory}
                             <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                           </button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                          <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
                             {dayLabel}
                             <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                           </button>
-                          <span style={{ fontSize: '0.68rem', color: '#d1d5db' }}>·</span>
-                          <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                          <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
+                          <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
                             {selectedTime}
                             <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                           </button>
@@ -1645,9 +1676,9 @@ const TheAIRundown = () => {
                       </div>
                       {/* Not available message */}
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem' }}>
-                        <Clock size={36} color="#e5e7eb" style={{ marginBottom: '0.75rem' }} />
-                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: '#374151' }}>News Not Available</h3>
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated.</p>
+                        <Clock size={36} color="rgba(255,255,255,0.35)" style={{ marginBottom: '0.75rem' }} />
+                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: 'white' }}>News Not Available</h3>
+                        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', margin: 0 }}>This summary hasn't been generated.</p>
                       </div>
                     </div>
                   );
@@ -1703,7 +1734,14 @@ const TheAIRundown = () => {
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         {parsedStories.map((story, i) => (
-                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', overflow: 'hidden' }}>
+                            {/* Image banner */}
+                            {story.storyImage ? (
+                              <img src={story.storyImage} alt="" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
+                            ) : (
+                              <div style={{ width: '100%', aspectRatio: '16/9', background: `linear-gradient(135deg, ${story.feedCatColor || MY_FEED_COLOR}cc, ${story.feedCatColor || MY_FEED_COLOR}44)` }} />
+                            )}
+                            <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                             <div style={{ marginBottom: '0.45rem' }}>
                               <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
                             </div>
@@ -1731,6 +1769,7 @@ const TheAIRundown = () => {
                                 })}
                               </div>
                             )}
+                            </div>{/* end padding wrapper */}
                           </div>
                         ))}
                       </div>
@@ -1905,25 +1944,25 @@ const TheAIRundown = () => {
                         <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
                           {/* Row 1: pill (clickable) + controls */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: storyColor, background: storiesPicker === 'category' ? `${storyColor}28` : `${storyColor}14`, padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
                               {isMyFeed ? '★ My Rundown' : storyLabel}
                               <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
-                              <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
+                              <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
                                 {isNarrating ? <VolumeX size={12} /> : <Volume2 size={12} />}
                               </button>
                             </div>
                           </div>
                           {/* Row 2: day (clickable) · time (clickable) */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                            <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                            <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
                               {dayLabel}
                               <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
-                            <span style={{ fontSize: '0.68rem', color: '#d1d5db' }}>·</span>
-                            <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? '#6366f1' : '#9ca3af', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
+                            <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
                               {newsSummary.time_slot}
                               <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
@@ -1936,7 +1975,7 @@ const TheAIRundown = () => {
                           {/* Headlines-only mode: big centred title + source pills */}
                           {depthLevel === 'headlines' ? (
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem 0', gap: '0.85rem' }}>
-                              <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.2, textAlign: 'center', margin: 0 }}>
+                              <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: 'white', lineHeight: 1.2, textAlign: 'center', margin: 0 }}>
                                 {story.headline}
                               </h3>
                               {storySources.length > 0 && (
@@ -1945,9 +1984,9 @@ const TheAIRundown = () => {
                                     const domain = getDomain(s.url);
                                     return (
                                       <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', textDecoration: 'none' }}>
                                         <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'white' }}>{s.outlet || domain}</span>
                                       </a>
                                     );
                                   })}
@@ -1958,15 +1997,15 @@ const TheAIRundown = () => {
                           <>
 
                           {/* Headline */}
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.25, margin: '0 0 0.6rem' }}>
+                          <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: 'white', lineHeight: 1.25, margin: '0 0 0.6rem' }}>
                             {story.headline}
                           </h3>
 
                           {/* Bullets */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
                             {displayBullets.map((b, i) => (
-                              <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
-                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: storyColor, opacity: 0.35, marginTop: '0.4rem', alignSelf: 'stretch' }} />
+                              <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>
+                                <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: 'rgba(255,255,255,0.5)', marginTop: '0.4rem', alignSelf: 'stretch' }} />
                                 <span>{b}</span>
                               </div>
                             ))}
@@ -1974,16 +2013,16 @@ const TheAIRundown = () => {
 
                           {/* Perspectives differ */}
                           {displayPerspectives && (
-                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
-                              <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
+                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
+                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
                               &nbsp;&nbsp;{displayPerspectives}
                             </div>
                           )}
 
                           {/* Why this matters */}
                           {displayWhy && (
-                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
-                              <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
+                            <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
+                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
                               &nbsp;&nbsp;{displayWhy}
                             </div>
                           )}
@@ -1995,9 +2034,9 @@ const TheAIRundown = () => {
                                 const domain = getDomain(s.url);
                                 return (
                                   <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', textDecoration: 'none' }}>
                                     <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'white' }}>{s.outlet || domain}</span>
                                   </a>
                                 );
                               })}
@@ -2008,27 +2047,27 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Navigation pinned to bottom */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
                           {/* ← Previous story */}
-                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? '#d1d5db' : '#374151', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
+                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? 'rgba(255,255,255,0.3)' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
                             <ChevronLeft size={14} />
                             Previous
                           </button>
 
                           {/* << prev category */}
-                          <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? '#e5e7eb' : '#f0f0f0'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? '#6366f1' : '#d1d5db', flexShrink: 0 }}>
+                          <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
                             <ChevronLeft size={13} strokeWidth={2.5} />
                             <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
                           </button>
 
                           {/* >> next category */}
-                          <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? storyColor : '#f0f0f0'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? storyColor : '#d1d5db', flexShrink: 0 }}>
+                          <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
                             <ChevronRight size={13} strokeWidth={2.5} />
                             <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
                           </button>
 
                           {/* Next story → */}
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: isLast && !nextCat ? '#f3f4f6' : storyColor, border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? '#9ca3af' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
+                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: isLast && !nextCat ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? 'rgba(255,255,255,0.35)' : '#111827', fontSize: '0.78rem', fontWeight: '700', transition: 'all 0.15s', flexShrink: 0 }}>
                             Next
                             <ChevronRight size={14} />
                           </button>
@@ -2171,6 +2210,17 @@ const TheAIRundown = () => {
                       .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
                       .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
 
+                    // Build storyImageMap: storyIdx → first available imageUrl from source_articles
+                    const storyImageMap = {};
+                    if (newsSummary.source_articles?.length > 0) {
+                      newsSummary.source_articles.forEach(a => {
+                        if (a.imageUrl && a.url && urlToStoryIdx[a.url] !== undefined) {
+                          const idx = urlToStoryIdx[a.url];
+                          if (!storyImageMap[idx]) storyImageMap[idx] = a.imageUrl;
+                        }
+                      });
+                    }
+
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
                     // Body renderer — same transforms as before but no heading line
@@ -2213,8 +2263,21 @@ const TheAIRundown = () => {
                           {storyChunks.map((chunk, i) => {
                             const storySources = sourceLinks.filter(s => urlToStoryIdx[s.url] === chunk.idx);
                             const bodyHtml = renderStoryBody(chunk.bodyLines);
+                            const chunkImageUrl = storyImageMap[chunk.idx] || '';
                             return (
-                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', overflow: 'hidden' }}>
+                                {/* Image banner (Option A) */}
+                                {chunkImageUrl ? (
+                                  <img
+                                    src={chunkImageUrl}
+                                    alt=""
+                                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }}
+                                    onError={e => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div style={{ width: '100%', aspectRatio: '16/9', background: `linear-gradient(135deg, ${catColor}cc, ${catColor}44)` }} />
+                                )}
+                                <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                                 <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>
                                   {chunk.heading}
                                 </div>
@@ -2258,6 +2321,7 @@ const TheAIRundown = () => {
                                     )}
                                   </div>
                                 )}
+                                </div>{/* end padding wrapper */}
                               </div>
                             );
                           })}

@@ -83,6 +83,7 @@ const TheAIRundown = () => {
   const [deepParsedStories, setDeepParsedStories] = useState([]);
   const [feedCategories, setFeedCategories] = useState([]);
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
+  const [slotsLoaded, setSlotsLoaded] = useState(false); // true after first completedSlots fetch
   const [showFeedPicker, setShowFeedPicker] = useState(false);
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
@@ -872,8 +873,11 @@ const TheAIRundown = () => {
           .eq('category', '__completed__')
           .is('user_id', null)
           .is('shared_key', null);
-        if (data) setCompletedSlots(new Set(data.map(r => `${r.day}|${r.time_slot}`)));
-      } catch (_) {}
+        if (data) {
+          setCompletedSlots(new Set(data.map(r => `${r.day}|${r.time_slot}`)));
+          setSlotsLoaded(true);
+        }
+      } catch (_) { setSlotsLoaded(true); } // mark loaded even on error so UI doesn't hang
     };
     fetchCompleted();
     // Poll every 30 s so the UI unlocks automatically when generation finishes
@@ -1567,7 +1571,7 @@ const TheAIRundown = () => {
                   )}
                 </div>
                 )
-              ) : newsNotAvailable ? (
+              ) : (newsNotAvailable || (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime))) ? (
                 viewMode === 'stories' ? (() => {
                   const isMyFeed = selectedCategory === 'My Rundown';
                   const headerColor = catColor;

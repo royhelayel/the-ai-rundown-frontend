@@ -346,9 +346,12 @@ const TheAIRundown = () => {
   // True when a time slot should be blocked — either not yet reached, or still generating.
   // Past days are always fully accessible. Only today's slots can be "generating".
   const isSlotUnavailable = (day, timeSlot) => {
+    // If the completion marker exists the news is ready — let it through regardless of the clock
+    // (handles early manual generation or clock edge cases)
+    if (completedSlots.has(`${day}|${timeSlot}`)) return false;
     if (isTimeFuture(timeSlot)) return true; // clock hasn't reached this slot yet
     if (day !== today) return false; // past days are always ready
-    return !completedSlots.has(`${today}|${timeSlot}`); // today: only show when marker written
+    return true; // today, no marker yet — still generating
   };
 
   const availableTimes = timesOfDay;

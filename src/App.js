@@ -1744,39 +1744,16 @@ const TheAIRundown = () => {
                             {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
                             {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
                             {story.storySources?.length > 0 && (
-                              <div style={{ marginTop: depthLevel === 'headlines' ? '0.5rem' : '0.65rem' }}>
-                                {windowWidth >= 600 ? (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                                    {story.storySources.map((s, j) => {
-                                      const domain = getDomain(s.url);
-                                      return (
-                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
-                                          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
-                                          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                            <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                            <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
-                                            <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
-                                          </div>
-                                          <span style={{ fontSize: '0.7rem', fontWeight: s.title ? '600' : '400', color: s.title ? '#1e293b' : '#9ca3af', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: s.title ? 'normal' : 'italic' }}>{s.title || s.outlet || domain}</span>
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {story.storySources.map((s, j) => {
-                                      const domain = getDomain(s.url);
-                                      return (
-                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-                                          <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                )}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: depthLevel === 'headlines' ? '0.5rem' : '0.65rem' }}>
+                                {story.storySources.map((s, j) => {
+                                  const domain = getDomain(s.url);
+                                  return (
+                                    <a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.18rem 0.55rem 0.18rem 0.32rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                      <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
+                                    </a>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

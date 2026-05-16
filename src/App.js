@@ -2183,12 +2183,16 @@ const TheAIRundown = () => {
                       .join('\n')
                       .replace(/^https?:\/\/\S+$/gm, '');
 
-                    // Build URL → story-index map AND sourceLinks from Coverage lines directly.
-                    // Coverage lines are the ground truth — no dependency on ## Sources section.
+                    // Sources always come from full content (Coverage lines only live there).
+                    // Story body uses `raw` (stories_content for Summary), but sources use `content`
+                    // so they appear at every depth level, not just Deep Dive.
+                    const _srcContent = newsSummary.content || '';
+                    const _srcSectionStart = _srcContent.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                    const _srcBody = _srcSectionStart > -1 ? _srcContent.slice(0, _srcSectionStart) : _srcContent;
                     const urlToStoryIdx = {};
                     const _rawSourceLinks = [];
                     let _sIdx = -1;
-                    mergedContent.split('\n').forEach(line => {
+                    _srcBody.split('\n').forEach(line => {
                       if (/^#{1,3} /.test(line)) _sIdx++;
                       const covMatch = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
                       if (covMatch && _sIdx >= 0) {
@@ -2207,8 +2211,8 @@ const TheAIRundown = () => {
                     });
                     // Build title map from ## Sources section (keyed by normalised URL)
                     const titleMap = {};
-                    if (sourcesStart > -1) {
-                      [...raw.slice(sourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                    if (_srcSectionStart > -1) {
+                      [..._srcContent.slice(_srcSectionStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                         .forEach(([, title, url]) => { const k = normalizeUrl(url); if (!titleMap[k]) titleMap[k] = title; });
                     }
                     // Dedupe by URL; enrich with article title from ## Sources when available

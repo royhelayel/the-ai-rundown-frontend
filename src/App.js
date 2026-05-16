@@ -1260,7 +1260,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && (
             <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                     {label}
                   </button>
@@ -1361,7 +1361,7 @@ const TheAIRundown = () => {
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
-                {[['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
                     {label}
                   </button>
@@ -1729,18 +1729,18 @@ const TheAIRundown = () => {
                             <div style={{ marginBottom: '0.45rem' }}>
                               <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
                             </div>
-                            <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>{story.headline}</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
+                            <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: depthLevel === 'headlines' ? 0 : '0.5rem' }}>{story.headline}</div>
+                            {depthLevel !== 'headlines' && <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
                               {(depthLevel === 'deep' ? (deepParsedStories[i]?.allBullets || deepParsedStories[i]?.bullets || story.bullets) : story.bullets).map((b, bi) => (
                                 <div key={bi} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
                                   <div style={{ width: '2.5px', minWidth: '2.5px', borderRadius: '99px', background: story.feedCatColor, opacity: 0.35, marginTop: '0.35rem', alignSelf: 'stretch' }} />
                                   <span>{b}</span>
                                 </div>
                               ))}
-                            </div>
-                            {story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
-                            {story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
-                            {story.storySources?.length > 0 && (
+                            </div>}
+                            {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
+                            {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
+                            {depthLevel !== 'headlines' && story.storySources?.length > 0 && (
                               <div style={{ marginTop: '0.65rem' }}>
                                 {windowWidth >= 600 ? (
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
@@ -1979,6 +1979,16 @@ const TheAIRundown = () => {
                         {/* Scrollable body */}
                         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
+                          {/* Headlines-only mode: big centred title, nothing else */}
+                          {depthLevel === 'headlines' ? (
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem 0' }}>
+                              <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.2, textAlign: 'center', margin: 0 }}>
+                                {story.headline}
+                              </h3>
+                            </div>
+                          ) : (
+                          <>
+
                           {/* Headline */}
                           <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.25, margin: '0 0 0.6rem' }}>
                             {story.headline}
@@ -2025,6 +2035,8 @@ const TheAIRundown = () => {
                               })}
                             </div>
                           )}
+                          </>
+                          )}
                         </div>
 
                         {/* Navigation pinned to bottom */}
@@ -2064,6 +2076,21 @@ const TheAIRundown = () => {
                       setNewCategoryDescription(headline);
                       setShowCategoryModal(true);
                     };
+                    // Headlines: just story titles as a compact list
+                    if (depthLevel === 'headlines') {
+                      const headlineList = [...(newsSummary.content || '').matchAll(/^#{1,3} (.+)$/gm)]
+                        .map(([, h]) => h.replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim())
+                        .filter(h => h.length > 3);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {headlineList.map((h, i) => (
+                            <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem' }}>
+                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{h}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
                     // Summary uses stories_content (short punchy); Deep Dive uses full content
                     const raw = depthLevel === 'deep'
                       ? (newsSummary.content || '')

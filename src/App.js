@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 
@@ -55,7 +55,11 @@ const TheAIRundown = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
   const [depthLevel, setDepthLevel] = useState(() => localStorage.getItem('rundown_depth_level') || 'summary');
-  const handleSetDepth = (level) => { setDepthLevel(level); localStorage.setItem('rundown_depth_level', level); };
+  const handleSetDepth = (level) => {
+    if (narrationStateRef.current.active) narrateFnRef.current.stop();
+    setDepthLevel(level);
+    localStorage.setItem('rundown_depth_level', level);
+  };
   const [storiesPicker, setStoriesPicker] = useState(null); // null | 'category' | 'day' | 'time'
 
   const enterStories = () => {
@@ -76,7 +80,8 @@ const TheAIRundown = () => {
   const storyGoRef = useRef({}); // exposes goNext/goPrev from the stories render block
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
-  const narrationStateRef = useRef({ active: false, pendingLoad: false });
+  const [isPaused, setIsPaused] = useState(false);
+  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false });
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
 
@@ -173,9 +178,48 @@ const TheAIRundown = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     st.active = false;
     st.pendingLoad = false;
+    st.paused = false;
     setIsNarrating(false);
+    setIsPaused(false);
   };
   narrateFnRef.current.stop = stopNarration;
+
+  const pauseNarration = () => {
+    const st = narrationStateRef.current;
+    if (!st.active || st.paused) return;
+    if (st.audio) st.audio.pause();
+    if ('speechSynthesis' in window) window.speechSynthesis.pause();
+    st.paused = true;
+    setIsPaused(true);
+  };
+  narrateFnRef.current.pause = pauseNarration;
+
+  const resumeNarration = () => {
+    const st = narrationStateRef.current;
+    if (!st.active || !st.paused) return;
+    if (st.audio) st.audio.play().catch(() => narrateFnRef.current.stop());
+    if (!st.audio && 'speechSynthesis' in window) window.speechSynthesis.resume();
+    st.paused = false;
+    setIsPaused(false);
+  };
+  narrateFnRef.current.resume = resumeNarration;
+
+  const restartNarration = () => {
+    const st = narrationStateRef.current;
+    st.active = false;
+    if (st.audio) { st.audio.pause(); st.audio = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    st.active = true;
+    st.pendingLoad = false;
+    st.paused = false;
+    setIsPaused(false);
+    if (viewMode === 'stories') {
+      narrateFnRef.current.narrateStory?.(storyIndex);
+    } else {
+      narrateFnRef.current.narrateDigest?.(newsSummary?.content);
+    }
+  };
+  narrateFnRef.current.restart = restartNarration;
 
   // Browser Web Speech API fallback — used when Fish Audio is unavailable
   const speakWithBrowser = (text, onDone) => {
@@ -280,10 +324,13 @@ const TheAIRundown = () => {
 
   const startNarration = () => {
     if (isNarrating) { narrateFnRef.current.stop(); return; }
-    narrationStateRef.current.active = true;
-    narrationStateRef.current.pendingLoad = false;
-    narrationStateRef.current.audio = null;
+    const st = narrationStateRef.current;
+    st.active = true;
+    st.pendingLoad = false;
+    st.audio = null;
+    st.paused = false;
     setIsNarrating(true);
+    setIsPaused(false);
     if (viewMode === 'stories') {
       narrateFnRef.current.narrateStory(storyIndex);
     } else {
@@ -460,6 +507,18 @@ const TheAIRundown = () => {
   const handleFetchNews = async () => {
     if (!selectedCategory || !selectedDay || !selectedTime) return;
 
+    // If narrating, cancel current audio and queue auto-restart when new content loads
+    if (narrationStateRef.current.active) {
+      const st = narrationStateRef.current;
+      st.active = false; // block any in-flight onDone callbacks
+      if (st.audio) { st.audio.pause(); st.audio = null; }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      st.active = true;  // re-enable for auto-restart
+      st.pendingLoad = true;
+      st.paused = false;
+      setIsPaused(false);
+    }
+
     // ── My Rundown: parallel fetch for all selected categories ──
     if (selectedCategory === 'My Rundown') {
       if (!user || feedCategories.length === 0) return;
@@ -535,7 +594,10 @@ const TheAIRundown = () => {
     const isCustom = customCategories.includes(selectedCategory);
     // For custom, always use 'Daily' time slot
     const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
-    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot && (newsSummary.language || 'en') === newsLanguage) return;
+    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot && (newsSummary.language || 'en') === newsLanguage) {
+      narrationStateRef.current.pendingLoad = false; // content unchanged, no auto-restart needed
+      return;
+    }
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
@@ -1713,9 +1775,23 @@ const TheAIRundown = () => {
                           </button>
                         )}
                       </div>
-                      <button onClick={startNarration} title={isNarrating ? 'Stop narration' : 'Listen to news'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#f3f4f6', color: isNarrating ? 'white' : '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                        {isNarrating ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                      </button>
+                      {isNarrating ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+                          <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                            {isPaused ? <Play size={13} /> : <Pause size={13} />}
+                          </button>
+                          <button onClick={restartNarration} title="Restart from beginning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                            <RotateCcw size={13} />
+                          </button>
+                          <button onClick={stopNarration} title="Stop narration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#ef4444', transition: 'all 0.2s', flexShrink: 0 }}>
+                            <VolumeX size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={startNarration} title="Listen to news" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                          <Volume2 size={15} />
+                        </button>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -1975,9 +2051,23 @@ const TheAIRundown = () => {
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                               <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
-                              <button onClick={startNarration} title={isNarrating ? 'Stop' : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: isNarrating ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                {isNarrating ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                              </button>
+                              {isNarrating ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+                                  <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', color: '#6366f1', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    {isPaused ? <Play size={11} /> : <Pause size={11} />}
+                                  </button>
+                                  <button onClick={restartNarration} title="Restart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    <RotateCcw size={11} />
+                                  </button>
+                                  <button onClick={stopNarration} title="Stop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    <VolumeX size={11} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button onClick={startNarration} title="Listen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                  <Volume2 size={12} />
+                                </button>
+                              )}
                             </div>
                           </div>
                           {/* Row 2: day (clickable) · time (clickable) */}

@@ -81,7 +81,7 @@ const TheAIRundown = () => {
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false });
+  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
 
@@ -204,20 +204,45 @@ const TheAIRundown = () => {
   };
   narrateFnRef.current.resume = resumeNarration;
 
-  const restartNarration = () => {
+  // Returns the content to narrate based on the currently selected depth level
+  const getNarrationContent = () => {
+    if (depthLevel === 'headlines') {
+      const src = newsSummary?.stories_content || newsSummary?.content || '';
+      return src.split('\n')
+        .filter(l => /^#{1,3} /.test(l))
+        .map(l => l.replace(/^#{1,3} /, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim())
+        .filter(Boolean)
+        .join('. ');
+    }
+    if (depthLevel === 'summary') return newsSummary?.stories_content || newsSummary?.content;
+    return newsSummary?.content; // deep
+  };
+  narrateFnRef.current.getNarrationContent = getNarrationContent;
+
+  // Cancels in-flight audio without ending the narration session (keeps isNarrating=true)
+  const cancelAudioKeepActive = () => {
     const st = narrationStateRef.current;
-    st.active = false;
+    st.canceling = true;
     if (st.audio) { st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    st.active = true;
+    // Clear the flag after a tick so onerror callbacks can see it, then reset
+    setTimeout(() => { st.canceling = false; }, 100);
+  };
+  narrateFnRef.current.cancelAudioKeepActive = cancelAudioKeepActive;
+
+  const restartNarration = () => {
+    cancelAudioKeepActive();
+    const st = narrationStateRef.current;
     st.pendingLoad = false;
     st.paused = false;
     setIsPaused(false);
-    if (viewMode === 'stories') {
-      narrateFnRef.current.narrateStory?.(storyIndex);
-    } else {
-      narrateFnRef.current.narrateDigest?.(newsSummary?.content);
-    }
+    setTimeout(() => {
+      if (viewMode === 'stories') {
+        narrateFnRef.current.narrateStory?.(storyIndex);
+      } else {
+        narrateFnRef.current.narrateDigest?.(narrateFnRef.current.getNarrationContent?.());
+      }
+    }, 120); // wait for canceling flag to clear
   };
   narrateFnRef.current.restart = restartNarration;
 
@@ -234,8 +259,8 @@ const TheAIRundown = () => {
     const enVoice = voices.find(v => v.lang.startsWith('en') && !v.localService === false)
       || voices.find(v => v.lang.startsWith('en'));
     if (enVoice) utter.voice = enVoice;
-    utter.onend = () => { if (narrationStateRef.current.active) onDone(); };
-    utter.onerror = () => narrateFnRef.current.stop();
+    utter.onend = () => { if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone(); };
+    utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
     narrationStateRef.current.browserUtter = utter;
     window.speechSynthesis.speak(utter);
   };
@@ -259,11 +284,12 @@ const TheAIRundown = () => {
           if (narrationStateRef.current.active) onDone();
         };
         audio.onerror = () => {
+          if (narrationStateRef.current.canceling) return;
           URL.revokeObjectURL(url);
           narrationStateRef.current.audio = null;
           narrateFnRef.current.stop();
         };
-        audio.play().catch(() => narrateFnRef.current.stop());
+        audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
       })
       .catch(() => {
         // Fish Audio unavailable — fall back to browser speech synthesis
@@ -334,7 +360,7 @@ const TheAIRundown = () => {
     if (viewMode === 'stories') {
       narrateFnRef.current.narrateStory(storyIndex);
     } else {
-      narrateFnRef.current.narrateDigest(newsSummary?.content);
+      narrateFnRef.current.narrateDigest(getNarrationContent());
     }
   };
 
@@ -509,13 +535,9 @@ const TheAIRundown = () => {
 
     // If narrating, cancel current audio and queue auto-restart when new content loads
     if (narrationStateRef.current.active) {
-      const st = narrationStateRef.current;
-      st.active = false; // block any in-flight onDone callbacks
-      if (st.audio) { st.audio.pause(); st.audio = null; }
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      st.active = true;  // re-enable for auto-restart
-      st.pendingLoad = true;
-      st.paused = false;
+      narrateFnRef.current.cancelAudioKeepActive?.();
+      narrationStateRef.current.pendingLoad = true;
+      narrationStateRef.current.paused = false;
       setIsPaused(false);
     }
 
@@ -926,12 +948,16 @@ const TheAIRundown = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!narrationStateRef.current.pendingLoad || !narrationStateRef.current.active) return;
+    // Don't consume pendingLoad until content is actually ready (avoids premature clear on null)
+    if (viewMode === 'stories' && parsedStories.length === 0) return;
+    if (viewMode !== 'stories' && !newsSummary?.content) return;
     narrationStateRef.current.pendingLoad = false;
-    if (viewMode === 'stories' && parsedStories.length > 0) {
+    if (viewMode === 'stories') {
       setStoryIndex(0);
       setTimeout(() => narrateFnRef.current.narrateStory?.(0), 200);
-    } else if (viewMode !== 'stories' && newsSummary?.content) {
-      setTimeout(() => narrateFnRef.current.narrateDigest?.(newsSummary.content), 200);
+    } else {
+      const content = narrateFnRef.current.getNarrationContent?.() || newsSummary?.content;
+      setTimeout(() => narrateFnRef.current.narrateDigest?.(content), 200);
     }
   }, [parsedStories, newsSummary]);
 
@@ -1774,20 +1800,20 @@ const TheAIRundown = () => {
                         )}
                       </div>
                       {isNarrating ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
-                          <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                            {isPaused ? <Play size={13} /> : <Pause size={13} />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                          <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                            {isPaused ? <Play size={16} /> : <Pause size={16} />}
                           </button>
-                          <button onClick={restartNarration} title="Restart from beginning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                            <RotateCcw size={13} />
+                          <button onClick={restartNarration} title="Restart from beginning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                            <RotateCcw size={16} />
                           </button>
-                          <button onClick={stopNarration} title="Stop narration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#ef4444', transition: 'all 0.2s', flexShrink: 0 }}>
-                            <VolumeX size={13} />
+                          <button onClick={stopNarration} title="Stop narration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#ef4444', transition: 'all 0.2s', flexShrink: 0 }}>
+                            <VolumeX size={16} />
                           </button>
                         </div>
                       ) : (
-                        <button onClick={startNarration} title="Listen to news" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                          <Volume2 size={15} />
+                        <button onClick={startNarration} title="Listen to news" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
+                          <Volume2 size={17} />
                         </button>
                       )}
                     </div>
@@ -1936,13 +1962,7 @@ const TheAIRundown = () => {
                     }
 
                     // Cancel in-flight audio without ending the narration session
-                    const cancelAudioKeepActive = () => {
-                      const st = narrationStateRef.current;
-                      st.active = false; // block any pending onDone callbacks
-                      if (st.audio) { st.audio.pause(); st.audio = null; }
-                      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                      st.active = true; // re-enable for next narration
-                    };
+                    const cancelAudioKeepActive = () => narrateFnRef.current.cancelAudioKeepActive?.();
 
                     const goNext = () => {
                       if (!isLast) {
@@ -2051,19 +2071,19 @@ const TheAIRundown = () => {
                               <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
                               {isNarrating ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
-                                  <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', color: '#6366f1', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    {isPaused ? <Play size={11} /> : <Pause size={11} />}
+                                  <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', color: '#6366f1', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    {isPaused ? <Play size={13} /> : <Pause size={13} />}
                                   </button>
-                                  <button onClick={restartNarration} title="Restart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    <RotateCcw size={11} />
+                                  <button onClick={restartNarration} title="Restart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    <RotateCcw size={13} />
                                   </button>
-                                  <button onClick={stopNarration} title="Stop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    <VolumeX size={11} />
+                                  <button onClick={stopNarration} title="Stop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                    <VolumeX size={13} />
                                   </button>
                                 </div>
                               ) : (
-                                <button onClick={startNarration} title="Listen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                  <Volume2 size={12} />
+                                <button onClick={startNarration} title="Listen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
+                                  <Volume2 size={13} />
                                 </button>
                               )}
                             </div>

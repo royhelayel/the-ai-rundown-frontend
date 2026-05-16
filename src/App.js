@@ -419,10 +419,12 @@ const TheAIRundown = () => {
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
-    // Custom categories only support today — reset day for them.
-    // Default/regional categories preserve whatever date the user has selected.
-    if (customCategories.includes(category)) setSelectedDay(today);
-    setSelectedTime(customCategories.includes(category) ? currentTimeSlot : lastCompletedTimeSlot);
+    // Custom categories only support today — reset day and time for them.
+    // Default/regional categories preserve whatever day AND time the user has selected.
+    if (customCategories.includes(category)) {
+      setSelectedDay(today);
+      setSelectedTime(currentTimeSlot);
+    }
   };
 
   useEffect(() => {
@@ -1783,7 +1785,7 @@ const TheAIRundown = () => {
                   </div>
                 )
               ) : newsSummary ? (
-                <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
+                <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}
                   {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
@@ -2103,7 +2105,7 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Scrollable body */}
-                        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
                           {/* Headlines-only mode: big centred title + source pills */}
                           {depthLevel === 'headlines' ? (
@@ -2237,7 +2239,7 @@ const TheAIRundown = () => {
                       });
                       if (_hlCur) _hlStories.push(_hlCur);
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                           {_hlStories.filter(s => s.title.length > 3).map((s, i) => (
                             <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem' }}>
                               <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{s.title}</div>
@@ -2375,7 +2377,7 @@ const TheAIRundown = () => {
                     });
 
                     return (
-                      <>
+                      <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'}>
                         {topNote && (
                           <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}
                             dangerouslySetInnerHTML={{ __html: topNote.replace(/^_+|_+$/g, '').replace(/\*\*(.+?)\*\*/g, '<strong style="color:#6b7280;font-weight:700;">$1</strong>') }}
@@ -2434,7 +2436,7 @@ const TheAIRundown = () => {
                             );
                           })}
                         </div>
-                      </>
+                      </div>
                     );
                   })()}
                 </div>

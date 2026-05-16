@@ -1737,9 +1737,9 @@ const TheAIRundown = () => {
                           <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', overflow: 'hidden' }}>
                             {/* Image banner */}
                             {story.storyImage ? (
-                              <img src={story.storyImage} alt="" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
+                              <img src={story.storyImage} alt="" style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
                             ) : (
-                              <div style={{ width: '100%', aspectRatio: '16/9', background: `linear-gradient(135deg, ${story.feedCatColor || MY_FEED_COLOR}cc, ${story.feedCatColor || MY_FEED_COLOR}44)` }} />
+                              <div style={{ width: '100%', height: '180px', background: `linear-gradient(135deg, ${story.feedCatColor || MY_FEED_COLOR}cc, ${story.feedCatColor || MY_FEED_COLOR}44)` }} />
                             )}
                             <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                             <div style={{ marginBottom: '0.45rem' }}>
@@ -2271,11 +2271,11 @@ const TheAIRundown = () => {
                                   <img
                                     src={chunkImageUrl}
                                     alt=""
-                                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }}
+                                    style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }}
                                     onError={e => { e.target.style.display = 'none'; }}
                                   />
                                 ) : (
-                                  <div style={{ width: '100%', aspectRatio: '16/9', background: `linear-gradient(135deg, ${catColor}cc, ${catColor}44)` }} />
+                                  <div style={{ width: '100%', height: '180px', background: `linear-gradient(135deg, ${catColor}cc, ${catColor}44)` }} />
                                 )}
                                 <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                                 <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>

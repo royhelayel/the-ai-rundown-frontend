@@ -132,7 +132,7 @@ const TheAIRundown = () => {
 
   const parseStories = (raw) => {
     if (!raw) return [];
-    const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
+    const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
     const content = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
     const chunks = content.split(/(?=^#{1,3} )/m).filter(c => /^#{1,3} /.test(c.trim()));
     return chunks.map(chunk => {
@@ -568,7 +568,7 @@ const TheAIRundown = () => {
           const deepStoriesForCat = parseStories(data.content || data.stories_content);
           // Build per-story source links from Coverage lines in digest content
           const digestRaw = data.content || '';
-          const srcEnd = digestRaw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
+          const srcEnd = digestRaw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
           const digestBody = digestRaw.slice(0, srcEnd > -1 ? srcEnd : digestRaw.length);
           const _rawLinks = [];
           const urlToIdx = {};
@@ -1934,7 +1934,7 @@ const TheAIRundown = () => {
                       storySources = story?.storySources || [];
                     } else {
                       const digestRaw = newsSummary?.content || '';
-                      const digestSourcesEnd = digestRaw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                      const digestSourcesEnd = digestRaw.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
                       const digestBody = digestRaw.slice(0, digestSourcesEnd > -1 ? digestSourcesEnd : digestRaw.length);
                       // Parse sourceLinks and urlToIdx from Coverage lines (same approach as digest view)
                       const _dLinks = [];
@@ -2271,8 +2271,8 @@ const TheAIRundown = () => {
                       ? (newsSummary.content || newsSummary.stories_content || '')
                       : (newsSummary.stories_content || newsSummary.content || '');
 
-                    // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
-                    const sourcesStart = raw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                    // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, ## المصادر, etc.
+                    const sourcesStart = raw.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
                     const beforeSources = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
 
                     // Extract top note (content before first ## heading, e.g. _Note: ..._)
@@ -2316,7 +2316,7 @@ const TheAIRundown = () => {
                     // Story body uses `raw` (stories_content for Summary), but sources use `content`
                     // so they appear at every depth level, not just Deep Dive.
                     const _srcContent = newsSummary.content || '';
-                    const _srcSectionStart = _srcContent.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
+                    const _srcSectionStart = _srcContent.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
                     const _srcBody = _srcSectionStart > -1 ? _srcContent.slice(0, _srcSectionStart) : _srcContent;
                     const urlToStoryIdx = {};
                     const _rawSourceLinks = [];

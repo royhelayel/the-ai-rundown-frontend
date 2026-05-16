@@ -888,9 +888,7 @@ const TheAIRundown = () => {
 
   const timePill = (active, disabled = false) => ({
     padding: '0.35rem 1.1rem',
-    background: active
-      ? 'linear-gradient(135deg, #4338ca 0%, #be185d 100%)'
-      : disabled ? '#f3f4f6' : 'white',
+    background: active ? '#111827' : disabled ? '#f3f4f6' : 'white',
     color: active ? 'white' : disabled ? '#b0b0b8' : '#374151',
     border: active ? 'none' : `1.5px solid ${disabled ? '#e5e7eb' : '#d1d5db'}`,
     borderRadius: '999px',
@@ -905,7 +903,7 @@ const TheAIRundown = () => {
     flexDirection: 'column',
     alignItems: 'center',
     lineHeight: 1.2,
-    boxShadow: active ? '0 2px 12px rgba(67,56,202,0.45)' : 'none',
+    boxShadow: active ? '0 2px 8px rgba(0,0,0,0.18)' : 'none',
   });
 
   const navArrow = (disabled) => ({
@@ -995,8 +993,8 @@ const TheAIRundown = () => {
         {/* Brand row */}
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
           <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: windowWidth < 480 ? '0.4rem' : '0.65rem', flexShrink: 0, cursor: 'pointer' }}>
-            <Sparkles size={windowWidth < 480 ? 16 : windowWidth < 640 ? 20 : 26} color="#6366f1" />
-            <h1 style={{ fontSize: windowWidth < 480 ? '0.95rem' : windowWidth < 640 ? '1.2rem' : '1.6rem', fontWeight: '900', margin: 0, background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', whiteSpace: 'nowrap' }}>
+            <Sparkles size={windowWidth < 480 ? 16 : windowWidth < 640 ? 20 : 26} color="#111827" />
+            <h1 style={{ fontSize: windowWidth < 480 ? '0.95rem' : windowWidth < 640 ? '1.2rem' : '1.6rem', fontWeight: '900', margin: 0, color: '#111827', whiteSpace: 'nowrap' }}>
               The Rundown
             </h1>
           </div>
@@ -1021,11 +1019,11 @@ const TheAIRundown = () => {
                 </button>
               )}
               {user ? (
-                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.5rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
+                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.5rem 0.95rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>
                   <User size={15} /> {user.email}
                 </button>
               ) : (
-                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.55rem 0.95rem', background: 'rgba(99,102,241,0.06)', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#6366f1' }}>
+                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.55rem 0.95rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>
                   <Settings size={15} /> Settings
                 </button>
               )}

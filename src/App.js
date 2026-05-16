@@ -1057,7 +1057,7 @@ const TheAIRundown = () => {
           )}
 
           {isMobile && (
-            <button onClick={() => { setCurrentView(currentView === 'settings' ? 'home' : 'settings'); setShowMobileMenu(false); }} style={{ padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: currentView === 'settings' ? '#ec4899' : '#6366f1' }}>
+            <button onClick={() => { setCurrentView(currentView === 'settings' ? 'home' : 'settings'); setShowMobileMenu(false); }} style={{ padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}>
               {currentView === 'settings' ? <X size={24} /> : <Menu size={24} />}
             </button>
           )}
@@ -2454,7 +2454,7 @@ const TheAIRundown = () => {
       {currentView === 'settings' && (
         <main style={{ maxWidth: '680px', margin: '0 auto', padding: isMobile ? '1.5rem 1rem 3rem' : '2rem 2rem 3rem' }}>
 
-          <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1.25rem', padding: '0.55rem 1.2rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
+          <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1.25rem', padding: '0.55rem 1.2rem', background: '#f3f4f6', border: '1.5px solid #d1d5db', borderRadius: '999px', color: '#374151', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
             ← Back to News
           </button>
 
@@ -2463,7 +2463,7 @@ const TheAIRundown = () => {
             {/* ── Account card ── */}
             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                <User size={18} color="#6366f1" strokeWidth={2.5} />
+                <User size={18} color="#374151" strokeWidth={2.5} />
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Account</h3>
               </div>
               {user ? (
@@ -2561,7 +2561,7 @@ const TheAIRundown = () => {
             {user && (
               <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                  <Mail size={18} color="#6366f1" strokeWidth={2.5} />
+                  <Mail size={18} color="#374151" strokeWidth={2.5} />
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Email Digest</h3>
                 </div>
                 <div style={{ marginBottom: '1rem' }}>
@@ -2592,8 +2592,8 @@ const TheAIRundown = () => {
                     const slotKey = time.value.toLowerCase();
                     const isEnabled = !!emailPreferences[slotKey];
                     return (
-                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #6366f1' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(17,24,39,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #111827' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#111827', flexShrink: 0 }} />
                         <div>
                           <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#111827' }}>{time.label}</div>
                           <div style={{ fontSize: '0.73rem', color: '#9ca3af' }}>{time.time}</div>

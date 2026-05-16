@@ -1843,7 +1843,7 @@ const TheAIRundown = () => {
                   {viewMode !== 'stories' && selectedCategory === 'My Rundown' ? (() => {
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         {parsedStories.map((story, i) => (
                           <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                             <div style={{ marginBottom: '0.45rem' }}>
@@ -2362,7 +2362,7 @@ const TheAIRundown = () => {
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0.8rem;padding-left:0.55rem;border-left:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
+                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0;margin-inline-start:0.8rem;padding-inline-start:0.55rem;border-inline-start:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
                       .replace(/\n/g, '');
 

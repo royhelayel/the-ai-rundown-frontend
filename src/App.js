@@ -111,7 +111,7 @@ const TheAIRundown = () => {
     'QAT':           '#86198f',
     'LEB':           '#c2410c',
   };
-  const MY_FEED_COLOR = '#6366f1';
+  const MY_FEED_COLOR = '#7c3aed';
   const catColor = selectedCategory === 'My Rundown'
     ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)
     : CATEGORY_COLORS[selectedCategory] || '#6366f1';

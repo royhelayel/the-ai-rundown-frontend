@@ -331,38 +331,16 @@ const TheAIRundown = () => {
   // Last completed slot
   const lastCompletedTimeSlot = getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
-  // A time slot is "future" only when viewing today — past days always have both slots accessible.
-  const isTimeFuture = (timeSlot) => {
-    if (selectedDay !== today) return false;
-    const hour = getUAEHour();
-    if (timeSlot === 'Morning') return hour < 6;
-    if (timeSlot === 'Evening') return hour < 18;
-    return false;
-  };
-
-  // A day is "future" if it's after today — should never appear in the list but guarded anyway.
-  const isDayFuture = (fullDate) => fullDate > today;
-
-  // True when a time slot should be blocked — either not yet reached, or still generating.
-  // Past days are always fully accessible. Only today's slots can be "generating".
-  const isSlotUnavailable = (day, timeSlot) => {
-    // If the completion marker exists the news is ready — let it through regardless of the clock
-    // (handles early manual generation or clock edge cases)
-    if (completedSlots.has(`${day}|${timeSlot}`)) return false;
-    if (isTimeFuture(timeSlot)) return true; // clock hasn't reached this slot yet
-    if (day !== today) return false; // past days are always ready
-    return true; // today, no marker yet — still generating
-  };
+  // A slot is unavailable if no __completed__ marker exists for that day+time.
+  const isSlotUnavailable = (day, timeSlot) => !completedSlots.has(`${day}|${timeSlot}`);
 
   const availableTimes = timesOfDay;
-  // Today has a completed slot (used for fallback logic and custom categories)
+  // Always show all days; always show all time buttons.
+  // Slot buttons are individually disabled when no news exists for that day+time.
   const todayHasSlot = timesOfDay.some(t => completedSlots.has(`${today}|${t.value}`));
-  // Show Today in the day list as soon as it's past 6 AM UAE (earliest news time),
-  // even if no markers exist yet — slot buttons handle their own disabled state.
-  const todayIsVisible = todayHasSlot || getUAEHour() >= 6;
   const availableDays = isCustomCategory
-    ? daysOfWeek.filter(d => d.fullDate === today && todayHasSlot)
-    : daysOfWeek.filter(d => d.fullDate !== today || todayIsVisible);
+    ? daysOfWeek.filter(d => d.fullDate === today)
+    : daysOfWeek;
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
@@ -881,16 +859,8 @@ const TheAIRundown = () => {
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
 
-  // If the user is on today but today has no completed slots and it's before 6 AM,
-  // fall back to the most recent past day (nothing to show yet today).
-  // After 6 AM we keep Today visible and let slot buttons show their disabled state.
-  useEffect(() => {
-    if (selectedDay === today && !todayHasSlot && getUAEHour() < 6) {
-      const yesterday = getDaysOfWeek(0)[5].fullDate;
-      setSelectedDay(yesterday);
-      setSelectedTime('Evening');
-    }
-  }, [completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+  // No day/time fallback needed — all days and slots are always visible.
+  // Disabled slots show "News Not Available" in the body if somehow selected.
 
   // Fetch completion markers — tells us which day+slot combos have finished generating
   useEffect(() => {
@@ -1233,7 +1203,7 @@ const TheAIRundown = () => {
               <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => !isDayFuture(day.fullDate) && setSelectedDay(day.fullDate)} disabled={isDayFuture(day.fullDate)} style={dayPill(selectedDay === day.fullDate, isDayFuture(day.fullDate))}>
+                  <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1242,11 +1212,10 @@ const TheAIRundown = () => {
               <div style={{ width: '1px', height: '20px', background: '#e5e7eb', margin: '0 0.2rem' }} />
               {availableTimes.map(time => {
                 const unavail = isSlotUnavailable(selectedDay, time.value);
-                const generating = !isTimeFuture(time.value) && unavail;
                 return (
                   <button key={time.value} onClick={() => !unavail && setSelectedTime(time.value)} disabled={unavail} style={timePill(selectedTime === time.value, unavail)}>
                     <span>{time.label}</span>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{generating ? '…' : time.time}</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
                   </button>
                 );
               })}
@@ -1257,7 +1226,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && windowWidth > 750 && isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
-                <button key={day.fullDate} onClick={() => !isDayFuture(day.fullDate) && setSelectedDay(day.fullDate)} disabled={isDayFuture(day.fullDate)} style={dayPill(selectedDay === day.fullDate, isDayFuture(day.fullDate))}>
+                <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
                   {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                 </button>
               ))}
@@ -1335,7 +1304,7 @@ const TheAIRundown = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setShowDayMenu(false); } }} disabled={isDayFuture(day.fullDate)} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : isDayFuture(day.fullDate) ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: isDayFuture(day.fullDate) ? 0.5 : 1 }}>
+                  <button key={day.fullDate} onClick={() => { setSelectedDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1353,11 +1322,10 @@ const TheAIRundown = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableTimes.map(time => {
                   const unavail = isSlotUnavailable(selectedDay, time.value);
-                  const generating = !isTimeFuture(time.value) && unavail;
                   return (
                     <button key={time.value} onClick={() => { if (!unavail) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={unavail} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : unavail ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: unavail ? 0.45 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{time.label}</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{generating ? 'Generating…' : time.time}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{time.time}</span>
                     </button>
                   );
                 })}
@@ -1490,7 +1458,7 @@ const TheAIRundown = () => {
                               <>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
                                 {availableDays.map(day => (
-                                  <button key={day.fullDate} disabled={isDayFuture(day.fullDate)} style={{ ...pickerItemStyle(day.fullDate === selectedDay), opacity: isDayFuture(day.fullDate) ? 0.4 : 1, cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setStoriesPicker(null); } }}>
+                                  <button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
                                     {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
                                   </button>
                                 ))}
@@ -1501,10 +1469,9 @@ const TheAIRundown = () => {
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
                                 {availableTimes.map(time => {
                                   const unavail = isSlotUnavailable(selectedDay, time.value);
-                                  const generating = !isTimeFuture(time.value) && unavail;
                                   return (
                                     <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{generating ? 'Generating…' : time.time}</span>
+                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
                                     </button>
                                   );
                                 })}
@@ -1630,7 +1597,7 @@ const TheAIRundown = () => {
                               <>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
                                 {availableDays.map(day => (
-                                  <button key={day.fullDate} disabled={isDayFuture(day.fullDate)} style={{ ...pickerItemStyle(day.fullDate === selectedDay), opacity: isDayFuture(day.fullDate) ? 0.4 : 1, cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setStoriesPicker(null); } }}>
+                                  <button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
                                     {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
                                   </button>
                                 ))}
@@ -1641,10 +1608,9 @@ const TheAIRundown = () => {
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
                                 {availableTimes.map(time => {
                                   const unavail = isSlotUnavailable(selectedDay, time.value);
-                                  const generating = !isTimeFuture(time.value) && unavail;
                                   return (
                                     <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{generating ? 'Generating…' : time.time}</span>
+                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
                                     </button>
                                   );
                                 })}
@@ -1676,16 +1642,16 @@ const TheAIRundown = () => {
                       {/* Not available message */}
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem' }}>
                         <Clock size={36} color="#e5e7eb" style={{ marginBottom: '0.75rem' }} />
-                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: '#374151' }}>News Not Yet Available</h3>
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>This slot hasn't been generated yet.</p>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: '#374151' }}>News Not Available</h3>
+                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated.</p>
                       </div>
                     </div>
                   );
                 })() : (
                   <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                     <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>News Not Yet Available</h3>
-                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated yet.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>News Not Available</h3>
+                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated.</p>
                   </div>
                 )
               ) : newsSummary ? (
@@ -1908,7 +1874,7 @@ const TheAIRundown = () => {
                                 <>
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
                                   {availableDays.map(day => (
-                                    <button key={day.fullDate} disabled={isDayFuture(day.fullDate)} style={{ ...pickerItemStyle(day.fullDate === selectedDay), opacity: isDayFuture(day.fullDate) ? 0.4 : 1, cursor: isDayFuture(day.fullDate) ? 'not-allowed' : 'pointer' }} onClick={() => { if (!isDayFuture(day.fullDate)) { setSelectedDay(day.fullDate); setStoriesPicker(null); } }}>
+                                    <button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
                                       {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
                                     </button>
                                   ))}
@@ -1919,10 +1885,9 @@ const TheAIRundown = () => {
                                   <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
                                   {availableTimes.map(time => {
                                     const unavail = isSlotUnavailable(selectedDay, time.value);
-                                    const generating = !isTimeFuture(time.value) && unavail;
                                     return (
                                       <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                        {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{generating ? 'Generating…' : time.time}</span>
+                                        {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
                                       </button>
                                     );
                                   })}

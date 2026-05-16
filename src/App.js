@@ -145,7 +145,7 @@ const TheAIRundown = () => {
       const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
       const bullets = allBullets.slice(0, 3);
       const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
-      const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
+      const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
       if (!headline || bullets.length === 0) return null;
       return { headline, coverage, bullets, allBullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
     }).filter(Boolean);
@@ -253,12 +253,14 @@ const TheAIRundown = () => {
     const utter = new SpeechSynthesisUtterance(text.trim());
     utter.rate = 0.92;
     utter.pitch = 1.0;
-    utter.lang = 'en-US';
-    // Prefer an English voice if available
+    const isAr = newsLanguage === 'ar';
+    utter.lang = isAr ? 'ar-SA' : 'en-US';
+    // Prefer a matching-language voice if available
     const voices = window.speechSynthesis.getVoices();
-    const enVoice = voices.find(v => v.lang.startsWith('en') && !v.localService === false)
-      || voices.find(v => v.lang.startsWith('en'));
-    if (enVoice) utter.voice = enVoice;
+    const targetVoice = isAr
+      ? voices.find(v => v.lang.startsWith('ar'))
+      : (voices.find(v => v.lang.startsWith('en') && !v.localService === false) || voices.find(v => v.lang.startsWith('en')));
+    if (targetVoice) utter.voice = targetVoice;
     utter.onend = () => { if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone(); };
     utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
     narrationStateRef.current.browserUtter = utter;
@@ -317,10 +319,11 @@ const TheAIRundown = () => {
     if (idx >= stories.length) { narrateFnRef.current.goNext(); return; }
     const story = stories[idx];
     setStoryIndex(idx);
+    const isAr = newsLanguage === 'ar';
     const parts = [story.headline + '.'];
     story.bullets.forEach(b => parts.push(b + '.'));
-    if (story.perspectives) parts.push('On the other hand... ' + story.perspectives + '.');
-    if (story.why) parts.push('Here is why this matters. ' + story.why + '.');
+    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + story.perspectives + '.');
+    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + story.why + '.');
     const script = parts.join(' ');
     narrateFnRef.current.speakText(script, () => {
       if (!narrationStateRef.current.active) return;
@@ -331,10 +334,11 @@ const TheAIRundown = () => {
 
   const narrateDigestContent = (content) => {
     if (!narrationStateRef.current.active || !content) return;
+    const isAr = newsLanguage === 'ar';
     const text = content
       .replace(/#{1,3}\s+\[?([^\]\n]+)\]?[^\n]*/g, '$1.')
-      .replace(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*/g, 'On the other hand, ')
-      .replace(/\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*/g, 'Here is why this matters. ')
+      .replace(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*/g, isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ')
+      .replace(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*/g, isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ')
       .replace(/\*\*(?:Coverage|التغطية|المصادر):\*\*[^\n]*/g, '')
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
@@ -1843,7 +1847,7 @@ const TheAIRundown = () => {
                   {viewMode !== 'stories' && selectedCategory === 'My Rundown' ? (() => {
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
                     const labelPerspectives = newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ';
-                    const labelWhy = newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters';
+                    const labelWhy = newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters';
                     return (
                       <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         {parsedStories.map((story, i) => (
@@ -2161,7 +2165,7 @@ const TheAIRundown = () => {
                           {/* Why this matters */}
                           {displayWhy && (
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
-                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters'}</span>
+                              <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>
                               &nbsp;&nbsp;{displayWhy}
                             </div>
                           )}
@@ -2360,8 +2364,8 @@ const TheAIRundown = () => {
                       .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>&nbsp;&nbsp;${text}</div>`
                       )
-                      .replace(/^\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'لماذا يهم هذا؟' : 'Why this matters'}</span>&nbsp;&nbsp;${text}</div>`
+                      .replace(/^\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)$/gm, (_, text) =>
+                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
                       .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0;margin-inline-start:0.8rem;padding-inline-start:0.55rem;border-inline-start:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')

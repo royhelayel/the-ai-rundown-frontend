@@ -140,12 +140,12 @@ const TheAIRundown = () => {
       const headingRaw = lines[0].replace(/^#{1,3}\s+/, '').trim();
       const headline = headingRaw.replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
       const rest = lines.slice(1).join('\n');
-      const coverageMatch = rest.match(/\*\*Coverage:\*\*\s*(.+)/);
+      const coverageMatch = rest.match(/\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)/);
       const coverage = coverageMatch ? coverageMatch[1] : '';
       const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
       const bullets = allBullets.slice(0, 3);
-      const perspMatch = rest.match(/\*\*Perspectives differ:\*\*\s*(.+)/);
-      const whyMatch = rest.match(/\*\*Why this matters:\*\*\s*(.+)/);
+      const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
+      const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
       if (!headline || bullets.length === 0) return null;
       return { headline, coverage, bullets, allBullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
     }).filter(Boolean);
@@ -333,9 +333,9 @@ const TheAIRundown = () => {
     if (!narrationStateRef.current.active || !content) return;
     const text = content
       .replace(/#{1,3}\s+\[?([^\]\n]+)\]?[^\n]*/g, '$1.')
-      .replace(/\*\*Perspectives differ:\*\*\s*/g, 'On the other hand, ')
-      .replace(/\*\*Why this matters:\*\*\s*/g, 'Here is why this matters. ')
-      .replace(/\*\*Coverage:\*\*[^\n]*/g, '')
+      .replace(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*/g, 'On the other hand, ')
+      .replace(/\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*/g, 'Here is why this matters. ')
+      .replace(/\*\*(?:Coverage|التغطية|المصادر):\*\*[^\n]*/g, '')
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/^[-*]\s+/gm, '')
@@ -575,7 +575,7 @@ const TheAIRundown = () => {
           let _i = -1;
           digestBody.split('\n').forEach(line => {
             if (/^#{1,3} /.test(line)) _i++;
-            const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+            const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
             if (cov && _i >= 0) {
               [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                 .forEach(([, title, url]) => {
@@ -1940,7 +1940,7 @@ const TheAIRundown = () => {
                       let _dIdx = -1;
                       digestBody.split('\n').forEach(line => {
                         if (/^#{1,3} /.test(line)) _dIdx++;
-                        const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+                        const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
                         if (cov && _dIdx >= 0) {
                           [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                             .forEach(([, title, url]) => {
@@ -2233,7 +2233,7 @@ const TheAIRundown = () => {
                           const title = hm[1].replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
                           _hlCur = { title, sources: [] };
                         }
-                        const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+                        const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
                         if (cov && _hlCur) {
                           [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
                             .forEach(([, outlet, url]) => _hlCur.sources.push({ outlet, url }));
@@ -2321,7 +2321,7 @@ const TheAIRundown = () => {
                     let _sIdx = -1;
                     _srcBody.split('\n').forEach(line => {
                       if (/^#{1,3} /.test(line)) _sIdx++;
-                      const covMatch = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+                      const covMatch = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
                       if (covMatch && _sIdx >= 0) {
                         // Extract every [Title](URL) pair from this Coverage line
                         [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
@@ -2354,11 +2354,11 @@ const TheAIRundown = () => {
                       .replace(/^-{2,}\s*$/gm, '') // strip markdown horizontal rules (--- or --)
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
-                      .replace(/^\*\*Coverage:\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story
-                      .replace(/^\*\*Perspectives differ:\*\*\s*(.+)$/gm, (_, text) =>
+                      .replace(/^\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story
+                      .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Perspectives differ</span>&nbsp;&nbsp;${text}</div>`
                       )
-                      .replace(/^\*\*Why this matters:\*\*\s*(.+)$/gm, (_, text) =>
+                      .replace(/^\*\*(?:Why this matters|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">Why this matters</span>&nbsp;&nbsp;${text}</div>`
                       )
                       .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')

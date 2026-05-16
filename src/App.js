@@ -1783,7 +1783,7 @@ const TheAIRundown = () => {
                   </div>
                 )
               ) : newsSummary ? (
-                <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
+                <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}
                   {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
@@ -2103,7 +2103,7 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Scrollable body */}
-                        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
                           {/* Headlines-only mode: big centred title + source pills */}
                           {depthLevel === 'headlines' ? (

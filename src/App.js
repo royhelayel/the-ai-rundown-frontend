@@ -84,6 +84,7 @@ const TheAIRundown = () => {
   const [feedCategories, setFeedCategories] = useState([]);
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [slotsLoaded, setSlotsLoaded] = useState(false); // true after first completedSlots fetch
+  const [newsLanguage, setNewsLanguage] = useState(() => localStorage.getItem('rundown_news_language') || 'en');
   const [showFeedPicker, setShowFeedPicker] = useState(false);
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
@@ -366,17 +367,20 @@ const TheAIRundown = () => {
         // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
-          supabase.from('users').select('email_preferences, feed_categories').eq('id', userData.id).single()
+          supabase.from('users').select('email_preferences, feed_categories, news_language').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
           const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
           const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
           const prefs = normalizeEmailPrefs(rawPrefs);
           const feed = prefRes.data?.feed_categories || savedFeed;
+          const lang = prefRes.data?.news_language || 'en';
           setCustomCategories(cats);
           setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);
           setFeedCategories(feed);
+          setNewsLanguage(lang);
+          localStorage.setItem('rundown_news_language', lang);
           if (feed.length > 0) setSelectedCategory('My Rundown');
           const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
@@ -465,6 +469,7 @@ const TheAIRundown = () => {
           feedCategories.map(cat =>
             supabase.from('news_summaries').select('*')
               .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
+              .eq('language', newsLanguage)
               .is('user_id', null).is('shared_key', null).maybeSingle()
           )
         );
@@ -530,7 +535,7 @@ const TheAIRundown = () => {
     const isCustom = customCategories.includes(selectedCategory);
     // For custom, always use 'Daily' time slot
     const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
-    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot) return;
+    if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot && (newsSummary.language || 'en') === newsLanguage) return;
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
@@ -542,6 +547,7 @@ const TheAIRundown = () => {
       } else {
         q = supabase.from('news_summaries').select('*')
           .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime)
+          .eq('language', newsLanguage)
           .is('user_id', null).is('shared_key', null);
       }
       const { data, error } = await q.maybeSingle();
@@ -614,7 +620,7 @@ const TheAIRundown = () => {
 
   useEffect(() => {
     if (selectedCategory && selectedDay && selectedTime) handleFetchNews();
-  }, [selectedCategory, selectedDay, selectedTime]);
+  }, [selectedCategory, selectedDay, selectedTime, newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const isCurrentSlot = selectedTime === currentTimeSlot && selectedDay === today;
@@ -765,6 +771,17 @@ const TheAIRundown = () => {
     }).catch(err => console.error('Failed to save feed categories:', err));
   };
 
+  const saveNewsLanguage = (lang) => {
+    setNewsLanguage(lang);
+    localStorage.setItem('rundown_news_language', lang);
+    if (user) {
+      fetch(`${BACKEND_URL}/api/user/news-language`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, language: lang })
+      }).catch(err => console.error('Failed to save news language:', err));
+    }
+  };
+
   const toggleFeedPickerCat = (cat) => {
     setFeedPickerDraft(prev =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
@@ -865,15 +882,19 @@ const TheAIRundown = () => {
   // Disabled slots show "News Not Available" in the body if somehow selected.
 
   // Fetch completion markers — tells us which day+slot combos have finished generating
+  // Re-runs when newsLanguage changes so Arabic/English slots are tracked separately
   useEffect(() => {
     const fetchCompleted = async () => {
       try {
-        const { data } = await supabase
+        let q = supabase
           .from('news_summaries')
           .select('day, time_slot')
           .eq('category', '__completed__')
           .is('user_id', null)
           .is('shared_key', null);
+        // Filter by language if the column exists (graceful: missing column returns all rows)
+        if (newsLanguage) q = q.eq('language', newsLanguage);
+        const { data } = await q;
         if (data) {
           setCompletedSlots(new Set(data.map(r => `${r.day}|${r.time_slot}`)));
           setSlotsLoaded(true);
@@ -884,7 +905,7 @@ const TheAIRundown = () => {
     // Poll every 30 s so the UI unlocks automatically when generation finishes
     const interval = setInterval(fetchCompleted, 30000);
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Slide-out panel shared wrapper ── */
   const slidePanel = (children) => (
@@ -2365,6 +2386,26 @@ const TheAIRundown = () => {
                 <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '999px', padding: '3px', gap: '2px' }}>
                   {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
                     <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'white' : 'transparent', color: fontSize === val ? '#111827' : '#9ca3af', boxShadow: fontSize === val ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── News Language card ── */}
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🌐</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>News Language</h3>
+                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>Arabic is available for Morning only</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                  {[['en', 'English'], ['ar', 'عربي']].map(([val, label]) => (
+                    <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? 'white' : 'transparent', color: newsLanguage === val ? '#111827' : '#9ca3af', boxShadow: newsLanguage === val ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                       {label}
                     </button>
                   ))}

@@ -1780,6 +1780,8 @@ const TheAIRundown = () => {
                     );
                   })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
+                    // Guard: parsedStories may be empty mid-transition between categories
+                    if (!story) return null;
                     // Deep Dive uses the detailed digest version; fall back to summary story if not available
                     const deepStory = deepParsedStories[storyIndex] || story;
                     const displayBullets = depthLevel === 'deep' ? (deepStory.allBullets || deepStory.bullets) : story.bullets;
@@ -1884,8 +1886,6 @@ const TheAIRundown = () => {
                       }
                     };
                     storyGoRef.current = { goNext, goPrev };
-
-                    if (!story) return <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>No stories available.</div>;
 
                     const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : newsSummary.day; })();
 

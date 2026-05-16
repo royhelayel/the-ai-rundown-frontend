@@ -54,6 +54,8 @@ const TheAIRundown = () => {
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
+  const [depthLevel, setDepthLevel] = useState(() => localStorage.getItem('rundown_depth_level') || 'summary');
+  const handleSetDepth = (level) => { setDepthLevel(level); localStorage.setItem('rundown_depth_level', level); };
   const [storiesPicker, setStoriesPicker] = useState(null); // null | 'category' | 'day' | 'time'
 
   const enterStories = () => {
@@ -78,6 +80,7 @@ const TheAIRundown = () => {
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
 
+  const [deepParsedStories, setDeepParsedStories] = useState([]);
   const [feedCategories, setFeedCategories] = useState([]);
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [showFeedPicker, setShowFeedPicker] = useState(false);
@@ -132,11 +135,12 @@ const TheAIRundown = () => {
       const rest = lines.slice(1).join('\n');
       const coverageMatch = rest.match(/\*\*Coverage:\*\*\s*(.+)/);
       const coverage = coverageMatch ? coverageMatch[1] : '';
-      const bullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]).slice(0, 3);
+      const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
+      const bullets = allBullets.slice(0, 3);
       const perspMatch = rest.match(/\*\*Perspectives differ:\*\*\s*(.+)/);
       const whyMatch = rest.match(/\*\*Why this matters:\*\*\s*(.+)/);
       if (!headline || bullets.length === 0) return null;
-      return { headline, coverage, bullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
+      return { headline, coverage, bullets, allBullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
     }).filter(Boolean);
   };
 
@@ -416,9 +420,11 @@ const TheAIRundown = () => {
   useEffect(() => {
     // My Rundown sets parsedStories directly in handleFetchNews — skip re-parsing
     if (selectedCategory === 'My Rundown') return;
-    // Use stories_content for stories mode if available, fallback to digest content
+    // Summary: stories_content (short punchy bullets). Deep Dive: content (full detailed digest).
     const stories = parseStories(newsSummary?.stories_content || newsSummary?.content);
     setParsedStories(stories);
+    const deepStories = parseStories(newsSummary?.content || newsSummary?.stories_content);
+    setDeepParsedStories(deepStories);
     if (goToLastStoryRef.current && stories.length > 0) {
       setStoryIndex(stories.length - 1);
       goToLastStoryRef.current = false;
@@ -478,11 +484,13 @@ const TheAIRundown = () => {
           )
         );
         const merged = [];
+        const deepMerged = [];
         results.forEach(({ data }, idx) => {
           if (!data) return;
           const cat = feedCategories[idx];
           const color = CATEGORY_COLORS[cat] || '#6366f1';
           const stories = parseStories(data.stories_content || data.content);
+          const deepStoriesForCat = parseStories(data.content || data.stories_content);
           // Build per-story source links from Coverage lines in digest content
           const digestRaw = data.content || '';
           const srcEnd = digestRaw.search(/^#{1,3}\s+(?:\[)?Sources(?:\])?/im);
@@ -515,12 +523,16 @@ const TheAIRundown = () => {
             .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
             .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
           stories.forEach((story, si) => {
-            merged.push({ ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) });
+            const enriched = { ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si) };
+            merged.push(enriched);
+            const deep = deepStoriesForCat[si];
+            deepMerged.push(deep ? { ...deep, feedCategory: cat, feedCatColor: color, storySources: enriched.storySources } : enriched);
           });
         });
         if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
         setNewsSummary({ category: 'My Rundown', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
         setParsedStories(merged);
+        setDeepParsedStories(deepMerged);
         setNewsNotAvailable(false);
       } catch (err) {
         console.error('My Rundown fetch error:', err);
@@ -926,7 +938,7 @@ const TheAIRundown = () => {
           {/* View toggle — always visible, icon-only on small screens */}
           {currentView === 'home' && (
             <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: windowWidth < 480 ? '2px' : '3px', flexShrink: 0, marginLeft: 'auto' }}>
-              {[['digest', '≡', '≡ Digest'], ['stories', '▶', '▶ Stories']].map(([mode, icon, label]) => (
+              {[['digest', '≡', '≡ Read'], ['stories', '▶', '▶ Stories']].map(([mode, icon, label]) => (
                 <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
                   style={{ padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                   {label}
@@ -1186,7 +1198,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,15,20,0.92)', padding: isMobile ? '0.75rem 1rem calc(3.5rem + env(safe-area-inset-bottom, 0px))' : '1rem' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: isMobile ? '0' : '0' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1241,6 +1253,19 @@ const TheAIRundown = () => {
                   {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* ── Depth toggle — Read mode, below day/time nav, catColor active ── */}
+          {viewMode !== 'stories' && (
+            <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
+                {[['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
+                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1332,9 +1357,22 @@ const TheAIRundown = () => {
             </div>
           )}
 
+          {/* ── Depth toggle — Stories mode, floats above card in dark area ── */}
+          {viewMode === 'stories' && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
+              <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
+                {[['summary', 'Summary'], ['deep', 'Deep Dive']].map(([level, label]) => (
+                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 80px)' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { background: 'white', borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1575,7 +1613,7 @@ const TheAIRundown = () => {
                             </div>
                             <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>{story.headline}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
-                              {story.bullets.map((b, bi) => (
+                              {(depthLevel === 'deep' ? (deepParsedStories[i]?.allBullets || deepParsedStories[i]?.bullets || story.bullets) : story.bullets).map((b, bi) => (
                                 <div key={bi} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
                                   <div style={{ width: '2.5px', minWidth: '2.5px', borderRadius: '99px', background: story.feedCatColor, opacity: 0.35, marginTop: '0.35rem', alignSelf: 'stretch' }} />
                                   <span>{b}</span>
@@ -1626,6 +1664,11 @@ const TheAIRundown = () => {
                     );
                   })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
+                    // Deep Dive uses the detailed digest version; fall back to summary story if not available
+                    const deepStory = deepParsedStories[storyIndex] || story;
+                    const displayBullets = depthLevel === 'deep' ? (deepStory.allBullets || deepStory.bullets) : story.bullets;
+                    const displayPerspectives = depthLevel === 'deep' ? deepStory.perspectives : story.perspectives;
+                    const displayWhy = depthLevel === 'deep' ? deepStory.why : story.why;
                     const isMyFeed = selectedCategory === 'My Rundown';
                     // Unified nav list: My Rundown (if configured) + all categories — no special casing
                     const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
@@ -1825,7 +1868,7 @@ const TheAIRundown = () => {
 
                           {/* Bullets */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
-                            {story.bullets.map((b, i) => (
+                            {displayBullets.map((b, i) => (
                               <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
                                 <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: storyColor, opacity: 0.35, marginTop: '0.4rem', alignSelf: 'stretch' }} />
                                 <span>{b}</span>
@@ -1834,18 +1877,18 @@ const TheAIRundown = () => {
                           </div>
 
                           {/* Perspectives differ */}
-                          {story.perspectives && (
+                          {displayPerspectives && (
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
                               <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>
-                              &nbsp;&nbsp;{story.perspectives}
+                              &nbsp;&nbsp;{displayPerspectives}
                             </div>
                           )}
 
                           {/* Why this matters */}
-                          {story.why && (
+                          {displayWhy && (
                             <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}>
                               <span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>
-                              &nbsp;&nbsp;{story.why}
+                              &nbsp;&nbsp;{displayWhy}
                             </div>
                           )}
 
@@ -1903,7 +1946,10 @@ const TheAIRundown = () => {
                       setNewCategoryDescription(headline);
                       setShowCategoryModal(true);
                     };
-                    const raw = newsSummary.content || '';
+                    // Summary uses stories_content (short punchy); Deep Dive uses full content
+                    const raw = depthLevel === 'deep'
+                      ? (newsSummary.content || '')
+                      : (newsSummary.stories_content || newsSummary.content || '');
 
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.
                     const sourcesStart = raw.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);

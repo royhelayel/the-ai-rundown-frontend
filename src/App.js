@@ -1743,8 +1743,8 @@ const TheAIRundown = () => {
                             </div>}
                             {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perspectives differ</span>&nbsp;&nbsp;{story.perspectives}</div>}
                             {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why this matters</span>&nbsp;&nbsp;{story.why}</div>}
-                            {depthLevel !== 'headlines' && story.storySources?.length > 0 && (
-                              <div style={{ marginTop: '0.65rem' }}>
+                            {story.storySources?.length > 0 && (
+                              <div style={{ marginTop: depthLevel === 'headlines' ? '0.5rem' : '0.65rem' }}>
                                 {windowWidth >= 600 ? (
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
                                     {story.storySources.map((s, j) => {

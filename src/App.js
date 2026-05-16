@@ -1397,39 +1397,6 @@ const TheAIRundown = () => {
             } : undefined}
           >
 
-            {/* Full-bleed background image for Stories mode */}
-            {viewMode === 'stories' && (() => {
-              let imgUrl = '';
-              if (newsSummary && parsedStories.length > 0) {
-                const _cur = parsedStories[storyIndex];
-                if (selectedCategory === 'My Rundown') {
-                  imgUrl = _cur?.storyImage || '';
-                } else if (newsSummary.source_articles?.length > 0) {
-                  const _c = newsSummary.content || '';
-                  const _cEnd = _c.search(/^#{1,3} (?:\[)?Sources(?:\]|\()?/im);
-                  const _cBody = _cEnd > -1 ? _c.slice(0, _cEnd) : _c;
-                  const _cMap = {};
-                  let _ci2 = -1;
-                  _cBody.split('\n').forEach(l => {
-                    if (/^#{1,3} /.test(l)) _ci2++;
-                    [...l.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, u]) => { if (_cMap[u] === undefined) _cMap[u] = _ci2; });
-                  });
-                  imgUrl = (newsSummary.source_articles.find(a => a.imageUrl && _cMap[a.url] === storyIndex) || {}).imageUrl || '';
-                }
-              }
-              return imgUrl ? (
-                <>
-                  <img
-                    src={imgUrl}
-                    alt=""
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', zIndex: 0 }}
-                    onError={e => { e.target.style.display = 'none'; }}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.82) 100%)' }} />
-                </>
-              ) : null;
-            })()}
-
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && parsedStories.length > 0 && (
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
@@ -1734,14 +1701,7 @@ const TheAIRundown = () => {
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         {parsedStories.map((story, i) => (
-                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', overflow: 'hidden' }}>
-                            {/* Image banner */}
-                            {story.storyImage ? (
-                              <img src={story.storyImage} alt="" style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
-                            ) : (
-                              <div style={{ width: '100%', height: '180px', background: `linear-gradient(135deg, ${story.feedCatColor || MY_FEED_COLOR}cc, ${story.feedCatColor || MY_FEED_COLOR}44)` }} />
-                            )}
-                            <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                             <div style={{ marginBottom: '0.45rem' }}>
                               <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
                             </div>
@@ -1769,7 +1729,6 @@ const TheAIRundown = () => {
                                 })}
                               </div>
                             )}
-                            </div>{/* end padding wrapper */}
                           </div>
                         ))}
                       </div>
@@ -2210,17 +2169,6 @@ const TheAIRundown = () => {
                       .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
                       .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
 
-                    // Build storyImageMap: storyIdx → first available imageUrl from source_articles
-                    const storyImageMap = {};
-                    if (newsSummary.source_articles?.length > 0) {
-                      newsSummary.source_articles.forEach(a => {
-                        if (a.imageUrl && a.url && urlToStoryIdx[a.url] !== undefined) {
-                          const idx = urlToStoryIdx[a.url];
-                          if (!storyImageMap[idx]) storyImageMap[idx] = a.imageUrl;
-                        }
-                      });
-                    }
-
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
                     // Body renderer — same transforms as before but no heading line
@@ -2263,21 +2211,8 @@ const TheAIRundown = () => {
                           {storyChunks.map((chunk, i) => {
                             const storySources = sourceLinks.filter(s => urlToStoryIdx[s.url] === chunk.idx);
                             const bodyHtml = renderStoryBody(chunk.bodyLines);
-                            const chunkImageUrl = storyImageMap[chunk.idx] || '';
                             return (
-                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', overflow: 'hidden' }}>
-                                {/* Image banner (Option A) */}
-                                {chunkImageUrl ? (
-                                  <img
-                                    src={chunkImageUrl}
-                                    alt=""
-                                    style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }}
-                                    onError={e => { e.target.style.display = 'none'; }}
-                                  />
-                                ) : (
-                                  <div style={{ width: '100%', height: '180px', background: `linear-gradient(135deg, ${catColor}cc, ${catColor}44)` }} />
-                                )}
-                                <div style={{ padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
+                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                                 <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>
                                   {chunk.heading}
                                 </div>
@@ -2321,7 +2256,6 @@ const TheAIRundown = () => {
                                     )}
                                   </div>
                                 )}
-                                </div>{/* end padding wrapper */}
                               </div>
                             );
                           })}

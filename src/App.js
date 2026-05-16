@@ -950,7 +950,7 @@ const TheAIRundown = () => {
     if (!narrationStateRef.current.pendingLoad || !narrationStateRef.current.active) return;
     // Don't consume pendingLoad until content is actually ready (avoids premature clear on null)
     if (viewMode === 'stories' && parsedStories.length === 0) return;
-    if (viewMode !== 'stories' && !newsSummary?.content) return;
+    if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
     if (viewMode === 'stories') {
       setStoryIndex(0);
@@ -2219,10 +2219,10 @@ const TheAIRundown = () => {
                     // Headlines: compact list of story titles + source pills
                     if (depthLevel === 'headlines') {
                       const _hlDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                      // Parse headline + coverage sources in one pass over full content
+                      // Parse headline + coverage sources in one pass; fall back to stories_content if content is missing
                       const _hlStories = [];
                       let _hlCur = null;
-                      (newsSummary.content || '').split('\n').forEach(line => {
+                      (newsSummary.content || newsSummary.stories_content || '').split('\n').forEach(line => {
                         const hm = line.match(/^#{1,3} (.+)$/);
                         if (hm) {
                           if (_hlCur) _hlStories.push(_hlCur);
@@ -2260,9 +2260,9 @@ const TheAIRundown = () => {
                         </div>
                       );
                     }
-                    // Summary uses stories_content (short punchy); Deep Dive uses full content
+                    // Summary uses stories_content (short punchy); Deep Dive uses full content; both fall back to the other if one is missing
                     const raw = depthLevel === 'deep'
-                      ? (newsSummary.content || '')
+                      ? (newsSummary.content || newsSummary.stories_content || '')
                       : (newsSummary.stories_content || newsSummary.content || '');
 
                     // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, etc.

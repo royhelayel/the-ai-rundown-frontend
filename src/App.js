@@ -1982,12 +1982,26 @@ const TheAIRundown = () => {
                         {/* Scrollable body */}
                         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-                          {/* Headlines-only mode: big centred title, nothing else */}
+                          {/* Headlines-only mode: big centred title + source pills */}
                           {depthLevel === 'headlines' ? (
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem 0' }}>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem 0', gap: '0.85rem' }}>
                               <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0f172a', lineHeight: 1.2, textAlign: 'center', margin: 0 }}>
                                 {story.headline}
                               </h3>
+                              {storySources.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', justifyContent: 'center' }}>
+                                  {storySources.map((s, j) => {
+                                    const domain = getDomain(s.url);
+                                    return (
+                                      <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                        <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           ) : (
                           <>
@@ -2079,16 +2093,45 @@ const TheAIRundown = () => {
                       setNewCategoryDescription(headline);
                       setShowCategoryModal(true);
                     };
-                    // Headlines: just story titles as a compact list
+                    // Headlines: compact list of story titles + source pills
                     if (depthLevel === 'headlines') {
-                      const headlineList = [...(newsSummary.content || '').matchAll(/^#{1,3} (.+)$/gm)]
-                        .map(([, h]) => h.replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim())
-                        .filter(h => h.length > 3);
+                      const _hlDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+                      // Parse headline + coverage sources in one pass over full content
+                      const _hlStories = [];
+                      let _hlCur = null;
+                      (newsSummary.content || '').split('\n').forEach(line => {
+                        const hm = line.match(/^#{1,3} (.+)$/);
+                        if (hm) {
+                          if (_hlCur) _hlStories.push(_hlCur);
+                          const title = hm[1].replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
+                          _hlCur = { title, sources: [] };
+                        }
+                        const cov = line.match(/^\s*\*\*Coverage:\*\*\s*(.+)$/);
+                        if (cov && _hlCur) {
+                          [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+                            .forEach(([, outlet, url]) => _hlCur.sources.push({ outlet, url }));
+                        }
+                      });
+                      if (_hlCur) _hlStories.push(_hlCur);
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {headlineList.map((h, i) => (
+                          {_hlStories.filter(s => s.title.length > 3).map((s, i) => (
                             <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem' }}>
-                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{h}</div>
+                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{s.title}</div>
+                              {s.sources.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
+                                  {s.sources.map((src, j) => {
+                                    const domain = _hlDomain(src.url);
+                                    return (
+                                      <a key={j} href={src.url} target="_blank" rel="noopener noreferrer"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
+                                        <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{src.outlet || domain}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

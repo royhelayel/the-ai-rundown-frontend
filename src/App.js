@@ -1575,6 +1575,10 @@ const TheAIRundown = () => {
                   const headerColor = catColor;
                   const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
                   const pickerItemStyle = (active, color = catColor) => ({ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500', background: active ? `${color}18` : 'transparent', color: active ? color : '#374151', transition: 'background 0.12s' });
+                  const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
+                  const _catIdx = _navCats.indexOf(selectedCategory);
+                  const prevCat = _catIdx > 0 ? _navCats[_catIdx - 1] : null;
+                  const nextCat = _catIdx < _navCats.length - 1 ? _navCats[_catIdx + 1] : null;
                   return (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                       {/* Picker popover */}
@@ -1646,6 +1650,21 @@ const TheAIRundown = () => {
                         <Clock size={36} color="rgba(255,255,255,0.35)" style={{ marginBottom: '0.75rem' }} />
                         <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: 'white' }}>News Not Available</h3>
                         <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', margin: 0 }}>This summary hasn't been generated.</p>
+                      </div>
+                      {/* Navigation — same layout as stories content, prev/next story disabled */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
+                        <button disabled style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '999px', cursor: 'not-allowed', color: 'rgba(255,255,255,0.25)', fontSize: '0.78rem', fontWeight: '600', flexShrink: 0 }}>
+                          <ChevronLeft size={14} />Previous
+                        </button>
+                        <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+                          <ChevronLeft size={13} strokeWidth={2.5} /><ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
+                        </button>
+                        <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+                          <ChevronRight size={13} strokeWidth={2.5} /><ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
+                        </button>
+                        <button disabled style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '999px', cursor: 'not-allowed', color: 'rgba(255,255,255,0.25)', fontSize: '0.78rem', fontWeight: '700', flexShrink: 0 }}>
+                          Next<ChevronRight size={14} />
+                        </button>
                       </div>
                     </div>
                   );

@@ -355,11 +355,14 @@ const TheAIRundown = () => {
   };
 
   const availableTimes = timesOfDay;
-  // Today is only shown once at least one time slot has a completion marker
+  // Today has a completed slot (used for fallback logic and custom categories)
   const todayHasSlot = timesOfDay.some(t => completedSlots.has(`${today}|${t.value}`));
+  // Show Today in the day list as soon as it's past 6 AM UAE (earliest news time),
+  // even if no markers exist yet — slot buttons handle their own disabled state.
+  const todayIsVisible = todayHasSlot || getUAEHour() >= 6;
   const availableDays = isCustomCategory
     ? daysOfWeek.filter(d => d.fullDate === today && todayHasSlot)
-    : daysOfWeek.filter(d => d.fullDate !== today || todayHasSlot);
+    : daysOfWeek.filter(d => d.fullDate !== today || todayIsVisible);
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
@@ -878,9 +881,11 @@ const TheAIRundown = () => {
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
 
-  // If the user is on today but today has no completed slots yet, fall back to the most recent past day
+  // If the user is on today but today has no completed slots and it's before 6 AM,
+  // fall back to the most recent past day (nothing to show yet today).
+  // After 6 AM we keep Today visible and let slot buttons show their disabled state.
   useEffect(() => {
-    if (selectedDay === today && !todayHasSlot) {
+    if (selectedDay === today && !todayHasSlot && getUAEHour() < 6) {
       const yesterday = getDaysOfWeek(0)[5].fullDate;
       setSelectedDay(yesterday);
       setSelectedTime('Evening');

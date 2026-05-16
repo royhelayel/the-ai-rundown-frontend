@@ -246,6 +246,19 @@ const TheAIRundown = () => {
   };
   narrateFnRef.current.restart = restartNarration;
 
+  // Strip markdown and symbols that TTS engines read aloud literally
+  const cleanForTTS = (text) => text
+    .replace(/\*\*(?:Coverage|التغطية|المصادر):\*\*[^\n]*/g, '')   // remove coverage lines entirely
+    .replace(/\*\*([^*]+)\*\*/g, '$1')                              // **bold** → bold
+    .replace(/_([^_]+)_/g, '$1')                                    // _italic_ → italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')                       // [text](url) → text
+    .replace(/https?:\/\/\S+/g, '')                                 // bare URLs
+    .replace(/·/g, ', ')                                            // middle dot → comma
+    .replace(/\.{2,}/g, '.')                                        // ... → single dot
+    .replace(/[#*`[\]()]/g, '')                                     // leftover symbols
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
   // Browser Web Speech API fallback — used when Fish Audio is unavailable
   const speakWithBrowser = (text, onDone) => {
     if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
@@ -269,6 +282,8 @@ const TheAIRundown = () => {
 
   const speakText = (text, onDone) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
+    // Fish Audio uses an English voice — route Arabic directly to browser TTS
+    if (newsLanguage === 'ar') { speakWithBrowser(cleanForTTS(text), onDone); return; }
     fetch(`${BACKEND_URL}/api/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -320,11 +335,12 @@ const TheAIRundown = () => {
     const story = stories[idx];
     setStoryIndex(idx);
     const isAr = newsLanguage === 'ar';
-    const parts = [story.headline + '.'];
-    story.bullets.forEach(b => parts.push(b + '.'));
-    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + story.perspectives + '.');
-    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + story.why + '.');
-    const script = parts.join(' ');
+    const cl = cleanForTTS;
+    const parts = [cl(story.headline) + '.'];
+    story.bullets.forEach(b => parts.push(cl(b) + '.'));
+    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
+    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+    const script = parts.filter(Boolean).join(' ');
     narrateFnRef.current.speakText(script, () => {
       if (!narrationStateRef.current.active) return;
       setTimeout(() => narrateFnRef.current.narrateStory(idx + 1), 600);
@@ -348,7 +364,7 @@ const TheAIRundown = () => {
       .replace(/\n/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim();
-    narrateFnRef.current.speakText(text, () => narrateFnRef.current.goNext());
+    narrateFnRef.current.speakText(cleanForTTS(text), () => narrateFnRef.current.goNext());
   };
   narrateFnRef.current.narrateDigest = narrateDigestContent;
 

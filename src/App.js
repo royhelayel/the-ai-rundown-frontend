@@ -1857,6 +1857,12 @@ const TheAIRundown = () => {
                     <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated.</p>
                   </div>
                 )
+              ) : newsSummary && stories.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                  <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>Content Temporarily Unavailable</h3>
+                  <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>Today's news couldn't be processed. Check back later — it will update automatically.</p>
+                </div>
               ) : newsSummary ? (
                 <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}

@@ -260,24 +260,45 @@ const TheAIRundown = () => {
     .trim();
 
   // Browser Web Speech API fallback — used when Fish Audio is unavailable
+  // getVoices() is async in Chrome (returns [] until voiceschanged fires); we wait for it.
   const speakWithBrowser = (text, onDone) => {
     if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text.trim());
-    utter.rate = 0.92;
-    utter.pitch = 1.0;
     const isAr = newsLanguage === 'ar';
-    utter.lang = isAr ? 'ar-SA' : 'en-US';
-    // Prefer a matching-language voice if available
+
+    const doSpeak = (voices) => {
+      if (!narrationStateRef.current.active) return;
+      const utter = new SpeechSynthesisUtterance(text.trim());
+      utter.rate = isAr ? 0.85 : 0.92;
+      utter.pitch = 1.0;
+      utter.lang = isAr ? 'ar-SA' : 'en-US';
+      // Pick a matching voice; for Arabic try multiple locale variants
+      const targetVoice = isAr
+        ? (voices.find(v => v.lang === 'ar-SA') ||
+           voices.find(v => v.lang === 'ar-AE') ||
+           voices.find(v => v.lang.startsWith('ar')))
+        : (voices.find(v => v.lang.startsWith('en') && !v.localService === false) ||
+           voices.find(v => v.lang.startsWith('en')));
+      if (targetVoice) utter.voice = targetVoice;
+      utter.onend = () => { if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone(); };
+      utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
+      narrationStateRef.current.browserUtter = utter;
+      window.speechSynthesis.speak(utter);
+    };
+
+    // Voices may not be loaded yet — wait for voiceschanged if empty
     const voices = window.speechSynthesis.getVoices();
-    const targetVoice = isAr
-      ? voices.find(v => v.lang.startsWith('ar'))
-      : (voices.find(v => v.lang.startsWith('en') && !v.localService === false) || voices.find(v => v.lang.startsWith('en')));
-    if (targetVoice) utter.voice = targetVoice;
-    utter.onend = () => { if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone(); };
-    utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
-    narrationStateRef.current.browserUtter = utter;
-    window.speechSynthesis.speak(utter);
+    if (voices.length > 0) {
+      doSpeak(voices);
+    } else {
+      const handler = () => doSpeak(window.speechSynthesis.getVoices());
+      window.speechSynthesis.addEventListener('voiceschanged', handler, { once: true });
+      // Safety timeout: if voiceschanged never fires, speak anyway (lang attr is usually enough)
+      setTimeout(() => {
+        window.speechSynthesis.removeEventListener('voiceschanged', handler);
+        doSpeak(window.speechSynthesis.getVoices());
+      }, 1500);
+    }
   };
 
   const speakText = (text, onDone) => {
@@ -1700,7 +1721,7 @@ const TheAIRundown = () => {
                   )}
                 </div>
                 )
-              ) : (newsNotAvailable || (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime))) ? (
+              ) : (newsNotAvailable || (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime))) && !newsSummary ? (
                 viewMode === 'stories' ? (() => {
                   const isMyFeed = selectedCategory === 'My Rundown';
                   const headerColor = catColor;

@@ -594,9 +594,6 @@ const TheAIRundown = () => {
     setStories(built);
     setHasPunchyBullets(punchy);
 
-    // Snap depth: if on 'summary' (Takeaways) but no punchy bullets, move to 'deep'
-    if (!punchy) setDepthLevel(d => d === 'summary' ? 'deep' : d);
-
     if (goToLastStoryRef.current && built.length > 0) {
       setStoryIndex(built.length - 1);
       goToLastStoryRef.current = false;
@@ -654,6 +651,10 @@ const TheAIRundown = () => {
     // ── My Rundown: parallel fetch for all selected categories ──
     if (selectedCategory === 'My Rundown') {
       if (!user || feedCategories.length === 0) return;
+      // Generation guard: don't show partial My Rundown while slot is still generating
+      if (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime)) {
+        setNewsSummary(null); setNewsNotAvailable(false); return;
+      }
       setNewsLoading(true); setNewsNotAvailable(false); setNewsSummary(null);
       try {
         const results = await Promise.all(
@@ -678,7 +679,6 @@ const TheAIRundown = () => {
         if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
         setStories(merged);
         setHasPunchyBullets(anyPunchy);
-        if (!anyPunchy) setDepthLevel(d => d === 'summary' ? 'deep' : d);
         setNewsSummary({ category: 'My Rundown', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
         setNewsNotAvailable(false);
       } catch (err) {
@@ -691,6 +691,13 @@ const TheAIRundown = () => {
     const isCustom = customCategories.includes(selectedCategory);
     // For custom, always use 'Daily' time slot
     const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
+
+    // ── Generation guard: don't fetch partial content while a slot is still generating ──
+    // slotsLoaded ensures we wait for the first completedSlots fetch before deciding.
+    if (slotsLoaded && !isCustom && isSlotUnavailable(selectedDay, fetchTimeSlot)) {
+      setNewsSummary(null); setNewsNotAvailable(false);
+      return; // render will show "generating / not available" via the slot-unavailable path
+    }
     if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot && (newsSummary.language || 'en') === newsLanguage) {
       narrationStateRef.current.pendingLoad = false; // content unchanged, no auto-restart needed
       return;
@@ -779,7 +786,7 @@ const TheAIRundown = () => {
 
   useEffect(() => {
     if (selectedCategory && selectedDay && selectedTime) handleFetchNews();
-  }, [selectedCategory, selectedDay, selectedTime, newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedDay, selectedTime, newsLanguage, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const isCurrentSlot = selectedTime === currentTimeSlot && selectedDay === today;
@@ -1424,7 +1431,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && (
             <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || hasPunchyBullets).map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                     {label}
                   </button>
@@ -1524,7 +1531,7 @@ const TheAIRundown = () => {
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || hasPunchyBullets).map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
                     {label}
                   </button>
@@ -1853,8 +1860,14 @@ const TheAIRundown = () => {
                 })() : (
                   <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                     <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>News Not Available</h3>
-                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>This summary hasn't been generated.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>
+                      {selectedDay === today ? 'Generating…' : 'News Not Available'}
+                    </h3>
+                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>
+                      {selectedDay === today
+                        ? 'News is being generated. This page will refresh automatically when ready.'
+                        : "This summary hasn't been generated."}
+                    </p>
                   </div>
                 )
               ) : newsSummary && stories.length === 0 ? (

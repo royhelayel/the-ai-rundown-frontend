@@ -74,7 +74,8 @@ const TheAIRundown = () => {
     try { if (document.fullscreenElement) document.exitFullscreen?.(); } catch {}
   };
   const [storyIndex, setStoryIndex] = useState(0);
-  const [parsedStories, setParsedStories] = useState([]);
+  const [stories, setStories] = useState([]);
+  const [hasPunchyBullets, setHasPunchyBullets] = useState(false);
   const goToLastStoryRef = useRef(false);
   const storyNavRef = useRef({});
   const storyGoRef = useRef({}); // exposes goNext/goPrev from the stories render block
@@ -85,7 +86,6 @@ const TheAIRundown = () => {
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
 
-  const [deepParsedStories, setDeepParsedStories] = useState([]);
   const [feedCategories, setFeedCategories] = useState([]);
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [slotsLoaded, setSlotsLoaded] = useState(false); // true after first completedSlots fetch
@@ -123,8 +123,8 @@ const TheAIRundown = () => {
     : CATEGORY_COLORS[selectedCategory] || '#6366f1';
   // In My Rundown stories mode, use the current story's per-category color so each card
   // reflects its source category rather than defaulting to the first feed category.
-  const storyCardColor = (selectedCategory === 'My Rundown' && parsedStories[storyIndex]?.feedCatColor)
-    ? parsedStories[storyIndex].feedCatColor : catColor;
+  const storyCardColor = (selectedCategory === 'My Rundown' && stories[storyIndex]?.feedCatColor)
+    ? stories[storyIndex].feedCatColor : catColor;
 
   // Normalise a URL for matching: lower-case host+path, strip trailing slash & query/hash
   const normalizeUrl = (url) => {
@@ -134,44 +134,99 @@ const TheAIRundown = () => {
     } catch { return url.toLowerCase(); }
   };
 
-  const parseStories = (raw) => {
-    if (!raw) return [];
-    const sourcesStart = raw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-    const content = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
-    const chunks = content.split(/(?=^#{1,3} )/m).filter(c => /^#{1,3} /.test(c.trim()));
-    return chunks.map(chunk => {
-      const lines = chunk.trim().split('\n');
-      const headingRaw = lines[0].replace(/^#{1,3}\s+/, '').trim();
-      const headline = headingRaw.replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
-      const rest = lines.slice(1).join('\n');
-      const coverageMatch = rest.match(/\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)/);
-      const coverage = coverageMatch ? coverageMatch[1] : '';
+  // buildStories: single parse pass on `content` for structure + sources.
+  // storiesContent (optional) overlays tightBullets per story matched by headline.
+  // Returns { stories, hasPunchyBullets }
+  const buildStories = (content, storiesContent) => {
+    if (!content && !storiesContent) return { stories: [], hasPunchyBullets: false };
+
+    const normalizeHeadline = (h) => h.toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '').slice(0, 40);
+
+    // ── Parse content for structure, bullets, perspectives, why, sources ──────
+    const src = content || storiesContent || '';
+    const sourcesStart = src.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
+    const body = sourcesStart > -1 ? src.slice(0, sourcesStart).trim() : src.trim();
+
+    // Build source title map from ## Sources section
+    const titleMap = {};
+    if (sourcesStart > -1) {
+      [...src.slice(sourcesStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+        .forEach(([, t, u]) => { const k = normalizeUrl(u); if (!titleMap[k]) titleMap[k] = t; });
+    }
+
+    // Single-pass: build story chunks + collect coverage URLs by story index
+    const chunks = [];
+    const urlToStoryIdx = {};
+    let cur = null;
+    let idx = -1;
+    body.split('\n').forEach(line => {
+      const hm = line.match(/^#{1,3} (.+)$/);
+      if (hm) {
+        if (cur) chunks.push(cur);
+        idx++;
+        const headingRaw = hm[1].trim();
+        const headline = headingRaw
+          .replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1')
+          .replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
+        cur = { headline, idx, bodyLines: [], coverageLinks: [] };
+        return;
+      }
+      if (!cur) return;
+      const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
+      if (cov) {
+        [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)].forEach(([, outlet, url]) => {
+          if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = idx;
+          cur.coverageLinks.push({ outlet, url, title: titleMap[normalizeUrl(url)] || '' });
+        });
+      } else {
+        cur.bodyLines.push(line);
+        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+          if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = idx;
+        });
+      }
+    });
+    if (cur) chunks.push(cur);
+
+    // ── Parse storiesContent for punchy bullets keyed by headline ─────────────
+    const punchyMap = {};
+    if (storiesContent) {
+      const sSrc = storiesContent;
+      const sSrcEnd = sSrc.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
+      const sBody = sSrcEnd > -1 ? sSrc.slice(0, sSrcEnd).trim() : sSrc.trim();
+      sBody.split(/(?=^#{1,3} )/m).filter(c => /^#{1,3} /.test(c.trim())).forEach(chunk => {
+        const lines = chunk.trim().split('\n');
+        const h = lines[0].replace(/^#{1,3}\s+/, '').replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1')
+          .replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
+        const bullets = [...lines.slice(1).join('\n').matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
+        if (h && bullets.length > 0) punchyMap[normalizeHeadline(h)] = bullets;
+      });
+    }
+
+    // ── Build final story objects ─────────────────────────────────────────────
+    let anyPunchy = false;
+    const builtStories = chunks.map(chunk => {
+      const rest = chunk.bodyLines.join('\n');
       const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
-      const bullets = allBullets.slice(0, 3);
       const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
       const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
-      if (!headline || bullets.length === 0) return null;
-      return { headline, coverage, bullets, allBullets, perspectives: perspMatch?.[1] || null, why: whyMatch?.[1] || null };
+      const storySources = chunk.coverageLinks.filter((s, i, a) => a.findIndex(x => x.url === s.url) === i);
+      const key = normalizeHeadline(chunk.headline);
+      const punchy = punchyMap[key];
+      if (punchy) anyPunchy = true;
+      const tightBullets = punchy || allBullets.slice(0, 3);
+      if (!chunk.headline || allBullets.length === 0) return null;
+      return {
+        headline: chunk.headline,
+        tightBullets,   // short: from storiesContent if available, else first 3 from content
+        allBullets,     // full: all bullets from content
+        perspectives: perspMatch?.[1] || null,
+        why: whyMatch?.[1] || null,
+        storySources,
+        bodyLines: chunk.bodyLines, // kept for Read mode renderer
+      };
     }).filter(Boolean);
-  };
 
-  const renderCoveragePills = (coverage) => {
-    const matches = [...coverage.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)];
-    if (!matches.length) return null;
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', margin: '0.6rem 0 0.9rem' }}>
-        {matches.map(([, text, url], i) => {
-          let domain = '';
-          try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
-          return (
-            <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} alt="" />
-              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{text}</span>
-            </a>
-          );
-        })}
-      </div>
-    );
+    return { stories: builtStories, hasPunchyBullets: anyPunchy };
   };
 
   // ── Narration helpers (ElevenLabs TTS via backend, all reads through refs) ──
@@ -362,7 +417,7 @@ const TheAIRundown = () => {
     const isAr = newsLanguage === 'ar';
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
-    story.bullets.forEach(b => parts.push(cl(b) + '.'));
+    (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
     if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
     if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
     const script = parts.filter(Boolean).join(' ');
@@ -529,55 +584,21 @@ const TheAIRundown = () => {
   }, [fontSize]);
 
   useEffect(() => {
-    // My Rundown sets parsedStories directly in handleFetchNews — skip re-parsing
     if (selectedCategory === 'My Rundown') return;
+    if (!newsSummary) { setStories([]); setHasPunchyBullets(false); return; }
 
-    // If stories_content is absent, 'summary' (Takeaways) would show the same content as 'deep'.
-    // Snap depth to 'deep' so the user never sees duplicate content.
-    if (!newsSummary?.stories_content) setDepthLevel(d => d === 'summary' ? 'deep' : d);
+    const { stories: built, hasPunchyBullets: punchy } = buildStories(
+      newsSummary.content,
+      newsSummary.stories_content
+    );
+    setStories(built);
+    setHasPunchyBullets(punchy);
 
-    // Pre-compute per-story sources from the full digest (Coverage lines only exist in `content`).
-    // generateStoriesContent preserves story order from the digest, so story index N in
-    // stories_content always corresponds to story index N in content — safe to use same index.
-    const contentRaw = newsSummary?.content || '';
-    const srcEnd = contentRaw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-    const contentBody = srcEnd > -1 ? contentRaw.slice(0, srcEnd) : contentRaw;
-    const _links = [];
-    const urlToIdx = {};
-    let _i = -1;
-    contentBody.split('\n').forEach(line => {
-      if (/^#{1,3} /.test(line)) _i++;
-      const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
-      if (cov && _i >= 0) {
-        [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-          .forEach(([, title, url]) => {
-            _links.push({ outlet: title, url });
-            if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
-          });
-      } else {
-        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-          if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
-        });
-      }
-    });
-    const _tMap = {};
-    if (srcEnd > -1) {
-      [...contentRaw.slice(srcEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-        .forEach(([, t, u]) => { const k = normalizeUrl(u); if (!_tMap[k]) _tMap[k] = t; });
-    }
-    const allSrcLinks = _links
-      .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
-      .map(s => ({ ...s, title: _tMap[normalizeUrl(s.url)] || '' }));
-    // Attach storySources to each story; render just reads story.storySources — no per-render recompute
-    const withSrc = (arr) => arr.map((s, si) => ({ ...s, storySources: allSrcLinks.filter(l => urlToIdx[l.url] === si) }));
+    // Snap depth: if on 'summary' (Takeaways) but no punchy bullets, move to 'deep'
+    if (!punchy) setDepthLevel(d => d === 'summary' ? 'deep' : d);
 
-    // Summary: stories_content (short punchy bullets). Deep Dive: content (full detailed digest).
-    const stories = parseStories(newsSummary?.stories_content || newsSummary?.content);
-    setParsedStories(withSrc(stories));
-    const deepStories = parseStories(newsSummary?.content || newsSummary?.stories_content);
-    setDeepParsedStories(withSrc(deepStories));
-    if (goToLastStoryRef.current && stories.length > 0) {
-      setStoryIndex(stories.length - 1);
+    if (goToLastStoryRef.current && built.length > 0) {
+      setStoryIndex(built.length - 1);
       goToLastStoryRef.current = false;
     }
   }, [newsSummary]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -644,56 +665,21 @@ const TheAIRundown = () => {
           )
         );
         const merged = [];
-        const deepMerged = [];
+        let anyPunchy = false;
         results.forEach(({ data }, idx) => {
           if (!data) return;
           const cat = feedCategories[idx];
           const color = CATEGORY_COLORS[cat] || '#6366f1';
-          const stories = parseStories(data.stories_content || data.content);
-          const deepStoriesForCat = parseStories(data.content || data.stories_content);
-          // Build per-story source links from Coverage lines in digest content
-          const digestRaw = data.content || '';
-          const srcEnd = digestRaw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-          const digestBody = digestRaw.slice(0, srcEnd > -1 ? srcEnd : digestRaw.length);
-          const _rawLinks = [];
-          const urlToIdx = {};
-          let _i = -1;
-          digestBody.split('\n').forEach(line => {
-            if (/^#{1,3} /.test(line)) _i++;
-            const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
-            if (cov && _i >= 0) {
-              [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                .forEach(([, title, url]) => {
-                  _rawLinks.push({ outlet: title, title: '', url });
-                  if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
-                });
-            } else {
-              [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-                if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
-              });
-            }
-          });
-          // Build title map from ## Sources section for article headlines (keyed by normalised URL)
-          const titleMap = {};
-          if (srcEnd > -1) {
-            [...digestRaw.slice(srcEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-              .forEach(([, title, url]) => { const k = normalizeUrl(url); if (!titleMap[k]) titleMap[k] = title; });
-          }
-          const allSrcLinks = _rawLinks
-            .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
-            .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
-          stories.forEach((story, si) => {
-            const storyImage = ((data.source_articles || []).find(a => a.imageUrl && urlToIdx[a.url] === si) || {}).imageUrl || '';
-            const enriched = { ...story, feedCategory: cat, feedCatColor: color, storySources: allSrcLinks.filter(s => urlToIdx[s.url] === si), storyImage };
-            merged.push(enriched);
-            const deep = deepStoriesForCat[si];
-            deepMerged.push(deep ? { ...deep, feedCategory: cat, feedCatColor: color, storySources: enriched.storySources, storyImage } : enriched);
-          });
+          const storyImage = ((data.source_articles || []).find(a => a.imageUrl) || {}).imageUrl || '';
+          const { stories: catStories, hasPunchyBullets: catPunchy } = buildStories(data.content, data.stories_content);
+          if (catPunchy) anyPunchy = true;
+          catStories.forEach(s => merged.push({ ...s, feedCategory: cat, feedCatColor: color, storyImage }));
         });
         if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
+        setStories(merged);
+        setHasPunchyBullets(anyPunchy);
+        if (!anyPunchy) setDepthLevel(d => d === 'summary' ? 'deep' : d);
         setNewsSummary({ category: 'My Rundown', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
-        setParsedStories(merged);
-        setDeepParsedStories(deepMerged);
         setNewsNotAvailable(false);
       } catch (err) {
         console.error('My Rundown fetch error:', err);
@@ -1038,7 +1024,7 @@ const TheAIRundown = () => {
   useEffect(() => {
     if (!narrationStateRef.current.pendingLoad || !narrationStateRef.current.active) return;
     // Don't consume pendingLoad until content is actually ready (avoids premature clear on null)
-    if (viewMode === 'stories' && parsedStories.length === 0) return;
+    if (viewMode === 'stories' && stories.length === 0) return;
     if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
     if (viewMode === 'stories') {
@@ -1048,7 +1034,7 @@ const TheAIRundown = () => {
       const content = narrateFnRef.current.getNarrationContent?.() || newsSummary?.content;
       setTimeout(() => narrateFnRef.current.narrateDigest?.(content), 200);
     }
-  }, [parsedStories, newsSummary]);
+  }, [stories, newsSummary]);
 
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
@@ -1438,7 +1424,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && (
             <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || !!newsSummary?.stories_content).map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || hasPunchyBullets).map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                     {label}
                   </button>
@@ -1538,7 +1524,7 @@ const TheAIRundown = () => {
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || !!newsSummary?.stories_content).map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || hasPunchyBullets).map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
                     {label}
                   </button>
@@ -1563,7 +1549,7 @@ const TheAIRundown = () => {
                 const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
                 const catIdx = _navCats.indexOf(selectedCategory);
                 const isFirst = storyIndex === 0;
-                const isLast  = storyIndex === parsedStories.length - 1;
+                const isLast  = storyIndex === stories.length - 1;
                 const prevCat = catIdx > 0 ? _navCats[catIdx - 1] : null;
                 const nextCat = catIdx < _navCats.length - 1 ? _navCats[catIdx + 1] : null;
                 if (dx < 0) {
@@ -1594,9 +1580,9 @@ const TheAIRundown = () => {
           >
 
             {/* Progress bar — flush to very top of card, outside padding */}
-            {viewMode === 'stories' && parsedStories.length > 0 && (
+            {viewMode === 'stories' && stories.length > 0 && (
               <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
-                {parsedStories.map((s, i) => (
+                {stories.map((s, i) => (
                   <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.7 : 1, transition: 'all 0.2s' }} />
                 ))}
               </div>
@@ -1874,7 +1860,7 @@ const TheAIRundown = () => {
               ) : newsSummary ? (
                 <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
                   {/* keep ref fresh for keyboard handler */}
-                  {(() => { storyNavRef.current = { idx: storyIndex, stories: parsedStories, cats: allCategories, cat: selectedCategory }; return null; })()}
+                  {(() => { storyNavRef.current = { idx: storyIndex, stories: stories, cats: allCategories, cat: selectedCategory }; return null; })()}
                   {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
                       <div>
@@ -1920,7 +1906,7 @@ const TheAIRundown = () => {
                       {selectedCategory === 'My Rundown' && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           <Sparkles size={11} />
-                          <span>{parsedStories.length} stories</span>
+                          <span>{stories.length} stories</span>
                         </div>
                       )}
                     </div>
@@ -1931,14 +1917,14 @@ const TheAIRundown = () => {
                     const labelWhy = newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters';
                     return (
                       <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                        {parsedStories.map((story, i) => (
+                        {stories.map((story, i) => (
                           <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                             <div style={{ marginBottom: '0.45rem' }}>
                               <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
                             </div>
                             <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: depthLevel === 'headlines' ? 0 : '0.5rem' }}>{story.headline}</div>
                             {depthLevel !== 'headlines' && <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
-                              {(depthLevel === 'deep' ? (deepParsedStories[i]?.allBullets || deepParsedStories[i]?.bullets || story.bullets) : story.bullets).map((b, bi) => (
+                              {(depthLevel === 'deep' ? story.allBullets : story.tightBullets).map((b, bi) => (
                                 <div key={bi} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
                                   <div style={{ width: '2.5px', minWidth: '2.5px', borderRadius: '99px', background: story.feedCatColor, opacity: 0.35, marginTop: '0.35rem', alignSelf: 'stretch' }} />
                                   <span>{b}</span>
@@ -1991,13 +1977,10 @@ const TheAIRundown = () => {
                       </div>
                     );
                   })() : viewMode === 'stories' ? (() => {
-                    const story = parsedStories[storyIndex];
-                    // story may be null during category transitions — render shell (header+footer) with
-                    // a spinner body so navigation is always accessible and the user can swipe away.
-                    const deepStory = story ? (deepParsedStories[storyIndex] || story) : null;
-                    const displayBullets = story ? (depthLevel === 'deep' ? (deepStory.allBullets || deepStory.bullets) : story.bullets) : [];
-                    const displayPerspectives = story ? (depthLevel === 'deep' ? deepStory?.perspectives : story.perspectives) : null;
-                    const displayWhy = story ? (depthLevel === 'deep' ? deepStory?.why : story.why) : null;
+                    const story = stories[storyIndex];
+                    const displayBullets = story ? (depthLevel === 'deep' ? story.allBullets : story.tightBullets) : [];
+                    const displayPerspectives = story?.perspectives || null;
+                    const displayWhy = story?.why || null;
                     const isMyFeed = selectedCategory === 'My Rundown';
                     // Unified nav list: My Rundown (if configured) + all categories — no special casing
                     const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
@@ -2005,7 +1988,7 @@ const TheAIRundown = () => {
                     const prevCat = catIdx > 0 ? navCategories[catIdx - 1] : null;
                     const nextCat = catIdx < navCategories.length - 1 ? navCategories[catIdx + 1] : null;
                     const isFirst = storyIndex === 0;
-                    const isLast = storyIndex === parsedStories.length - 1;
+                    const isLast = storyIndex === stories.length - 1;
 
                     // Per-story color/label: My Rundown uses per-story metadata; regular uses catColor
                     const storyColor = isMyFeed && story?.feedCatColor ? story.feedCatColor : catColor;
@@ -2123,7 +2106,7 @@ const TheAIRundown = () => {
                               <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {parsedStories.length}</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {stories.length}</span>
                               {isNarrating ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
                                   <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', color: '#6366f1', transition: 'all 0.2s', flexShrink: 0 }}>
@@ -2290,33 +2273,16 @@ const TheAIRundown = () => {
                     };
                     // Headlines: compact list of story titles + source pills
                     if (depthLevel === 'headlines') {
-                      const _hlDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                      // Parse headline + coverage sources in one pass; fall back to stories_content if content is missing
-                      const _hlStories = [];
-                      let _hlCur = null;
-                      (newsSummary.content || newsSummary.stories_content || '').split('\n').forEach(line => {
-                        const hm = line.match(/^#{1,3} (.+)$/);
-                        if (hm) {
-                          if (_hlCur) _hlStories.push(_hlCur);
-                          const title = hm[1].replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1').replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
-                          _hlCur = { title, sources: [] };
-                        }
-                        const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
-                        if (cov && _hlCur) {
-                          [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                            .forEach(([, outlet, url]) => _hlCur.sources.push({ outlet, url }));
-                        }
-                      });
-                      if (_hlCur) _hlStories.push(_hlCur);
+                      const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
                       return (
                         <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {_hlStories.filter(s => s.title.length > 3).map((s, i) => (
+                          {stories.filter(s => s.headline.length > 3).map((s, i) => (
                             <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem' }}>
-                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{s.title}</div>
-                              {s.sources.length > 0 && (
+                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{s.headline}</div>
+                              {s.storySources.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
-                                  {s.sources.map((src, j) => {
-                                    const domain = _hlDomain(src.url);
+                                  {s.storySources.map((src, j) => {
+                                    const domain = getDomain(src.url);
                                     return (
                                       <a key={j} href={src.url} target="_blank" rel="noopener noreferrer"
                                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
@@ -2332,97 +2298,16 @@ const TheAIRundown = () => {
                         </div>
                       );
                     }
-                    // Summary uses stories_content (short punchy); Deep Dive uses full content; both fall back to the other if one is missing
-                    const raw = depthLevel === 'deep'
-                      ? (newsSummary.content || newsSummary.stories_content || '')
-                      : (newsSummary.stories_content || newsSummary.content || '');
 
-                    // Split off ## Sources section — handles ## Sources, ## [Sources](url), ### Sources, ## المصادر, etc.
-                    const sourcesStart = raw.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-                    const beforeSources = sourcesStart > -1 ? raw.slice(0, sourcesStart).trim() : raw.trim();
-
-                    // Extract top note (content before first ## heading, e.g. _Note: ..._)
-                    const firstStoryIdx = beforeSources.search(/^#{1,3} /m);
-                    const topNote = firstStoryIdx > 0 ? beforeSources.slice(0, firstStoryIdx).trim() : '';
-                    const mainContent = firstStoryIdx > 0 ? beforeSources.slice(firstStoryIdx).trim() : beforeSources;
-
-                    // Normalize heading: strip any embedded URL, keep plain title only
-                    const normalizeHeading = (line) => {
-                      const m = line.match(/^(#{1,3} )(.+)$/);
-                      if (!m) return line;
-                      const [, hashes, text] = m;
-                      // ## [Title](URL) → ## Title
-                      const linkedMatch = text.match(/^\[(.+?)\]\(https?:\/\/[^)]+\)\s*$/);
-                      if (linkedMatch) return `${hashes}${linkedMatch[1]}`;
-                      // Strip bare URL anywhere in heading text
-                      const stripped = text.replace(/(https?:\/\/[^\s)]+)/g, '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
-                      return `${hashes}${stripped || text}`;
-                    };
-
-                    // Pre-process line by line: merge bare URL lines then normalize headings
-                    const mergedContent = mainContent
-                      .split('\n')
-                      .reduce((acc, line) => {
-                        const trimmed = line.trim();
-                        if (/^https?:\/\/\S+$/.test(trimmed) && acc.length > 0) {
-                          const prev = acc[acc.length - 1];
-                          const m = prev.match(/^(#{1,3} )(.+)$/);
-                          if (m && !m[2].includes('](')) {
-                            acc[acc.length - 1] = `${m[1]}[${m[2].trim()}](${trimmed})`;
-                            return acc;
-                          }
-                        }
-                        acc.push(/^#{1,3} /.test(line) ? normalizeHeading(line) : line);
-                        return acc;
-                      }, [])
-                      .join('\n')
-                      .replace(/^https?:\/\/\S+$/gm, '');
-
-                    // Sources always come from full content (Coverage lines only live there).
-                    // Story body uses `raw` (stories_content for Summary), but sources use `content`
-                    // so they appear at every depth level, not just Deep Dive.
-                    const _srcContent = newsSummary.content || '';
-                    const _srcSectionStart = _srcContent.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-                    const _srcBody = _srcSectionStart > -1 ? _srcContent.slice(0, _srcSectionStart) : _srcContent;
-                    const urlToStoryIdx = {};
-                    const _rawSourceLinks = [];
-                    let _sIdx = -1;
-                    _srcBody.split('\n').forEach(line => {
-                      if (/^#{1,3} /.test(line)) _sIdx++;
-                      const covMatch = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
-                      if (covMatch && _sIdx >= 0) {
-                        // Extract every [Title](URL) pair from this Coverage line
-                        [...covMatch[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                          .forEach(([, title, url]) => {
-                            _rawSourceLinks.push({ outlet: title, title: '', url });
-                            if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
-                          });
-                      } else {
-                        // Still index other URLs (headings etc.) for urlToStoryIdx
-                        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-                          if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = _sIdx;
-                        });
-                      }
-                    });
-                    // Build title map from ## Sources section (keyed by normalised URL)
-                    const titleMap = {};
-                    if (_srcSectionStart > -1) {
-                      [..._srcContent.slice(_srcSectionStart).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                        .forEach(([, title, url]) => { const k = normalizeUrl(url); if (!titleMap[k]) titleMap[k] = title; });
-                    }
-                    // Dedupe by URL; enrich with article title from ## Sources when available
-                    const sourceLinks = _rawSourceLinks
-                      .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                      .map(s => ({ ...s, title: titleMap[normalizeUrl(s.url)] || '' }));
-
+                    // Takeaways: tightBullets (short from storiesContent or first 3 from content)
+                    // Summary: allBullets (all from content) + perspectives + why
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
-                    // Body renderer — same transforms as before but no heading line
                     const renderStoryBody = (lines) => lines.join('\n')
-                      .replace(/^-{2,}\s*$/gm, '') // strip markdown horizontal rules (--- or --)
+                      .replace(/^-{2,}\s*$/gm, '')
                       .replace(/^[-*.]\s*$/gm, '')
                       .replace(/^https?:\/\/\S+$/gm, '')
-                      .replace(/^\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/gm, '') // removed — sources shown as cards below each story
+                      .replace(/^\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/gm, '')
                       .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)$/gm, (_, text) =>
                         `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>&nbsp;&nbsp;${text}</div>`
                       )
@@ -2434,41 +2319,27 @@ const TheAIRundown = () => {
                       .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
                       .replace(/\n/g, '');
 
-                    // Split into per-story chunks by heading lines
-                    const storyChunks = [];
-                    let _ci = -1;
-                    mergedContent.split('\n').forEach(line => {
-                      if (/^#{1,3} /.test(line)) {
-                        _ci++;
-                        storyChunks.push({ heading: line.replace(/^#{1,3} /, ''), bodyLines: [], idx: _ci });
-                      } else if (_ci >= 0) {
-                        storyChunks[_ci].bodyLines.push(line);
-                      }
-                    });
-
                     return (
                       <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'}>
-                        {topNote && (
-                          <p style={{ fontStyle: 'italic', color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: '1.5' }}
-                            dangerouslySetInnerHTML={{ __html: topNote.replace(/^_+|_+$/g, '').replace(/\*\*(.+?)\*\*/g, '<strong style="color:#6b7280;font-weight:700;">$1</strong>') }}
-                          />
-                        )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {storyChunks.map((chunk, i) => {
-                            const storySources = sourceLinks.filter(s => urlToStoryIdx[s.url] === chunk.idx);
-                            const bodyHtml = renderStoryBody(chunk.bodyLines);
+                          {stories.map((story, i) => {
+                            const bullets = depthLevel === 'deep' ? story.allBullets : story.tightBullets;
+                            const bodyHtml = renderStoryBody(
+                              depthLevel === 'deep'
+                                ? story.bodyLines
+                                : bullets.map(b => `- ${b}`)
+                            );
                             return (
                               <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                                 <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>
-                                  {chunk.heading}
+                                  {story.headline}
                                 </div>
                                 <div style={{ fontSize: '0.88rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-                                {storySources.length > 0 && (
+                                {story.storySources.length > 0 && (
                                   <div style={{ marginTop: '0.85rem' }}>
                                     {windowWidth >= 600 ? (
-                                      /* Wide: source cards with title */
                                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                                        {storySources.map((s, j) => {
+                                        {story.storySources.map((s, j) => {
                                           const domain = getDomain(s.url);
                                           return (
                                             <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
@@ -2486,9 +2357,8 @@ const TheAIRundown = () => {
                                         })}
                                       </div>
                                     ) : (
-                                      /* Narrow: pills */
                                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                        {storySources.map((s, j) => {
+                                        {story.storySources.map((s, j) => {
                                           const domain = getDomain(s.url);
                                           return (
                                             <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"

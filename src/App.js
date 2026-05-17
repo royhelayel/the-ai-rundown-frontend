@@ -121,6 +121,10 @@ const TheAIRundown = () => {
   const catColor = selectedCategory === 'My Rundown'
     ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)
     : CATEGORY_COLORS[selectedCategory] || '#6366f1';
+  // In My Rundown stories mode, use the current story's per-category color so each card
+  // reflects its source category rather than defaulting to the first feed category.
+  const storyCardColor = (selectedCategory === 'My Rundown' && parsedStories[storyIndex]?.feedCatColor)
+    ? parsedStories[storyIndex].feedCatColor : catColor;
 
   // Normalise a URL for matching: lower-case host+path, strip trailing slash & query/hash
   const normalizeUrl = (url) => {
@@ -527,16 +531,56 @@ const TheAIRundown = () => {
   useEffect(() => {
     // My Rundown sets parsedStories directly in handleFetchNews — skip re-parsing
     if (selectedCategory === 'My Rundown') return;
+
+    // If stories_content is absent, 'summary' (Takeaways) would show the same content as 'deep'.
+    // Snap depth to 'deep' so the user never sees duplicate content.
+    if (!newsSummary?.stories_content) setDepthLevel(d => d === 'summary' ? 'deep' : d);
+
+    // Pre-compute per-story sources from the full digest (Coverage lines only exist in `content`).
+    // generateStoriesContent preserves story order from the digest, so story index N in
+    // stories_content always corresponds to story index N in content — safe to use same index.
+    const contentRaw = newsSummary?.content || '';
+    const srcEnd = contentRaw.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
+    const contentBody = srcEnd > -1 ? contentRaw.slice(0, srcEnd) : contentRaw;
+    const _links = [];
+    const urlToIdx = {};
+    let _i = -1;
+    contentBody.split('\n').forEach(line => {
+      if (/^#{1,3} /.test(line)) _i++;
+      const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
+      if (cov && _i >= 0) {
+        [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+          .forEach(([, title, url]) => {
+            _links.push({ outlet: title, url });
+            if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
+          });
+      } else {
+        [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
+          if (urlToIdx[url] === undefined) urlToIdx[url] = _i;
+        });
+      }
+    });
+    const _tMap = {};
+    if (srcEnd > -1) {
+      [...contentRaw.slice(srcEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
+        .forEach(([, t, u]) => { const k = normalizeUrl(u); if (!_tMap[k]) _tMap[k] = t; });
+    }
+    const allSrcLinks = _links
+      .filter((s, i, a) => a.findIndex(x => x.url === s.url) === i)
+      .map(s => ({ ...s, title: _tMap[normalizeUrl(s.url)] || '' }));
+    // Attach storySources to each story; render just reads story.storySources — no per-render recompute
+    const withSrc = (arr) => arr.map((s, si) => ({ ...s, storySources: allSrcLinks.filter(l => urlToIdx[l.url] === si) }));
+
     // Summary: stories_content (short punchy bullets). Deep Dive: content (full detailed digest).
     const stories = parseStories(newsSummary?.stories_content || newsSummary?.content);
-    setParsedStories(stories);
+    setParsedStories(withSrc(stories));
     const deepStories = parseStories(newsSummary?.content || newsSummary?.stories_content);
-    setDeepParsedStories(deepStories);
+    setDeepParsedStories(withSrc(deepStories));
     if (goToLastStoryRef.current && stories.length > 0) {
       setStoryIndex(stories.length - 1);
       goToLastStoryRef.current = false;
     }
-  }, [newsSummary]);
+  }, [newsSummary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!goToLastStoryRef.current) setStoryIndex(0);
@@ -1394,7 +1438,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && (
             <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || !!newsSummary?.stories_content).map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                     {label}
                   </button>
@@ -1494,8 +1538,8 @@ const TheAIRundown = () => {
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
-                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
+                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].filter(([level]) => level !== 'summary' || !!newsSummary?.stories_content).map(([level, label]) => (
+                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
                     {label}
                   </button>
                 ))}
@@ -1505,7 +1549,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: `linear-gradient(160deg, ${catColor}cc, ${catColor}77)`, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: `linear-gradient(160deg, ${storyCardColor}cc, ${storyCardColor}77)`, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1948,13 +1992,12 @@ const TheAIRundown = () => {
                     );
                   })() : viewMode === 'stories' ? (() => {
                     const story = parsedStories[storyIndex];
-                    // Guard: parsedStories may be empty mid-transition between categories
-                    if (!story) return null;
-                    // Deep Dive uses the detailed digest version; fall back to summary story if not available
-                    const deepStory = deepParsedStories[storyIndex] || story;
-                    const displayBullets = depthLevel === 'deep' ? (deepStory.allBullets || deepStory.bullets) : story.bullets;
-                    const displayPerspectives = depthLevel === 'deep' ? deepStory.perspectives : story.perspectives;
-                    const displayWhy = depthLevel === 'deep' ? deepStory.why : story.why;
+                    // story may be null during category transitions — render shell (header+footer) with
+                    // a spinner body so navigation is always accessible and the user can swipe away.
+                    const deepStory = story ? (deepParsedStories[storyIndex] || story) : null;
+                    const displayBullets = story ? (depthLevel === 'deep' ? (deepStory.allBullets || deepStory.bullets) : story.bullets) : [];
+                    const displayPerspectives = story ? (depthLevel === 'deep' ? deepStory?.perspectives : story.perspectives) : null;
+                    const displayWhy = story ? (depthLevel === 'deep' ? deepStory?.why : story.why) : null;
                     const isMyFeed = selectedCategory === 'My Rundown';
                     // Unified nav list: My Rundown (if configured) + all categories — no special casing
                     const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
@@ -1968,45 +2011,10 @@ const TheAIRundown = () => {
                     const storyColor = isMyFeed && story?.feedCatColor ? story.feedCatColor : catColor;
                     const storyLabel = isMyFeed && story?.feedCategory ? story.feedCategory : newsSummary.category;
 
-                    // Sources: My Rundown stories carry pre-extracted storySources; regular extracts from digest
-                    let storySources = [];
+                    // Sources: pre-computed on every story object in the useEffect (both My Rundown
+                    // and regular categories). No per-render recompute, no index-mismatch risk.
+                    const storySources = story?.storySources || [];
                     const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                    if (isMyFeed) {
-                      storySources = story?.storySources || [];
-                    } else {
-                      const digestRaw = newsSummary?.content || '';
-                      const digestSourcesEnd = digestRaw.search(/^#{1,3} (?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
-                      const digestBody = digestRaw.slice(0, digestSourcesEnd > -1 ? digestSourcesEnd : digestRaw.length);
-                      // Parse sourceLinks and urlToIdx from Coverage lines (same approach as digest view)
-                      const _dLinks = [];
-                      const digestUrlToIdx = {};
-                      let _dIdx = -1;
-                      digestBody.split('\n').forEach(line => {
-                        if (/^#{1,3} /.test(line)) _dIdx++;
-                        const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
-                        if (cov && _dIdx >= 0) {
-                          [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                            .forEach(([, title, url]) => {
-                              _dLinks.push({ outlet: title, title: '', url });
-                              if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
-                            });
-                        } else {
-                          [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
-                            if (digestUrlToIdx[url] === undefined) digestUrlToIdx[url] = _dIdx;
-                          });
-                        }
-                      });
-                      // Build title map from ## Sources section (keyed by normalised URL)
-                      const dTitleMap = {};
-                      if (digestSourcesEnd > -1) {
-                        [...digestRaw.slice(digestSourcesEnd).matchAll(/[-*\d.]\s*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)]
-                          .forEach(([, t, u]) => { const k = normalizeUrl(u); if (!dTitleMap[k]) dTitleMap[k] = t; });
-                      }
-                      const digestSourceLinks = _dLinks
-                        .filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i)
-                        .map(s => ({ ...s, title: dTitleMap[normalizeUrl(s.url)] || '' }));
-                      storySources = digestSourceLinks.filter(s => digestUrlToIdx[s.url] === storyIndex);
-                    }
 
                     // Cancel in-flight audio without ending the narration session
                     const cancelAudioKeepActive = () => narrateFnRef.current.cancelAudioKeepActive?.();
@@ -2147,10 +2155,25 @@ const TheAIRundown = () => {
                               <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
                           </div>
+                          {/* Row 3: per-story category pill for My Rundown */}
+                          {isMyFeed && story?.feedCategory && (
+                            <div style={{ marginTop: '0.2rem' }}>
+                              <span style={{ display: 'inline-block', fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)', padding: '0.15rem 0.55rem', borderRadius: '999px' }}>
+                                {story.feedCategory}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Scrollable body */}
                         <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+
+                          {!story ? (
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.25)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />
+                            </div>
+                          ) : (
+                          <>
 
                           {/* Headlines-only mode: big centred title + source pills */}
                           {depthLevel === 'headlines' ? (
@@ -2221,6 +2244,8 @@ const TheAIRundown = () => {
                                 );
                               })}
                             </div>
+                          )}
+                          </>
                           )}
                           </>
                           )}

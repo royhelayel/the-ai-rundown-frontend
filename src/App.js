@@ -2172,11 +2172,11 @@ const TheAIRundown = () => {
                           )}
                         </div>
 
-                        {/* Scrollable body — flex:1 wrapper with relative so fade overlay stays within bounds */}
+                        {/* Scrollable body */}
                         <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                        {/* Fade hint: fades to card colour so it looks natural, not a black blob */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '64px', background: `linear-gradient(to bottom, transparent, ${storyCardColor}dd)`, pointerEvents: 'none', zIndex: 2 }} />
-                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '4rem' }}>
+                        {/* Fade hint — fades to the player bar colour so content dissolves cleanly into the bar */}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '72px', background: 'linear-gradient(to bottom, transparent, rgba(8,8,12,0.92))', pointerEvents: 'none', zIndex: 2 }} />
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
                           {!story ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2259,6 +2259,8 @@ const TheAIRundown = () => {
                           )}
                           </>
                           )}
+                          {/* Spacer: reliable alternative to paddingBottom in flex overflow containers */}
+                          <div style={{ flexShrink: 0, height: '80px' }} />
                         </div>
                         </div>{/* end scroll wrapper */}
 

@@ -2172,11 +2172,11 @@ const TheAIRundown = () => {
                           )}
                         </div>
 
-                        {/* Scrollable body — wrapped in a relative container so the fade hint doesn't escape */}
-                        <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-                        {/* Fade hint: non-interactive overlay at the bottom of the scroll area */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: `linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35))`, pointerEvents: 'none', zIndex: 2, borderRadius: '0 0 4px 4px' }} />
-                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '2rem' }}>
+                        {/* Scrollable body — flex:1 wrapper with relative so fade overlay stays within bounds */}
+                        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                        {/* Fade hint: fades to card colour so it looks natural, not a black blob */}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '64px', background: `linear-gradient(to bottom, transparent, ${storyCardColor}dd)`, pointerEvents: 'none', zIndex: 2 }} />
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '4rem' }}>
 
                           {!story ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

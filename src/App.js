@@ -640,6 +640,11 @@ const TheAIRundown = () => {
   const handleFetchNews = async () => {
     if (!selectedCategory || !selectedDay || !selectedTime) return;
 
+    // ── Slot-status gate: never fetch until we know which slots are complete ──
+    // Without this, the very first call races against the completedSlots fetch
+    // and can read partial rows before __completed__ has been written.
+    if (!slotsLoaded) return;
+
     // If narrating, cancel current audio and queue auto-restart when new content loads
     if (narrationStateRef.current.active) {
       narrateFnRef.current.cancelAudioKeepActive?.();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 
@@ -82,6 +82,10 @@ const TheAIRundown = () => {
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [repeatMode, setRepeatMode] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const repeatModeRef = useRef(false);
+  const playbackSpeedRef = useRef(1);
   const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
   const narrateFnRef = useRef({});
   const handleSelectCategoryRef = useRef(null);
@@ -229,6 +233,10 @@ const TheAIRundown = () => {
     return { stories: builtStories, hasPunchyBullets: anyPunchy };
   };
 
+  // Sync mutable player state into refs so narration callbacks can read latest values
+  repeatModeRef.current = repeatMode;
+  playbackSpeedRef.current = playbackSpeed;
+
   // ── Narration helpers (ElevenLabs TTS via backend, all reads through refs) ──
 
   const stopNarration = () => {
@@ -328,7 +336,7 @@ const TheAIRundown = () => {
     const doSpeak = (voices) => {
       if (!narrationStateRef.current.active) return;
       const utter = new SpeechSynthesisUtterance(text.trim());
-      utter.rate = isAr ? 0.85 : 0.92;
+      utter.rate = (isAr ? 0.85 : 0.92) * playbackSpeedRef.current;
       utter.pitch = 1.0;
       utter.lang = isAr ? 'ar-SA' : 'en-US';
       // Pick a matching voice; for Arabic try multiple locale variants
@@ -386,6 +394,7 @@ const TheAIRundown = () => {
           narrationStateRef.current.audio = null;
           narrateFnRef.current.stop();
         };
+        audio.playbackRate = playbackSpeedRef.current;
         audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
       })
       .catch(() => {
@@ -411,7 +420,10 @@ const TheAIRundown = () => {
   const narrateStoryFrom = (idx) => {
     if (!narrationStateRef.current.active) return;
     const { stories } = storyNavRef.current;
-    if (idx >= stories.length) { narrateFnRef.current.goNext(); return; }
+    if (idx >= stories.length) {
+      if (repeatModeRef.current) { setStoryIndex(0); narrateFnRef.current.narrateStory(0); return; }
+      narrateFnRef.current.goNext(); return;
+    }
     const story = stories[idx];
     setStoryIndex(idx);
     const isAr = newsLanguage === 'ar';
@@ -2034,6 +2046,13 @@ const TheAIRundown = () => {
                           cancelAudioKeepActive();
                           setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150);
                         }
+                      } else if (repeatMode) {
+                        // Repeat: loop back to first story in this category
+                        setStoryIndex(0);
+                        if (isNarrating) {
+                          cancelAudioKeepActive();
+                          setTimeout(() => narrateFnRef.current.narrateStory?.(0), 150);
+                        }
                       } else if (nextCat) {
                         handleSelectCategory(nextCat);
                         setStoryIndex(0);
@@ -2129,26 +2148,7 @@ const TheAIRundown = () => {
                               {isMyFeed ? '★ My Rundown' : storyLabel}
                               <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                             </button>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.65)', whiteSpace: 'nowrap' }}>{storyIndex + 1} / {stories.length}</span>
-                              {isNarrating ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
-                                  <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', color: '#6366f1', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    {isPaused ? <Play size={13} /> : <Pause size={13} />}
-                                  </button>
-                                  <button onClick={restartNarration} title="Restart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    <RotateCcw size={13} />
-                                  </button>
-                                  <button onClick={stopNarration} title="Stop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.18)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                    <VolumeX size={13} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button onClick={startNarration} title="Listen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                                  <Volume2 size={13} />
-                                </button>
-                              )}
-                            </div>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', flexShrink: 0 }}>{storyIndex + 1} / {stories.length}</span>
                           </div>
                           {/* Row 2: day (clickable) · time (clickable) */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
@@ -2258,32 +2258,117 @@ const TheAIRundown = () => {
                           )}
                         </div>
 
-                        {/* Navigation pinned to bottom */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
-                          {/* ← Previous story */}
-                          <button onClick={goPrev} disabled={isFirst && !prevCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '999px', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', color: isFirst && !prevCat ? 'rgba(255,255,255,0.3)' : 'white', fontSize: '0.78rem', fontWeight: '600', transition: 'all 0.15s', flexShrink: 0 }}>
-                            <ChevronLeft size={14} />
-                            Previous
-                          </button>
+                        {/* ── Music player pinned to bottom ── */}
+                        {(() => {
+                          const scrubPct = stories.length <= 1 ? 100 : (storyIndex / (stories.length - 1)) * 100;
+                          const hexToRgb = (hex) => { const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; };
+                          const colorRgb = hexToRgb(storyColor.startsWith('#') ? storyColor : '#6366f1');
+                          return (
+                            <div style={{ flexShrink: 0, margin: '0.5rem -1.25rem -1rem', background: 'rgba(10,10,14,0.85)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.07)', borderRadius: '0 0 20px 20px', padding: `11px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
 
-                          {/* << prev category */}
-                          <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-                            <ChevronLeft size={13} strokeWidth={2.5} />
-                            <ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                          </button>
+                              {/* Row 1: scrubber row */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
+                                {/* Current story number */}
+                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', fontWeight: '600', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '14px', textAlign: 'right' }}>{storyIndex + 1}</span>
 
-                          {/* >> next category */}
-                          <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-                            <ChevronRight size={13} strokeWidth={2.5} />
-                            <ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                          </button>
+                                {/* Scrubber track */}
+                                <div
+                                  onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                    const newIdx = Math.round(pct * (stories.length - 1));
+                                    setStoryIndex(newIdx);
+                                    if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                                  }}
+                                  style={{ flex: 1, height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
+                                >
+                                  <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.09)', borderRadius: '99px', position: 'relative' }}>
+                                    <div style={{ width: `${scrubPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: 'width 0.25s ease' }}>
+                                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5px', top: '-3.5px', boxShadow: `0 0 6px rgba(${colorRgb},0.8)` }} />
+                                    </div>
+                                  </div>
+                                </div>
 
-                          {/* Next story → */}
-                          <button onClick={goNext} disabled={isLast && !nextCat} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: isLast && !nextCat ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '999px', cursor: isLast && !nextCat ? 'not-allowed' : 'pointer', color: isLast && !nextCat ? 'rgba(255,255,255,0.35)' : '#111827', fontSize: '0.78rem', fontWeight: '700', transition: 'all 0.15s', flexShrink: 0 }}>
-                            Next
-                            <ChevronRight size={14} />
-                          </button>
-                        </div>
+                                {/* Total stories */}
+                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', fontWeight: '600', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '14px' }}>{stories.length}</span>
+
+                                {/* Repeat toggle */}
+                                <button
+                                  onClick={() => setRepeatMode(r => !r)}
+                                  title={repeatMode ? 'Repeat on' : 'Repeat off'}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.28)', transition: 'color 0.15s' }}
+                                >
+                                  <Repeat size={13} />
+                                </button>
+
+                                {/* Speed pill */}
+                                <button
+                                  onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1)}
+                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.30)', fontSize: '9px', fontWeight: '700', padding: '3px 6px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}
+                                >
+                                  {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
+                                </button>
+                              </div>
+
+                              {/* Row 2: controls */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+                                {/* ⏮ Previous category (dim, small) */}
+                                <button
+                                  onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }}
+                                  disabled={!prevCat}
+                                  title={prevCat ? `← ${prevCat}` : ''}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: prevCat ? 'pointer' : 'not-allowed', padding: '5px', color: prevCat ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)', transition: 'color 0.15s' }}
+                                >
+                                  <SkipBack size={18} />
+                                </button>
+
+                                {/* ⏮ Previous story (mid) */}
+                                <button
+                                  onClick={goPrev}
+                                  disabled={isFirst && !prevCat}
+                                  title="Previous story"
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', transition: 'color 0.15s' }}
+                                >
+                                  <SkipBack size={24} />
+                                </button>
+
+                                {/* ▶ / ⏸ Play / Pause (large circle, storyColor) */}
+                                <button
+                                  onClick={isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration}
+                                  title={isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen'}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: storyColor, boxShadow: `0 4px 18px rgba(${colorRgb},0.45)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s', transform: 'scale(1)' }}
+                                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.94)'}
+                                  onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                  {isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
+                                </button>
+
+                                {/* ⏭ Next story (mid) */}
+                                <button
+                                  onClick={goNext}
+                                  disabled={isLast && !nextCat && !repeatMode}
+                                  title="Next story"
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', transition: 'color 0.15s' }}
+                                >
+                                  <SkipForward size={24} />
+                                </button>
+
+                                {/* ⏭ Next category (dim, small) */}
+                                <button
+                                  onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }}
+                                  disabled={!nextCat}
+                                  title={nextCat ? `${nextCat} →` : ''}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '5px', color: nextCat ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)', transition: 'color 0.15s' }}
+                                >
+                                  <SkipForward size={18} />
+                                </button>
+
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })() : (() => {

@@ -2172,8 +2172,11 @@ const TheAIRundown = () => {
                           )}
                         </div>
 
-                        {/* Scrollable body */}
-                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem' }}>
+                        {/* Scrollable body — wrapped in a relative container so the fade hint doesn't escape */}
+                        <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                        {/* Fade hint: non-interactive overlay at the bottom of the scroll area */}
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: `linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35))`, pointerEvents: 'none', zIndex: 2, borderRadius: '0 0 4px 4px' }} />
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '2rem' }}>
 
                           {!story ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2257,6 +2260,7 @@ const TheAIRundown = () => {
                           </>
                           )}
                         </div>
+                        </div>{/* end scroll wrapper */}
 
                         {/* ── Music player pinned to bottom ── */}
                         {(() => {
@@ -2264,10 +2268,10 @@ const TheAIRundown = () => {
                           const hexToRgb = (hex) => { const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; };
                           const colorRgb = hexToRgb(storyColor.startsWith('#') ? storyColor : '#6366f1');
                           return (
-                            <div style={{ flexShrink: 0, margin: '0.75rem -1.25rem -1rem', background: `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 18%, rgba(10,10,14,0.92) 38%)`, borderRadius: '0 0 20px 20px', padding: `0 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
+                            <div style={{ flexShrink: 0, margin: '0 -1.25rem -1rem', background: 'rgba(8,8,12,0.88)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', borderRadius: '0 0 20px 20px', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
 
                               {/* Row 1: scrubber row */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', paddingTop: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
 
                                 {/* Scrubber track — full width, labels sit on top as overlay */}
                                 <div style={{ flex: 1, position: 'relative' }}>

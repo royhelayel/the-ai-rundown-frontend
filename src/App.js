@@ -2173,7 +2173,7 @@ const TheAIRundown = () => {
                         </div>
 
                         {/* Scrollable body */}
-                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '0.5rem' }}>
 
                           {!story ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2264,47 +2264,49 @@ const TheAIRundown = () => {
                           const hexToRgb = (hex) => { const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; };
                           const colorRgb = hexToRgb(storyColor.startsWith('#') ? storyColor : '#6366f1');
                           return (
-                            <div style={{ flexShrink: 0, margin: '0.5rem -1.25rem -1rem', background: 'rgba(10,10,14,0.85)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.07)', borderRadius: '0 0 20px 20px', padding: `11px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
+                            <div style={{ flexShrink: 0, margin: '0.75rem -1.25rem -1rem', background: `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 18%, rgba(10,10,14,0.92) 38%)`, borderRadius: '0 0 20px 20px', padding: `0 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
 
                               {/* Row 1: scrubber row */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
-                                {/* Current story number */}
-                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', fontWeight: '600', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '14px', textAlign: 'right' }}>{storyIndex + 1}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', paddingTop: '16px' }}>
 
-                                {/* Scrubber track */}
-                                <div
-                                  onClick={(e) => {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                                    const newIdx = Math.round(pct * (stories.length - 1));
-                                    setStoryIndex(newIdx);
-                                    if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
-                                  }}
-                                  style={{ flex: 1, height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
-                                >
-                                  <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.09)', borderRadius: '99px', position: 'relative' }}>
-                                    <div style={{ width: `${scrubPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: 'width 0.25s ease' }}>
-                                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5px', top: '-3.5px', boxShadow: `0 0 6px rgba(${colorRgb},0.8)` }} />
+                                {/* Scrubber track — full width, labels sit on top as overlay */}
+                                <div style={{ flex: 1, position: 'relative' }}>
+                                  <div
+                                    onClick={(e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                      const newIdx = Math.round(pct * (stories.length - 1));
+                                      setStoryIndex(newIdx);
+                                      if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                                    }}
+                                    style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                  >
+                                    <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
+                                      <div style={{ width: `${scrubPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: 'width 0.25s ease' }}>
+                                        <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5.5px', top: '-4px', boxShadow: `0 0 7px rgba(${colorRgb},0.9)` }} />
+                                      </div>
                                     </div>
                                   </div>
+                                  {/* Story position labels below track */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{storyIndex + 1}</span>
+                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{stories.length}</span>
+                                  </div>
                                 </div>
-
-                                {/* Total stories */}
-                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', fontWeight: '600', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '14px' }}>{stories.length}</span>
 
                                 {/* Repeat toggle */}
                                 <button
                                   onClick={() => setRepeatMode(r => !r)}
                                   title={repeatMode ? 'Repeat on' : 'Repeat off'}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.28)', transition: 'color 0.15s' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', marginTop: '-8px' }}
                                 >
-                                  <Repeat size={13} />
+                                  <Repeat size={14} />
                                 </button>
 
                                 {/* Speed pill */}
                                 <button
                                   onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1)}
-                                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.30)', fontSize: '9px', fontWeight: '700', padding: '3px 6px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}
+                                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s', marginTop: '-8px' }}
                                 >
                                   {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
                                 </button>
@@ -2313,14 +2315,15 @@ const TheAIRundown = () => {
                               {/* Row 2: controls */}
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-                                {/* ⏮ Previous category (dim, small) */}
+                                {/* ⏮ Previous category (dim, small) — distinct look: just icon, no frame */}
                                 <button
                                   onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }}
                                   disabled={!prevCat}
                                   title={prevCat ? `← ${prevCat}` : ''}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: prevCat ? 'pointer' : 'not-allowed', padding: '5px', color: prevCat ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)', transition: 'color 0.15s' }}
+                                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: prevCat ? 'pointer' : 'not-allowed', padding: '4px', color: prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'color 0.15s' }}
                                 >
-                                  <SkipBack size={18} />
+                                  <SkipBack size={16} />
+                                  <span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
                                 </button>
 
                                 {/* ⏮ Previous story (mid) */}
@@ -2328,19 +2331,21 @@ const TheAIRundown = () => {
                                   onClick={goPrev}
                                   disabled={isFirst && !prevCat}
                                   title="Previous story"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', transition: 'color 0.15s' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}
                                 >
-                                  <SkipBack size={24} />
+                                  <SkipBack size={26} />
                                 </button>
 
                                 {/* ▶ / ⏸ Play / Pause (large circle, storyColor) */}
                                 <button
                                   onClick={isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration}
                                   title={isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen'}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: storyColor, boxShadow: `0 4px 18px rgba(${colorRgb},0.45)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s', transform: 'scale(1)' }}
-                                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.94)'}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: storyColor, boxShadow: `0 4px 20px rgba(${colorRgb},0.5)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s' }}
+                                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'}
                                   onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                                   onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                  onTouchStart={e => e.currentTarget.style.transform = 'scale(0.93)'}
+                                  onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}
                                 >
                                   {isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
                                 </button>
@@ -2350,19 +2355,20 @@ const TheAIRundown = () => {
                                   onClick={goNext}
                                   disabled={isLast && !nextCat && !repeatMode}
                                   title="Next story"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', transition: 'color 0.15s' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}
                                 >
-                                  <SkipForward size={24} />
+                                  <SkipForward size={26} />
                                 </button>
 
-                                {/* ⏭ Next category (dim, small) */}
+                                {/* ⏭ Next category (dim, small) — labelled "cat" to distinguish from story-skip */}
                                 <button
                                   onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }}
                                   disabled={!nextCat}
                                   title={nextCat ? `${nextCat} →` : ''}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '5px', color: nextCat ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)', transition: 'color 0.15s' }}
+                                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'color 0.15s' }}
                                 >
-                                  <SkipForward size={18} />
+                                  <SkipForward size={16} />
+                                  <span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
                                 </button>
 
                               </div>

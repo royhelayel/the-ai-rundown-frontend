@@ -2225,19 +2225,15 @@ const TheAIRundown = () => {
                                 const fillPct = isNarrating ? narrationProgress : scrubPct;
                                 const leftLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.current) : String(storyIndex + 1);
                                 const rightLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.duration) : String(stories.length);
-                                const handleScrubClick = (e) => {
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                                  if (isNarrating && narrationStateRef.current.audio?.duration > 0) {
-                                    narrationStateRef.current.audio.currentTime = pct * narrationStateRef.current.audio.duration;
-                                  } else {
-                                    const newIdx = Math.round(pct * (stories.length - 1));
-                                    setStoryIndex(newIdx);
-                                    if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
-                                  }
-                                };
+                                const handleScrubClick = isNarrating && narrationStateRef.current.audio?.duration > 0
+                                  ? (e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                      narrationStateRef.current.audio.currentTime = pct * narrationStateRef.current.audio.duration;
+                                    }
+                                  : null;
                                 return (<>
-                                  <div onClick={handleScrubClick} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                  <div onClick={handleScrubClick || undefined} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: handleScrubClick ? 'pointer' : 'default' }}>
                                     <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
                                       <div style={{ width: `${fillPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: isNarrating ? 'width 0.1s linear' : 'width 0.25s ease' }}>
                                         <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5.5px', top: '-4px', boxShadow: `0 0 7px rgba(${colorRgb},0.9)` }} />

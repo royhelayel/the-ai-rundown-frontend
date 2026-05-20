@@ -1198,7 +1198,7 @@ const TheAIRundown = () => {
   );
 
   return (
-    <div style={viewMode === 'stories' && isMobile && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+    <div style={viewMode === 'stories' && isMobile && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
       <style>{`
         html { overflow-y: scroll; }
         body { overflow-y: scroll; }
@@ -1654,7 +1654,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: isMobile ? 'calc(100dvh - 128px)' : '720px', margin: isMobile ? '0 1rem env(safe-area-inset-bottom, 0px)' : '1.5rem auto 2rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: isMobile ? 'calc(100% - 2rem)' : '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : '720px', margin: isMobile ? '0 1rem' : '1.5rem auto 2rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}

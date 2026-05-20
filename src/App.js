@@ -84,6 +84,8 @@ const TheAIRundown = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [repeatMode, setRepeatMode] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [narrationProgress, setNarrationProgress] = useState(0);   // 0-100 pct of current audio
+  const [narrationTime, setNarrationTime] = useState({ current: 0, duration: 0 }); // seconds
   const repeatModeRef = useRef(false);
   const playbackSpeedRef = useRef(1);
   const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
@@ -261,6 +263,8 @@ const TheAIRundown = () => {
     st.paused = false;
     setIsNarrating(false);
     setIsPaused(false);
+    setNarrationProgress(0);
+    setNarrationTime({ current: 0, duration: 0 });
   };
   narrateFnRef.current.stop = stopNarration;
 
@@ -360,7 +364,16 @@ const TheAIRundown = () => {
         : (voices.find(v => v.lang.startsWith('en') && !v.localService === false) ||
            voices.find(v => v.lang.startsWith('en')));
       if (targetVoice) utter.voice = targetVoice;
-      utter.onend = () => { if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone(); };
+      utter.onboundary = (e) => {
+        if (e.name === 'word' && text.length > 0) {
+          setNarrationProgress(Math.min(99, (e.charIndex / text.length) * 100));
+        }
+      };
+      utter.onend = () => {
+        setNarrationProgress(0);
+        setNarrationTime({ current: 0, duration: 0 });
+        if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
+      };
       utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
       narrationStateRef.current.browserUtter = utter;
       window.speechSynthesis.speak(utter);
@@ -396,9 +409,17 @@ const TheAIRundown = () => {
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         narrationStateRef.current.audio = audio;
+        audio.ontimeupdate = () => {
+          if (audio.duration > 0) {
+            setNarrationProgress((audio.currentTime / audio.duration) * 100);
+            setNarrationTime({ current: audio.currentTime, duration: audio.duration });
+          }
+        };
         audio.onended = () => {
           URL.revokeObjectURL(url);
           narrationStateRef.current.audio = null;
+          setNarrationProgress(0);
+          setNarrationTime({ current: 0, duration: 0 });
           if (narrationStateRef.current.active) onDone();
         };
         audio.onerror = () => {
@@ -432,6 +453,8 @@ const TheAIRundown = () => {
 
   const narrateStoryFrom = (idx) => {
     if (!narrationStateRef.current.active) return;
+    setNarrationProgress(0);
+    setNarrationTime({ current: 0, duration: 0 });
     const { stories } = storyNavRef.current;
     if (idx >= stories.length) {
       if (repeatModeRef.current) { setStoryIndex(0); narrateFnRef.current.narrateStory(0); return; }
@@ -2165,7 +2188,26 @@ const TheAIRundown = () => {
                                     </div>
                                   ))}
                                 </div>
-                                {/* Perspectives, Why, and Sources are in Read mode — stories card shows headline + bullets only */}
+                                {/* Perspectives */}
+                                {displayPerspectives && (
+                                  <div style={{ marginTop: '0.55rem' }}>
+                                    <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)' }}>{newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>
+                                    <p style={{ margin: '0.18rem 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55 }}>{displayPerspectives}</p>
+                                  </div>
+                                )}
+                                {/* Why it matters */}
+                                {displayWhy && (
+                                  <div style={{ marginTop: '0.55rem' }}>
+                                    <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)' }}>{newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>
+                                    <p style={{ margin: '0.18rem 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55 }}>{displayWhy}</p>
+                                  </div>
+                                )}
+                                {/* Source pills */}
+                                {storySources.length > 0 && (
+                                  <div style={{ marginTop: '0.7rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                    {storySources.map((s, j) => { const domain = getDomain(s.url); return (<a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '999px', textDecoration: 'none' }}><img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} /><span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'rgba(255,255,255,0.88)' }}>{s.outlet || domain}</span></a>); })}
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -2178,17 +2220,36 @@ const TheAIRundown = () => {
                           {/* Row 1: scrubber */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                             <div style={{ flex: 1, position: 'relative' }}>
-                              <div onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); const newIdx = Math.round(pct * (stories.length - 1)); setStoryIndex(newIdx); if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); } }} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
-                                  <div style={{ width: `${scrubPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: 'width 0.25s ease' }}>
-                                    <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5.5px', top: '-4px', boxShadow: `0 0 7px rgba(${colorRgb},0.9)` }} />
+                              {(() => {
+                                const fmtTime = (s) => { const m = Math.floor(s / 60); return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`; };
+                                const fillPct = isNarrating ? narrationProgress : scrubPct;
+                                const leftLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.current) : String(storyIndex + 1);
+                                const rightLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.duration) : String(stories.length);
+                                const handleScrubClick = (e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                  if (isNarrating && narrationStateRef.current.audio?.duration > 0) {
+                                    narrationStateRef.current.audio.currentTime = pct * narrationStateRef.current.audio.duration;
+                                  } else {
+                                    const newIdx = Math.round(pct * (stories.length - 1));
+                                    setStoryIndex(newIdx);
+                                    if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                                  }
+                                };
+                                return (<>
+                                  <div onClick={handleScrubClick} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
+                                      <div style={{ width: `${fillPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: isNarrating ? 'width 0.1s linear' : 'width 0.25s ease' }}>
+                                        <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5.5px', top: '-4px', boxShadow: `0 0 7px rgba(${colorRgb},0.9)` }} />
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                                <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{storyIndex + 1}</span>
-                                <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{stories.length}</span>
-                              </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{leftLabel}</span>
+                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{rightLabel}</span>
+                                  </div>
+                                </>);
+                              })()}
                             </div>
                             <button onClick={() => setRepeatMode(r => !r)} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', marginTop: '-8px' }}>
                               <Repeat size={14} />

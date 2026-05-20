@@ -130,6 +130,19 @@ const TheAIRundown = () => {
   const storyCardColor = (selectedCategory === 'My Rundown' && stories[storyIndex]?.feedCatColor)
     ? stories[storyIndex].feedCatColor : catColor;
 
+  // Derive the mock-style dark gradient from the category colour.
+  // Each stop is the category colour scaled down to 10/16/24% brightness, matching the mock design.
+  const _darkenHex = (hex, f) => {
+    const h = (hex.startsWith('#') ? hex.slice(1) : hex).padEnd(6, '0');
+    const r = Math.round(parseInt(h.slice(0,2), 16) * f);
+    const g = Math.round(parseInt(h.slice(2,4), 16) * f);
+    const b = Math.round(parseInt(h.slice(4,6), 16) * f);
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  };
+  const _scRgb = (() => { const h = (storyCardColor.startsWith('#') ? storyCardColor.slice(1) : storyCardColor).padEnd(6,'0'); return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`; })();
+  const storyDarkBg = `linear-gradient(160deg, ${_darkenHex(storyCardColor, 0.10)}, ${_darkenHex(storyCardColor, 0.16)}, ${_darkenHex(storyCardColor, 0.24)})`;
+  const storyGlowBg = `radial-gradient(ellipse at 30% 30%, rgba(${_scRgb}, 0.22) 0%, transparent 65%)`;
+
   // Normalise a URL for matching: lower-case host+path, strip trailing slash & query/hash
   const normalizeUrl = (url) => {
     try {
@@ -1559,7 +1572,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: `linear-gradient(160deg, ${storyCardColor}cc, ${storyCardColor}77)`, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1602,6 +1615,11 @@ const TheAIRundown = () => {
               }
             } : undefined}
           >
+
+            {/* Radial glow overlay — matches mock's category-colour ambient light */}
+            {viewMode === 'stories' && (
+              <div style={{ position: 'absolute', inset: 0, background: storyGlowBg, pointerEvents: 'none', zIndex: 0 }} />
+            )}
 
             {/* Progress bar — flush to very top of card, outside padding */}
             {viewMode === 'stories' && stories.length > 0 && (

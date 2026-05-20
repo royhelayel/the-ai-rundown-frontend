@@ -1757,6 +1757,7 @@ const TheAIRundown = () => {
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
                         {/* Scrubber row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0, marginTop: '-8px' }} />
                           <div style={{ flex: 1, position: 'relative' }}>
                             <div style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center' }}>
                               <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px' }} />
@@ -1766,7 +1767,6 @@ const TheAIRundown = () => {
                               <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', fontWeight: '600' }}>—</span>
                             </div>
                           </div>
-                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0, marginTop: '-8px' }} />
                           <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0, marginTop: '-8px' }}>1×</span>
                         </div>
                         {/* Controls row */}
@@ -2238,8 +2238,11 @@ const TheAIRundown = () => {
                         {/* ── Player bar: absolutely pinned to bottom, never affects scroll ── */}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
 
-                          {/* Row 1: scrubber */}
+                          {/* Row 1: repeat | scrubber (flex:1, centred) | speed */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                            <button onClick={() => setRepeatMode(r => !r)} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', marginTop: '-8px' }}>
+                              <Repeat size={14} />
+                            </button>
                             <div style={{ flex: 1, position: 'relative' }}>
                               {(() => {
                                 const fmtTime = (s) => { const m = Math.floor(s / 60); return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`; };
@@ -2269,9 +2272,6 @@ const TheAIRundown = () => {
                                 </>);
                               })()}
                             </div>
-                            <button onClick={() => setRepeatMode(r => !r)} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', marginTop: '-8px' }}>
-                              <Repeat size={14} />
-                            </button>
                             <button onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s', marginTop: '-8px' }}>
                               {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
                             </button>

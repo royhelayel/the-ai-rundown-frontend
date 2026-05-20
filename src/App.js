@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 
@@ -1225,7 +1225,7 @@ const TheAIRundown = () => {
               {[['stories', 'audio'], ['digest', 'read']].map(([mode, type]) => (
                 <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                  {type === 'audio' ? <><Volume2 size={windowWidth < 480 ? 11 : 12} />Audio</> : <>≡ Read</>}
+                  {type === 'audio' ? <><Headphones size={windowWidth < 480 ? 11 : 12} />Audio</> : <>≡ Read</>}
                 </button>
               ))}
             </div>

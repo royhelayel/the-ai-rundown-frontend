@@ -53,7 +53,7 @@ const TheAIRundown = () => {
   const pollTimerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'digest');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'stories');
   const [depthLevel, setDepthLevel] = useState(() => localStorage.getItem('rundown_depth_level') || 'summary');
   const handleSetDepth = (level) => {
     if (narrationStateRef.current.active) narrateFnRef.current.stop();
@@ -564,12 +564,23 @@ const TheAIRundown = () => {
   const isSlotUnavailable = (day, timeSlot) => !completedSlots.has(`${day}|${timeSlot}`);
 
   const availableTimes = timesOfDay;
-  // Always show all days; always show all time buttons.
-  // Slot buttons are individually disabled when no news exists for that day+time.
   const todayHasSlot = timesOfDay.some(t => completedSlots.has(`${today}|${t.value}`));
+
+  // Hide days that have no news at all (both slots unavailable) once slots have loaded.
   const availableDays = isCustomCategory
     ? daysOfWeek.filter(d => d.fullDate === today)
-    : daysOfWeek;
+    : slotsLoaded
+      ? daysOfWeek.filter(d => timesOfDay.some(t => completedSlots.has(`${d.fullDate}|${t.value}`)))
+      : daysOfWeek;
+
+  // Selects a day and auto-corrects selectedTime to the first available slot for that day.
+  const selectDay = (fullDate) => {
+    setSelectedDay(fullDate);
+    if (slotsLoaded && isSlotUnavailable(fullDate, selectedTime)) {
+      const avail = timesOfDay.find(t => completedSlots.has(`${fullDate}|${t.value}`));
+      if (avail) setSelectedTime(avail.value);
+    }
+  };
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
@@ -621,6 +632,26 @@ const TheAIRundown = () => {
     } catch (error) { console.error('Init error:', error); }
   }, []);
 
+  // Once slots have loaded (or change), fix selectedDay/selectedTime if they point at an empty slot.
+  useEffect(() => {
+    if (!slotsLoaded || isCustomCategory) return;
+    const currentDayHasNews = timesOfDay.some(t => completedSlots.has(`${selectedDay}|${t.value}`));
+    if (!currentDayHasNews) {
+      // Find the most recent available day (daysOfWeek is oldest→newest so last = most recent)
+      const validDays = daysOfWeek.filter(d => timesOfDay.some(t => completedSlots.has(`${d.fullDate}|${t.value}`)));
+      if (validDays.length > 0) {
+        const newDay = validDays[validDays.length - 1].fullDate;
+        const avail = timesOfDay.find(t => completedSlots.has(`${newDay}|${t.value}`));
+        setSelectedDay(newDay);
+        if (avail) setSelectedTime(avail.value);
+      }
+    } else if (!completedSlots.has(`${selectedDay}|${selectedTime}`)) {
+      // Day is fine but selected time slot is unavailable — pick first available slot for this day
+      const avail = timesOfDay.find(t => completedSlots.has(`${selectedDay}|${t.value}`));
+      if (avail) setSelectedTime(avail.value);
+    }
+  }, [slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
@@ -631,6 +662,13 @@ const TheAIRundown = () => {
   }, []);
 
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
+
+  // Apply speed change to any currently-playing audio clip immediately
+  useEffect(() => {
+    if (narrationStateRef.current.audio) {
+      narrationStateRef.current.audio.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     document.documentElement.style.fontSize = fontSize === 'large' ? '18px' : '16px';
@@ -1160,7 +1198,7 @@ const TheAIRundown = () => {
   );
 
   return (
-    <div style={viewMode === 'stories' && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+    <div style={viewMode === 'stories' && isMobile && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
       <style>{`
         html { overflow-y: scroll; }
         body { overflow-y: scroll; }
@@ -1184,10 +1222,10 @@ const TheAIRundown = () => {
           {/* View toggle — always visible, icon-only on small screens */}
           {currentView === 'home' && (
             <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: windowWidth < 480 ? '2px' : '3px', flexShrink: 0, marginLeft: 'auto' }}>
-              {[['digest', '≡', '≡ Read'], ['stories', '▶', '▶ Stories']].map(([mode, icon, label]) => (
+              {[['stories', 'audio'], ['digest', 'read']].map(([mode, type]) => (
                 <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
-                  style={{ padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                  {label}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                  {type === 'audio' ? <><Volume2 size={windowWidth < 480 ? 11 : 12} />Audio</> : <>≡ Read</>}
                 </button>
               ))}
             </div>
@@ -1444,7 +1482,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: isMobile ? '0' : '0' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' && isMobile ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: '0' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1471,7 +1509,7 @@ const TheAIRundown = () => {
               <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
               <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
+                  <button key={day.fullDate} onClick={() => selectDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1494,7 +1532,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && windowWidth > 750 && isCustomCategory && (
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               {availableDays.map(day => (
-                <button key={day.fullDate} onClick={() => setSelectedDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
+                <button key={day.fullDate} onClick={() => selectDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
                   {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                 </button>
               ))}
@@ -1572,7 +1610,7 @@ const TheAIRundown = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => { setSelectedDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
+                  <button key={day.fullDate} onClick={() => { selectDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
                     {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
                   </button>
                 ))}
@@ -1616,7 +1654,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem env(safe-area-inset-bottom, 0px)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: isMobile ? 'calc(100dvh - 128px)' : '720px', margin: isMobile ? '0 1rem env(safe-area-inset-bottom, 0px)' : '1.5rem auto 2rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1757,17 +1795,13 @@ const TheAIRundown = () => {
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
                         {/* Scrubber row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0, marginTop: '-8px' }} />
-                          <div style={{ flex: 1, position: 'relative' }}>
+                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
                             <div style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center' }}>
                               <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px' }} />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                              <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', fontWeight: '600' }}>—</span>
-                              <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', fontWeight: '600' }}>—</span>
-                            </div>
                           </div>
-                          <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0, marginTop: '-8px' }}>1×</span>
+                          <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}>1×</span>
                         </div>
                         {/* Controls row */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1799,7 +1833,7 @@ const TheAIRundown = () => {
                             </>)}
                             {storiesPicker === 'day' && (<>
                               <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                              {availableDays.map(day => (<button key={day.fullDate} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: day.fullDate === selectedDay ? '700' : '500', background: day.fullDate === selectedDay ? 'rgba(99,102,241,0.1)' : 'transparent', color: day.fullDate === selectedDay ? '#6366f1' : '#374151' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
+                              {availableDays.map(day => (<button key={day.fullDate} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: day.fullDate === selectedDay ? '700' : '500', background: day.fullDate === selectedDay ? 'rgba(99,102,241,0.1)' : 'transparent', color: day.fullDate === selectedDay ? '#6366f1' : '#374151' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
                             </>)}
                             {storiesPicker === 'time' && (<>
                               <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
@@ -1839,101 +1873,99 @@ const TheAIRundown = () => {
                 )
               ) : (newsNotAvailable || (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime))) && !newsSummary ? (
                 viewMode === 'stories' ? (() => {
-                  const isMyFeed = selectedCategory === 'My Rundown';
-                  const headerColor = catColor;
-                  const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
-                  const pickerItemStyle = (active, color = catColor) => ({ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500', background: active ? `${color}18` : 'transparent', color: active ? color : '#374151', transition: 'background 0.12s' });
-                  const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
-                  const _catIdx = _navCats.indexOf(selectedCategory);
-                  const prevCat = _catIdx > 0 ? _navCats[_catIdx - 1] : null;
-                  const nextCat = _catIdx < _navCats.length - 1 ? _navCats[_catIdx + 1] : null;
+                  const isMyFeed2 = selectedCategory === 'My Rundown';
+                  const dayLabel2 = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
+                  const _navCats2 = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
+                  const _catIdx2 = _navCats2.indexOf(selectedCategory);
+                  const prevCat2 = _catIdx2 > 0 ? _navCats2[_catIdx2 - 1] : null;
+                  const nextCat2 = _catIdx2 < _navCats2.length - 1 ? _navCats2[_catIdx2 + 1] : null;
+                  const hexToRgb2 = (hex) => { const h = (hex.startsWith('#') ? hex.slice(1) : hex).padEnd(6,'0'); return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`; };
+                  const colorRgb2 = hexToRgb2(storyCardColor);
+                  const PLAYER_H2 = 130;
                   return (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                      {/* Picker popover */}
+                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                      {/* Scrollable area */}
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: `${PLAYER_H2}px`, overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div style={{ padding: '0.5rem 1.25rem 1.5rem' }}>
+                          {/* Header */}
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                              <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
+                                {isMyFeed2 ? '★ My Rundown' : selectedCategory}
+                                <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                              <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
+                                {dayLabel2}<ChevronDown size={9} style={{ opacity: 0.5 }} />
+                              </button>
+                              <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
+                              <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
+                                {selectedTime}<ChevronDown size={9} style={{ opacity: 0.5 }} />
+                              </button>
+                            </div>
+                          </div>
+                          {/* Not available body */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingTop: '3rem' }}>
+                            <Clock size={32} color="rgba(255,255,255,0.35)" style={{ marginBottom: '0.75rem' }} />
+                            <h3 style={{ fontSize: '0.95rem', fontWeight: '700', margin: '0 0 0.3rem', color: 'white' }}>
+                              {selectedDay === today ? 'Generating…' : 'News Not Available'}
+                            </h3>
+                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>
+                              {selectedDay === today ? 'Check back soon.' : "This summary hasn't been generated."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Player bar — disabled */}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center' }}>
+                              <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px' }} />
+                            </div>
+                          </div>
+                          <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}>1×</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <button onClick={() => { if (prevCat2) handleSelectCategory(prevCat2); }} disabled={!prevCat2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: prevCat2 ? 'pointer' : 'not-allowed', padding: '4px', color: prevCat2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
+                            <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
+                          </button>
+                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
+                            <Play size={22} style={{ transform: 'scaleX(-1)' }} />
+                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: `rgba(${colorRgb2},0.35)`, flexShrink: 0 }}>
+                            <Play size={22} style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '2px' }} />
+                          </div>
+                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
+                            <Play size={22} />
+                          </button>
+                          <button onClick={() => { if (nextCat2) { handleSelectCategory(nextCat2); setStoryIndex(0); } }} disabled={!nextCat2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat2 ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
+                            <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
+                          </button>
+                        </div>
+                      </div>
+                      {/* Picker popovers */}
                       {storiesPicker && (
                         <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
                           <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
-                            {storiesPicker === 'category' && (
-                              <>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
-                                {user && feedCategories.length > 0 && (
-                                  <>
-                                    <button style={pickerItemStyle(selectedCategory === 'My Rundown', MY_FEED_COLOR)} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button>
-                                    <div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} />
-                                  </>
-                                )}
-                                {allCategories.map(cat => (
-                                  <button key={cat} style={pickerItemStyle(cat === selectedCategory, CATEGORY_COLORS[cat] || '#ec4899')} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>
-                                ))}
-                              </>
-                            )}
-                            {storiesPicker === 'day' && (
-                              <>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                                {availableDays.map(day => (
-                                  <button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>
-                                    {day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}
-                                  </button>
-                                ))}
-                              </>
-                            )}
-                            {storiesPicker === 'time' && (
-                              <>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                                {availableTimes.map(time => {
-                                  const unavail = isSlotUnavailable(selectedDay, time.value);
-                                  return (
-                                    <button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>
-                                      {time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span>
-                                    </button>
-                                  );
-                                })}
-                              </>
-                            )}
+                            {storiesPicker === 'category' && (<>
+                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
+                              {user && feedCategories.length > 0 && (<><button style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: selectedCategory === 'My Rundown' ? '700' : '500', background: selectedCategory === 'My Rundown' ? `${MY_FEED_COLOR}18` : 'transparent', color: selectedCategory === 'My Rundown' ? MY_FEED_COLOR : '#374151' }} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button><div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} /></>)}
+                              {allCategories.map(cat => (<button key={cat} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: cat === selectedCategory ? '700' : '500', background: cat === selectedCategory ? `${CATEGORY_COLORS[cat] || '#ec4899'}18` : 'transparent', color: cat === selectedCategory ? (CATEGORY_COLORS[cat] || '#ec4899') : '#374151' }} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>))}
+                            </>)}
+                            {storiesPicker === 'day' && (<>
+                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
+                              {availableDays.map(day => (<button key={day.fullDate} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: day.fullDate === selectedDay ? '700' : '500', background: day.fullDate === selectedDay ? 'rgba(99,102,241,0.1)' : 'transparent', color: day.fullDate === selectedDay ? '#6366f1' : '#374151' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
+                            </>)}
+                            {storiesPicker === 'time' && (<>
+                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
+                              {availableTimes.map(time => { const unavail = isSlotUnavailable(selectedDay, time.value); return (<button key={time.value} disabled={unavail} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: time.value === selectedTime ? '700' : '500', background: time.value === selectedTime ? 'rgba(99,102,241,0.1)' : 'transparent', color: time.value === selectedTime ? '#6366f1' : '#374151', opacity: unavail ? 0.4 : 1 }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>{time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span></button>); })}
+                            </>)}
                           </div>
                         </div>
                       )}
-                      {/* Compact header */}
-                      <div style={{ flexShrink: 0, marginBottom: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                          <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
-                            {isMyFeed ? '★ My Rundown' : selectedCategory}
-                            <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                          </button>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
-                            {dayLabel}
-                            <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                          </button>
-                          <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
-                          <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
-                            {selectedTime}
-                            <ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                          </button>
-                        </div>
-                      </div>
-                      {/* Not available message */}
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '1rem' }}>
-                        <Clock size={36} color="rgba(255,255,255,0.35)" style={{ marginBottom: '0.75rem' }} />
-                        <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 0.3rem', color: 'white' }}>News Not Available</h3>
-                        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', margin: 0 }}>This summary hasn't been generated.</p>
-                      </div>
-                      {/* Navigation — same layout as stories content, prev/next story disabled */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)', marginTop: '0.5rem', flexShrink: 0, gap: '0.3rem' }}>
-                        <button disabled style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'none', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '999px', cursor: 'not-allowed', color: 'rgba(255,255,255,0.25)', fontSize: '0.78rem', fontWeight: '600', flexShrink: 0 }}>
-                          <ChevronLeft size={14} />Previous
-                        </button>
-                        <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; } }} disabled={!prevCat} title={prevCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: prevCat ? 'pointer' : 'not-allowed', color: prevCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-                          <ChevronLeft size={13} strokeWidth={2.5} /><ChevronLeft size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                        </button>
-                        <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); } }} disabled={!nextCat} title={nextCat || ''} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 0.55rem', background: 'none', border: `1.5px solid ${nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', cursor: nextCat ? 'pointer' : 'not-allowed', color: nextCat ? 'white' : 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
-                          <ChevronRight size={13} strokeWidth={2.5} /><ChevronRight size={13} strokeWidth={2.5} style={{ marginLeft: '-6px' }} />
-                        </button>
-                        <button disabled style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '999px', cursor: 'not-allowed', color: 'rgba(255,255,255,0.25)', fontSize: '0.78rem', fontWeight: '700', flexShrink: 0 }}>
-                          Next<ChevronRight size={14} />
-                        </button>
-                      </div>
                     </div>
                   );
                 })() : (
@@ -2139,7 +2171,7 @@ const TheAIRundown = () => {
                               </>)}
                               {storiesPicker === 'day' && (<>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                                {availableDays.map(day => (<button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { setSelectedDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
+                                {availableDays.map(day => (<button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
                               </>)}
                               {storiesPicker === 'time' && (<>
                                 <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
@@ -2240,24 +2272,21 @@ const TheAIRundown = () => {
 
                           {/* Row 1: repeat | scrubber (flex:1, centred) | speed */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                            <button onClick={() => setRepeatMode(r => !r)} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', marginTop: '-8px' }}>
+                            <button onClick={(e) => { e.stopPropagation(); setRepeatMode(r => !r); }} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s' }}>
                               <Repeat size={14} />
                             </button>
                             <div style={{ flex: 1, position: 'relative' }}>
                               {(() => {
-                                const fmtTime = (s) => { const m = Math.floor(s / 60); return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`; };
-                                const dur = narrationDurationRef.current;
                                 const fillPct = isNarrating ? narrationProgress : scrubPct;
-                                const leftLabel = isNarrating && dur > 0 ? fmtTime((narrationProgress / 100) * dur) : String(storyIndex + 1);
-                                const rightLabel = isNarrating && dur > 0 ? fmtTime(dur) : String(stories.length);
                                 const handleScrubClick = isNarrating && narrationStateRef.current.audio?.duration > 0
                                   ? (e) => {
+                                      e.stopPropagation();
                                       const rect = e.currentTarget.getBoundingClientRect();
                                       const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                                       narrationStateRef.current.audio.currentTime = pct * narrationStateRef.current.audio.duration;
                                     }
                                   : null;
-                                return (<>
+                                return (
                                   <div onClick={handleScrubClick || undefined} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: handleScrubClick ? 'pointer' : 'default' }}>
                                     <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
                                       <div style={{ width: `${fillPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: isNarrating ? 'width 0.1s linear' : 'width 0.25s ease' }}>
@@ -2265,14 +2294,10 @@ const TheAIRundown = () => {
                                       </div>
                                     </div>
                                   </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{leftLabel}</span>
-                                    <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{rightLabel}</span>
-                                  </div>
-                                </>);
+                                );
                               })()}
                             </div>
-                            <button onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s', marginTop: '-8px' }}>
+                            <button onClick={(e) => { e.stopPropagation(); setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1); }} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}>
                               {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
                             </button>
                           </div>

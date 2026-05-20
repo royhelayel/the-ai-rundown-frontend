@@ -2277,7 +2277,7 @@ const TheAIRundown = () => {
                             </button>
                             <div style={{ flex: 1, position: 'relative' }}>
                               {(() => {
-                                const fillPct = isNarrating ? narrationProgress : scrubPct;
+                                const fillPct = isNarrating ? narrationProgress : 0;
                                 const handleScrubClick = isNarrating && narrationStateRef.current.audio?.duration > 0
                                   ? (e) => {
                                       e.stopPropagation();

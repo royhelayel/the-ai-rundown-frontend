@@ -1616,7 +1616,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 128px)', margin: isMobile ? '0 1rem env(safe-area-inset-bottom, 0px)' : '0 1rem 1rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}

@@ -699,20 +699,21 @@ const TheAIRundown = () => {
     // and can read partial rows before __completed__ has been written.
     if (!slotsLoaded) return;
 
-    // If narrating, cancel current audio and queue auto-restart when new content loads
-    if (narrationStateRef.current.active) {
-      narrateFnRef.current.cancelAudioKeepActive?.();
-      narrationStateRef.current.pendingLoad = true;
-      narrationStateRef.current.paused = false;
-      setIsPaused(false);
-    }
-
     // ── My Rundown: parallel fetch for all selected categories ──
     if (selectedCategory === 'My Rundown') {
       if (!user || feedCategories.length === 0) return;
       // Generation guard: don't show partial My Rundown while slot is still generating
       if (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime)) {
         setNewsSummary(null); setNewsNotAvailable(false); return;
+      }
+      // Already loaded for this day/slot — don't re-fetch or interrupt narration
+      if (newsSummary?.category === 'My Rundown' && newsSummary?.day === selectedDay && newsSummary?.time_slot === selectedTime) return;
+      // Content is actually changing — now safe to cancel narration and queue restart
+      if (narrationStateRef.current.active) {
+        narrateFnRef.current.cancelAudioKeepActive?.();
+        narrationStateRef.current.pendingLoad = true;
+        narrationStateRef.current.paused = false;
+        setIsPaused(false);
       }
       setNewsLoading(true); setNewsNotAvailable(false); setNewsSummary(null);
       try {
@@ -757,9 +758,16 @@ const TheAIRundown = () => {
       setNewsSummary(null); setNewsNotAvailable(false);
       return; // render will show "generating / not available" via the slot-unavailable path
     }
+    // Already loaded for this selection — don't re-fetch or interrupt narration
     if (newsSummary && newsSummary.category === selectedCategory && newsSummary.day === selectedDay && newsSummary.time_slot === fetchTimeSlot && (newsSummary.language || 'en') === newsLanguage) {
-      narrationStateRef.current.pendingLoad = false; // content unchanged, no auto-restart needed
       return;
+    }
+    // Content is actually changing — now safe to cancel narration and queue restart
+    if (narrationStateRef.current.active) {
+      narrateFnRef.current.cancelAudioKeepActive?.();
+      narrationStateRef.current.pendingLoad = true;
+      narrationStateRef.current.paused = false;
+      setIsPaused(false);
     }
     setNewsLoading(true);
     setNewsNotAvailable(false);
@@ -1123,7 +1131,14 @@ const TheAIRundown = () => {
         if (newsLanguage) q = q.eq('language', newsLanguage);
         const { data } = await q;
         if (data) {
-          setCompletedSlots(new Set(data.map(r => `${r.day}|${r.time_slot}`)));
+          // Use functional update so we only replace the Set when content actually changes.
+          // A new Set reference (even with same entries) triggers the handleFetchNews effect
+          // which would cancel narration — so we must return the same `prev` when unchanged.
+          setCompletedSlots(prev => {
+            const incoming = data.map(r => `${r.day}|${r.time_slot}`);
+            if (prev.size === incoming.length && incoming.every(k => prev.has(k))) return prev;
+            return new Set(incoming);
+          });
           setSlotsLoaded(true);
         }
       } catch (_) { setSlotsLoaded(true); } // mark loaded even on error so UI doesn't hang

@@ -1775,13 +1775,13 @@ const TheAIRundown = () => {
                             <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
                           </button>
                           <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <SkipBack size={26} />
+                            <Play size={22} style={{ transform: 'scaleX(-1)' }} />
                           </button>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: `rgba(${colorRgb},0.35)`, flexShrink: 0 }}>
                             <Play size={22} style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '2px' }} />
                           </div>
                           <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <SkipForward size={26} />
+                            <Play size={22} />
                           </button>
                           <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); } }} disabled={!nextCat} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
                             <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
@@ -2283,13 +2283,13 @@ const TheAIRundown = () => {
                               <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
                             </button>
                             <button onClick={goPrev} disabled={isFirst && !prevCat} title="Previous story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
-                              <SkipBack size={26} />
+                              <Play size={22} style={{ transform: 'scaleX(-1)' }} />
                             </button>
                             <button onClick={isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration} title={isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: storyColor, boxShadow: `0 4px 20px rgba(${colorRgb},0.5)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s' }} onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'} onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} onTouchStart={e => e.currentTarget.style.transform = 'scale(0.93)'} onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}>
                               {isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
                             </button>
                             <button onClick={goNext} disabled={isLast && !nextCat && !repeatMode} title="Next story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
-                              <SkipForward size={26} />
+                              <Play size={22} />
                             </button>
                             <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat ? `${nextCat} →` : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'color 0.15s' }}>
                               <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>

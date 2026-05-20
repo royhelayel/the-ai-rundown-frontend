@@ -54,7 +54,7 @@ const TheAIRundown = () => {
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'stories');
-  const [depthLevel, setDepthLevel] = useState(() => localStorage.getItem('rundown_depth_level') || 'summary');
+  const [depthLevel, setDepthLevel] = useState(() => { const saved = localStorage.getItem('rundown_depth_level'); return (saved === 'summary' || !saved) ? 'deep' : saved; });
   const handleSetDepth = (level) => {
     if (narrationStateRef.current.active) narrateFnRef.current.stop();
     setDepthLevel(level);
@@ -1536,7 +1536,7 @@ const TheAIRundown = () => {
           {viewMode !== 'stories' && (
             <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                     {label}
                   </button>
@@ -1636,7 +1636,7 @@ const TheAIRundown = () => {
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['summary', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
+                {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
                     {label}
                   </button>

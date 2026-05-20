@@ -85,7 +85,7 @@ const TheAIRundown = () => {
   const [repeatMode, setRepeatMode] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [narrationProgress, setNarrationProgress] = useState(0);   // 0-100 pct of current audio
-  const [narrationTime, setNarrationTime] = useState({ current: 0, duration: 0 }); // seconds
+  const narrationDurationRef = useRef(0); // seconds — ref avoids re-renders when set
   const repeatModeRef = useRef(false);
   const playbackSpeedRef = useRef(1);
   const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
@@ -264,7 +264,7 @@ const TheAIRundown = () => {
     setIsNarrating(false);
     setIsPaused(false);
     setNarrationProgress(0);
-    setNarrationTime({ current: 0, duration: 0 });
+    narrationDurationRef.current = 0;
   };
   narrateFnRef.current.stop = stopNarration;
 
@@ -371,7 +371,7 @@ const TheAIRundown = () => {
       };
       utter.onend = () => {
         setNarrationProgress(0);
-        setNarrationTime({ current: 0, duration: 0 });
+        narrationDurationRef.current = 0;
         if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
       };
       utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
@@ -409,17 +409,25 @@ const TheAIRundown = () => {
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         narrationStateRef.current.audio = audio;
+        audio.onloadedmetadata = () => {
+          if (audio.duration > 0) narrationDurationRef.current = audio.duration;
+        };
+        let lastPct = -1;
         audio.ontimeupdate = () => {
           if (audio.duration > 0) {
-            setNarrationProgress((audio.currentTime / audio.duration) * 100);
-            setNarrationTime({ current: audio.currentTime, duration: audio.duration });
+            const pct = (audio.currentTime / audio.duration) * 100;
+            // Throttle: only re-render when progress changes by ≥0.5% to avoid excessive renders
+            if (pct - lastPct >= 0.5 || pct === 0) {
+              lastPct = pct;
+              setNarrationProgress(pct);
+            }
           }
         };
         audio.onended = () => {
           URL.revokeObjectURL(url);
           narrationStateRef.current.audio = null;
           setNarrationProgress(0);
-          setNarrationTime({ current: 0, duration: 0 });
+          narrationDurationRef.current = 0;
           if (narrationStateRef.current.active) onDone();
         };
         audio.onerror = () => {
@@ -453,8 +461,6 @@ const TheAIRundown = () => {
 
   const narrateStoryFrom = (idx) => {
     if (!narrationStateRef.current.active) return;
-    setNarrationProgress(0);
-    setNarrationTime({ current: 0, duration: 0 });
     const { stories } = storyNavRef.current;
     if (idx >= stories.length) {
       if (repeatModeRef.current) { setStoryIndex(0); narrateFnRef.current.narrateStory(0); return; }
@@ -2222,9 +2228,10 @@ const TheAIRundown = () => {
                             <div style={{ flex: 1, position: 'relative' }}>
                               {(() => {
                                 const fmtTime = (s) => { const m = Math.floor(s / 60); return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`; };
+                                const dur = narrationDurationRef.current;
                                 const fillPct = isNarrating ? narrationProgress : scrubPct;
-                                const leftLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.current) : String(storyIndex + 1);
-                                const rightLabel = isNarrating && narrationTime.duration > 0 ? fmtTime(narrationTime.duration) : String(stories.length);
+                                const leftLabel = isNarrating && dur > 0 ? fmtTime((narrationProgress / 100) * dur) : String(storyIndex + 1);
+                                const rightLabel = isNarrating && dur > 0 ? fmtTime(dur) : String(stories.length);
                                 const handleScrubClick = isNarrating && narrationStateRef.current.audio?.duration > 0
                                   ? (e) => {
                                       const rect = e.currentTarget.getBoundingClientRect();

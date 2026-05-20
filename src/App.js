@@ -1612,7 +1612,7 @@ const TheAIRundown = () => {
               </div>
             )}
 
-            <div style={viewMode === 'stories' ? { position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '0.6rem 1.25rem 1rem' } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
+            <div style={viewMode === 'stories' ? { position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: 0 } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
               {selectedCategory === 'My Rundown' && !user ? (
                 /* Guest: sign-in prompt */
                 <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
@@ -2063,9 +2063,8 @@ const TheAIRundown = () => {
                     const pickerItemStyle = (active, color = catColor) => ({ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500', background: active ? `${color}18` : 'transparent', color: active ? color : '#374151', transition: 'background 0.12s' });
 
                     return (
-                      // Outer div escapes the card's left/right/bottom padding via negative margins
                       // position: relative makes it the containing block for all absolute children
-                      <div style={{ flex: 1, minHeight: 0, position: 'relative', margin: '0 -1.25rem -1rem', overflow: 'hidden' }}>
+                      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
 
                         {/* ── Picker popovers (fixed so they escape overflow:hidden) ── */}
                         {storiesPicker && (
@@ -2148,31 +2147,12 @@ const TheAIRundown = () => {
                                     </div>
                                   ))}
                                 </div>
-                                {displayPerspectives && (
-                                  <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
-                                    <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>
-                                    &nbsp;&nbsp;{displayPerspectives}
-                                  </div>
-                                )}
-                                {displayWhy && (
-                                  <div style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>
-                                    <span style={{ fontWeight: '700', color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>
-                                    &nbsp;&nbsp;{displayWhy}
-                                  </div>
-                                )}
-                                {storySources.length > 0 && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.75rem' }}>
-                                    {storySources.map((s, j) => { const domain = getDomain(s.url); return (<a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', textDecoration: 'none' }}><img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} /><span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'white' }}>{s.outlet || domain}</span></a>); })}
-                                  </div>
-                                )}
+                                {/* Perspectives, Why, and Sources are in Read mode — stories card shows headline + bullets only */}
                               </div>
                             )}
 
                           </div>
                         </div>
-
-                        {/* ── Fade hint: sits just above player, transparent → player-bar colour ── */}
-                        <div style={{ position: 'absolute', bottom: `${PLAYER_H}px`, left: 0, right: 0, height: '72px', background: 'linear-gradient(to bottom, transparent, rgba(8,8,12,0.95))', pointerEvents: 'none', zIndex: 2 }} />
 
                         {/* ── Player bar: absolutely pinned to bottom, never affects scroll ── */}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>

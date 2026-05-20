@@ -663,13 +663,6 @@ const TheAIRundown = () => {
 
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
 
-  // Apply speed change to any currently-playing audio clip immediately
-  useEffect(() => {
-    if (narrationStateRef.current.audio) {
-      narrationStateRef.current.audio.playbackRate = playbackSpeed;
-    }
-  }, [playbackSpeed]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     document.documentElement.style.fontSize = fontSize === 'large' ? '18px' : '16px';
     localStorage.setItem('rundown_font_size', fontSize);
@@ -2272,8 +2265,16 @@ const TheAIRundown = () => {
 
                           {/* Row 1: repeat | scrubber (flex:1, centred) | speed */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                            <button onClick={(e) => { e.stopPropagation(); setRepeatMode(r => !r); }} title={repeatMode ? 'Repeat on' : 'Repeat off'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s' }}>
-                              <Repeat size={14} />
+                            <button
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                const next = !repeatModeRef.current;
+                                repeatModeRef.current = next;   // sync ref immediately
+                                setRepeatMode(next);            // update UI
+                              }}
+                              title={repeatMode ? 'Repeat on' : 'Repeat off'}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '10px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', touchAction: 'manipulation' }}>
+                              <Repeat size={16} />
                             </button>
                             <div style={{ flex: 1, position: 'relative' }}>
                               {(() => {
@@ -2297,7 +2298,15 @@ const TheAIRundown = () => {
                                 );
                               })()}
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1); }} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}>
+                            <button
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                const next = playbackSpeedRef.current === 1 ? 1.5 : playbackSpeedRef.current === 1.5 ? 2 : 1;
+                                playbackSpeedRef.current = next;                          // sync ref immediately
+                                if (narrationStateRef.current.audio) narrationStateRef.current.audio.playbackRate = next; // apply to live audio
+                                setPlaybackSpeed(next);                                   // update UI
+                              }}
+                              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '700', padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s', touchAction: 'manipulation' }}>
                               {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
                             </button>
                           </div>

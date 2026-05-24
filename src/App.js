@@ -1632,12 +1632,12 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {/* ── Depth toggle — Stories mode, floats above card in dark area ── */}
+          {/* ── Depth toggle — Stories mode, floats above card ── */}
           {viewMode === 'stories' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
-              <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.10)', borderRadius: '999px', padding: '3px' }}>
+              <div style={{ display: 'flex', gap: '3px', background: isMobile ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)', borderRadius: '999px', padding: '3px' }}>
                 {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
-                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.45)' }}>
+                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : isMobile ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>
                     {label}
                   </button>
                 ))}
@@ -1647,7 +1647,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: isMobile ? 'calc(100% - 2rem)' : '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : '720px', margin: isMobile ? '0 1rem' : '1.5rem auto 2rem' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: isMobile ? 'calc(100% - 2rem)' : '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : 'calc(100dvh - 148px)', margin: isMobile ? '0 1rem' : '1.5rem auto 0' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}

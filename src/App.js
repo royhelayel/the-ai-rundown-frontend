@@ -90,6 +90,10 @@ const TheAIRundown = () => {
   const playbackSpeedRef = useRef(1);
   const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
   const narrateFnRef = useRef({});
+  // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
+  const ttsAudioCacheRef = useRef(new Map());
+  // Tracks texts currently being pre-fetched to avoid duplicate requests
+  const ttsFetchingRef = useRef(new Set());
   const handleSelectCategoryRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
@@ -394,53 +398,65 @@ const TheAIRundown = () => {
     }
   };
 
+  // Attach playback handlers and start playing — reusable for both cached and fresh Audio objects
+  const setupAndPlayAudio = (audio, onDone) => {
+    if (!narrationStateRef.current.active) return;
+    narrationStateRef.current.audio = audio;
+    audio.currentTime = 0;
+    audio.playbackRate = playbackSpeedRef.current;
+    // Clear any stale handlers from prior use of the same Audio element
+    audio.onloadedmetadata = null;
+    audio.ontimeupdate = null;
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onloadedmetadata = () => {
+      if (audio.duration > 0) narrationDurationRef.current = audio.duration;
+    };
+    let lastPct = -1;
+    audio.ontimeupdate = () => {
+      if (audio.duration > 0) {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
+      }
+    };
+    audio.onended = () => {
+      narrationStateRef.current.audio = null;
+      setNarrationProgress(0);
+      narrationDurationRef.current = 0;
+      if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
+    };
+    audio.onerror = () => {
+      if (narrationStateRef.current.canceling) return;
+      narrationStateRef.current.audio = null;
+      narrateFnRef.current.stop();
+    };
+    audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
+  };
+
   const speakText = (text, onDone) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
-    // Fish Audio uses an English voice — route Arabic directly to browser TTS
     if (newsLanguage === 'ar') { speakWithBrowser(cleanForTTS(text), onDone); return; }
-    fetch(`${BACKEND_URL}/api/tts`, {
+
+    // ── 1. Pre-loaded cache hit → play instantly, zero latency ──
+    const preloaded = ttsAudioCacheRef.current.get(text);
+    if (preloaded) {
+      setupAndPlayAudio(preloaded, onDone);
+      return;
+    }
+
+    // ── 2. Fetch signed CDN URL → browser streams audio directly from Supabase ──
+    fetch(`${BACKEND_URL}/api/tts-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.trim() }),
     })
-      .then(r => { if (!r.ok) throw new Error('tts failed'); return r.blob(); })
-      .then(blob => {
-        if (!narrationStateRef.current.active) return;
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        narrationStateRef.current.audio = audio;
-        audio.onloadedmetadata = () => {
-          if (audio.duration > 0) narrationDurationRef.current = audio.duration;
-        };
-        let lastPct = -1;
-        audio.ontimeupdate = () => {
-          if (audio.duration > 0) {
-            const pct = (audio.currentTime / audio.duration) * 100;
-            // Throttle: only re-render when progress changes by ≥0.5% to avoid excessive renders
-            if (pct - lastPct >= 0.5 || pct === 0) {
-              lastPct = pct;
-              setNarrationProgress(pct);
-            }
-          }
-        };
-        audio.onended = () => {
-          URL.revokeObjectURL(url);
-          narrationStateRef.current.audio = null;
-          setNarrationProgress(0);
-          narrationDurationRef.current = 0;
-          if (narrationStateRef.current.active) onDone();
-        };
-        audio.onerror = () => {
-          if (narrationStateRef.current.canceling) return;
-          URL.revokeObjectURL(url);
-          narrationStateRef.current.audio = null;
-          narrateFnRef.current.stop();
-        };
-        audio.playbackRate = playbackSpeedRef.current;
-        audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
+      .then(r => { if (!r.ok) throw new Error('tts-url failed'); return r.json(); })
+      .then(({ url }) => {
+        if (!narrationStateRef.current.active || !url) return;
+        setupAndPlayAudio(new Audio(url), onDone);
       })
       .catch(() => {
-        // Fish Audio unavailable — fall back to browser speech synthesis
+        // Last resort: browser speech synthesis
         if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
       });
   };
@@ -482,6 +498,51 @@ const TheAIRundown = () => {
   };
   narrateFnRef.current.narrateStory = narrateStoryFrom;
 
+  // Build the exact TTS script for a story (mirrors narrateStoryFrom so cache keys align)
+  const buildStoryScript = (story) => {
+    if (!story) return '';
+    const isAr = newsLanguage === 'ar';
+    const cl = cleanForTTS;
+    const parts = [cl(story.headline) + '.'];
+    (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
+    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
+    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+    return parts.filter(Boolean).join(' ');
+  };
+
+  // Pre-fetches TTS audio for `text` in the background so play is instant when triggered
+  const prefetchTTSAudio = async (text) => {
+    if (!text?.trim() || newsLanguage === 'ar') return;
+    if (ttsAudioCacheRef.current.has(text) || ttsFetchingRef.current.has(text)) return;
+    ttsFetchingRef.current.add(text);
+    try {
+      const r = await fetch(`${BACKEND_URL}/api/tts-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.trim() }),
+      });
+      if (!r.ok) return;
+      const { url } = await r.json();
+      if (!url) return;
+      // Create Audio and start buffering immediately — no visible cost to the user
+      const audio = new Audio(url);
+      audio.preload = 'auto';
+      audio.load();
+      ttsAudioCacheRef.current.set(text, audio);
+      // Cap cache at 8 entries to avoid unbounded memory use
+      if (ttsAudioCacheRef.current.size > 8) {
+        const oldest = ttsAudioCacheRef.current.keys().next().value;
+        ttsAudioCacheRef.current.delete(oldest);
+      }
+    } catch {
+      // silently ignore — speakText will still work without the pre-load
+    } finally {
+      ttsFetchingRef.current.delete(text);
+    }
+  };
+  narrateFnRef.current.prefetchTTS = prefetchTTSAudio;
+  narrateFnRef.current.buildStoryScript = buildStoryScript;
+
   const narrateDigestContent = (content) => {
     if (!narrationStateRef.current.active || !content) return;
     const isAr = newsLanguage === 'ar';
@@ -517,6 +578,19 @@ const TheAIRundown = () => {
       narrateFnRef.current.narrateDigest(getNarrationContent());
     }
   };
+
+  // Pre-fetch TTS audio for the current + next story as soon as the card is visible.
+  // By the time the user presses play the audio is already buffered → instant playback.
+  useEffect(() => {
+    if (viewMode !== 'stories' || !stories.length || newsLanguage === 'ar') return;
+    const fn = narrateFnRef.current;
+    [storyIndex, storyIndex + 1].forEach(idx => {
+      if (idx < stories.length) {
+        const script = fn.buildStoryScript?.(stories[idx]);
+        if (script) fn.prefetchTTS?.(script);
+      }
+    });
+  }, [stories, storyIndex, viewMode, newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const timesOfDay = [
     { value: 'Morning', label: 'Morning', time: '6 AM' },

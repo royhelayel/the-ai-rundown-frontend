@@ -285,10 +285,20 @@ const TheAIRundown = () => {
   const resumeNarration = () => {
     const st = narrationStateRef.current;
     if (!st.active || !st.paused) return;
-    if (st.audio) st.audio.play().catch(() => narrateFnRef.current.stop());
-    if (!st.audio && 'speechSynthesis' in window) window.speechSynthesis.resume();
     st.paused = false;
     setIsPaused(false);
+    if (st.audio) {
+      st.audio.play().catch(() => narrateFnRef.current.stop());
+    } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    } else {
+      // Audio was cancelled while paused (e.g. user navigated to another story) — start fresh
+      if (viewMode === 'stories') {
+        narrateFnRef.current.narrateStory?.(storyIndex);
+      } else {
+        narrateFnRef.current.narrateDigest?.(narrateFnRef.current.getNarrationContent?.());
+      }
+    }
   };
   narrateFnRef.current.resume = resumeNarration;
 
@@ -2199,22 +2209,25 @@ const TheAIRundown = () => {
                       if (!isLast) {
                         const newIdx = storyIndex + 1;
                         setStoryIndex(newIdx);
-                        if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (repeatMode) {
                         setStoryIndex(0);
-                        if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(0), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(0), 150); }
+                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (nextCat) {
                         handleSelectCategory(nextCat); setStoryIndex(0);
-                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; }
+                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = !isPaused; }
                       }
                     };
                     const goPrev = () => {
                       if (!isFirst) {
                         const newIdx = storyIndex - 1;
                         setStoryIndex(newIdx);
-                        if (isNarrating) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (prevCat) {
-                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } else { goToLastStoryRef.current = true; }
+                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = !isPaused; } else { goToLastStoryRef.current = true; }
                         handleSelectCategory(prevCat);
                       }
                     };

@@ -85,7 +85,8 @@ export default function FullPlayer({
         ref={sheetRef}
         style={{
           position: 'absolute', left: 0, right: 0, bottom: 0,
-          height: '100dvh',
+          height: 'auto',
+          maxHeight: '88dvh',
           background: colors.bg,
           borderRadius: '20px 20px 0 0',
           transform: `translateY(${typeof translateY === 'number' ? translateY + 'px' : translateY})`,
@@ -124,7 +125,7 @@ export default function FullPlayer({
         </div>
 
         {/* ── Hero image ── */}
-        <div style={{ position: 'relative', zIndex: 1, flex: '0 0 38%', overflow: 'hidden', margin: '0 1.25rem', borderRadius: '16px' }}>
+        <div style={{ position: 'relative', zIndex: 1, flex: '0 0 200px', overflow: 'hidden', margin: '0 1.25rem', borderRadius: '16px' }}>
           {image && (
             <img src={image} alt={category} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
           )}

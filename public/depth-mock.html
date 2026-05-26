@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Story Depth Levels — Interactive Mock</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: rgba(15,15,20,0.94);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 16px 40px;
+    gap: 0;
+  }
+
+  /* Top bar */
+  .topbar {
+    width: 100%;
+    max-width: 390px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .topbar-logo {
+    font-size: 1rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+  .topbar-hint {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  /* Phone card */
+  .phone {
+    width: 100%;
+    max-width: 390px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 520px;
+  }
+
+  /* Progress */
+  .progress {
+    display: flex;
+    gap: 3px;
+    padding: 10px 12px 0;
+    flex-shrink: 0;
+  }
+  .seg {
+    flex: 1; height: 3px; border-radius: 99px;
+    transition: background 0.3s;
+  }
+
+  /* Card body */
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    padding: 0.65rem 1.25rem 1rem;
+    flex: 1;
+  }
+
+  /* Header row */
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.7rem;
+    flex-shrink: 0;
+  }
+  .cat-pill {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .counter {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #9ca3af;
+  }
+  .narrate-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.72rem;
+    color: #6b7280;
+  }
+
+  /* Depth toggle */
+  .depth-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+  }
+  .depth-btn {
+    padding: 0.28rem 0.8rem;
+    border-radius: 999px;
+    border: 1.5px solid #e5e7eb;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    background: transparent;
+    color: #9ca3af;
+    outline: none;
+  }
+  .depth-btn.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: white;
+  }
+
+  /* Content area */
+  .content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.2s;
+  }
+  .content-area.fade { opacity: 0; }
+
+  /* Headline level */
+  .level-headline {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem 0;
+  }
+  .big-title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #111827;
+    line-height: 1.22;
+    letter-spacing: -0.03em;
+  }
+
+  /* Summary level */
+  .level-summary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .story-title {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #111827;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.7rem;
+    flex-shrink: 0;
+  }
+  .bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+  }
+  .bullet-row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.28rem 0;
+  }
+  .bullet-bar {
+    width: 2.5px;
+    min-width: 2.5px;
+    border-radius: 99px;
+    background: #6366f1;
+    opacity: 0.35;
+    margin-top: 0.3rem;
+    align-self: stretch;
+  }
+  .bullet-text {
+    font-size: 0.86rem;
+    color: #374151;
+    line-height: 1.55;
+  }
+  .meta {
+    margin-top: 0.55rem;
+    font-size: 0.76rem;
+    color: #9ca3af;
+    line-height: 1.5;
+  }
+  .meta-label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin-right: 4px;
+  }
+
+  /* Deep Dive level */
+  .level-deep {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .story-title-deep {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #111827;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.7rem;
+    flex-shrink: 0;
+  }
+  .deep-text {
+    font-size: 0.87rem;
+    color: #374151;
+    line-height: 1.72;
+  }
+  .deep-text p { margin-bottom: 0.65rem; }
+  .deep-text p:last-child { margin-bottom: 0; }
+
+  /* Sources */
+  .sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-top: 0.7rem;
+    flex-shrink: 0;
+  }
+  .source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.18rem 0.55rem 0.18rem 0.32rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #374151;
+  }
+  .fav {
+    width: 11px; height: 11px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 0.7rem;
+    margin-top: 0.6rem;
+    flex-shrink: 0;
+    gap: 0.3rem;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    border: 1.5px solid #e5e7eb;
+    background: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .nav-btn:active { opacity: 0.7; transform: scale(0.96); }
+  .nav-btn.next {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: white;
+    padding: 0.45rem 0.85rem;
+  }
+  .nav-btn.cat-btn {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
+    letter-spacing: -1px;
+  }
+  .nav-btn.cat-right {
+    color: #6366f1;
+    border-color: #6366f1;
+  }
+
+  /* Story switcher dots */
+  .story-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .story-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .story-dot.active {
+    background: white;
+  }
+
+  /* Story nav arrows below card */
+  .card-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .card-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.07);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .card-nav-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: white;
+    border-color: rgba(255,255,255,0.35);
+  }
+  .card-nav-label {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">✦ The Rundown</div>
+  <div class="topbar-hint">TAP HEADLINE · SUMMARY · DEEP DIVE</div>
+</div>
+
+<div class="phone">
+  <!-- Progress bar -->
+  <div class="progress">
+    <div class="seg" id="s0"></div>
+    <div class="seg" id="s1"></div>
+    <div class="seg" id="s2"></div>
+    <div class="seg" id="s3"></div>
+    <div class="seg" id="s4"></div>
+  </div>
+
+  <div class="card-body">
+    <!-- Header -->
+    <div class="header-row">
+      <div class="cat-pill" id="cat-label">★ My Rundown</div>
+      <div class="header-right">
+        <span class="counter" id="counter">1 / 5</span>
+        <button class="narrate-btn">🔈</button>
+      </div>
+    </div>
+
+    <!-- Depth toggle -->
+    <div class="depth-toggle">
+      <button class="depth-btn" id="btn-headline" onclick="setDepth('headline')">Headline</button>
+      <button class="depth-btn active" id="btn-summary" onclick="setDepth('summary')">Summary</button>
+      <button class="depth-btn" id="btn-deep" onclick="setDepth('deep')">Deep Dive</button>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area" id="content"></div>
+
+    <!-- Nav -->
+    <div class="nav">
+      <button class="nav-btn" onclick="prevStory()">‹ Previous</button>
+      <button class="nav-btn cat-btn" style="color:#6b7280">‹‹</button>
+      <button class="nav-btn cat-btn cat-right">››</button>
+      <button class="nav-btn next" onclick="nextStory()">Next ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- Story switcher -->
+<div class="story-dots" id="story-dots"></div>
+<div class="card-nav-label">tap dots or use Previous / Next to switch stories</div>
+
+<script>
+const COLORS = ['#6366f1','#0891b2','#d97706','#e11d48','#16a34a'];
+const CATS   = ['World News','Technology','Business','Politics','Sports'];
+
+const stories = [
+  {
+    cat: 'World News',
+    headline: 'US-Iran Conflict Stalls Over Trust Gap',
+    bullets: [
+      "Iran's FM says lack of trust is blocking negotiations to end the US war.",
+      "Both sides maintain diplomatic channels even as military operations continue.",
+      "Gold surged to $5,391 as safe-haven demand spikes amid escalating strikes."
+    ],
+    perspectives: "WaPo emphasises Iranian skepticism; Radio Free Europe highlights US willingness to talk.",
+    why: "The standoff destabilises the Middle East and disrupts global energy markets.",
+    deep: `<p>Iran's Foreign Minister Abbas Araghchi stated Wednesday that a <strong>"fundamental trust deficit"</strong> remains the primary obstacle to ceasefire negotiations, even as both Washington and Tehran continue to engage through Omani intermediaries.</p>
+      <p>The remarks came after a third wave of US airstrikes targeted hardened underground facilities near Fordow, with the Pentagon confirming use of GBU-57 bunker-busting munitions. Iranian state media reported retaliatory drone strikes on US-linked infrastructure in Iraq.</p>
+      <p>Despite the military escalation, diplomatic back-channels remain active. A senior State Department official confirmed that "indirect talks have not been suspended," though no date for a new round has been set.</p>
+      <p>Financial markets reacted sharply — gold surged to a record <strong>$5,391.60 per ounce</strong> while Brent crude climbed 4.2% to $118 on fears of Strait of Hormuz disruption.</p>`,
+    sources: ['The Washington Post','Radio Free Europe','Reuters']
+  },
+  {
+    cat: 'Technology',
+    headline: 'Apple Unveils On-Device AI That Works Offline',
+    bullets: [
+      "Apple's new AI stack runs entirely on-device with no cloud dependency.",
+      "The system handles summarisation, translation and image analysis locally.",
+      "Privacy-first design targets enterprise clients wary of data exposure."
+    ],
+    perspectives: "Tech press praises privacy angle; analysts question whether performance matches cloud models.",
+    why: "On-device AI could reshape privacy norms and reduce reliance on hyperscaler infrastructure.",
+    deep: `<p>Apple announced a major update to its on-device intelligence stack on Tuesday, revealing that its next-generation language model runs entirely on the Neural Engine of M-series and A-series chips without any server communication.</p>
+      <p>The system, internally code-named <strong>Ferret-2</strong>, can summarise documents, translate between 40 languages and analyse images in real time — all without an internet connection. Apple claims a 2.1-second average response time on iPhone 17 hardware.</p>
+      <p>Enterprise customers have been the primary early adopters, with legal and financial firms citing regulatory pressure to keep data on-premises as the key driver. Apple is pitching the feature as a direct alternative to Microsoft Copilot in regulated industries.</p>`,
+    sources: ['The Verge','Bloomberg','Financial Times']
+  },
+  {
+    cat: 'Business',
+    headline: 'Oil Majors Post Record Profits as Prices Surge',
+    bullets: [
+      "ExxonMobil, Shell and BP posted combined Q1 profits of $28.4 billion.",
+      "Brent crude hit $118/barrel following Strait of Hormuz tension.",
+      "Windfall tax debate reignites in the UK and EU as energy bills climb."
+    ],
+    perspectives: "Industry groups warn against new taxes; consumer advocates demand immediate relief.",
+    why: "Sustained high energy prices could reignite inflation just as central banks declared victory.",
+    deep: `<p>The three largest Western oil majors — ExxonMobil, Shell and BP — reported a combined <strong>$28.4 billion in first-quarter profits</strong> on Wednesday, surpassing analyst expectations by 22% as crude prices climbed sharply following escalating tensions in the Persian Gulf.</p>
+      <p>Brent crude settled at $118 per barrel on Tuesday, its highest level in 18 months, driven by fears of supply disruption through the Strait of Hormuz. Iran controls the northern shore of the strait, through which roughly 20% of global oil supply transits daily.</p>
+      <p>The results immediately reignited political debate in Europe. UK Chancellor Rachel Reeves said she would "not rule out" extending the North Sea windfall levy, while EU energy commissioner called for an emergency meeting next week.</p>`,
+    sources: ['Reuters','Bloomberg','The Guardian']
+  },
+  {
+    cat: 'Politics',
+    headline: 'UK PM Starmer Faces Confidence Vote This Week',
+    bullets: [
+      "Backbench Labour MPs have submitted letters triggering a confidence threshold review.",
+      "The revolt stems from proposed cuts to winter fuel payments for pensioners.",
+      "Starmer's approval rating has dropped 18 points since the January budget."
+    ],
+    perspectives: "Left wing sees a betrayal of manifesto pledges; centrists argue fiscal discipline is non-negotiable.",
+    why: "A leadership contest would paralyse the government and hand the opposition its biggest opening in years.",
+    deep: `<p>Prime Minister Keir Starmer is facing the most serious internal challenge to his leadership since taking office, with senior parliamentary sources confirming that the threshold number of Labour MPs have submitted letters calling for a formal confidence review.</p>
+      <p>The rebellion was triggered by the government's decision to means-test the winter fuel payment, removing automatic entitlement for approximately 9 million pensioners. The policy, designed to save £1.4 billion annually, passed the Commons with a slim 14-seat majority last month.</p>
+      <p>Polling published Wednesday by YouGov shows Starmer's net approval rating has fallen to <strong>-31</strong>, an 18-point drop since the January budget. Labour's lead over the Conservatives has narrowed to four points, its smallest since the 2024 election.</p>`,
+    sources: ['BBC News','The Times','The Guardian']
+  },
+  {
+    cat: 'Sports',
+    headline: 'Real Madrid Win Champions League for 16th Time',
+    bullets: [
+      "Real Madrid defeated Manchester City 2-1 in a tense final in Munich.",
+      "Vinicius Jr scored both goals including a 93rd-minute winner.",
+      "Carlo Ancelotti becomes the first manager to win the competition five times."
+    ],
+    perspectives: "City fans question a controversial offsides call that ruled out a Haaland goal in the 88th minute.",
+    why: "The result cements Madrid's era of dominance and raises questions about City's ability to win Europe.",
+    deep: `<p>Real Madrid claimed their 16th UEFA Champions League title on Saturday night with a dramatic 2-1 victory over Manchester City at the Allianz Arena, completing yet another improbable European triumph powered by a <strong>Vinicius Jr double</strong>.</p>
+      <p>The Brazilian opened the scoring in the 34th minute with a low drive across goalkeeper Ederson, before Erling Haaland equalised from the spot after a VAR review awarded City a penalty for a Rüdiger handball. The match seemed destined for extra time until Vinicius collected a Bellingham through-ball and slotted home in the 93rd minute.</p>
+      <p>The victory makes Carlo Ancelotti the only manager in history to win the Champions League five times, surpassing his own record of four. "This club is magic," Ancelotti said at the post-match ceremony. "I don't have a better explanation."</p>`,
+    sources: ['BBC Sport','ESPN','Sky Sports']
+  }
+];
+
+let currentStory = 0;
+let currentDepth = 'summary';
+
+function setDepth(depth) {
+  currentDepth = depth;
+  ['headline','summary','deep'].forEach(d => {
+    document.getElementById('btn-'+d).classList.toggle('active', d === depth);
+  });
+  renderContent(false);
+}
+
+function renderProgress() {
+  const color = COLORS[currentStory % COLORS.length];
+  for (let i = 0; i < 5; i++) {
+    const seg = document.getElementById('s'+i);
+    if (i < currentStory) {
+      seg.style.background = color;
+      seg.style.opacity = '0.65';
+    } else if (i === currentStory) {
+      seg.style.background = color;
+      seg.style.opacity = '1';
+    } else {
+      seg.style.background = '#e5e7eb';
+      seg.style.opacity = '0.25';
+    }
+  }
+}
+
+function renderDots() {
+  const container = document.getElementById('story-dots');
+  container.innerHTML = stories.map((_, i) =>
+    `<div class="story-dot ${i === currentStory ? 'active' : ''}" onclick="goToStory(${i})"></div>`
+  ).join('');
+}
+
+function goToStory(idx) {
+  currentStory = idx;
+  renderAll();
+}
+
+function nextStory() {
+  if (currentStory < stories.length - 1) { currentStory++; renderAll(); }
+}
+function prevStory() {
+  if (currentStory > 0) { currentStory--; renderAll(); }
+}
+
+function renderContent(animate = true) {
+  const area = document.getElementById('content');
+  const s = stories[currentStory];
+  const color = COLORS[currentStory % COLORS.length];
+
+  if (animate) {
+    area.classList.add('fade');
+    setTimeout(() => { doRender(); area.classList.remove('fade'); }, 150);
+  } else {
+    doRender();
+  }
+
+  function doRender() {
+    if (currentDepth === 'headline') {
+      area.innerHTML = `
+        <div class="level-headline">
+          <div class="big-title">${s.headline}</div>
+        </div>`;
+    } else if (currentDepth === 'summary') {
+      area.innerHTML = `
+        <div class="level-summary">
+          <div class="story-title">${s.headline}</div>
+          <div class="bullets">
+            ${s.bullets.map(b => `
+              <div class="bullet-row">
+                <div class="bullet-bar" style="background:${color}"></div>
+                <div class="bullet-text">${b}</div>
+              </div>`).join('')}
+            <div class="meta"><span class="meta-label">Perspectives differ</span>${s.perspectives}</div>
+            <div class="meta"><span class="meta-label">Why this matters</span>${s.why}</div>
+          </div>
+          <div class="sources">
+            ${s.sources.map(src => `<span class="source-pill"><span class="fav" style="background:${color}22"></span>${src}</span>`).join('')}
+          </div>
+        </div>`;
+    } else {
+      area.innerHTML = `
+        <div class="level-deep">
+          <div class="story-title-deep">${s.headline}</div>
+          <div class="deep-text">${s.deep}</div>
+          <div class="sources" style="margin-top:0.9rem">
+            ${s.sources.map(src => `<span class="source-pill"><span class="fav" style="background:${color}22"></span>${src}</span>`).join('')}
+          </div>
+        </div>`;
+    }
+  }
+}
+
+function renderAll() {
+  const s = stories[currentStory];
+  const color = COLORS[currentStory % COLORS.length];
+
+  // Category label
+  document.getElementById('cat-label').textContent = s.cat;
+  document.getElementById('cat-label').style.color = color;
+
+  // Counter
+  document.getElementById('counter').textContent = `${currentStory + 1} / ${stories.length}`;
+
+  // Depth button active color
+  document.querySelectorAll('.depth-btn.active').forEach(b => {
+    b.style.background = color;
+    b.style.borderColor = color;
+  });
+
+  // Next button
+  document.querySelector('.nav-btn.next').style.background = color;
+  document.querySelector('.nav-btn.next').style.borderColor = color;
+
+  renderProgress();
+  renderDots();
+  renderContent(true);
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>

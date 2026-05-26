@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
+import BriefingFeed from './components/BriefingFeed';
+import CategoryView from './components/CategoryView';
+import StoryReader from './components/StoryReader';
+import FullPlayer from './components/FullPlayer';
+import MiniPlayer from './components/MiniPlayer';
+import CategoryTransition from './components/CategoryTransition';
+import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
@@ -127,6 +134,15 @@ const TheAIRundown = () => {
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
   const [showDayLeftArrow, setShowDayLeftArrow] = useState(false);
   const [showDayRightArrow, setShowDayRightArrow] = useState(true);
+
+  // ── New UI state ──────────────────────────────────────────────────────────────
+  const [playerVisible, setPlayerVisible] = useState(false);
+  const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [briefingData, setBriefingData] = useState({});
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const CUSTOM_CATEGORIES_ENABLED = false;
 
@@ -668,6 +684,9 @@ const TheAIRundown = () => {
     setIsNarrating(true);
     setIsPaused(false);
     setIsAudioLoading(true);
+    // Show the player sheet
+    setPlayerVisible(true);
+    setPlayerMinimized(false);
     if (viewMode === 'stories') {
       narrateFnRef.current.narrateStory(storyIndex);
     } else {
@@ -1394,1450 +1413,378 @@ const TheAIRundown = () => {
     return () => clearInterval(interval);
   }, [newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── Slide-out panel shared wrapper ── */
-  const slidePanel = (children) => (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 999 }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '270px', background: 'white', boxShadow: '4px 0 24px rgba(0,0,0,0.12)', zIndex: 1000, overflowY: 'auto', animation: 'slideIn 0.22s ease' }}>
-        {children}
-      </div>
-    </div>
-  );
+  // ── Briefing feed: fetch metadata for all categories ────────────────────────
+  useEffect(() => {
+    if (!selectedDay || !selectedTime || !slotsLoaded) return;
+    setBriefingLoading(true);
+    const cats = defaultCategories;
+    Promise.allSettled(cats.map(async (cat) => {
+      try {
+        const { data } = await supabase
+          .from('news_summaries')
+          .select('content, stories_content')
+          .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
+          .eq('language', newsLanguage).is('user_id', null).is('shared_key', null)
+          .maybeSingle();
+        if (!data) return [cat, null];
+        const { stories: s } = buildStories(data.content, data.stories_content);
+        return [cat, { storyCount: s.length, estimatedMin: Math.round(s.length * 2.5), previewStories: s.slice(0, 3) }];
+      } catch { return [cat, null]; }
+    })).then(results => {
+      const out = {};
+      results.forEach((r, i) => { if (r.status === 'fulfilled' && r.value[1]) out[cats[i]] = r.value[1]; });
+      setBriefingData(out);
+      setBriefingLoading(false);
+    });
+  }, [selectedDay, selectedTime, newsLanguage, slotsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync URL → selectedCategory for /category/:name routes ──────────────────
+  useEffect(() => {
+    const match = location.pathname.match(/^\/category\/([^/]+)/);
+    if (match) {
+      const cat = decodeURIComponent(match[1]);
+      if (cat !== selectedCategory) handleSelectCategoryRef.current?.(cat);
+    }
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Force stories mode (new audio-first design) ─────────────────────────────
+  useEffect(() => { if (viewMode !== 'stories') { setViewMode('stories'); localStorage.setItem('rundown_view_mode', 'stories'); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Navigation helpers ────────────────────────────────────────────────────────
+  const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
+  const navCatIdx = navCategories.indexOf(selectedCategory);
+  const prevCatNav = navCatIdx > 0 ? navCategories[navCatIdx - 1] : null;
+  const nextCatNav = navCatIdx < navCategories.length - 1 ? navCategories[navCatIdx + 1] : null;
+
+  const scheduleNarrate = (idx, delay = 150) => {
+    const st = narrationStateRef.current;
+    clearTimeout(st.pendingNarrateTimer);
+    st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory?.(idx); }, delay);
+  };
+
+  const goNext = () => {
+    const isLast = storyIndex === stories.length - 1;
+    if (!isLast) {
+      const newIdx = storyIndex + 1;
+      setStoryIndex(newIdx);
+      if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(newIdx); }
+      else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+    } else if (repeatMode) {
+      setStoryIndex(0);
+      if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(0); }
+      else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+    } else if (nextCatNav) {
+      handleSelectCategory(nextCatNav); setStoryIndex(0);
+      if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); narrationStateRef.current.pendingLoad = !isPaused; }
+    }
+  };
+
+  const goPrev = () => {
+    const isFirst = storyIndex === 0;
+    if (!isFirst) {
+      const newIdx = storyIndex - 1;
+      setStoryIndex(newIdx);
+      if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(newIdx); }
+      else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+    } else if (prevCatNav) {
+      if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); narrationStateRef.current.pendingLoad = !isPaused; }
+      else { goToLastStoryRef.current = true; }
+      handleSelectCategory(prevCatNav);
+    }
+  };
+
+  storyGoRef.current = { goNext, goPrev };
+
+  const onPlayFrom = (idx) => {
+    if (isNarrating) narrateFnRef.current.stop();
+    const st = narrationStateRef.current;
+    st.active = true; st.pendingLoad = false; st.audio = null; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(idx);
+    narrateFnRef.current.narrateStory(idx);
+  };
+
+  const handleSpeedCycle = () => {
+    const SPEEDS_LIST = [0.75, 1, 1.25, 1.5, 2];
+    const si = SPEEDS_LIST.indexOf(playbackSpeed);
+    const next = SPEEDS_LIST[(si + 1) % SPEEDS_LIST.length];
+    playbackSpeedRef.current = next;
+    setPlaybackSpeed(next);
+    if (narrationStateRef.current.audio) narrationStateRef.current.audio.playbackRate = next;
+  };
+
+  const handleRepeatToggle = () => {
+    const next = !repeatModeRef.current;
+    repeatModeRef.current = next;
+    setRepeatMode(next);
+  };
+
+  const handlePlayBriefing = () => {
+    const firstCat = defaultCategories.find(c => briefingData[c]?.storyCount > 0) || defaultCategories[0];
+    if (isNarrating) narrateFnRef.current.stop();
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(0);
+    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    if (selectedCategory === firstCat && stories.length > 0) {
+      narrateFnRef.current.narrateStory(0);
+    } else {
+      st.pendingLoad = true;
+      handleSelectCategory(firstCat);
+    }
+  };
+
+  const handlePlayCategory = (cat) => {
+    if (isNarrating) narrateFnRef.current.stop();
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(0);
+    navigate(`/category/${encodeURIComponent(cat)}`);
+    if (selectedCategory === cat && stories.length > 0) {
+      narrateFnRef.current.narrateStory(0);
+    } else {
+      st.pendingLoad = true;
+      handleSelectCategory(cat);
+    }
+  };
+
+  // ── URL-based routing ────────────────────────────────────────────────────────
+  const isSettingsPath = location.pathname === '/settings';
+  const catOnlyMatch = location.pathname.match(/^\/category\/([^/]+)$/);
+  const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
+  const catFromUrl = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
+  const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
+  const isHome = !catFromUrl && !isSettingsPath;
+  const isCategoryView = !!catOnlyMatch;
+  const isStoryView = !!storyRouteMatch;
+  const currentStory = stories[storyIdxFromUrl ?? storyIndex] || null;
+  const miniPlayerVisible = playerVisible && playerMinimized;
 
   return (
-    <div style={viewMode === 'stories' && isMobile && currentView === 'home' ? { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : { background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)', minHeight: '100vh', overflowY: 'scroll', overflowX: 'hidden' }}>
-      <style>{`
-        html { overflow-y: scroll; }
-        body { overflow-y: scroll; }
-        ${viewMode === 'stories' && isMobile && currentView === 'home' ? 'html, body { overflow: hidden !important; position: fixed; width: 100%; }' : ''}
-        * { box-sizing: border-box; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-      `}</style>
-
-      {/* ── Header ── */}
-      <header style={{ background: 'white', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
-        {/* Brand row */}
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: viewMode === 'stories' && currentView === 'home' ? `0.6rem ${isMobile ? '1rem' : '2rem'}` : `1.25rem ${isMobile ? '1rem' : '2rem'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1rem', transition: 'padding 0.2s' }}>
-          <div onClick={() => setCurrentView('home')} style={{ display: 'flex', alignItems: 'center', gap: windowWidth < 480 ? '0.4rem' : '0.65rem', flexShrink: 0, cursor: 'pointer' }}>
-            <Sparkles size={windowWidth < 480 ? 16 : windowWidth < 640 ? 20 : 26} color="#111827" />
-            <h1 style={{ fontSize: windowWidth < 480 ? '0.95rem' : windowWidth < 640 ? '1.2rem' : '1.6rem', fontWeight: '900', margin: 0, color: '#111827', whiteSpace: 'nowrap' }}>
-              The Rundown
-            </h1>
-          </div>
-
-          {/* View toggle — always visible, icon-only on small screens */}
-          {currentView === 'home' && (
-            <div style={{ display: 'flex', gap: '2px', background: '#f3f4f6', borderRadius: '999px', padding: windowWidth < 480 ? '2px' : '3px', flexShrink: 0, marginLeft: 'auto' }}>
-              {[['stories', 'audio'], ['digest', 'read']].map(([mode, type]) => (
-                <button key={mode} onClick={() => mode === 'stories' ? enterStories() : exitStories()}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: windowWidth < 480 ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: windowWidth < 480 ? '0.68rem' : '0.75rem', fontWeight: '700', background: viewMode === mode ? 'white' : 'transparent', color: viewMode === mode ? '#111827' : '#9ca3af', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                  {type === 'audio' ? <><Headphones size={windowWidth < 480 ? 11 : 12} />Audio</> : <>≡ Read</>}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-              {user && CUSTOM_CATEGORIES_ENABLED && (
-                <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.55rem 1.1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
-                  <Plus size={15} /> Add Category
-                </button>
-              )}
-              {user ? (
-                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.5rem 0.95rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>
-                  <User size={15} /> {user.email}
-                </button>
-              ) : (
-                <button onClick={() => setCurrentView('settings')} style={{ padding: '0.55rem 0.95rem', background: '#f3f4f6', border: 'none', borderRadius: '999px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>
-                  <Settings size={15} /> Settings
-                </button>
-              )}
-            </div>
-          )}
-
-          {isMobile && (
-            <button onClick={() => { setCurrentView(currentView === 'settings' ? 'home' : 'settings'); setShowMobileMenu(false); }} style={{ padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#374151' }}>
-              {currentView === 'settings' ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          )}
-        </div>
-
-        {/* Category nav — hidden in stories mode and settings */}
-        {windowWidth > 1100 && !(viewMode === 'stories' && currentView === 'home') && currentView !== 'settings' && (
-          <div style={{ borderTop: '1px solid #f3f4f6' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 0.5rem', display: 'flex', alignItems: 'stretch' }}>
-              {showCategoryLeftArrow && (
-                <button onClick={() => { categoryScrollRef.current.scrollBy({ left: -200, behavior: 'smooth' }); }} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.4rem', fontSize: '1.1rem' }}>‹</button>
-              )}
-              <div ref={categoryScrollRef} style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
-                {/* ── My Rundown pinned tab ── */}
-                <button onClick={() => { if (!user) { setShowAuth(true); setAuthMode('signin'); } else if (feedCategories.length === 0) { setFeedPickerDraft([]); setShowFeedPicker(true); } else handleSelectCategory('My Rundown'); }} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === 'My Rundown' ? `2.5px solid ${MY_FEED_COLOR}` : '2.5px solid transparent', color: selectedCategory === 'My Rundown' ? MY_FEED_COLOR : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === 'My Rundown' ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  ★ My Rundown
-                </button>
-                <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
-                {defaultCategories.map((category, idx) => (
-                  <React.Fragment key={category}>
-                    {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
-                      <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
-                    )}
-                    <button onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? `2.5px solid ${CATEGORY_COLORS[category] || '#6366f1'}` : '2.5px solid transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
-                      {category}
-                    </button>
-                  </React.Fragment>
-                ))}
-                {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
-                  <>
-                    <span style={{ width: '1px', background: '#e5e7eb', margin: '0.5rem 0.4rem', flexShrink: 0 }} />
-                    {customCategories.map(category => (
-                      <button key={category} onClick={() => handleSelectCategory(category)} style={{ padding: '0.65rem 1.1rem', background: 'none', border: 'none', borderBottom: selectedCategory === category ? '2.5px solid #ec4899' : '2.5px solid transparent', color: selectedCategory === category ? '#ec4899' : '#6b7280', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.88rem', whiteSpace: 'nowrap', transition: 'all 0.15s ease', letterSpacing: '-0.01em' }}>
-                        {category}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-              {showCategoryRightArrow && (
-                <button onClick={() => { categoryScrollRef.current.scrollBy({ left: 200, behavior: 'smooth' }); }} style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.4rem', fontSize: '1.1rem' }}>›</button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Mobile menu */}
-        {isMobile && showMobileMenu && (
-          <div style={{ background: 'white', borderTop: '1px solid #f3f4f6', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {user && (
-              <>
-                {CUSTOM_CATEGORIES_ENABLED && (
-                  <button onClick={() => setShowCategoryModal(true)} style={{ padding: '0.6rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '700' }}>
-                    <Plus size={14} /> Add Custom Category
-                  </button>
-                )}
-                <button onClick={() => { setCurrentView('settings'); setShowMobileMenu(false); }} style={{ padding: '0.6rem 1rem', background: 'none', border: '1px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Settings size={14} /> Settings
-                </button>
-                <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); setShowMobileMenu(false); setCurrentView('home'); }} style={{ padding: '0.6rem 1rem', background: 'none', border: '1px solid #fee2e2', borderRadius: '999px', cursor: 'pointer', fontSize: '0.88rem', color: '#e74c3c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <LogOut size={14} /> Sign Out
-                </button>
-              </>
-            )}
-            {!user && (
-              <button onClick={() => { setCurrentView('settings'); setShowMobileMenu(false); }} style={{ padding: '0.6rem 1rem', background: 'none', border: '1px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', fontSize: '0.88rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Settings size={14} /> Settings
-              </button>
-            )}
-          </div>
-        )}
-      </header>
-
-      {/* ── My Rundown Picker Modal ── */}
-      {showFeedPicker && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowFeedPicker(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: '540px', maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)' }}>
-            {/* Handle bar */}
-            <div style={{ width: '36px', height: '4px', background: '#e5e7eb', borderRadius: '99px', margin: '0 auto 1.25rem' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: '#111827' }}>Customize My Rundown</h3>
-              <button onClick={() => setShowFeedPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.25rem' }}><X size={18} /></button>
-            </div>
-            <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to select. Numbers show the order stories appear.</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {defaultCategories.map((cat) => {
-                const pos = feedPickerDraft.indexOf(cat);
-                const isSelected = pos !== -1;
-                const color = CATEGORY_COLORS[cat] || '#6366f1';
-                return (
-                  <button key={cat} onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
-                    {isSelected && (
-                      <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
-                    )}
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>{feedPickerDraft.length} {feedPickerDraft.length === 1 ? 'category' : 'categories'} selected</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {feedPickerDraft.length > 0 && (
-                  <button onClick={() => setFeedPickerDraft([])} style={{ padding: '0.55rem 1rem', background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '999px', cursor: 'pointer', color: '#6b7280', fontSize: '0.82rem', fontWeight: '600' }}>Clear</button>
-                )}
-                <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory('My Rundown'); }} style={{ padding: '0.55rem 1.4rem', background: feedPickerDraft.length === 0 ? '#f3f4f6' : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: feedPickerDraft.length === 0 ? '#9ca3af' : 'white', border: 'none', borderRadius: '999px', cursor: feedPickerDraft.length === 0 ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.88rem', transition: 'all 0.15s' }}>Save Feed</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    <div style={{ background: '#09090f', minHeight: '100dvh' }}>
+      <style>{`* { box-sizing: border-box; } html, body { background: #09090f; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {/* ── Auth Modal ── */}
       {showAuth && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '380px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '1.5rem', textAlign: 'center', color: '#111827' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#18181f', borderRadius: '20px', padding: '2rem', maxWidth: '380px', width: '90%', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '1.5rem', textAlign: 'center', color: 'white' }}>
               {authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </h2>
             {authMessage && (
-              <div style={{
-                marginBottom: '1.1rem', padding: '0.85rem 1rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: '1.5',
-                background: authMessage.type === 'error' ? '#fef2f2' : authMessage.type === 'success' ? '#f0fdf4' : '#eff6ff',
-                color: authMessage.type === 'error' ? '#991b1b' : authMessage.type === 'success' ? '#166534' : '#1e40af',
-                border: `1.5px solid ${authMessage.type === 'error' ? '#fecaca' : authMessage.type === 'success' ? '#bbf7d0' : '#bfdbfe'}`
+              <div style={{ marginBottom: '1.1rem', padding: '0.85rem 1rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: '1.5',
+                background: authMessage.type === 'error' ? 'rgba(239,68,68,0.1)' : authMessage.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(99,102,241,0.1)',
+                color: authMessage.type === 'error' ? '#f87171' : authMessage.type === 'success' ? '#4ade80' : '#a5b4fc',
+                border: `1px solid ${authMessage.type === 'error' ? 'rgba(239,68,68,0.3)' : authMessage.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(99,102,241,0.3)'}`
               }}>
                 {authMessage.text}
               </div>
             )}
-            <input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', outline: 'none' }} />
-            <button onClick={handleAuth} style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem' }}>
+            <input type="email" placeholder="Email" value={email} onChange={e => { setEmail(e.target.value); setAuthMessage(null); }}
+              style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
+            <input type="password" placeholder="Password" value={password} onChange={e => { setPassword(e.target.value); setAuthMessage(null); }}
+              style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
+            <button onClick={handleAuth}
+              style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem' }}>
               {authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
-            <button onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthMessage(null); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+            <button onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthMessage(null); }}
+              style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
               {authMode === 'signin' ? 'Create Account Instead' : 'Sign In Instead'}
             </button>
-            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); setAuthMessage(null); }} style={{ width: '100%', padding: '0.7rem', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.88rem' }}>
+            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); setAuthMessage(null); }}
+              style={{ width: '100%', padding: '0.7rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '0.88rem' }}>
               Close
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Add Category Modal ── */}
-      {CUSTOM_CATEGORIES_ENABLED && showCategoryModal && user && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '1.4rem', color: '#111827' }}>Add Custom Category</h2>
-
-            {customCategories.length > 0 && (
-              <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#fffbeb', border: '1.5px solid #f59e0b', borderRadius: '10px', fontSize: '0.83rem', color: '#92400e' }}>
-                ⚠️ You already track "{customCategories[0]}". Saving will replace it.
-              </div>
-            )}
-
-            <div style={{ marginBottom: '1.1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Category Title</label>
-                <span style={{ fontSize: '0.75rem', color: newCategory.length >= 25 ? '#ef4444' : '#9ca3af' }}>{newCategory.length}/25</span>
-              </div>
-              <input
-                type="text"
-                placeholder="e.g., Lakers"
-                value={newCategory}
-                maxLength={25}
-                onChange={(e) => setNewCategory(e.target.value)}
-                style={{ width: '100%', padding: '0.78rem 1rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', boxSizing: 'border-box' }}
-              />
-              <p style={{ fontSize: '0.73rem', color: '#9ca3af', marginTop: '0.3rem', marginBottom: 0 }}>Shown on the category pill — keep it short</p>
+      {/* ── FeedPicker Modal ── */}
+      {showFeedPicker && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowFeedPicker(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#18181f', borderRadius: '20px 20px 0 0', padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: '540px', maxHeight: '82vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '0 auto 1.25rem' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>Customize My Rundown</h3>
+              <button onClick={() => setShowFeedPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '0.25rem' }}><X size={18} /></button>
             </div>
-
-            <div style={{ marginBottom: '1.4rem', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#374151' }}>Description</label>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>used for news generation</span>
-              </div>
-              <textarea
-                placeholder="e.g., Los Angeles Lakers NBA playoffs, trades, and team news"
-                value={newCategoryDescription}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setNewCategoryDescription(val);
-                  setSelectedSharedKey(null);
-                  if (val.trim().length > 2) {
-                    clearTimeout(window._suggTimeout);
-                    window._suggTimeout = setTimeout(async () => {
-                      try {
-                        const res = await fetch(`${BACKEND_URL}/api/categories/suggestions?q=${encodeURIComponent(val)}`);
-                        const suggestions = await res.json();
-                        setCategorySuggestions(Array.isArray(suggestions) ? suggestions : []);
-                      } catch { setCategorySuggestions([]); }
-                    }, 700);
-                  } else {
-                    setCategorySuggestions([]);
-                  }
-                }}
-                rows={3}
-                style={{ width: '100%', padding: '0.78rem 1rem', border: '1.5px solid #e5e7eb', borderRadius: '10px', fontSize: '0.93rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
-              {categorySuggestions.length > 0 && (
-                <div style={{ position: 'absolute', left: 0, right: 0, background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '180px', overflowY: 'auto' }}>
-                  {categorySuggestions.map((s, i) => (
-                    <button key={i} onClick={() => { setNewCategoryDescription(s.description); setSelectedSharedKey(s.shared_key); setCategorySuggestions([]); }} style={{ display: 'block', width: '100%', padding: '0.6rem 1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#374151', borderBottom: i < categorySuggestions.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                      <div style={{ fontWeight: '500' }}>{s.description}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.1rem' }}>Join existing category · no generation needed</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {categoryLockedToday ? (
-              <div style={{ marginBottom: '0.6rem', padding: '0.75rem 1rem', background: '#f3f4f6', borderRadius: '10px', fontSize: '0.83rem', color: '#6b7280', textAlign: 'center' }}>
-                You've used your category change for today. You can create a new one tomorrow.
-              </div>
-            ) : (
-              <button onClick={handleAddCategory} disabled={!newCategory.trim()} style={{ width: '100%', padding: '0.82rem', background: newCategory.trim() ? 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' : '#e5e7eb', color: newCategory.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: '999px', cursor: newCategory.trim() ? 'pointer' : 'not-allowed', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', transition: 'all 0.15s' }}>
-                {customCategories.length > 0 ? 'Replace & Save' : 'Add Category'}
-              </button>
-            )}
-            <button onClick={() => { setShowCategoryModal(false); setNewCategory(''); setNewCategoryDescription(''); setSelectedSharedKey(null); setCategorySuggestions([]); }} style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Main Content ── */}
-      {currentView === 'home' && (
-        <main style={viewMode === 'stories' && isMobile ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: '0', position: 'relative' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
-
-          {/* Mobile trigger buttons — hidden in stories mode */}
-          <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {windowWidth <= 1100 && (
-              <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} style={{ padding: '0.42rem 0.9rem', background: 'rgba(99,102,241,0.08)', border: '1.5px solid #6366f1', borderRadius: '999px', color: '#6366f1', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem' }}>
-                ☰ {selectedCategory}
-              </button>
-            )}
-            {windowWidth <= 900 && (
-              <button onClick={() => setShowDayMenu(!showDayMenu)} style={{ padding: '0.42rem 0.9rem', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#374151', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem' }}>
-                📅 {availableDays.find(d => d.fullDate === selectedDay)?.label || 'Days'}
-              </button>
-            )}
-            {windowWidth <= 750 && !isCustomCategory && (
-              <button onClick={() => setShowTimeMenu(!showTimeMenu)} style={{ padding: '0.42rem 0.9rem', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '999px', color: '#374151', cursor: 'pointer', fontWeight: '600', fontSize: '0.82rem' }}>
-                🕐 {availableTimes.find(t => t.value === selectedTime)?.label || 'Times'}
-              </button>
-            )}
-          </div>
-
-          {/* Day + Time navigation — standard categories, hidden in stories mode */}
-          {viewMode !== 'stories' && windowWidth > 900 && !isCustomCategory && (
-            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
-              <div ref={dayScrollRef} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none', flex: 1 }}>
-                {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => selectDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
-                    {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
-                  </button>
-                ))}
-                <button onClick={() => { const n = weekOffset + 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset >= 0} style={navArrow(weekOffset >= 0)}>›</button>
-              </div>
-              <div style={{ width: '1px', height: '20px', background: '#e5e7eb', margin: '0 0.2rem' }} />
-              {availableTimes.map(time => {
-                const unavail = isSlotUnavailable(selectedDay, time.value);
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to select. Numbers show the order stories appear.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              {defaultCategories.map(cat => {
+                const pos = feedPickerDraft.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
                 return (
-                  <button key={time.value} onClick={() => !unavail && setSelectedTime(time.value)} disabled={unavail} style={timePill(selectedTime === time.value, unavail)}>
-                    <span>{time.label}</span>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '400', opacity: 0.75 }}>{time.time}</span>
+                  <button key={cat} onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                    {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
+                    {cat}
                   </button>
                 );
               })}
             </div>
-          )}
-
-          {/* Day row — custom categories (no time pills for custom), hidden in stories mode */}
-          {viewMode !== 'stories' && windowWidth > 750 && isCustomCategory && (
-            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', background: 'white', padding: '0.55rem 0.75rem', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              {availableDays.map(day => (
-                <button key={day.fullDate} onClick={() => selectDay(day.fullDate)} style={dayPill(selectedDay === day.fullDate, false)}>
-                  {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* ── Depth toggle — Read mode, below day/time nav, catColor active ── */}
-          {viewMode !== 'stories' && (
-            <div style={{ display: 'flex', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', gap: '3px', background: '#f3f4f6', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
-                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? catColor : 'transparent', color: depthLevel === level ? 'white' : '#9ca3af', boxShadow: depthLevel === level ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
-                    {label}
-                  </button>
-                ))}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>{feedPickerDraft.length} {feedPickerDraft.length === 1 ? 'category' : 'categories'} selected</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {feedPickerDraft.length > 0 && <button onClick={() => setFeedPickerDraft([])} style={{ padding: '0.55rem 1rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontWeight: '600' }}>Clear</button>}
+                <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory('My Rundown'); }}
+                  style={{ padding: '0.55rem 1.4rem', background: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.25)' : 'white', border: 'none', borderRadius: '999px', cursor: feedPickerDraft.length === 0 ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Save Feed</button>
               </div>
-            </div>
-          )}
-
-          {/* Slide-out: categories */}
-          {showCategoryMenu && windowWidth <= 1100 && slidePanel(
-            <div style={{ padding: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#111827' }}>Categories</h3>
-                <button onClick={() => setShowCategoryMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {/* My Rundown in mobile panel */}
-                <button onClick={() => { if (!user) { setShowAuth(true); setAuthMode('signin'); setShowCategoryMenu(false); } else if (feedCategories.length === 0) { setFeedPickerDraft([]); setShowFeedPicker(true); setShowCategoryMenu(false); } else { handleSelectCategory('My Rundown'); setShowCategoryMenu(false); } }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === 'My Rundown' ? `${MY_FEED_COLOR}14` : 'transparent', color: selectedCategory === 'My Rundown' ? MY_FEED_COLOR : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === 'My Rundown' ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  ★ My Rundown
-                </button>
-                <div style={{ height: '1px', background: '#f3f4f6', margin: '0.15rem 0' }} />
-                {defaultCategories.map((category, idx) => (
-                  <React.Fragment key={category}>
-                    {REGIONAL_CATEGORIES.includes(category) && !REGIONAL_CATEGORIES.includes(defaultCategories[idx - 1]) && (
-                      <div style={{ margin: '0.4rem 0 0.15rem 0.9rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Regional</span>
-                      </div>
-                    )}
-                    <button onClick={() => { handleSelectCategory(category); setShowCategoryMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === category ? `${CATEGORY_COLORS[category] || '#6366f1'}14` : 'transparent', color: selectedCategory === category ? (CATEGORY_COLORS[category] || '#6366f1') : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
-                      {category}
-                    </button>
-                  </React.Fragment>
-                ))}
-                {CUSTOM_CATEGORIES_ENABLED && customCategories.length > 0 && (
-                  <>
-                    <div style={{ margin: '0.5rem 0 0.25rem', padding: '0 0.9rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Custom</span>
-                    </div>
-                    {customCategories.map(category => (
-                      <button key={category} onClick={() => { handleSelectCategory(category); setShowCategoryMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedCategory === category ? 'rgba(236,72,153,0.08)' : 'transparent', color: selectedCategory === category ? '#ec4899' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedCategory === category ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
-                        {category}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Slide-out: days */}
-          {showDayMenu && windowWidth <= 900 && slidePanel(
-            <div style={{ padding: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#111827' }}>Days</h3>
-                <button onClick={() => setShowDayMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
-              </div>
-              {/* Week navigation inside mobile panel */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', background: '#f9fafb', borderRadius: '10px', padding: '0.3rem 0.5rem' }}>
-                <button onClick={() => { const n = weekOffset - 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset <= -3} style={navArrow(weekOffset <= -3)}>‹</button>
-                <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#6b7280' }}>
-                  {weekOffset === 0 ? 'This week' : weekOffset === -1 ? 'Last week' : `${Math.abs(weekOffset)} weeks ago`}
-                </span>
-                <button onClick={() => { const n = weekOffset + 1; setWeekOffset(n); setSelectedDay(getDaysOfWeek(n)[6].fullDate); }} disabled={weekOffset >= 0} style={navArrow(weekOffset >= 0)}>›</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {availableDays.map(day => (
-                  <button key={day.fullDate} onClick={() => { selectDay(day.fullDate); setShowDayMenu(false); }} style={{ padding: '0.62rem 0.9rem', background: selectedDay === day.fullDate ? '#111827' : 'transparent', color: selectedDay === day.fullDate ? 'white' : '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: selectedDay === day.fullDate ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease' }}>
-                    {day.fullDate === today ? 'Today' : `${day.label} ${day.date}`}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Slide-out: times */}
-          {showTimeMenu && windowWidth <= 750 && !isCustomCategory && slidePanel(
-            <div style={{ padding: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#111827' }}>Times</h3>
-                <button onClick={() => setShowTimeMenu(false)} style={{ padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}>✕</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {availableTimes.map(time => {
-                  const unavail = isSlotUnavailable(selectedDay, time.value);
-                  return (
-                    <button key={time.value} onClick={() => { if (!unavail) { setSelectedTime(time.value); setShowTimeMenu(false); } }} disabled={unavail} style={{ padding: '0.62rem 0.9rem', background: selectedTime === time.value ? 'linear-gradient(135deg,#6366f1,#ec4899)' : 'transparent', color: selectedTime === time.value ? 'white' : unavail ? '#d1d5db' : '#374151', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontWeight: selectedTime === time.value ? '700' : '500', fontSize: '0.9rem', textAlign: 'left', transition: 'all 0.12s ease', opacity: unavail ? 0.45 : 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{time.label}</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.6 }}>{time.time}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ── Depth toggle — Stories mode ── */}
-          {/* On mobile: overlays the card top (position:absolute) so it steals no height */}
-          {/* On desktop: sits above the card as a normal flow element */}
-          {viewMode === 'stories' && (
-            <div style={isMobile ? { position: 'absolute', top: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'auto' } : { display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
-              <div style={{ display: 'flex', gap: '3px', background: isMobile ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)', borderRadius: '999px', padding: '3px' }}>
-                {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
-                  <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : isMobile ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── News Card ── */}
-          <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: isMobile ? 0 : '20px', boxShadow: isMobile ? 'none' : '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: isMobile ? 'none' : '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : 'calc(100dvh - 148px)', margin: isMobile ? 0 : '1.5rem auto 0' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
-            onTouchStart={viewMode === 'stories' ? (e) => {
-              swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
-            } : undefined}
-            onTouchEnd={viewMode === 'stories' ? (e) => {
-              if (!swipeTouchRef.current) return;
-              const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
-              const dy = e.changedTouches[0].clientY - swipeTouchRef.current.y;
-              // Only fire when horizontal movement is dominant and exceeds 50px threshold
-              if (Math.abs(dx) >= 50 && Math.abs(dx) >= Math.abs(dy) * 1.5) {
-                swipeTouchRef.current.swiped = true;
-                const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
-                const catIdx = _navCats.indexOf(selectedCategory);
-                const isFirst = storyIndex === 0;
-                const isLast  = storyIndex === stories.length - 1;
-                const prevCat = catIdx > 0 ? _navCats[catIdx - 1] : null;
-                const nextCat = catIdx < _navCats.length - 1 ? _navCats[catIdx + 1] : null;
-                if (dx < 0) {
-                  // Swipe left → next
-                  if (!isLast) setStoryIndex(i => i + 1);
-                  else if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); }
-                } else {
-                  // Swipe right → previous
-                  if (!isFirst) setStoryIndex(i => i - 1);
-                  else if (prevCat) { goToLastStoryRef.current = true; handleSelectCategory(prevCat); }
-                }
-              }
-              swipeTouchRef.current = null;
-            } : undefined}
-            onClick={viewMode === 'stories' ? (e) => {
-              // Skip if the tap was part of a swipe gesture
-              if (swipeTouchRef.current?.swiped) return;
-              // Skip if click originated on an interactive element
-              if (e.target.closest('button, a, input, select, textarea, [role="button"]')) return;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const relX = e.clientX - rect.left;
-              if (relX < rect.width * 0.4) {
-                storyGoRef.current.goPrev?.();
-              } else if (relX > rect.width * 0.6) {
-                storyGoRef.current.goNext?.();
-              }
-            } : undefined}
-          >
-
-            {/* Radial glow overlay — matches mock's category-colour ambient light */}
-            {viewMode === 'stories' && (
-              <div style={{ position: 'absolute', inset: 0, background: storyGlowBg, pointerEvents: 'none', zIndex: 0 }} />
-            )}
-
-            {/* Progress bar — flush to very top of card, outside padding */}
-            {/* On mobile: extra top padding so story dots clear the depth-toggle overlay */}
-            {viewMode === 'stories' && stories.length > 0 && (
-              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: isMobile ? '58px 12px 0' : '10px 12px 0', flexShrink: 0 }}>
-                {stories.map((s, i) => (
-                  <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.7 : 1, transition: 'all 0.2s' }} />
-                ))}
-              </div>
-            )}
-
-            <div style={viewMode === 'stories' ? { position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: 0 } : { padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem' }}>
-              {selectedCategory === 'My Rundown' && !user ? (
-                /* Guest: sign-in prompt */
-                <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>★</div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: '0 0 0.5rem', color: '#111827' }}>My Rundown</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.6 }}>Sign in to build your personal feed — choose your categories and it follows you across all your devices.</p>
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ padding: '0.65rem 1.5rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem' }}>Sign in</button>
-                    <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ padding: '0.65rem 1.5rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>Create account</button>
-                  </div>
-                </div>
-              ) : selectedCategory === 'My Rundown' && user && feedCategories.length === 0 ? (
-                /* Logged in but no feed configured yet */
-                <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '400px', margin: '0 auto' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>★</div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: '0 0 0.5rem', color: '#111827' }}>Build Your Feed</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.6 }}>Choose the categories you want — tap them in the order you'd like stories to appear.</p>
-                  <button onClick={() => { setFeedPickerDraft([]); setShowFeedPicker(true); }} style={{ padding: '0.7rem 1.8rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem' }}>Choose Categories</button>
-                </div>
-              ) : newsLoading ? (
-                viewMode === 'stories' ? (() => {
-                  const PLAYER_H = 130;
-                  const isMyFeed = selectedCategory === 'My Rundown';
-                  const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
-                  const _navCats = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
-                  const catIdx = _navCats.indexOf(selectedCategory);
-                  const prevCat = catIdx > 0 ? _navCats[catIdx - 1] : null;
-                  const nextCat = catIdx < _navCats.length - 1 ? _navCats[catIdx + 1] : null;
-                  const hexToRgb = (hex) => { const h = (hex.startsWith('#') ? hex.slice(1) : hex).padEnd(6,'0'); return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`; };
-                  const colorRgb = hexToRgb(storyCardColor);
-                  return (
-                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-                      {/* Scrollable area */}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: `${PLAYER_H}px`, overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        <div style={{ padding: '0.5rem 1.25rem 1.5rem' }}>
-                          {/* Header */}
-                          <div style={{ marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                              <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
-                                {isMyFeed ? '★ My Rundown' : selectedCategory}
-                                <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                              <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
-                                {dayLabel}<ChevronDown size={9} style={{ opacity: 0.5 }} />
-                              </button>
-                              <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
-                              <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
-                                {selectedTime}<ChevronDown size={9} style={{ opacity: 0.5 }} />
-                              </button>
-                            </div>
-                          </div>
-                          {/* Loading body */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingTop: '3rem' }}>
-                            {customCategories.includes(selectedCategory) ? (
-                              <div style={{ maxWidth: '260px' }}>
-                                <div style={{ fontSize: '1.6rem', marginBottom: '0.75rem' }}>🔍</div>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: '700', margin: '0 0 0.35rem', color: 'white' }}>Generating Custom News</h3>
-                                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
-                                  {generationProgress < 30 ? 'Searching the web…' : generationProgress < 65 ? 'Reading sources…' : generationProgress < 90 ? 'Compiling summary…' : 'Almost done…'}
-                                </p>
-                                <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '999px', height: '4px', overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', borderRadius: '999px', background: storyCardColor, width: `${generationProgress}%`, transition: 'width 0.4s ease' }} />
-                                </div>
-                                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', margin: '0.5rem 0 0' }}>{Math.round(generationProgress)}%</p>
-                              </div>
-                            ) : (
-                              <>
-                                <div style={{ display: 'inline-block', animation: 'spin 2s linear infinite', marginBottom: '0.75rem' }}>
-                                  <Loader size={32} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
-                                </div>
-                                <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>Loading news…</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Player bar — same as loaded state, all controls disabled */}
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
-                        {/* Scrubber row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center' }}>
-                              <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px' }} />
-                            </div>
-                          </div>
-                          <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}>1×</span>
-                        </div>
-                        {/* Controls row */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <button onClick={() => { if (prevCat) handleSelectCategory(prevCat); }} disabled={!prevCat} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: prevCat ? 'pointer' : 'not-allowed', padding: '4px', color: prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
-                            <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                          </button>
-                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <Play size={22} style={{ transform: 'scaleX(-1)' }} />
-                          </button>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: `rgba(${colorRgb},0.35)`, flexShrink: 0 }}>
-                            <Play size={22} style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '2px' }} />
-                          </div>
-                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <Play size={22} />
-                          </button>
-                          <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); } }} disabled={!nextCat} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
-                            <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                          </button>
-                        </div>
-                      </div>
-                      {/* Picker popovers */}
-                      {storiesPicker && (
-                        <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
-                          <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
-                            {storiesPicker === 'category' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
-                              {user && feedCategories.length > 0 && (<><button style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: selectedCategory === 'My Rundown' ? '700' : '500', background: selectedCategory === 'My Rundown' ? `${MY_FEED_COLOR}18` : 'transparent', color: selectedCategory === 'My Rundown' ? MY_FEED_COLOR : '#374151' }} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button><div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} /></>)}
-                              {allCategories.map(cat => (<button key={cat} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: cat === selectedCategory ? '700' : '500', background: cat === selectedCategory ? `${CATEGORY_COLORS[cat] || '#ec4899'}18` : 'transparent', color: cat === selectedCategory ? (CATEGORY_COLORS[cat] || '#ec4899') : '#374151' }} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>))}
-                            </>)}
-                            {storiesPicker === 'day' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                              {availableDays.map(day => (<button key={day.fullDate} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: day.fullDate === selectedDay ? '700' : '500', background: day.fullDate === selectedDay ? 'rgba(99,102,241,0.1)' : 'transparent', color: day.fullDate === selectedDay ? '#6366f1' : '#374151' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
-                            </>)}
-                            {storiesPicker === 'time' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                              {availableTimes.map(time => { const unavail = isSlotUnavailable(selectedDay, time.value); return (<button key={time.value} disabled={unavail} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: time.value === selectedTime ? '700' : '500', background: time.value === selectedTime ? 'rgba(99,102,241,0.1)' : 'transparent', color: time.value === selectedTime ? '#6366f1' : '#374151', opacity: unavail ? 0.4 : 1 }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>{time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span></button>); })}
-                            </>)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })() : (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  {customCategories.includes(selectedCategory) ? (
-                    <div style={{ maxWidth: '360px', margin: '0 auto' }}>
-                      <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.35rem', color: '#111827' }}>
-                        Generating Custom News
-                      </h3>
-                      <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>
-                        {generationProgress < 30 ? 'Searching the web…' : generationProgress < 65 ? 'Reading sources…' : generationProgress < 90 ? 'Compiling summary…' : 'Almost done…'}
-                      </p>
-                      <div style={{ background: '#f3f4f6', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: '999px', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', width: `${generationProgress}%`, transition: 'width 0.4s ease' }} />
-                      </div>
-                      <p style={{ color: '#d1d5db', fontSize: '0.75rem', margin: '0.6rem 0 0' }}>{Math.round(generationProgress)}%</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display: 'inline-block', animation: 'spin 2s linear infinite' }}>
-                        <Loader size={48} color="#6366f1" strokeWidth={1.5} />
-                      </div>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '1.5rem 0 0.4rem', color: '#111827' }}>Loading Your News</h3>
-                      <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>Retrieving news…</p>
-                    </>
-                  )}
-                </div>
-                )
-              ) : (newsNotAvailable || (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime))) && !newsSummary ? (
-                viewMode === 'stories' ? (() => {
-                  const isMyFeed2 = selectedCategory === 'My Rundown';
-                  const dayLabel2 = (() => { const d = daysOfWeek.find(d => d.fullDate === selectedDay); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : selectedDay; })();
-                  const _navCats2 = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
-                  const _catIdx2 = _navCats2.indexOf(selectedCategory);
-                  const prevCat2 = _catIdx2 > 0 ? _navCats2[_catIdx2 - 1] : null;
-                  const nextCat2 = _catIdx2 < _navCats2.length - 1 ? _navCats2[_catIdx2 + 1] : null;
-                  const hexToRgb2 = (hex) => { const h = (hex.startsWith('#') ? hex.slice(1) : hex).padEnd(6,'0'); return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`; };
-                  const colorRgb2 = hexToRgb2(storyCardColor);
-                  const PLAYER_H2 = 130;
-                  return (
-                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-                      {/* Scrollable area */}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: `${PLAYER_H2}px`, overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        <div style={{ padding: '0.5rem 1.25rem 1.5rem' }}>
-                          {/* Header */}
-                          <div style={{ marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                              <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
-                                {isMyFeed2 ? '★ My Rundown' : selectedCategory}
-                                <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                              <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
-                                {dayLabel2}<ChevronDown size={9} style={{ opacity: 0.5 }} />
-                              </button>
-                              <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
-                              <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px' }}>
-                                {selectedTime}<ChevronDown size={9} style={{ opacity: 0.5 }} />
-                              </button>
-                            </div>
-                          </div>
-                          {/* Not available body */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingTop: '3rem' }}>
-                            <Clock size={32} color="rgba(255,255,255,0.35)" style={{ marginBottom: '0.75rem' }} />
-                            <h3 style={{ fontSize: '0.95rem', fontWeight: '700', margin: '0 0 0.3rem', color: 'white' }}>
-                              {selectedDay === today ? 'Generating…' : 'News Not Available'}
-                            </h3>
-                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>
-                              {selectedDay === today ? 'Check back soon.' : "This summary hasn't been generated."}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Player bar — disabled */}
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                          <Repeat size={14} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center' }}>
-                              <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px' }} />
-                            </div>
-                          </div>
-                          <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '999px', color: 'rgba(255,255,255,0.2)', fontSize: '9px', fontWeight: '700', padding: '3px 7px', whiteSpace: 'nowrap', flexShrink: 0 }}>1×</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <button onClick={() => { if (prevCat2) handleSelectCategory(prevCat2); }} disabled={!prevCat2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: prevCat2 ? 'pointer' : 'not-allowed', padding: '4px', color: prevCat2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
-                            <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                          </button>
-                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <Play size={22} style={{ transform: 'scaleX(-1)' }} />
-                          </button>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', background: `rgba(${colorRgb2},0.35)`, flexShrink: 0 }}>
-                            <Play size={22} style={{ color: 'rgba(255,255,255,0.3)', marginLeft: '2px' }} />
-                          </div>
-                          <button disabled style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'not-allowed', padding: '5px', color: 'rgba(255,255,255,0.15)' }}>
-                            <Play size={22} />
-                          </button>
-                          <button onClick={() => { if (nextCat2) { handleSelectCategory(nextCat2); setStoryIndex(0); } }} disabled={!nextCat2} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat2 ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)' }}>
-                            <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                          </button>
-                        </div>
-                      </div>
-                      {/* Picker popovers */}
-                      {storiesPicker && (
-                        <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
-                          <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
-                            {storiesPicker === 'category' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
-                              {user && feedCategories.length > 0 && (<><button style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: selectedCategory === 'My Rundown' ? '700' : '500', background: selectedCategory === 'My Rundown' ? `${MY_FEED_COLOR}18` : 'transparent', color: selectedCategory === 'My Rundown' ? MY_FEED_COLOR : '#374151' }} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button><div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} /></>)}
-                              {allCategories.map(cat => (<button key={cat} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: cat === selectedCategory ? '700' : '500', background: cat === selectedCategory ? `${CATEGORY_COLORS[cat] || '#ec4899'}18` : 'transparent', color: cat === selectedCategory ? (CATEGORY_COLORS[cat] || '#ec4899') : '#374151' }} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>))}
-                            </>)}
-                            {storiesPicker === 'day' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                              {availableDays.map(day => (<button key={day.fullDate} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: day.fullDate === selectedDay ? '700' : '500', background: day.fullDate === selectedDay ? 'rgba(99,102,241,0.1)' : 'transparent', color: day.fullDate === selectedDay ? '#6366f1' : '#374151' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
-                            </>)}
-                            {storiesPicker === 'time' && (<>
-                              <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                              {availableTimes.map(time => { const unavail = isSlotUnavailable(selectedDay, time.value); return (<button key={time.value} disabled={unavail} style={{ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: unavail ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: time.value === selectedTime ? '700' : '500', background: time.value === selectedTime ? 'rgba(99,102,241,0.1)' : 'transparent', color: time.value === selectedTime ? '#6366f1' : '#374151', opacity: unavail ? 0.4 : 1 }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>{time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span></button>); })}
-                            </>)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })() : (
-                  <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                    <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>
-                      {selectedDay === today ? 'Generating…' : 'News Not Available'}
-                    </h3>
-                    <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>
-                      {selectedDay === today
-                        ? 'News is being generated. This page will refresh automatically when ready.'
-                        : "This summary hasn't been generated."}
-                    </p>
-                  </div>
-                )
-              ) : newsSummary && stories.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  <Clock size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>Content Temporarily Unavailable</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>Today's news couldn't be processed. Check back later — it will update automatically.</p>
-                </div>
-              ) : newsSummary ? (
-                <div style={viewMode === 'stories' ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' } : {}}>
-                  {/* keep ref fresh for keyboard handler */}
-                  {(() => { storyNavRef.current = { idx: storyIndex, stories: stories, cats: allCategories, cat: selectedCategory }; return null; })()}
-                  {viewMode !== 'stories' && (<div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.9rem', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
-                      <div>
-                        <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0, color: catColor, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                          {selectedCategory === 'My Rundown' ? '★ My Rundown' : newsSummary.category}
-                        </h2>
-                        {selectedCategory === 'My Rundown' && (
-                          <button onClick={() => { setFeedPickerDraft([...feedCategories]); setShowFeedPicker(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{feedCategories.join(' · ')}</span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>✎</span>
-                          </button>
-                        )}
-                      </div>
-                      {isNarrating ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                          <button onClick={isPaused ? resumeNarration : pauseNarration} title={isPaused ? 'Resume' : 'Pause'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', transition: 'all 0.2s', flexShrink: 0 }}>
-                            {isPaused ? <Play size={16} /> : <Pause size={16} />}
-                          </button>
-                          <button onClick={restartNarration} title="Restart from beginning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                            <RotateCcw size={16} />
-                          </button>
-                          <button onClick={stopNarration} title="Stop narration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#fee2e2', color: '#ef4444', transition: 'all 0.2s', flexShrink: 0 }}>
-                            <VolumeX size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={startNarration} title="Listen to news" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#f3f4f6', color: '#6b7280', transition: 'all 0.2s', flexShrink: 0 }}>
-                          <Volume2 size={17} />
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '1.1rem', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9ca3af' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Clock size={11} />
-                        <span>{newsSummary.time_slot}</span>
-                      </div>
-                      {selectedCategory !== 'My Rundown' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Sparkles size={11} />
-                          <span>{new Date(newsSummary.generated_at).toLocaleString('en-US', { timeZone: 'Asia/Dubai' })}</span>
-                        </div>
-                      )}
-                      {selectedCategory === 'My Rundown' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Sparkles size={11} />
-                          <span>{stories.length} stories</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>)}
-                  {viewMode !== 'stories' && selectedCategory === 'My Rundown' ? (() => {
-                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                    const labelPerspectives = newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ';
-                    const labelWhy = newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters';
-                    return (
-                      <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                        {stories.map((story, i) => (
-                          <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
-                            <div style={{ marginBottom: '0.45rem' }}>
-                              <span style={{ fontSize: '0.64rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: story.feedCatColor, background: `${story.feedCatColor}14`, padding: '0.18rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
-                            </div>
-                            <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: depthLevel === 'headlines' ? 0 : '0.5rem' }}>{story.headline}</div>
-                            {depthLevel !== 'headlines' && <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '0.4rem' }}>
-                              {(depthLevel === 'deep' ? story.allBullets : story.tightBullets).map((b, bi) => (
-                                <div key={bi} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.5 }}>
-                                  <div style={{ width: '2.5px', minWidth: '2.5px', borderRadius: '99px', background: story.feedCatColor, opacity: 0.35, marginTop: '0.35rem', alignSelf: 'stretch' }} />
-                                  <span>{b}</span>
-                                </div>
-                              ))}
-                            </div>}
-                            {depthLevel !== 'headlines' && story.perspectives && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{labelPerspectives}</span>&nbsp;&nbsp;{story.perspectives}</div>}
-                            {depthLevel !== 'headlines' && story.why && <div style={{ margin: '0.3rem 0 0.4rem', fontSize: '0.8rem', color: '#9ca3af', lineHeight: 1.55 }}><span style={{ fontWeight: '700', color: '#6b7280', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{labelWhy}</span>&nbsp;&nbsp;{story.why}</div>}
-                            {story.storySources?.length > 0 && (
-                              <div style={{ marginTop: depthLevel === 'headlines' ? '0.5rem' : '0.85rem' }}>
-                                {windowWidth >= 600 ? (
-                                  /* Wide: source cards with title */
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                                    {story.storySources.map((s, j) => {
-                                      const domain = getDomain(s.url);
-                                      return (
-                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
-                                          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
-                                          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                            <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                            <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
-                                            <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
-                                          </div>
-                                          <span style={{ fontSize: '0.7rem', fontWeight: s.title ? '600' : '400', color: s.title ? '#1e293b' : '#9ca3af', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: s.title ? 'normal' : 'italic' }}>{s.title || s.outlet || domain}</span>
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  /* Narrow: pills */
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {story.storySources.map((s, j) => {
-                                      const domain = getDomain(s.url);
-                                      return (
-                                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-                                          <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })() : viewMode === 'stories' ? (() => {
-                    const PLAYER_H = 130; // player bar height px (safe-area handled via CSS)
-                    const story = stories[storyIndex];
-                    const displayBullets = story ? (depthLevel === 'deep' ? story.allBullets : story.tightBullets) : [];
-                    const displayPerspectives = story?.perspectives || null;
-                    const displayWhy = story?.why || null;
-                    const isMyFeed = selectedCategory === 'My Rundown';
-                    const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
-                    const catIdx = navCategories.indexOf(selectedCategory);
-                    const prevCat = catIdx > 0 ? navCategories[catIdx - 1] : null;
-                    const nextCat = catIdx < navCategories.length - 1 ? navCategories[catIdx + 1] : null;
-                    const isFirst = storyIndex === 0;
-                    const isLast = storyIndex === stories.length - 1;
-                    const storyColor = isMyFeed && story?.feedCatColor ? story.feedCatColor : catColor;
-                    const storyLabel = isMyFeed && story?.feedCategory ? story.feedCategory : newsSummary.category;
-                    const storySources = story?.storySources || [];
-                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                    const cancelAudioKeepActive = () => narrateFnRef.current.cancelAudioKeepActive?.();
-                    const hexToRgb = (hex) => { const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; };
-                    const colorRgb = hexToRgb(storyColor.startsWith('#') ? storyColor : '#6366f1');
-                    const scrubPct = stories.length <= 1 ? 100 : (storyIndex / (stories.length - 1)) * 100;
-
-                    const scheduleNarrate = (idx, delay = 150) => {
-                      const st = narrationStateRef.current;
-                      clearTimeout(st.pendingNarrateTimer);
-                      st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory?.(idx); }, delay);
-                    };
-                    const goNext = () => {
-                      if (!isLast) {
-                        const newIdx = storyIndex + 1;
-                        setStoryIndex(newIdx);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(newIdx); }
-                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
-                      } else if (repeatMode) {
-                        setStoryIndex(0);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(0); }
-                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
-                      } else if (nextCat) {
-                        handleSelectCategory(nextCat); setStoryIndex(0);
-                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = !isPaused; }
-                      }
-                    };
-                    const goPrev = () => {
-                      if (!isFirst) {
-                        const newIdx = storyIndex - 1;
-                        setStoryIndex(newIdx);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(newIdx); }
-                        else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
-                      } else if (prevCat) {
-                        if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = !isPaused; } else { goToLastStoryRef.current = true; }
-                        handleSelectCategory(prevCat);
-                      }
-                    };
-                    storyGoRef.current = { goNext, goPrev };
-
-                    const dayLabel = (() => { const d = daysOfWeek.find(d => d.fullDate === newsSummary.day); return d ? (d.fullDate === today ? 'Today' : `${d.label} ${d.date}`) : newsSummary.day; })();
-                    const pickerItemStyle = (active, color = catColor) => ({ width: '100%', textAlign: 'left', padding: '0.6rem 0.9rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: active ? '700' : '500', background: active ? `${color}18` : 'transparent', color: active ? color : '#374151', transition: 'background 0.12s' });
-
-                    return (
-                      // position: relative makes it the containing block for all absolute children
-                      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-
-                        {/* ── Picker popovers (fixed so they escape overflow:hidden) ── */}
-                        {storiesPicker && (
-                          <div onClick={() => setStoriesPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
-                            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: '130px', left: '50%', transform: 'translateX(-50%)', width: 'min(380px, calc(100vw - 3rem))', background: 'white', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '0.4rem', zIndex: 301, maxHeight: '55vh', overflowY: 'auto' }}>
-                              {storiesPicker === 'category' && (<>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Category</div>
-                                {user && feedCategories.length > 0 && (<><button style={pickerItemStyle(selectedCategory === 'My Rundown', MY_FEED_COLOR)} onClick={() => { handleSelectCategory('My Rundown'); setStoriesPicker(null); }}>★ My Rundown</button><div style={{ height: '1px', background: '#f3f4f6', margin: '0.2rem 0.5rem' }} /></>)}
-                                {allCategories.map(cat => (<button key={cat} style={pickerItemStyle(cat === selectedCategory, CATEGORY_COLORS[cat] || '#ec4899')} onClick={() => { handleSelectCategory(cat); setStoriesPicker(null); }}>{cat}</button>))}
-                              </>)}
-                              {storiesPicker === 'day' && (<>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Day</div>
-                                {availableDays.map(day => (<button key={day.fullDate} style={{ ...pickerItemStyle(day.fullDate === selectedDay), cursor: 'pointer' }} onClick={() => { selectDay(day.fullDate); setStoriesPicker(null); }}>{day.fullDate === today ? 'Today' : `${day.label}, ${day.date}`}</button>))}
-                              </>)}
-                              {storiesPicker === 'time' && (<>
-                                <div style={{ padding: '0.35rem 0.9rem 0.5rem', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af' }}>Time Slot</div>
-                                {availableTimes.map(time => { const unavail = isSlotUnavailable(selectedDay, time.value); return (<button key={time.value} disabled={unavail} style={{ ...pickerItemStyle(time.value === selectedTime), opacity: unavail ? 0.4 : 1, cursor: unavail ? 'not-allowed' : 'pointer' }} onClick={() => { if (!unavail) { setSelectedTime(time.value); setStoriesPicker(null); } }}>{time.label} <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{time.time}</span></button>); })}
-                              </>)}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ── Scrollable content: absolutely fills from top to player bar ── */}
-                        <div
-                          style={{
-                            position: 'absolute', top: 0, left: 0, right: 0, bottom: `${PLAYER_H}px`,
-                            overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none',
-                            WebkitOverflowScrolling: 'touch',
-                          }}
-                        >
-                          <div style={{ padding: '0.5rem 1.25rem 1.5rem' }}>
-
-                            {/* Compact header */}
-                            <div style={{ marginBottom: '0.75rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                <button onClick={() => setStoriesPicker(p => p === 'category' ? null : 'category')} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.9)', background: storiesPicker === 'category' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', transition: 'background 0.15s' }}>
-                                  {isMyFeed ? '★ My Rundown' : storyLabel}
-                                  <ChevronDown size={13} style={{ opacity: 0.6, transform: storiesPicker === 'category' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                                </button>
-                                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', flexShrink: 0 }}>{storyIndex + 1} / {stories.length}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                                <button onClick={() => setStoriesPicker(p => p === 'day' ? null : 'day')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'day' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
-                                  {dayLabel}<ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'day' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                                </button>
-                                <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>·</span>
-                                <button onClick={() => setStoriesPicker(p => p === 'time' ? null : 'time')} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem', color: storiesPicker === 'time' ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', borderRadius: '4px', transition: 'color 0.15s' }}>
-                                  {newsSummary.time_slot}<ChevronDown size={9} style={{ opacity: 0.5, transform: storiesPicker === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                                </button>
-                              </div>
-                              {isMyFeed && story?.feedCategory && (
-                                <div style={{ marginTop: '0.2rem' }}>
-                                  <span style={{ display: 'inline-block', fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)', padding: '0.15rem 0.55rem', borderRadius: '999px' }}>{story.feedCategory}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Story content */}
-                            {!story ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '3rem' }}>
-                                <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.25)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />
-                              </div>
-                            ) : depthLevel === 'headlines' ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 0', gap: '0.85rem' }}>
-                                <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: 'white', lineHeight: 1.2, textAlign: 'center', margin: 0 }}>{story.headline}</h3>
-                                {storySources.length > 0 && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', justifyContent: 'center' }}>
-                                    {storySources.map((s, j) => { const domain = getDomain(s.url); return (<a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', textDecoration: 'none' }}><img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} /><span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'white' }}>{s.outlet || domain}</span></a>); })}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'}>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: 'white', lineHeight: 1.25, margin: '0 0 0.6rem' }}>{story.headline}</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', margin: '0.5rem 0 0.75rem' }}>
-                                  {displayBullets.map((b, i) => (
-                                    <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>
-                                      <div style={{ width: '3px', minWidth: '3px', borderRadius: '99px', background: 'rgba(255,255,255,0.5)', marginTop: '0.4rem', alignSelf: 'stretch' }} />
-                                      <span>{b}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                {/* Perspectives */}
-                                {displayPerspectives && (
-                                  <div style={{ marginTop: '0.55rem' }}>
-                                    <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)' }}>{newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>
-                                    <p style={{ margin: '0.18rem 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55 }}>{displayPerspectives}</p>
-                                  </div>
-                                )}
-                                {/* Why it matters */}
-                                {displayWhy && (
-                                  <div style={{ marginTop: '0.55rem' }}>
-                                    <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.38)' }}>{newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>
-                                    <p style={{ margin: '0.18rem 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55 }}>{displayWhy}</p>
-                                  </div>
-                                )}
-                                {/* Source pills */}
-                                {storySources.length > 0 && (
-                                  <div style={{ marginTop: '0.7rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {storySources.map((s, j) => { const domain = getDomain(s.url); return (<a key={j} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '999px', textDecoration: 'none' }}><img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} /><span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'rgba(255,255,255,0.88)' }}>{s.outlet || domain}</span></a>); })}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                          </div>
-                        </div>
-
-                        {/* ── Player bar: absolutely pinned to bottom, never affects scroll ── */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3, background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 14px)` }}>
-
-                          {/* Row 1: repeat | scrubber (flex:1, centred) | speed */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const next = !repeatModeRef.current;
-                                repeatModeRef.current = next;
-                                setRepeatMode(next);
-                              }}
-                              title={repeatMode ? 'Repeat on' : 'Repeat off'}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '10px', flexShrink: 0, color: repeatMode ? storyColor : 'rgba(255,255,255,0.3)', transition: 'color 0.15s', touchAction: 'manipulation' }}>
-                              <Repeat size={16} />
-                            </button>
-                            <div style={{ flex: 1, position: 'relative' }}>
-                              {(() => {
-                                const fillPct = isNarrating ? narrationProgress : 0;
-                                const handleScrubClick = isNarrating && narrationStateRef.current.audio?.duration > 0
-                                  ? (e) => {
-                                      e.stopPropagation();
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                                      narrationStateRef.current.audio.currentTime = pct * narrationStateRef.current.audio.duration;
-                                    }
-                                  : null;
-                                return (
-                                  <div onClick={handleScrubClick || undefined} style={{ width: '100%', height: '20px', display: 'flex', alignItems: 'center', cursor: handleScrubClick ? 'pointer' : 'default' }}>
-                                    <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', position: 'relative' }}>
-                                      <div style={{ width: `${fillPct}%`, height: '100%', background: storyColor, borderRadius: '99px', position: 'relative', transition: isNarrating ? 'width 0.1s linear' : 'width 0.25s ease' }}>
-                                        <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'white', position: 'absolute', right: '-5.5px', top: '-4px', boxShadow: `0 0 7px rgba(${colorRgb},0.9)` }} />
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const next = playbackSpeedRef.current === 1 ? 1.5 : playbackSpeedRef.current === 1.5 ? 2 : 1;
-                                playbackSpeedRef.current = next;
-                                if (narrationStateRef.current.audio) narrationStateRef.current.audio.playbackRate = next;
-                                setPlaybackSpeed(next);
-                              }}
-                              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '999px', color: playbackSpeed !== 1 ? storyColor : 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '700', padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s', touchAction: 'manipulation' }}>
-                              {playbackSpeed === 1 ? '1×' : playbackSpeed === 1.5 ? '1.5×' : '2×'}
-                            </button>
-                          </div>
-
-                          {/* Row 2: controls */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <button onClick={() => { if (prevCat) { handleSelectCategory(prevCat); goToLastStoryRef.current = true; if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!prevCat} title={prevCat ? `← ${prevCat}` : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: prevCat ? 'pointer' : 'not-allowed', padding: '4px', color: prevCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'color 0.15s' }}>
-                              <SkipBack size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                            </button>
-                            <button onClick={goPrev} disabled={isFirst && !prevCat} title="Previous story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
-                              <Play size={22} style={{ transform: 'scaleX(-1)' }} />
-                            </button>
-                            <button onClick={isAudioLoading ? undefined : (isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration)} title={isAudioLoading ? 'Loading…' : (isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: isAudioLoading ? 'default' : 'pointer', background: storyColor, boxShadow: `0 4px 20px rgba(${colorRgb},0.5)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s' }} onMouseDown={e => { if (!isAudioLoading) e.currentTarget.style.transform = 'scale(0.93)'; }} onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} onTouchStart={e => { if (!isAudioLoading) e.currentTarget.style.transform = 'scale(0.93)'; }} onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}>
-                              {isAudioLoading
-                                ? <Loader size={20} style={{ animation: 'spin 0.8s linear infinite' }} />
-                                : (isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />)}
-                            </button>
-                            <button onClick={goNext} disabled={isLast && !nextCat && !repeatMode} title="Next story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
-                              <Play size={22} />
-                            </button>
-                            <button onClick={() => { if (nextCat) { handleSelectCategory(nextCat); setStoryIndex(0); if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = true; } } }} disabled={!nextCat} title={nextCat ? `${nextCat} →` : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: nextCat ? 'pointer' : 'not-allowed', padding: '4px', color: nextCat ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'color 0.15s' }}>
-                              <SkipForward size={16} /><span style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.7 }}>cat</span>
-                            </button>
-                          </div>
-
-                        </div>
-
-                      </div>
-                    );
-                  })() : (() => {
-                    window._trackCategory = (headline) => {
-                      if (customCategories.length > 0) {
-                        if (!window.confirm(`This will replace your current tracked category "${customCategories[0]}". Continue?`)) return;
-                      }
-                      setNewCategory('');
-                      setNewCategoryDescription(headline);
-                      setShowCategoryModal(true);
-                    };
-                    // Headlines: compact list of story titles + source pills
-                    if (depthLevel === 'headlines') {
-                      const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-                      return (
-                        <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {stories.filter(s => s.headline.length > 3).map((s, i) => (
-                            <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem' }}>
-                              <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3 }}>{s.headline}</div>
-                              {s.storySources.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
-                                  {s.storySources.map((src, j) => {
-                                    const domain = getDomain(src.url);
-                                    return (
-                                      <a key={j} href={src.url} target="_blank" rel="noopener noreferrer"
-                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.2rem 0.55rem 0.2rem 0.35rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-                                        <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{src.outlet || domain}</span>
-                                      </a>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-
-                    // Takeaways: tightBullets (short from storiesContent or first 3 from content)
-                    // Summary: allBullets (all from content) + perspectives + why
-                    const getDomain = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-
-                    const renderStoryBody = (lines) => lines.join('\n')
-                      .replace(/^-{2,}\s*$/gm, '')
-                      .replace(/^[-*.]\s*$/gm, '')
-                      .replace(/^https?:\/\/\S+$/gm, '')
-                      .replace(/^\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/gm, '')
-                      .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'تباين الآراء' : 'Perspectives differ'}</span>&nbsp;&nbsp;${text}</div>`
-                      )
-                      .replace(/^\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)$/gm, (_, text) =>
-                        `<div style="margin:0.3rem 0 0.85rem;font-size:0.81rem;color:#9ca3af;line-height:1.55;"><span style="font-weight:700;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;">${newsLanguage === 'ar' ? 'لماذا هذا مهم' : 'Why this matters'}</span>&nbsp;&nbsp;${text}</div>`
-                      )
-                      .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700;color:#111827;">$1</strong>')
-                      .replace(/^[-*] (.+)$/gm, '<div style="margin:0.18rem 0 0.18rem 0;margin-inline-start:0.8rem;padding-inline-start:0.55rem;border-inline-start:2px solid #e5e7eb;color:#374151;font-size:0.88rem;line-height:1.5;">$1</div>')
-                      .replace(/\n\n+/g, '<div style="height:0.15rem;"></div>')
-                      .replace(/\n/g, '');
-
-                    return (
-                      <div dir={newsLanguage === 'ar' ? 'rtl' : 'ltr'}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {stories.map((story, i) => {
-                            const bullets = depthLevel === 'deep' ? story.allBullets : story.tightBullets;
-                            const bodyHtml = renderStoryBody(
-                              depthLevel === 'deep'
-                                ? story.bodyLines
-                                : bullets.map(b => `- ${b}`)
-                            );
-                            return (
-                              <div key={i} style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '12px', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
-                                <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#111827', lineHeight: 1.3, marginBottom: '0.5rem' }}>
-                                  {story.headline}
-                                </div>
-                                <div style={{ fontSize: '0.88rem', lineHeight: '1.5', color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-                                {story.storySources.length > 0 && (
-                                  <div style={{ marginTop: '0.85rem' }}>
-                                    {windowWidth >= 600 ? (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
-                                        {story.storySources.map((s, j) => {
-                                          const domain = getDomain(s.url);
-                                          return (
-                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 0.8rem', background: 'white', border: '1px solid #e8e8ee', borderRadius: '10px', textDecoration: 'none', transition: 'box-shadow 0.15s, border-color 0.15s', flex: '1 1 150px', maxWidth: '175px' }}
-                                              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
-                                              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#e8e8ee'; }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={14} height={14} style={{ borderRadius: '3px', flexShrink: 0 }} onError={e => e.target.style.display='none'} />
-                                                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.outlet || domain}</span>
-                                                <span style={{ fontSize: '0.55rem', color: '#c4c9d4', flexShrink: 0, lineHeight: 1 }}>↗</span>
-                                              </div>
-                                              <span style={{ fontSize: '0.7rem', fontWeight: s.title ? '600' : '400', color: s.title ? '#1e293b' : '#9ca3af', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: s.title ? 'normal' : 'italic' }}>{s.title || s.outlet || domain}</span>
-                                            </a>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                        {story.storySources.map((s, j) => {
-                                          const domain = getDomain(s.url);
-                                          return (
-                                            <a key={j} href={s.url} target="_blank" rel="noopener noreferrer"
-                                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.22rem', padding: '0.22rem 0.6rem 0.22rem 0.36rem', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '999px', textDecoration: 'none' }}>
-                                              <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.85 }} onError={e => e.target.style.display='none'} />
-                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#374151' }}>{s.outlet || domain}</span>
-                                            </a>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                  <Sparkles size={40} color="#e5e7eb" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.4rem', color: '#374151' }}>Select your preferences above</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#9ca3af', margin: 0 }}>Your personalized news digest will appear here</p>
-                </div>
-              )}
             </div>
           </div>
-        </main>
+        </div>
       )}
 
-      {/* ── Settings View ── */}
-      {currentView === 'settings' && (
-        <main style={{ maxWidth: '680px', margin: '0 auto', padding: isMobile ? '1.5rem 1rem 3rem' : '2rem 2rem 3rem' }}>
+      {/* ── Main Content (URL-routed) ── */}
+      {isHome && (
+        <BriefingFeed
+          briefingData={briefingData}
+          briefingLoading={briefingLoading}
+          selectedDay={selectedDay}
+          selectedTime={selectedTime}
+          availableDays={availableDays}
+          availableTimes={availableTimes}
+          onSelectDay={selectDay}
+          onSelectTime={setSelectedTime}
+          defaultCategories={defaultCategories}
+          customCategories={customCategories}
+          onPlayBriefing={handlePlayBriefing}
+          onPlayCategory={handlePlayCategory}
+          onSelectCategory={handleSelectCategory}
+          isNarrating={isNarrating}
+          isPaused={isPaused}
+          selectedCategory={selectedCategory}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          onShowSettings={() => navigate('/settings')}
+          playerVisible={playerVisible}
+          newsLanguage={newsLanguage}
+        />
+      )}
 
-          <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1.25rem', padding: '0.55rem 1.2rem', background: '#f3f4f6', border: '1.5px solid #d1d5db', borderRadius: '999px', color: '#374151', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
-            ← Back to News
+      {isCategoryView && (
+        <CategoryView
+          category={catFromUrl}
+          stories={stories}
+          isLoading={newsLoading}
+          isNarrating={isNarrating}
+          isPaused={isPaused}
+          currentStoryIndex={storyIndex}
+          onPlayFrom={onPlayFrom}
+          miniPlayerVisible={miniPlayerVisible}
+        />
+      )}
+
+      {isStoryView && (
+        <StoryReader
+          category={catFromUrl}
+          story={stories[storyIdxFromUrl] || null}
+          storyIndex={storyIdxFromUrl}
+          stories={stories}
+          onPlayFrom={onPlayFrom}
+          isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
+          isPaused={isPaused}
+          miniPlayerVisible={miniPlayerVisible}
+        />
+      )}
+
+      {/* ── Settings ── */}
+      {isSettingsPath && (
+        <main style={{ background: '#09090f', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
+          <button onClick={() => navigate('/')} style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '999px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
+            <ChevronLeft size={16} /> Back
           </button>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-            {/* ── Account card ── */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                <User size={18} color="#374151" strokeWidth={2.5} />
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Account</h3>
+                <User size={18} color="rgba(255,255,255,0.6)" />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Account</h3>
               </div>
               {user ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#374151' }}>{user.email}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.15rem' }}>Signed in</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{user.email}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.15rem' }}>Signed in</div>
                   </div>
-                  <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); setCurrentView('home'); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(231,76,60,0.06)', border: '1.5px solid rgba(231,76,60,0.2)', borderRadius: '999px', color: '#e74c3c', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
+                  <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); navigate('/'); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#f87171', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
                     <LogOut size={14} /> Sign Out
                   </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                   <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Sign In</button>
-                  <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1.5px solid #e5e7eb', color: '#374151', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
+                  <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
                 </div>
               )}
             </div>
-
-            {/* ── Font Size card ── */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#6366f1', lineHeight: 1 }}>Aa</span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Text Size</h3>
-                </div>
-                <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '999px', padding: '3px', gap: '2px' }}>
-                  {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
-                    <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'white' : 'transparent', color: fontSize === val ? '#111827' : '#9ca3af', boxShadow: fontSize === val ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ── News Language card ── */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🌐</span>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>News Language</h3>
-                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>Arabic is available for Morning only</p>
-                  </div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>News Language</h3>
                 </div>
-                <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
                   {[['en', 'English'], ['ar', 'عربي']].map(([val, label]) => (
-                    <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? 'white' : 'transparent', color: newsLanguage === val ? '#111827' : '#9ca3af', boxShadow: newsLanguage === val ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                    <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? 'white' : 'transparent', color: newsLanguage === val ? '#111827' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                       {label}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* ── My Rundown card ── */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>My Rundown</h3>
-              </div>
-              {!user ? (
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.83rem', color: '#9ca3af', lineHeight: 1.5 }}>Sign in to build your personal feed and have it follow you across devices.</p>
-              ) : (
-                <>
-                  <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#9ca3af' }}>Tap to add or remove. Numbers show story order.</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {defaultCategories.map((cat) => {
-                      const pos = feedCategories.indexOf(cat);
-                      const isSelected = pos !== -1;
-                      const color = CATEGORY_COLORS[cat] || '#6366f1';
-                      const newCats = isSelected
-                        ? feedCategories.filter(c => c !== cat)
-                        : [...feedCategories, cat];
-                      return (
-                        <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSelected ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSelected ? color : 'transparent', color: isSelected ? 'white' : '#374151', border: `1.5px solid ${isSelected ? color : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem', transition: 'all 0.15s' }}>
-                          {isSelected && (
-                            <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>
-                          )}
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {feedCategories.length === 0 && (
-                    <p style={{ margin: '0.75rem 0 0', fontSize: '0.78rem', color: '#f59e0b' }}>Select at least one category to activate My Rundown.</p>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* ── Email Digest card (logged-in only) ── */}
             {user && (
-              <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f3f4f6', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>My Rundown</h3>
+                </div>
+                <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to add or remove. Numbers show story order.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {defaultCategories.map(cat => {
+                    const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
+                    const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
+                    return (
+                      <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                        {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {user && (
+              <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                  <Mail size={18} color="#374151" strokeWidth={2.5} />
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#111827' }}>Email Digest</h3>
+                  <Mail size={18} color="rgba(255,255,255,0.6)" />
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Email Digest</h3>
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {(() => {
-                      const myRundownActive = (emailPreferences.categories || []).includes('My Rundown');
-                      return (
-                        <button onClick={() => handleCategoryEmailToggle('My Rundown')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.32rem 0.8rem', borderRadius: '999px', background: myRundownActive ? MY_FEED_COLOR : 'transparent', color: myRundownActive ? 'white' : '#374151', border: `1.5px solid ${myRundownActive ? MY_FEED_COLOR : '#e5e7eb'}`, cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', transition: 'all 0.15s' }}>
-                          ★ My Rundown
-                        </button>
-                      );
-                    })()}
-                    {defaultCategories.map(cat => {
-                      const active = (emailPreferences.categories || []).includes(cat);
-                      return (
-                        <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? (CATEGORY_COLORS[cat] || '#6366f1') : 'transparent', color: active ? 'white' : '#374151', border: `1.5px solid ${active ? (CATEGORY_COLORS[cat] || '#6366f1') : '#e5e7eb'}`, borderRadius: '999px', cursor: 'pointer', transition: 'all 0.12s ease' }}>
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
+                  {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
+                    const active = (emailPreferences.categories || []).includes(cat);
+                    return (
+                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : 'rgba(255,255,255,0.6)', border: `1.5px solid ${active ? color : 'rgba(255,255,255,0.15)'}`, borderRadius: '999px', cursor: 'pointer' }}>
+                        {cat === 'My Rundown' ? '\u2605 My Rundown' : cat}
+                      </button>
+                    );
+                  })}
                 </div>
-                <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1rem' }} />
-                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
+                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
                   {timesOfDay.map(time => {
-                    const slotKey = time.value.toLowerCase();
-                    const isEnabled = !!emailPreferences[slotKey];
+                    const slotKey = time.value.toLowerCase(); const isEnabled = !!emailPreferences[slotKey];
                     return (
-                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(17,24,39,0.04)' : 'rgba(0,0,0,0.02)', border: isEnabled ? '1.5px solid #111827' : '1.5px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#111827', flexShrink: 0 }} />
+                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)', border: `1.5px solid ${isEnabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#111827' }}>{time.label}</div>
-                          <div style={{ fontSize: '0.73rem', color: '#9ca3af' }}>{time.time}</div>
+                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'white' }}>{time.label}</div>
+                          <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.4)' }}>{time.time}</div>
                         </div>
                       </label>
                     );
@@ -2845,11 +1792,70 @@ const TheAIRundown = () => {
                 </div>
               </div>
             )}
-
           </div>
-
         </main>
       )}
+
+      {/* ── FullPlayer overlay ── */}
+      {playerVisible && !playerMinimized && (
+        <FullPlayer
+          visible={true}
+          onMinimize={() => setPlayerMinimized(true)}
+          onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
+          category={selectedCategory}
+          story={currentStory}
+          storyIndex={storyIndex}
+          storyCount={stories.length}
+          stories={stories}
+          isNarrating={isNarrating}
+          isPaused={isPaused}
+          isLoading={isAudioLoading}
+          narrationProgress={narrationProgress}
+          playbackSpeed={playbackSpeed}
+          repeatMode={repeatMode}
+          depthLevel={depthLevel}
+          onPlay={() => onPlayFrom(storyIndex)}
+          onPause={() => narrateFnRef.current.pause()}
+          onResume={() => narrateFnRef.current.resume()}
+          onNext={goNext}
+          onPrev={goPrev}
+          onSpeedCycle={handleSpeedCycle}
+          onRepeatToggle={handleRepeatToggle}
+          onSetDepth={handleSetDepth}
+          onGoToStory={(idx) => {
+            setStoryIndex(idx);
+            if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(idx); }
+            else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+          }}
+        />
+      )}
+
+      {/* ── MiniPlayer bar ── */}
+      {miniPlayerVisible && (
+        <MiniPlayer
+          category={selectedCategory}
+          storyHeadline={stories[storyIndex]?.headline || ''}
+          isNarrating={isNarrating}
+          isPaused={isPaused}
+          isLoading={isAudioLoading}
+          narrationProgress={narrationProgress}
+          onPlay={() => onPlayFrom(storyIndex)}
+          onPause={() => narrateFnRef.current.pause()}
+          onResume={() => narrateFnRef.current.resume()}
+          onExpand={() => setPlayerMinimized(false)}
+          onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
+        />
+      )}
+
+      {/* ── Category transition overlay ── */}
+      <CategoryTransition
+        visible={categoryTransition !== null}
+        category={categoryTransition?.category || ''}
+        storyCount={categoryTransition?.storyCount || 0}
+        estimatedMin={categoryTransition?.estimatedMin || 0}
+        nextStoryTitle={categoryTransition?.nextStoryTitle || ''}
+        onDone={() => setCategoryTransition(null)}
+      />
     </div>
   );
 };
@@ -2858,7 +1864,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<TheAIRundown />} />
+        <Route path="/*" element={<TheAIRundown />} />
         <Route path="/verify-email" element={<VerificationPage />} />
       </Routes>
     </Router>

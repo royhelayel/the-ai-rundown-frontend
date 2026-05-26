@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Options Mock – The Rundown</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; }
+
+  /* ── HEADER ── */
+  header { background: white; box-shadow: 0 1px 0 rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
+  .brand-row { max-width: 1400px; margin: 0 auto; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 0.5rem; }
+  .brand svg { color: #6366f1; }
+  .brand h1 { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg,#6366f1,#ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .mode-toggle { display: flex; gap: 0.4rem; background: #f3f4f6; border-radius: 999px; padding: 3px; }
+  .mode-btn { padding: 0.38rem 1rem; border-radius: 999px; border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; background: transparent; color: #6b7280; transition: all 0.15s; }
+  .mode-btn.active { background: white; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
+  .user-pill { font-size: 0.82rem; color: #6b7280; display: flex; align-items: center; gap: 0.4rem; }
+
+  /* ── CATEGORY TABS ── */
+  .cat-bar { background: white; border-top: 1px solid #f3f4f6; }
+  .cat-inner { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; overflow-x: auto; scrollbar-width: none; }
+  .cat-tab { padding: 0.7rem 1.1rem; border: none; border-bottom: 2.5px solid transparent; background: none; font-size: 0.88rem; font-weight: 500; color: #6b7280; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .cat-tab.active { border-bottom-color: #6366f1; color: #6366f1; font-weight: 700; }
+
+  /* ── NAV ROW ── */
+  .nav-row { max-width: 1400px; margin: 0.6rem auto; padding: 0 2rem; display: flex; align-items: center; gap: 0.5rem; }
+  .day-pill { padding: 0.38rem 0.85rem; border-radius: 999px; border: 1.5px solid #e5e7eb; background: white; font-size: 0.82rem; font-weight: 600; color: #374151; cursor: pointer; }
+  .day-pill.active { background: #111827; color: white; border-color: #111827; }
+  .divider { width: 1px; height: 20px; background: #e5e7eb; margin: 0 0.2rem; }
+  .time-pill { display: flex; flex-direction: column; align-items: center; padding: 0.3rem 1.1rem; border-radius: 999px; border: 1.5px solid #e5e7eb; background: white; cursor: pointer; gap: 1px; }
+  .time-pill.active { background: #111827; border-color: #111827; }
+  .time-pill .tl { font-size: 0.8rem; font-weight: 700; color: #374151; }
+  .time-pill.active .tl, .time-pill.active .ts { color: white; }
+  .time-pill .ts { font-size: 0.6rem; font-weight: 400; color: #9ca3af; }
+
+  /* ── DEPTH TOGGLE ── */
+  .depth-row { max-width: 1400px; margin: 0 auto 0.5rem; padding: 0 2rem; }
+  .depth-toggle { display: inline-flex; gap: 3px; background: #f3f4f6; border-radius: 999px; padding: 3px; }
+  .depth-btn { padding: 5px 18px; border-radius: 999px; border: none; font-size: 0.73rem; font-weight: 700; cursor: pointer; background: transparent; color: #9ca3af; }
+  .depth-btn.active { background: #6366f1; color: white; }
+
+  /* ── PILL ── */
+  .src-pill { display: inline-flex; align-items: center; gap: 0.22rem; padding: 0.2rem 0.55rem 0.2rem 0.35rem; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 999px; text-decoration: none; font-size: 0.68rem; font-weight: 700; color: #374151; }
+  .src-pill img { width: 11px; height: 11px; border-radius: 2px; opacity: 0.85; }
+
+  /* ── OPTION SWITCHER ── */
+  .section-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.75rem; }
+  .option-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; }
+  .opt-btn { padding: 0.35rem 1rem; border-radius: 999px; border: 1.5px solid #e5e7eb; background: white; font-size: 0.8rem; font-weight: 700; color: #6b7280; cursor: pointer; }
+  .opt-btn.active { border-color: #6366f1; background: rgba(99,102,241,0.08); color: #6366f1; }
+
+  /* ── MAIN LAYOUT ── */
+  main { max-width: 1400px; margin: 0 auto; padding: 1rem 2rem 3rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .panel { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .panel-title { font-size: 0.85rem; font-weight: 800; color: #111827; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .panel-title span { font-size: 0.7rem; font-weight: 600; color: #9ca3af; }
+
+  /* ── READ STORY CARD ── */
+  .story-card { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 12px; overflow: hidden; margin-bottom: 0.65rem; }
+  .story-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+  .story-body { padding: 1rem 1.25rem 1.1rem; }
+  .story-headline { font-size: 1.02rem; font-weight: 800; color: #111827; line-height: 1.3; margin-bottom: 0.5rem; }
+  .story-bullet { display: flex; gap: 0.55rem; font-size: 0.875rem; color: #374151; line-height: 1.5; margin-bottom: 0.25rem; }
+  .bullet-bar { width: 3px; min-width: 3px; border-radius: 99px; background: #6366f1; opacity: 0.35; margin-top: 0.35rem; align-self: stretch; }
+  .src-pills-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.65rem; }
+
+  /* Placeholder variants */
+  .placeholder-gradient { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; }
+  .placeholder-gradient svg { opacity: 0.25; }
+  .placeholder-category { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.5rem; }
+  .placeholder-category .cat-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; color: white; }
+  .placeholder-pattern { width: 100%; height: 160px; position: relative; background: #f3f4f6; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+
+  /* ── STORIES CARD ── */
+  .stories-wrap { background: rgba(15,15,20,0.92); border-radius: 20px; padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 520px; position: relative; }
+
+  /* Option A: full bleed */
+  .fullbleed-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+  .fullbleed-overlay { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.82) 100%); }
+  .stories-content-bleed { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; }
+
+  /* Option B: banner thumbnail */
+  .stories-banner { width: 100%; height: 200px; object-fit: cover; display: block; flex-shrink: 0; }
+  .stories-content-banner { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; }
+
+  /* Shared stories elements */
+  .stories-top-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem 0.5rem; flex-shrink: 0; }
+  .cat-pill-stories { font-size: 0.64rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; padding: 0.22rem 0.65rem; border-radius: 999px; }
+  .day-time-badge { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.6); }
+  .stories-headline { font-size: 1.45rem; font-weight: 900; color: #0f172a; line-height: 1.2; }
+  .stories-headline.white { color: white; }
+  .stories-bullet { display: flex; gap: 0.6rem; font-size: 0.875rem; color: #374151; line-height: 1.5; margin-bottom: 0.35rem; }
+  .stories-bullet.white { color: rgba(255,255,255,0.85); }
+  .stories-bullet-bar { width: 3px; min-width: 3px; border-radius: 99px; opacity: 0.45; margin-top: 0.4rem; align-self: stretch; }
+  .stories-nav { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1rem; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+  .nav-btn { display: flex; align-items: center; gap: 0.25rem; padding: 0.5rem 0.75rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,0.2); background: none; color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+  .nav-btn-next { border: none; border-radius: 999px; padding: 0.5rem 0.9rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 0.25rem; }
+  .stories-src-pill { display: inline-flex; align-items: center; gap: 0.22rem; padding: 0.2rem 0.55rem 0.2rem 0.35rem; border-radius: 999px; text-decoration: none; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+  .stories-src-pill.dark { background: #f8fafc; border-color: #e5e7eb; color: #374151; }
+  .stories-src-pill img { width: 11px; height: 11px; border-radius: 2px; opacity: 0.85; }
+  .progress-bar { display: flex; gap: 3px; padding: 0.6rem 1rem 0.3rem; flex-shrink: 0; }
+  .progress-seg { height: 3px; flex: 1; border-radius: 99px; background: rgba(255,255,255,0.18); }
+  .progress-seg.done { background: white; }
+  .progress-seg.active { background: rgba(255,255,255,0.65); }
+
+  /* Placeholder for stories */
+  .stories-placeholder-bleed { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 0; }
+  .stories-placeholder-overlay { position: absolute; inset: 0; z-index: 1; }
+
+  /* Depth toggle dark */
+  .depth-dark { display: flex; gap: 3px; background: rgba(255,255,255,0.10); border-radius: 999px; padding: 3px; margin: 0 1rem 0.5rem; align-self: flex-start; }
+  .depth-dark-btn { padding: 5px 14px; border-radius: 999px; border: none; font-size: 0.73rem; font-weight: 700; cursor: pointer; background: transparent; color: rgba(255,255,255,0.45); }
+  .depth-dark-btn.active { color: white; }
+
+  .section-divider { border: none; border-top: 1.5px solid #e5e7eb; margin: 2rem 0; }
+  .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-left: 0.5rem; vertical-align: middle; }
+  .tag-recommended { background: rgba(99,102,241,0.12); color: #6366f1; }
+  .tag-option { background: #f3f4f6; color: #6b7280; }
+
+  @media(max-width:900px){ .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header>
+  <div class="brand-row">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <h1>The Rundown</h1>
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="switchMode('read',this)">≡ Read</button>
+      <button class="mode-btn" onclick="switchMode('stories',this)">▶ Stories</button>
+    </div>
+    <div class="user-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      royhelayel@gmail.com
+    </div>
+  </div>
+  <div class="cat-bar">
+    <div class="cat-inner">
+      <button class="cat-tab">★ My Rundown</button>
+      <button class="cat-tab active">World News</button>
+      <button class="cat-tab">Technology</button>
+      <button class="cat-tab">Business</button>
+      <button class="cat-tab">Politics</button>
+      <button class="cat-tab">Sports</button>
+      <button class="cat-tab">Entertainment</button>
+      <button class="cat-tab">UAE</button>
+      <button class="cat-tab">KSA</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ NAV ROWS ═══════════════════════════ -->
+<div style="background:white; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:sticky; top:88px; z-index:50;">
+  <div class="nav-row">
+    <span style="font-size:0.75rem; color:#9ca3af; cursor:pointer;">‹</span>
+    <button class="day-pill">Sun 10</button>
+    <button class="day-pill">Mon 11</button>
+    <button class="day-pill">Tue 12</button>
+    <button class="day-pill">Wed 13</button>
+    <button class="day-pill">Thu 14</button>
+    <button class="day-pill">Fri 15</button>
+    <button class="day-pill active">Today</button>
+    <div class="divider"></div>
+    <button class="time-pill" style="opacity:0.4; cursor:not-allowed;">
+      <span class="tl">Morning</span><span class="ts">6 AM</span>
+    </button>
+    <button class="time-pill active">
+      <span class="tl">Evening</span><span class="ts">6 PM</span>
+    </button>
+  </div>
+  <div class="depth-row" id="depth-row">
+    <div class="depth-toggle">
+      <button class="depth-btn" onclick="setDepth('headlines',this)">Headlines</button>
+      <button class="depth-btn active" onclick="setDepth('summary',this)">Summary</button>
+      <button class="depth-btn" onclick="setDepth('deep',this)">Deep Dive</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
+<main id="main-content">
+
+  <!-- ══ READ MODE ══ -->
+  <div id="read-mode">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1rem;">
+      <h2 style="font-size:1rem; font-weight:800; color:#111827;">Read Mode — Image Options</h2>
+      <div class="option-tabs">
+        <button class="opt-btn active" onclick="setReadOpt('A',this)">Option A · Real Image</button>
+        <button class="opt-btn" onclick="setReadOpt('B',this)">Option B · Category Colour</button>
+        <button class="opt-btn" onclick="setReadOpt('C',this)">Option C · Abstract Pattern</button>
+        <button class="opt-btn" onclick="setReadOpt('D',this)">Option D · No Image</button>
+      </div>
+    </div>
+    <div class="two-col">
+
+      <!-- LEFT: with real image -->
+      <div>
+        <div class="section-label">Story with real image</div>
+        <div class="story-card" id="rc-img-card">
+          <!-- image slot -->
+          <div id="rc-img-slot"></div>
+          <div class="story-body">
+            <div class="story-headline">Trump Deprioritizes Human Rights in China Diplomacy</div>
+            <div style="margin:0.4rem 0 0.6rem; display:flex; flex-direction:column; gap:0.25rem;">
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Secretary Rubio signals a shift away from human-rights conditions in trade talks.</span></div>
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Administration prioritises economic and security concessions instead.</span></div>
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Critics warn the move weakens US leverage on Beijing's conduct.</span></div>
+            </div>
+            <div class="src-pills-row">
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" onerror="this.style.display='none'">Reuters</a>
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" onerror="this.style.display='none'">BBC</a>
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=apnews.com&sz=32" onerror="this.style.display='none'">AP News</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- second card — fallback -->
+        <div class="story-card" id="rc-fallback-card">
+          <div id="rc-fallback-slot"></div>
+          <div class="story-body">
+            <div class="story-headline">BRICS Summit Collapses Without Joint Statement</div>
+            <div style="margin:0.4rem 0 0.6rem; display:flex; flex-direction:column; gap:0.25rem;">
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Disagreements over Russia-Ukraine language derailed final communiqué.</span></div>
+              <div class="story-bullet"><div class="bullet-bar"></div><span>India and Brazil pushed competing draft language until the last hour.</span></div>
+            </div>
+            <div class="src-pills-row">
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=aljazeera.com&sz=32" onerror="this.style.display='none'">Al Jazeera</a>
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=ft.com&sz=32" onerror="this.style.display='none'">FT</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div id="rc-third-slot"></div>
+          <div class="story-body">
+            <div class="story-headline">U.S. and Nigerian Forces Kill ISIS Second-in-Command</div>
+            <div style="margin:0.4rem 0 0.6rem; display:flex; flex-direction:column; gap:0.25rem;">
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Joint special-forces operation conducted in northeastern Nigeria.</span></div>
+              <div class="story-bullet"><div class="bullet-bar"></div><span>Pentagon confirms the target was responsible for regional recruitment.</span></div>
+            </div>
+            <div class="src-pills-row">
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=nytimes.com&sz=32" onerror="this.style.display='none'">NYT</a>
+              <a href="#" class="src-pill"><img src="https://www.google.com/s2/favicons?domain=cnn.com&sz=32" onerror="this.style.display='none'">CNN</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: label + note -->
+      <div>
+        <div class="section-label" style="margin-bottom:0.5rem;">What you're seeing</div>
+        <div id="rc-description" style="font-size:0.85rem; color:#6b7280; line-height:1.6; background:#f9fafb; border-radius:12px; padding:1rem 1.25rem; border:1px solid #f0f0f0;">
+          <strong style="color:#111827;">Option A — Real image (og:image from source article)</strong><br><br>
+          First available <code>og:image</code> from the story's matched source articles. Preferred from trusted outlets (BBC, Reuters, AP). Second card shows the fallback for stories where no image is found.
+        </div>
+        <div style="margin-top:1rem; font-size:0.8rem; color:#9ca3af; line-height:1.6; padding:0 0.25rem;">
+          <div id="rc-note"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STORIES MODE ══ -->
+  <div id="stories-mode" style="display:none;">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1rem;">
+      <h2 style="font-size:1rem; font-weight:800; color:#111827;">Stories Mode — Image Options</h2>
+      <div class="option-tabs">
+        <button class="opt-btn active" onclick="setStoriesOpt('A',this)">Option A · Full Bleed <span class="tag tag-recommended">Recommended</span></button>
+        <button class="opt-btn" onclick="setStoriesOpt('B',this)">Option B · Banner</button>
+        <button class="opt-btn" onclick="setStoriesOpt('C',this)">Option C · Category Colour Bleed</button>
+      </div>
+    </div>
+    <div class="two-col">
+
+      <!-- LEFT: with image -->
+      <div>
+        <div class="section-label">Story with real image</div>
+        <div class="stories-wrap" id="stories-with-img" style="background:rgba(15,15,20,0.92);">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- RIGHT: fallback -->
+      <div>
+        <div class="section-label">Story with no image → fallback</div>
+        <div class="stories-wrap" id="stories-fallback" style="background:rgba(15,15,20,0.92);">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── state ──
+let currentMode = 'read';
+let currentReadOpt = 'A';
+let currentStoriesOpt = 'A';
+
+const CAT_COLOR = '#6366f1';
+
+// ── mode switch ──
+function switchMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('read-mode').style.display = mode === 'read' ? '' : 'none';
+  document.getElementById('stories-mode').style.display = mode === 'stories' ? '' : 'none';
+  document.getElementById('depth-row').style.display = mode === 'stories' ? 'none' : '';
+}
+
+function setDepth(d, btn) {
+  document.querySelectorAll('.depth-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── READ helpers ──
+function imgSlot(src, label) {
+  return `<img class="story-img" src="${src}" alt="${label}" onerror="this.style.display='none'">`;
+}
+
+function catGradientSlot(color, label) {
+  return `<div class="placeholder-category" style="background:linear-gradient(135deg,${color}cc,${color}88);">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" opacity="0.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <span class="cat-label" style="color:white;opacity:0.65;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">${label}</span>
+  </div>`;
+}
+
+function abstractPatternSlot(color) {
+  return `<div class="placeholder-pattern">
+    <svg width="100%" height="160" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+      <defs>
+        <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+          <path d="M 28 0 L 0 0 0 28" fill="none" stroke="${color}" stroke-width="0.5" opacity="0.18"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="#f3f4f6"/>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+    </svg>
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" style="position:relative;z-index:1;opacity:0.3;"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+  </div>`;
+}
+
+function noImgSlot() { return ''; }
+
+function setReadOpt(opt, btn) {
+  currentReadOpt = opt;
+  document.querySelectorAll('.option-tabs')[0].querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRead();
+}
+
+function renderRead() {
+  const opt = currentReadOpt;
+  const imgSrc1 = 'https://picsum.photos/seed/china-diplomacy/800/320';
+  const imgSrc2 = 'https://picsum.photos/seed/brics-summit/800/320';
+  const imgSrc3 = 'https://picsum.photos/seed/isis-nigeria/800/320';
+
+  let slot1, slot2, slot3, desc, note;
+
+  if (opt === 'A') {
+    slot1 = imgSlot(imgSrc1, 'China Diplomacy');
+    slot2 = catGradientSlot(CAT_COLOR, 'World News'); // no image found → fallback
+    slot3 = imgSlot(imgSrc3, 'ISIS');
+    desc = '<strong style="color:#111827;">Option A — Real image (og:image from source article)</strong><br><br>First available <code>og:image</code> from the story\'s matched source articles, preferred from trusted outlets. When no image is found, falls back to the <strong>category colour gradient</strong> (shown in card 2 above).';
+    note = '✓ Consistent height across all cards · Fallback looks intentional, not broken';
+  } else if (opt === 'B') {
+    slot1 = catGradientSlot(CAT_COLOR, 'World News');
+    slot2 = catGradientSlot(CAT_COLOR, 'World News');
+    slot3 = catGradientSlot(CAT_COLOR, 'World News');
+    desc = '<strong style="color:#111827;">Option B — Category colour gradient (always)</strong><br><br>No image fetch required. Every card gets the same branded gradient using its category colour. Clean and consistent — zero loading states.';
+    note = '✓ Perfectly uniform · Works offline · Requires no backend change<br>✗ No actual news imagery';
+  } else if (opt === 'C') {
+    slot1 = abstractPatternSlot(CAT_COLOR);
+    slot2 = abstractPatternSlot(CAT_COLOR);
+    slot3 = abstractPatternSlot(CAT_COLOR);
+    desc = '<strong style="color:#111827;">Option C — Abstract grid pattern</strong><br><br>Subtle grid texture using the category colour. Neutral and editorial — evokes a newspaper feel without committing to a specific colour block.';
+    note = '✓ Neutral, professional<br>✗ Less branded than Option B';
+  } else {
+    slot1 = '';
+    slot2 = '';
+    slot3 = '';
+    desc = '<strong style="color:#111827;">Option D — No image (current state)</strong><br><br>Cards start directly with the headline. Clean, text-first. Mixed with options above this is what causes the inconsistent look the user mentioned.';
+    note = '✗ Inconsistent heights when some have images and some don\'t';
+  }
+
+  document.getElementById('rc-img-slot').innerHTML = slot1;
+  document.getElementById('rc-fallback-slot').innerHTML = slot2;
+  document.getElementById('rc-third-slot').innerHTML = slot3;
+  document.getElementById('rc-description').innerHTML = desc;
+  document.getElementById('rc-note').innerHTML = note;
+}
+
+// ── STORIES helpers ──
+function storiesCard(imageHtml, overlayHtml, contentHtml, dark = true) {
+  return imageHtml + overlayHtml + contentHtml;
+}
+
+function buildDepthToggle(dark) {
+  const bg = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
+  const activeBg = CAT_COLOR;
+  return `<div style="display:flex;gap:3px;background:${bg};border-radius:999px;padding:3px;margin:0 1rem 0.4rem;align-self:flex-start;">
+    <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:transparent;color:${dark?'rgba(255,255,255,0.45)':'#9ca3af'};">Headlines</button>
+    <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:${activeBg};color:white;">Summary</button>
+    <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:transparent;color:${dark?'rgba(255,255,255,0.45)':'#9ca3af'};">Deep Dive</button>
+  </div>`;
+}
+
+function buildProgressBar() {
+  return `<div class="progress-bar"><div class="progress-seg done"></div><div class="progress-seg done"></div><div class="progress-seg active"></div><div class="progress-seg"></div><div class="progress-seg"></div></div>`;
+}
+
+function buildTopBar(dark) {
+  const catBg = dark ? `${CAT_COLOR}30` : `${CAT_COLOR}18`;
+  const catColor = dark ? 'rgba(255,255,255,0.85)' : CAT_COLOR;
+  const dayColor = dark ? 'rgba(255,255,255,0.55)' : '#6b7280';
+  return `<div class="stories-top-bar">
+    <span class="cat-pill-stories" style="background:${catBg};color:${catColor};">World News</span>
+    <span class="day-time-badge" style="color:${dayColor};">Today · Evening</span>
+  </div>`;
+}
+
+function buildBottomNav(bg) {
+  return `<div class="stories-nav" style="border-top:1px solid ${bg};">
+    <button class="nav-btn" style="border-color:${bg};color:rgba(255,255,255,0.6);">← Previous</button>
+    <div style="display:flex;gap:3px;">
+      <button style="padding:0.4rem 0.5rem;background:none;border:1.5px solid ${bg};border-radius:999px;cursor:pointer;color:rgba(255,255,255,0.4);font-size:0.7rem;">‹‹</button>
+      <button style="padding:0.4rem 0.5rem;background:none;border:1.5px solid ${CAT_COLOR};border-radius:999px;cursor:pointer;color:${CAT_COLOR};font-size:0.7rem;">››</button>
+    </div>
+    <button class="nav-btn-next" style="background:${CAT_COLOR};">Next →</button>
+  </div>`;
+}
+
+function setStoriesOpt(opt, btn) {
+  currentStoriesOpt = opt;
+  document.querySelectorAll('.option-tabs')[1].querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStories();
+}
+
+function renderStories() {
+  const opt = currentStoriesOpt;
+  const imgUrl = 'https://picsum.photos/seed/world-news-story/600/900';
+
+  const withEl = document.getElementById('stories-with-img');
+  const fallEl = document.getElementById('stories-fallback');
+
+  if (opt === 'A') {
+    // Full bleed — with image
+    withEl.style.background = 'rgba(15,15,20,0.92)';
+    withEl.innerHTML = `
+      <img class="fullbleed-img" src="${imgUrl}" alt="">
+      <div class="fullbleed-overlay"></div>
+      <div class="stories-content-bleed">
+        ${buildProgressBar()}
+        ${buildTopBar(true)}
+        ${buildDepthToggle(true)}
+        <div style="flex:1;overflow-y:auto;padding:0.25rem 1.1rem 0.5rem;">
+          <h3 class="stories-headline white" style="margin-bottom:0.7rem;">Trump Deprioritizes Human Rights in China Diplomacy</h3>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Secretary Rubio signals a shift away from human-rights conditions in trade talks.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Administration prioritises economic and security concessions instead.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Critics warn the move weakens US leverage on Beijing's conduct.</span></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" onerror="this.style.display='none'">Reuters</a>
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" onerror="this.style.display='none'">BBC</a>
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=apnews.com&sz=32" onerror="this.style.display='none'">AP</a>
+          </div>
+        </div>
+        ${buildBottomNav('rgba(255,255,255,0.12)')}
+      </div>`;
+
+    // Full bleed — fallback (category colour)
+    fallEl.style.background = `linear-gradient(160deg, ${CAT_COLOR}dd, ${CAT_COLOR}88)`;
+    fallEl.innerHTML = `
+      <div class="stories-content-bleed">
+        ${buildProgressBar()}
+        ${buildTopBar(true)}
+        ${buildDepthToggle(true)}
+        <div style="flex:1;overflow-y:auto;padding:0.25rem 1.1rem 0.5rem;">
+          <h3 class="stories-headline white" style="margin-bottom:0.7rem;">BRICS Summit Collapses Without Joint Statement</h3>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>Disagreements over Russia-Ukraine language derailed the final communiqué.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>India and Brazil pushed competing draft language until the last hour.</span></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=aljazeera.com&sz=32" onerror="this.style.display='none'">Al Jazeera</a>
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=ft.com&sz=32" onerror="this.style.display='none'">FT</a>
+          </div>
+        </div>
+        ${buildBottomNav('rgba(255,255,255,0.15)')}
+      </div>`;
+
+  } else if (opt === 'B') {
+    // Banner — with image
+    withEl.style.background = 'white';
+    withEl.innerHTML = `
+      <img class="stories-banner" src="${imgUrl}" alt="">
+      <div class="stories-content-banner" style="background:white;">
+        ${buildDepthToggle(false)}
+        <h3 class="stories-headline" style="margin-bottom:0.7rem;">Trump Deprioritizes Human Rights in China Diplomacy</h3>
+        <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+          <div class="stories-bullet"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Secretary Rubio signals a shift away from human-rights conditions in trade talks.</span></div>
+          <div class="stories-bullet"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Administration prioritises economic and security concessions instead.</span></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+          <a href="#" class="stories-src-pill dark"><img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" onerror="this.style.display='none'">Reuters</a>
+          <a href="#" class="stories-src-pill dark"><img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" onerror="this.style.display='none'">BBC</a>
+        </div>
+      </div>
+      <div class="stories-nav" style="border-top:1px solid #f3f4f6;background:white;">
+        <button style="display:flex;align-items:center;gap:0.25rem;padding:0.5rem 0.75rem;background:none;border:1.5px solid #e5e7eb;border-radius:999px;cursor:pointer;color:#374151;font-size:0.78rem;font-weight:600;">← Previous</button>
+        <div style="display:flex;gap:3px;">
+          <button style="padding:0.4rem 0.5rem;background:none;border:1.5px solid #e5e7eb;border-radius:999px;cursor:pointer;color:#6366f1;font-size:0.7rem;">‹‹</button>
+          <button style="padding:0.4rem 0.5rem;background:none;border:1.5px solid ${CAT_COLOR};border-radius:999px;cursor:pointer;color:${CAT_COLOR};font-size:0.7rem;">››</button>
+        </div>
+        <button style="display:flex;align-items:center;gap:0.25rem;padding:0.5rem 0.9rem;background:${CAT_COLOR};border:none;border-radius:999px;cursor:pointer;color:white;font-size:0.78rem;font-weight:600;">Next →</button>
+      </div>`;
+
+    // Banner — fallback (no image, just content)
+    fallEl.style.background = 'white';
+    fallEl.innerHTML = `
+      <div style="height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0.5rem;background:linear-gradient(135deg,${CAT_COLOR}cc,${CAT_COLOR}88);flex-shrink:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" opacity="0.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.6);">World News</span>
+      </div>
+      <div class="stories-content-banner" style="background:white;">
+        ${buildDepthToggle(false)}
+        <h3 class="stories-headline" style="margin-bottom:0.7rem;">BRICS Summit Collapses Without Joint Statement</h3>
+        <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+          <div class="stories-bullet"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>Disagreements over Russia-Ukraine language derailed the final communiqué.</span></div>
+          <div class="stories-bullet"><div class="stories-bullet-bar" style="background:${CAT_COLOR};"></div><span>India and Brazil pushed competing draft language until the last hour.</span></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+          <a href="#" class="stories-src-pill dark"><img src="https://www.google.com/s2/favicons?domain=aljazeera.com&sz=32" onerror="this.style.display='none'">Al Jazeera</a>
+          <a href="#" class="stories-src-pill dark"><img src="https://www.google.com/s2/favicons?domain=ft.com&sz=32" onerror="this.style.display='none'">FT</a>
+        </div>
+      </div>
+      <div class="stories-nav" style="border-top:1px solid #f3f4f6;background:white;">
+        <button style="display:flex;align-items:center;gap:0.25rem;padding:0.5rem 0.75rem;background:none;border:1.5px solid #e5e7eb;border-radius:999px;cursor:pointer;color:#374151;font-size:0.78rem;font-weight:600;">← Previous</button>
+        <button style="display:flex;align-items:center;gap:0.25rem;padding:0.5rem 0.9rem;background:${CAT_COLOR};border:none;border-radius:999px;cursor:pointer;color:white;font-size:0.78rem;font-weight:600;">Next →</button>
+      </div>`;
+
+  } else {
+    // Option C: Category colour bleed always (no real image)
+    withEl.style.background = `linear-gradient(160deg, ${CAT_COLOR}ee, ${CAT_COLOR}99)`;
+    withEl.innerHTML = `
+      <div class="stories-content-bleed">
+        ${buildProgressBar()}
+        ${buildTopBar(true)}
+        ${buildDepthToggle(true)}
+        <div style="flex:1;overflow-y:auto;padding:0.25rem 1.1rem 0.5rem;">
+          <h3 class="stories-headline white" style="margin-bottom:0.7rem;">Trump Deprioritizes Human Rights in China Diplomacy</h3>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>Secretary Rubio signals a shift away from human-rights conditions in trade talks.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>Administration prioritises economic and security concessions instead.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>Critics warn the move weakens US leverage on Beijing's conduct.</span></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" onerror="this.style.display='none'">Reuters</a>
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" onerror="this.style.display='none'">BBC</a>
+          </div>
+        </div>
+        ${buildBottomNav('rgba(255,255,255,0.15)')}
+      </div>`;
+
+    fallEl.style.background = `linear-gradient(160deg, #0891b2dd, #0891b299)`;
+    fallEl.innerHTML = `
+      <div class="stories-content-bleed">
+        ${buildProgressBar()}
+        <div class="stories-top-bar">
+          <span class="cat-pill-stories" style="background:rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);">Technology</span>
+          <span class="day-time-badge" style="color:rgba(255,255,255,0.55);">Today · Evening</span>
+        </div>
+        <div style="display:flex;gap:3px;background:rgba(255,255,255,0.10);border-radius:999px;padding:3px;margin:0 1rem 0.4rem;align-self:flex-start;">
+          <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.45);">Headlines</button>
+          <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:#0891b2;color:white;">Summary</button>
+          <button style="padding:4px 13px;border-radius:999px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.45);">Deep Dive</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:0.25rem 1.1rem 0.5rem;">
+          <h3 class="stories-headline white" style="margin-bottom:0.7rem;">OpenAI Unveils GPT-5 with Multimodal Reasoning</h3>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.6rem;">
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>New model scores top marks on medical licensing and bar exams.</span></div>
+            <div class="stories-bullet white"><div class="stories-bullet-bar" style="background:rgba(255,255,255,0.5);"></div><span>Integrated vision and audio reasoning arrive in ChatGPT Plus first.</span></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=theverge.com&sz=32" onerror="this.style.display='none'">The Verge</a>
+            <a href="#" class="stories-src-pill"><img src="https://www.google.com/s2/favicons?domain=techcrunch.com&sz=32" onerror="this.style.display='none'">TechCrunch</a>
+          </div>
+        </div>
+        <div class="stories-nav" style="border-top:1px solid rgba(255,255,255,0.15);">
+          <button class="nav-btn" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);">← Previous</button>
+          <button class="nav-btn-next" style="background:#0891b2;">Next →</button>
+        </div>
+      </div>`;
+  }
+}
+
+// ── init ──
+renderRead();
+renderStories();
+</script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mock Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; }
+
+  :root {
+    --cat-color: #6366f1;
+    --cat-bg: #f0f1ff;
+  }
+
+  .app-bg { background: #f0f2f5; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header {
+    background: white;
+    border-bottom: 1px solid #f0f0f5;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  .header-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 0.7rem 2rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  /* SMALLER logo */
+  .logo {
+    font-size: 1.1rem; font-weight: 900;
+    background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .toggle-group {
+    display: flex; gap: 2px;
+    background: #f3f4f6; border-radius: 999px; padding: 3px; flex-shrink: 0;
+  }
+  .toggle-btn {
+    padding: 0.3rem 0.85rem; border-radius: 999px; border: none;
+    cursor: pointer; font-size: 0.75rem; font-weight: 700;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .toggle-btn.inactive { background: transparent; color: #9ca3af; }
+
+  /* ── Category tabs ── */
+  .cat-strip { border-top: 1px solid #f3f4f6; }
+  .cat-tabs {
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 2rem;
+    display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+  }
+  .cat-tab {
+    padding: 0.55rem 1.1rem;
+    background: none; border: none;
+    border-bottom: 2.5px solid transparent;
+    font-size: 0.88rem; font-weight: 500; color: #6b7280;
+    cursor: pointer; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .cat-tab.active {
+    border-bottom-color: var(--cat-color);
+    color: #111827; font-weight: 700;
+  }
+
+  /* ── Main ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 1rem 2rem 3rem; }
+
+  /* Day/time nav */
+  .day-nav {
+    background: white; border-radius: 14px;
+    padding: 0.55rem 0.75rem;
+    display: flex; align-items: center; gap: 0.35rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 0.75rem;
+  }
+  .day-pill {
+    padding: 0.32rem 0.85rem; border-radius: 999px; border: 1.5px solid #d1d5db;
+    background: white; color: #374151; cursor: pointer;
+    font-size: 0.78rem; font-weight: 600;
+  }
+  .day-pill.active {
+    background: #111827; border-color: #111827;
+    color: white; font-weight: 700;
+  }
+  .time-pill {
+    padding: 0.35rem 1.1rem; border-radius: 999px; border: none;
+    background: linear-gradient(135deg, #4338ca 0%, #be185d 100%);
+    color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; line-height: 1.2;
+    box-shadow: 0 2px 12px rgba(67,56,202,0.35);
+  }
+
+  /* ── Outer digest wrapper ── */
+  .digest-wrapper {
+    display: flex; flex-direction: column; gap: 0.65rem;
+  }
+
+  /* Digest header card */
+  .digest-header {
+    background: white; border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    padding: 1.35rem 1.75rem 1.1rem;
+  }
+  .cat-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--cat-color); margin-bottom: 0.2rem;
+  }
+  .digest-title {
+    font-size: 1.45rem; font-weight: 900; color: #0f172a;
+    background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 0.35rem;
+  }
+  .digest-meta {
+    display: flex; gap: 0.75rem; font-size: 0.75rem; color: #9ca3af;
+  }
+
+  /* ── Story cards ── */
+  .stories-list {
+    display: flex; flex-direction: column; gap: 0.65rem;
+  }
+
+  .story-card {
+    background: white; border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    padding: 1.25rem 1.75rem;
+    transition: box-shadow 0.15s;
+  }
+  .story-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+
+  .story-heading {
+    font-size: 1rem; font-weight: 800; color: #111827;
+    margin-bottom: 0.45rem; line-height: 1.3;
+  }
+  .story-bullet {
+    padding-left: 0.6rem; border-left: 2px solid #e5e7eb;
+    color: #374151; font-size: 0.87rem; line-height: 1.55;
+    margin: 0.15rem 0 0.15rem 0.6rem;
+  }
+  .why-matters {
+    margin: 0.5rem 0 0;
+    font-size: 0.79rem; color: #9ca3af; line-height: 1.55;
+  }
+  .why-matters strong {
+    font-weight: 700; color: #6b7280;
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  /* ── Inline source card (wide) ── */
+  .source-inline-wrap {
+    display: flex; gap: 0.55rem; flex-wrap: wrap; margin-top: 0.85rem;
+  }
+  .source-card {
+    flex: 1 1 150px; max-width: 175px;
+    display: flex; flex-direction: column; gap: 0.4rem;
+    padding: 0.7rem 0.8rem;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    transition: box-shadow 0.15s;
+  }
+  .source-card:hover { box-shadow: 0 2px 12px rgba(99,102,241,0.12); }
+  .source-card-top { display: flex; align-items: center; gap: 0.35rem; }
+  .source-domain {
+    font-size: 0.65rem; font-weight: 700; color: #9ca3af;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .source-title {
+    font-size: 0.78rem; font-weight: 600; color: #1e293b; line-height: 1.35;
+    overflow: hidden; display: -webkit-box; flex: 1;
+    -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  }
+  .source-actions {
+    display: flex; align-items: center; justify-content: flex-end;
+    margin-top: auto; padding-top: 0.35rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  .source-visit {
+    font-size: 0.68rem; font-weight: 700; color: #9ca3af;
+    text-decoration: none; white-space: nowrap;
+  }
+
+  /* ── Narrow pill demo ── */
+  .narrow-note {
+    font-size: 0.7rem; color: #9ca3af; font-style: italic;
+    margin: 1.75rem 0 0.6rem; padding-top: 1.25rem;
+    border-top: 1px dashed #e5e7eb;
+  }
+  .narrow-demo {
+    max-width: 340px; background: white; border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .narrow-story {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .narrow-story:last-child { border-bottom: none; }
+  .source-pill {
+    display: inline-flex; align-items: center; gap: 0.22rem;
+    padding: 0.18rem 0.55rem 0.18rem 0.32rem;
+    background: #f8fafc; border: 1px solid #e5e7eb;
+    border-radius: 999px; text-decoration: none;
+    margin: 0.45rem 0.2rem 0 0;
+  }
+  .source-pill-text { font-size: 0.67rem; font-weight: 700; color: #374151; }
+
+  /* ── Color switcher ── */
+  .color-switcher {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: white; border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 0.75rem 1rem;
+  }
+  .color-switcher p { font-size: 0.72rem; font-weight: 700; color: #9ca3af; margin-bottom: 0.5rem; }
+  .color-swatches { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 180px; }
+  .swatch {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer; transition: transform 0.1s;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: #111827; }
+</style>
+</head>
+<body>
+
+<div class="app-bg" id="appBg">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <!-- Smaller logo -->
+      <div class="logo">✦ The News Rundown</div>
+      <div class="toggle-group">
+        <button class="toggle-btn active">≡ Digest</button>
+        <button class="toggle-btn inactive">▶ Stories</button>
+      </div>
+    </div>
+    <div class="cat-strip">
+      <div class="cat-tabs" id="catTabs">
+        <button class="cat-tab active" onclick="setCategory('World News',this)">World News</button>
+        <button class="cat-tab" onclick="setCategory('Technology',this)">Technology</button>
+        <button class="cat-tab" onclick="setCategory('Business',this)">Business</button>
+        <button class="cat-tab" onclick="setCategory('Politics',this)">Politics</button>
+        <button class="cat-tab" onclick="setCategory('Sports',this)">Sports</button>
+        <button class="cat-tab" onclick="setCategory('Entertainment',this)">Entertainment</button>
+        <button class="cat-tab" onclick="setCategory('Science',this)">Science</button>
+        <button class="cat-tab" onclick="setCategory('Health',this)">Health</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- Day nav -->
+    <div class="day-nav">
+      <button style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.1rem;opacity:0.4;">‹</button>
+      <button class="day-pill">Mon 11</button>
+      <button class="day-pill">Tue 12</button>
+      <button class="day-pill active">Today</button>
+      <button style="background:none;border:none;cursor:pointer;color:#e5e7eb;font-size:1.1rem;opacity:0.4;">›</button>
+      <div style="width:1px;height:20px;background:#e5e7eb;margin:0 0.2rem;"></div>
+      <button class="time-pill">
+        <span>Morning</span>
+        <span style="font-size:0.62rem;font-weight:400;opacity:0.75;">8:00 AM</span>
+      </button>
+    </div>
+
+    <!-- Digest wrapper: outer card -->
+    <div class="digest-wrapper">
+
+      <!-- Digest header -->
+      <div class="digest-header">
+        <div class="cat-label" id="catLabel">WORLD NEWS</div>
+        <div class="digest-title" id="digestTitle">World News</div>
+        <div class="digest-meta">
+          <span>🕐 Morning</span>
+          <span>✦ Updated just now</span>
+        </div>
+      </div>
+
+      <!-- Stories list -->
+      <div class="stories-list">
+
+        <!-- Story 1 -->
+        <div class="story-card">
+          <div class="story-heading">UN Summit Reaches Historic Climate Agreement</div>
+          <div class="story-bullet">World leaders signed a binding accord committing to net-zero emissions by 2045.</div>
+          <div class="story-bullet">The deal includes a $500B fund to help developing nations transition to clean energy.</div>
+          <div class="why-matters"><strong>Why this matters</strong>&nbsp;&nbsp;This is the most ambitious climate deal in history, potentially reshaping global energy policy for decades.</div>
+          <div class="source-inline-wrap">
+            <div class="source-card">
+              <div class="source-card-top">
+                <img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" width="14" height="14" style="border-radius:3px;flex-shrink:0;" />
+                <span class="source-domain">bbc.com</span>
+              </div>
+              <div class="source-title">UN Climate Summit: World Leaders Sign Historic Net-Zero Accord</div>
+              <div class="source-actions"><a class="source-visit" href="#">Visit ↗</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story 2 -->
+        <div class="story-card">
+          <div class="story-heading">Tensions Rise in South China Sea as Naval Fleets Mobilize</div>
+          <div class="story-bullet">Three nations deployed warships after a disputed island seizure last weekend.</div>
+          <div class="story-bullet">The US State Department issued a formal warning calling for "immediate de-escalation."</div>
+          <div class="why-matters"><strong>Why this matters</strong>&nbsp;&nbsp;The region carries 30% of global shipping traffic — any conflict could severely disrupt supply chains.</div>
+          <div class="source-inline-wrap">
+            <div class="source-card">
+              <div class="source-card-top">
+                <img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" width="14" height="14" style="border-radius:3px;flex-shrink:0;" />
+                <span class="source-domain">reuters.com</span>
+              </div>
+              <div class="source-title">South China Sea: Naval Standoff Escalates After Island Incident</div>
+              <div class="source-actions"><a class="source-visit" href="#">Visit ↗</a></div>
+            </div>
+            <div class="source-card">
+              <div class="source-card-top">
+                <img src="https://www.google.com/s2/favicons?domain=nytimes.com&sz=32" width="14" height="14" style="border-radius:3px;flex-shrink:0;" />
+                <span class="source-domain">nytimes.com</span>
+              </div>
+              <div class="source-title">US Warns China as Warships Mass Near Disputed Islands</div>
+              <div class="source-actions"><a class="source-visit" href="#">Visit ↗</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story 3 -->
+        <div class="story-card">
+          <div class="story-heading">Global Food Prices Hit Five-Year Low</div>
+          <div class="story-bullet">The FAO Food Price Index dropped 4.2% in April, driven by bumper grain harvests.</div>
+          <div class="story-bullet">Relief expected for households in emerging markets most affected by recent inflation.</div>
+          <div class="why-matters"><strong>Why this matters</strong>&nbsp;&nbsp;Lower food costs could ease inflationary pressure in over 60 low-income countries.</div>
+          <div class="source-inline-wrap">
+            <div class="source-card">
+              <div class="source-card-top">
+                <img src="https://www.google.com/s2/favicons?domain=bloomberg.com&sz=32" width="14" height="14" style="border-radius:3px;flex-shrink:0;" />
+                <span class="source-domain">bloomberg.com</span>
+              </div>
+              <div class="source-title">Food Prices Drop to Lowest Since 2020 as Harvests Surge</div>
+              <div class="source-actions"><a class="source-visit" href="#">Visit ↗</a></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /stories-list -->
+
+      <!-- Narrow pill demo -->
+      <div style="padding: 0;">
+        <div class="narrow-note">↓ Small screen view — pills replace cards</div>
+        <div class="narrow-demo">
+          <div class="narrow-story">
+            <div class="story-heading" style="font-size:0.92rem;">UN Summit Reaches Historic Climate Agreement</div>
+            <div class="story-bullet" style="font-size:0.82rem;">World leaders signed a binding accord committing to net-zero by 2045.</div>
+            <div>
+              <a class="source-pill" href="#">
+                <img src="https://www.google.com/s2/favicons?domain=bbc.com&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" />
+                <span class="source-pill-text">bbc.com</span>
+              </a>
+            </div>
+          </div>
+          <div class="narrow-story">
+            <div class="story-heading" style="font-size:0.92rem;">Tensions Rise in South China Sea</div>
+            <div class="story-bullet" style="font-size:0.82rem;">Three nations deployed warships after a disputed island seizure.</div>
+            <div>
+              <a class="source-pill" href="#">
+                <img src="https://www.google.com/s2/favicons?domain=reuters.com&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" />
+                <span class="source-pill-text">reuters.com</span>
+              </a>
+              <a class="source-pill" href="#">
+                <img src="https://www.google.com/s2/favicons?domain=nytimes.com&sz=32" width="11" height="11" style="border-radius:2px;opacity:0.85;" />
+                <span class="source-pill-text">nytimes.com</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /digest-wrapper -->
+  </main>
+</div>
+
+<!-- Color switcher -->
+<div class="color-switcher">
+  <p>Category color</p>
+  <div class="color-swatches" id="swatches"></div>
+</div>
+
+<script>
+const CATEGORY_COLORS = {
+  'World News':    { color: '#6366f1', bg: '#f0f1ff' },
+  'Technology':    { color: '#0891b2', bg: '#edfafd' },
+  'Business':      { color: '#d97706', bg: '#fdf8ee' },
+  'Politics':      { color: '#e11d48', bg: '#fff0f2' },
+  'Sports':        { color: '#16a34a', bg: '#edfbf3' },
+  'Entertainment': { color: '#9333ea', bg: '#f8f0ff' },
+  'Science':       { color: '#2563eb', bg: '#eef3ff' },
+  'Health':        { color: '#db2777', bg: '#fdf0f6' },
+};
+
+function setCategory(name, el) {
+  const cfg = CATEGORY_COLORS[name] || CATEGORY_COLORS['World News'];
+  document.documentElement.style.setProperty('--cat-color', cfg.color);
+  document.documentElement.style.setProperty('--cat-bg', cfg.bg);
+  document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('catLabel').textContent = name.toUpperCase();
+  document.getElementById('digestTitle').textContent = name;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.cat === name));
+}
+
+const swatchContainer = document.getElementById('swatches');
+Object.entries(CATEGORY_COLORS).forEach(([name, cfg]) => {
+  const s = document.createElement('button');
+  s.className = 'swatch' + (name === 'World News' ? ' active' : '');
+  s.style.background = cfg.color;
+  s.dataset.cat = name;
+  s.title = name;
+  s.onclick = () => {
+    const tab = [...document.querySelectorAll('.cat-tab')].find(t => t.textContent === name);
+    if (tab) setCategory(name, tab);
+  };
+  swatchContainer.appendChild(s);
+});
+</script>
+</body>
+</html>

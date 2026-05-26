@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Depth Levels Mock — The Rundown</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%); min-height: 100vh; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ── Depth toggle (outside the card) ── */
+  .depth-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px 4px;
+  }
+  .depth-btn {
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1.5px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .depth-btn.active {
+    border-color: var(--cat-color, #6366f1);
+    background: var(--cat-color, #6366f1);
+    color: white;
+  }
+
+  /* ── stories card ── */
+  .stories-bg {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgba(15,15,20,0.92);
+    padding: 8px 16px calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    min-height: 0;
+  }
+  .story-card {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* fade transition for content */
+  .story-body { transition: opacity 0.2s; }
+  .story-body.fading { opacity: 0; }
+
+  /* ── pill ── */
+  .cat-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 5px 13px; border-radius: 999px; border: none; cursor: pointer;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  /* ── nav bar ── */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid #f3f4f6; padding: 10px 0 4px;
+    margin-top: 8px; flex-shrink: 0; gap: 4px;
+  }
+  .nav-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 8px 12px; background: none; border: 1.5px solid #e5e7eb;
+    border-radius: 999px; color: #374151; font-size: 0.78rem; font-weight: 600;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .nav-btn:disabled { color: #d1d5db; cursor: not-allowed; }
+  .nav-btn.next-btn {
+    background: var(--cat-color, #6366f1);
+    color: white; border: none;
+  }
+  .nav-btn.next-btn:disabled { background: #f3f4f6; color: #9ca3af; }
+  .nav-btn.cat-btn {
+    padding: 8px 9px;
+    color: var(--cat-color, #6366f1);
+  }
+  .nav-btn.cat-btn:disabled { color: #d1d5db; border-color: #f0f0f0; }
+
+  /* ── source pills ── */
+  .source-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px 3px 6px; background: #f8fafc; border: 1px solid #e5e7eb;
+    border-radius: 999px; text-decoration: none; font-size: 0.68rem; font-weight: 700; color: #374151;
+  }
+  .source-pill img { border-radius: 2px; opacity: 0.85; }
+
+  /* ── READ MODE ── */
+  .digest-container { max-width: 900px; margin: 0 auto; padding: 12px 16px 40px; }
+  .digest-header { border-bottom: 1px solid #f3f4f6; padding-bottom: 14px; margin-bottom: 20px; }
+  .digest-cat-title { font-size: 1.6rem; font-weight: 900; color: var(--cat-color, #6366f1); letter-spacing: -0.02em; line-height: 1.2; }
+  .digest-meta { display: flex; gap: 16px; font-size: 0.78rem; color: #9ca3af; margin-top: 8px; align-items: center; }
+  .digest-story { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 12px; padding: 18px 22px; margin-bottom: 10px; }
+  .digest-story-cat { font-size: 0.64rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; padding: 3px 9px; border-radius: 999px; display: inline-block; margin-bottom: 7px; }
+  .digest-story-headline { font-size: 1.02rem; font-weight: 800; color: #111827; line-height: 1.3; margin-bottom: 8px; }
+  .digest-bullet { display: flex; gap: 9px; font-size: 0.875rem; color: #374151; line-height: 1.5; margin-bottom: 4px; }
+  .digest-bullet-bar { width: 2.5px; min-width: 2.5px; border-radius: 99px; opacity: 0.35; margin-top: 6px; align-self: stretch; }
+  .meta-label { font-weight: 700; color: #6b7280; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .meta-text { font-size: 0.8rem; color: #9ca3af; line-height: 1.55; }
+  .deep-dive-prose { font-size: 0.9rem; color: #374151; line-height: 1.7; }
+  .deep-dive-prose p { margin-bottom: 12px; }
+  .deep-dive-prose strong { font-weight: 700; color: #111827; }
+
+  /* header */
+  header { background: white; box-shadow: 0 1px 0 rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
+  .header-inner { max-width: 1400px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .brand-icon { color: #6366f1; font-size: 18px; }
+  .brand-name { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; }
+  .mode-toggle { display: flex; gap: 2px; background: #f3f4f6; border-radius: 999px; padding: 2px; }
+  .mode-btn { padding: 4px 14px; border-radius: 999px; border: none; font-size: 0.68rem; font-weight: 700; background: transparent; color: #9ca3af; transition: all 0.15s; white-space: nowrap; cursor: pointer; }
+  .mode-btn.active { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  /* annotation label */
+  .annotation { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; background: #f3f4f6; padding: 3px 10px; border-radius: 6px; display: inline-block; margin-bottom: 6px; }
+
+  /* volume icon inline */
+  .icon-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: none; background: #f3f4f6; color: #6b7280; cursor: pointer; flex-shrink: 0; }
+  .chevron { display: inline-block; }
+
+  /* scrollable body for stories */
+  .scroll-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* progress bar */
+  .progress-bar { display: flex; gap: 3px; padding: 10px 12px 0; flex-shrink: 0; }
+  .progress-seg { flex: 1; height: 3px; border: none; border-radius: 99px; padding: 0; cursor: pointer; transition: all 0.2s; }
+</style>
+</head>
+<body>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const COLORS = {
+  'World News': '#6366f1', 'Technology': '#0891b2', 'Business': '#d97706',
+  'Politics': '#e11d48', 'Sports': '#16a34a'
+};
+
+const STORIES = [
+  {
+    category: 'World News',
+    headline: 'US–Iran Conflict Stalls Over Trust Gap',
+    bullets: [
+      "Iran's FM says lack of trust is blocking negotiations to end the US war.",
+      "Both sides maintain diplomatic channels even as military operations continue.",
+      "Gold surged to $5,391 as safe-haven demand spikes amid escalating strikes."
+    ],
+    perspectives: "WaPo emphasises Iranian scepticism; Radio Free Europe highlights US willingness to talk.",
+    why: "The standoff destabilises the Middle East and disrupts global energy markets.",
+    deepDive: `<p>Iran's Foreign Minister Abbas Araghchi stated Wednesday that a <strong>"fundamental trust deficit"</strong> remains the primary obstacle to ceasefire negotiations, even as both Washington and Tehran continue to engage through Omani intermediaries.</p><p>The remarks came after a third wave of US airstrikes targeted hardened underground facilities near Fordow, with the Pentagon confirming the use of GBU-57 bunker-busting munitions. Iranian state media reported retaliatory drone strikes on US-linked infrastructure in Iraq.</p><p>Financial markets reacted sharply — gold surged past <strong>$5,391 per ounce</strong>, oil touched $112/barrel, and the dollar index fell to a 14-month low as investors sought safe havens. Shipping insurers announced a 40% premium hike for vessels transiting the Strait of Hormuz.</p>`,
+    sources: [
+      { outlet: 'Washington Post', domain: 'washingtonpost.com' },
+      { outlet: 'Radio Free Europe', domain: 'rferl.org' },
+      { outlet: 'Reuters', domain: 'reuters.com' }
+    ]
+  },
+  {
+    category: 'Technology',
+    headline: 'OpenAI Launches o3 for All Free Users',
+    bullets: [
+      "OpenAI made its o3 reasoning model available to all users, including free tier.",
+      "The rollout follows pressure from Google's Gemini 2.5 Pro release last week.",
+      "o3 scores 88% on graduate-level reasoning benchmarks, up from o1's 72%."
+    ],
+    perspectives: "Tech analysts see this as an accessibility win; safety researchers warn of unchecked reasoning capabilities.",
+    why: "Democratising advanced AI reasoning could accelerate research and startups globally.",
+    deepDive: `<p>OpenAI on Wednesday extended access to its <strong>o3 reasoning model</strong> to all users, including those on the free tier — a move that marks the fastest democratisation of a frontier model in the company's history. Previously limited to Plus and Pro subscribers, o3 is now available with a daily usage cap for free accounts.</p><p>The decision appears directly linked to competitive pressure from Google, which made Gemini 2.5 Pro available to free users last Tuesday. Internal documents seen by The Verge suggest OpenAI accelerated the free rollout timeline by two weeks after monitoring Gemini adoption metrics.</p><p>In benchmark testing, o3 achieves <strong>88.2% accuracy</strong> on the GPQA Diamond dataset — a set of PhD-level questions in physics, chemistry, and biology — compared to 72.0% for the original o1 model. Developers have already reported significant improvements in multi-step code generation and mathematical proofs.</p>`,
+    sources: [
+      { outlet: 'The Verge', domain: 'theverge.com' },
+      { outlet: 'TechCrunch', domain: 'techcrunch.com' }
+    ]
+  },
+  {
+    category: 'Business',
+    headline: 'Fed Signals Two Rate Cuts Before Year End',
+    bullets: [
+      "Fed Chair Powell indicated two 25bps cuts are likely if inflation holds below 2.8%.",
+      "Markets rallied: S&P 500 up 1.4%, Nasdaq up 2.1% on the announcement.",
+      "Mortgage rates fell to 6.45%, the lowest since March 2024."
+    ],
+    perspectives: "Bond markets price in three cuts; some Fed governors pushed back on pace.",
+    why: "Rate cuts would ease borrowing costs for households and businesses heading into 2027.",
+    deepDive: `<p>Federal Reserve Chair Jerome Powell signalled on Wednesday that the central bank is on track to implement <strong>two 25-basis-point rate cuts</strong> before the end of 2026, contingent on inflation remaining below 2.8% and labour market conditions staying stable.</p><p>Speaking at the Brookings Institution, Powell noted that the Fed's preferred inflation gauge — the PCE price index — has held below target for three consecutive months, giving policymakers confidence to begin easing monetary policy. "We are approaching a point where adjustment becomes appropriate," he said, while cautioning against reading the comments as a firm commitment.</p><p>The announcement triggered an immediate market rally. The S&P 500 closed up 1.4% and the Nasdaq gained 2.1%, with rate-sensitive sectors like real estate and utilities leading gains. The 10-year Treasury yield fell 12 basis points to 4.18%, its lowest level in eight months.</p>`,
+    sources: [
+      { outlet: 'Wall Street Journal', domain: 'wsj.com' },
+      { outlet: 'Bloomberg', domain: 'bloomberg.com' },
+      { outlet: 'Financial Times', domain: 'ft.com' }
+    ]
+  },
+  {
+    category: 'Politics',
+    headline: 'UK Budget Triggers Snap Election Speculation',
+    bullets: [
+      "Chancellor's emergency budget raised taxes by £22bn, angering backbenchers.",
+      "Three cabinet ministers publicly distanced themselves from the measures.",
+      "Polling shows Labour trailing Conservatives by 8 points for the first time since 2019."
+    ],
+    perspectives: "Guardian argues cuts are necessary fiscal repair; Telegraph calls it political self-destruction.",
+    why: "A snap election would reshape UK policy on trade, immigration and NHS funding.",
+    deepDive: `<p>Britain's Chancellor delivered an emergency budget on Wednesday that raised taxes by <strong>£22 billion</strong> through a combination of frozen income tax thresholds, a higher capital gains rate, and a new levy on financial transactions — triggering an immediate revolt within the governing Labour Party.</p><p>Three cabinet ministers — including the Health Secretary and the Work and Pensions Secretary — issued statements subtly distancing themselves from specific measures within hours of the announcement, fuelling speculation about internal divisions at the highest levels of government. Two senior backbenchers told the BBC they were "actively considering" submitting letters calling for a confidence vote in the Prime Minister's leadership.</p><p>A YouGov poll conducted hours after the budget showed the Conservative Party leading Labour by 8 percentage points — the first time the Tories have led in any major poll since the 2019 general election — with 34% of respondents saying the budget made them <strong>"significantly less likely"</strong> to vote Labour.</p>`,
+    sources: [
+      { outlet: 'The Guardian', domain: 'theguardian.com' },
+      { outlet: 'BBC News', domain: 'bbc.co.uk' },
+      { outlet: 'The Telegraph', domain: 'telegraph.co.uk' }
+    ]
+  },
+  {
+    category: 'Sports',
+    headline: 'Real Madrid Win Champions League Final in Penalty Shootout',
+    bullets: [
+      "Real Madrid defeated PSG 4–3 on penalties after a 1–1 draw in Munich.",
+      "Vinícius Júnior scored the equaliser in the 89th minute to send the match to extra time.",
+      "Carlo Ancelotti becomes the first manager to win four Champions League titles."
+    ],
+    perspectives: "Spanish media lauds tactical masterclass; French press blame PSG's penalty preparation.",
+    why: "Real Madrid extend their record tally to 16 European Cups, cementing dynasty status.",
+    deepDive: `<p>Real Madrid claimed their 16th European Cup in a dramatic Champions League final at the Allianz Arena, defeating Paris Saint-Germain <strong>4–3 on penalties</strong> after a 1–1 draw that went to extra time.</p><p>PSG looked set to claim their first ever Champions League title when Ousmane Dembélé's precise finish put the French side ahead in the 71st minute. But Vinícius Júnior — who had been largely nullified by PSG's defensive structure for 88 minutes — burst beyond Hakimi in the 89th minute and slotted home an equaliser that sent the Madrid end of the stadium into delirium.</p><p>Carlo Ancelotti, who has now won the competition in <strong>three separate decades</strong> with three different clubs, described the win as "the most emotional of my career." The Italian becomes the first manager in football history to win four Champions League titles, surpassing the three won by his former boss Giovanni Trapattoni.</p>`,
+    sources: [
+      { outlet: 'BBC Sport', domain: 'bbc.co.uk' },
+      { outlet: 'ESPN', domain: 'espn.com' },
+      { outlet: 'AS', domain: 'as.com' }
+    ]
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let viewMode = 'stories'; // 'stories' | 'read'
+let depthLevel = 'summary'; // 'summary' | 'deep'
+let storyIdx = 0;
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  document.body.innerHTML = buildPage();
+  attachEvents();
+  applyColor();
+}
+
+function buildPage() {
+  return `
+    ${buildHeader()}
+    ${viewMode === 'stories' ? buildStoriesView() : buildReadView()}
+  `;
+}
+
+function buildHeader() {
+  return `
+  <header>
+    <div class="header-inner">
+      <div class="brand" onclick="switchView('${viewMode}')">
+        <span class="brand-icon">✦</span>
+        <span class="brand-name">The Rundown</span>
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn ${viewMode === 'read' ? 'active' : ''}" onclick="switchView('read')">≡ Read</button>
+        <button class="mode-btn ${viewMode === 'stories' ? 'active' : ''}" onclick="switchView('stories')">▶ Stories</button>
+      </div>
+      <button style="padding:6px;background:none;border:none;color:#6366f1;">☰</button>
+    </div>
+  </header>`;
+}
+
+// ── STORIES VIEW ──────────────────────────────────────────────────────────────
+function buildStoriesView() {
+  const story = STORIES[storyIdx];
+  const color = COLORS[story.category];
+  const isFirst = storyIdx === 0;
+  const isLast = storyIdx === STORIES.length - 1;
+
+  // progress bar
+  const progressBar = `
+    <div class="progress-bar">
+      ${STORIES.map((_, i) => `
+        <button class="progress-seg" onclick="goToStory(${i})"
+          style="background:${i <= storyIdx ? color : '#e5e7eb'}; opacity:${i === storyIdx ? 1 : i < storyIdx ? 0.65 : 0.25};">
+        </button>`).join('')}
+    </div>`;
+
+  // breadcrumb
+  const breadcrumb = `
+    <div style="flex-shrink:0;margin-bottom:10px;padding:8px 20px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <button class="cat-pill" style="color:${color};background:${color}22;">
+          ${story.category}
+          <span style="font-size:11px;opacity:0.6;">▾</span>
+        </button>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <span style="font-size:0.72rem;font-weight:700;color:#9ca3af;white-space:nowrap;">${storyIdx + 1} / ${STORIES.length}</span>
+          <button class="icon-btn">🔊</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:4px;padding:0 2px;">
+        <button style="display:flex;align-items:center;gap:2px;font-size:0.68rem;color:#9ca3af;font-weight:600;background:none;border:none;cursor:pointer;">
+          Today <span style="font-size:9px;opacity:0.5;">▾</span>
+        </button>
+        <span style="font-size:0.68rem;color:#d1d5db;">·</span>
+        <button style="display:flex;align-items:center;gap:2px;font-size:0.68rem;color:#9ca3af;font-weight:600;background:none;border:none;cursor:pointer;">
+          Morning <span style="font-size:9px;opacity:0.5;">▾</span>
+        </button>
+      </div>
+    </div>`;
+
+  // body content
+  const bodyContent = depthLevel === 'summary' ? buildSummaryBody(story, color) : buildDeepDiveBody(story, color);
+
+  // nav
+  const nav = `
+    <div class="nav-bar" style="padding:10px 20px 4px;margin:0;">
+      <button class="nav-btn" onclick="goPrev()" ${isFirst ? 'disabled' : ''}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Previous
+      </button>
+      <button class="nav-btn cat-btn" onclick="goPrevCat()" ${isFirst ? 'disabled' : ''} style="--cat-color:${color}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:-6px"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="nav-btn cat-btn" onclick="goNextCat()" ${isLast ? 'disabled' : ''} style="--cat-color:${color}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:-6px"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button class="nav-btn next-btn" onclick="goNext()" ${isLast ? 'disabled' : ''} style="--cat-color:${color}">
+        Next
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>`;
+
+  return `
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:rgba(15,15,20,0.92);min-height:calc(100vh - 52px);">
+
+    <!-- Depth toggle — OUTSIDE the card -->
+    <div style="display:flex;justify-content:center;padding:10px 16px 6px;">
+      <div style="display:flex;gap:4px;background:rgba(255,255,255,0.08);border-radius:999px;padding:3px;">
+        <button onclick="setDepth('summary')" style="padding:5px 18px;border-radius:999px;border:none;font-size:0.73rem;font-weight:700;cursor:pointer;transition:all 0.15s;${depthLevel === 'summary' ? `background:${color};color:white;` : 'background:transparent;color:rgba(255,255,255,0.5);'}">Summary</button>
+        <button onclick="setDepth('deep')" style="padding:5px 18px;border-radius:999px;border:none;font-size:0.73rem;font-weight:700;cursor:pointer;transition:all 0.15s;${depthLevel === 'deep' ? `background:${color};color:white;` : 'background:transparent;color:rgba(255,255,255,0.5);'}">Deep Dive</button>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:0 16px 24px;">
+      <div class="story-card" style="--cat-color:${color};max-height:calc(100vh - 140px);">
+
+        ${progressBar}
+        ${breadcrumb}
+
+        <!-- Scrollable body -->
+        <div class="scroll-body story-body" style="padding:0 20px 0;">
+          ${bodyContent}
+        </div>
+
+        ${nav}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildSummaryBody(story, color) {
+  const bullets = story.bullets.map(b => `
+    <div class="digest-bullet" style="margin-bottom:6px;">
+      <div class="digest-bullet-bar" style="background:${color};"></div>
+      <span>${b}</span>
+    </div>`).join('');
+
+  const sources = buildSourcePills(story);
+
+  return `
+    <h3 style="font-size:1.25rem;font-weight:900;color:#0f172a;line-height:1.25;margin:4px 0 10px;">${story.headline}</h3>
+    <div style="margin:4px 0 10px;">${bullets}</div>
+    ${story.perspectives ? `<div style="margin:4px 0 8px;"><span class="meta-label">Perspectives differ</span>&nbsp;&nbsp;<span class="meta-text">${story.perspectives}</span></div>` : ''}
+    ${story.why ? `<div style="margin:4px 0 8px;"><span class="meta-label">Why this matters</span>&nbsp;&nbsp;<span class="meta-text">${story.why}</span></div>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;margin-bottom:4px;">${sources}</div>
+  `;
+}
+
+function buildDeepDiveBody(story, color) {
+  const sources = buildSourcePills(story);
+  return `
+    <h3 style="font-size:1.25rem;font-weight:900;color:#0f172a;line-height:1.25;margin:4px 0 12px;">${story.headline}</h3>
+    <div class="deep-dive-prose">${story.deepDive}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;margin-bottom:4px;">${sources}</div>
+  `;
+}
+
+function buildSourcePills(story) {
+  return story.sources.map(s => `
+    <span class="source-pill">
+      <img src="https://www.google.com/s2/favicons?domain=${s.domain}&sz=32" width="11" height="11" onerror="this.style.display='none'" alt="" />
+      ${s.outlet}
+    </span>`).join('');
+}
+
+// ── READ VIEW ─────────────────────────────────────────────────────────────────
+function buildReadView() {
+  const color = COLORS['World News']; // default for read header
+
+  const storyCards = STORIES.map((story, i) => {
+    const col = COLORS[story.category];
+    return `
+    <div class="digest-story">
+      <span class="digest-story-cat" style="color:${col};background:${col}18;">${story.category}</span>
+      <div class="digest-story-headline">${story.headline}</div>
+      <div class="story-body" id="read-body-${i}">
+        ${depthLevel === 'summary' ? buildReadSummaryBody(story, col) : buildReadDeepBody(story, col)}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="digest-container">
+
+    <!-- Depth toggle — OUTSIDE cards, top of content area -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <span style="font-size:0.72rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;">Depth</span>
+      <div style="display:flex;gap:4px;background:#f3f4f6;border-radius:999px;padding:2px;">
+        <button onclick="setDepth('summary')" style="padding:5px 16px;border-radius:999px;border:none;font-size:0.73rem;font-weight:700;cursor:pointer;transition:all 0.15s;${depthLevel === 'summary' ? 'background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'background:transparent;color:#9ca3af;'}">Summary</button>
+        <button onclick="setDepth('deep')" style="padding:5px 16px;border-radius:999px;border:none;font-size:0.73rem;font-weight:700;cursor:pointer;transition:all 0.15s;${depthLevel === 'deep' ? 'background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'background:transparent;color:#9ca3af;'}">Deep Dive</button>
+      </div>
+    </div>
+
+    <!-- Category header -->
+    <div class="digest-header" style="--cat-color:${color}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px;">
+        <div>
+          <div class="digest-cat-title" style="color:#6366f1;">★ My Rundown</div>
+          <div style="font-size:0.8rem;color:#6b7280;margin-top:5px;">World News · Technology · Business · Politics · Sports</div>
+        </div>
+        <button class="icon-btn" style="margin-top:2px;">🔊</button>
+      </div>
+      <div class="digest-meta">
+        <span>🕐 Morning</span>
+        <span>✦ ${STORIES.length} stories</span>
+      </div>
+    </div>
+
+    ${storyCards}
+  </div>`;
+}
+
+function buildReadSummaryBody(story, color) {
+  const bullets = story.bullets.map(b => `
+    <div class="digest-bullet">
+      <div class="digest-bullet-bar" style="background:${color};"></div>
+      <span>${b}</span>
+    </div>`).join('');
+
+  const sources = buildSourcePills(story);
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px;">${bullets}</div>
+    ${story.perspectives ? `<div style="margin:4px 0 6px;"><span class="meta-label">Perspectives differ</span>&nbsp;&nbsp;<span class="meta-text">${story.perspectives}</span></div>` : ''}
+    ${story.why ? `<div style="margin:4px 0 6px;"><span class="meta-label">Why this matters</span>&nbsp;&nbsp;<span class="meta-text">${story.why}</span></div>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;">${sources}</div>
+  `;
+}
+
+function buildReadDeepBody(story, color) {
+  const sources = buildSourcePills(story);
+  return `
+    <div class="deep-dive-prose">${story.deepDive}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;">${sources}</div>
+  `;
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+function switchView(mode) {
+  viewMode = mode;
+  render();
+}
+
+function setDepth(level) {
+  depthLevel = level;
+  render();
+}
+
+function goToStory(i) {
+  storyIdx = i;
+  render();
+}
+
+function goNext() {
+  if (storyIdx < STORIES.length - 1) { storyIdx++; render(); }
+}
+
+function goPrev() {
+  if (storyIdx > 0) { storyIdx--; render(); }
+}
+
+function goNextCat() {
+  if (storyIdx < STORIES.length - 1) { storyIdx++; render(); }
+}
+
+function goPrevCat() {
+  if (storyIdx > 0) { storyIdx--; render(); }
+}
+
+function attachEvents() {
+  // keyboard
+  document.onkeydown = (e) => {
+    if (e.key === 'ArrowRight') goNext();
+    if (e.key === 'ArrowLeft') goPrev();
+  };
+}
+
+function applyColor() {
+  if (viewMode === 'stories') {
+    const color = COLORS[STORIES[storyIdx].category];
+    document.documentElement.style.setProperty('--cat-color', color);
+  }
+}
+
+// init
+render();
+</script>
+</body>
+</html>

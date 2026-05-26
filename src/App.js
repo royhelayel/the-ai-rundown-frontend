@@ -679,6 +679,44 @@ const TheAIRundown = () => {
     });
   }, [stories, storyIndex, viewMode, newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pre-fetch TTS for the first story of the NEXT category so navigating forward is instant.
+  // Runs once per category load (not per story scroll) — one Supabase query in the background.
+  useEffect(() => {
+    if (viewMode !== 'stories' || !stories.length || newsLanguage === 'ar') return;
+    const { cats, cat } = storyNavRef.current;
+    const catIdx = cats.indexOf(cat);
+    const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
+    if (!nextCat) return;
+
+    const fn = narrateFnRef.current;
+
+    (async () => {
+      try {
+        const isCustom = customCategories.includes(nextCat);
+        const fetchTimeSlot = isCustom ? 'Daily' : selectedTime;
+        let q;
+        if (isCustom) {
+          const sharedKey = (customCategoryDescriptions[nextCat] || nextCat).toLowerCase().trim();
+          q = supabase.from('news_summaries').select('content, stories_content')
+            .eq('shared_key', sharedKey).is('user_id', null).eq('day', selectedDay).eq('time_slot', 'Daily');
+        } else {
+          q = supabase.from('news_summaries').select('content, stories_content')
+            .eq('category', nextCat).eq('day', selectedDay).eq('time_slot', fetchTimeSlot)
+            .eq('language', newsLanguage).is('user_id', null).is('shared_key', null);
+        }
+        const { data } = await q.maybeSingle();
+        if (!data) return;
+        const { stories: nextStories } = buildStories(data.content, data.stories_content);
+        if (!nextStories.length) return;
+        // Prefetch TTS for the first story + the category transition phrase
+        const script = fn.buildStoryScript?.(nextStories[0]);
+        if (script) fn.prefetchTTS?.(script);
+        const catPhrase = pickRandom(CAT_TRANSITION_TEMPLATES)(nextCat);
+        fn.prefetchTTS?.(catPhrase);
+      } catch { /* silently ignore — this is best-effort */ }
+    })();
+  }, [stories, viewMode, newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const timesOfDay = [
     { value: 'Morning', label: 'Morning', time: '6 AM' },
     { value: 'Evening', label: 'Evening', time: '6 PM' },

@@ -102,7 +102,7 @@ const TheAIRundown = () => {
   const [stories, setStories] = useState([]);
   const [hasPunchyBullets, setHasPunchyBullets] = useState(false);
   const goToLastStoryRef = useRef(false);
-  const storyNavRef = useRef({});
+  const storyNavRef = useRef({ idx: 0, stories: [], cats: [], cat: '' });
   const storyGoRef = useRef({}); // exposes goNext/goPrev from the stories render block
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
@@ -1564,6 +1564,9 @@ const TheAIRundown = () => {
   const isStoryView = !!storyRouteMatch;
   const currentStory = stories[storyIdxFromUrl ?? storyIndex] || null;
   const miniPlayerVisible = playerVisible && playerMinimized;
+
+  // Keep narration refs in sync on every render
+  storyNavRef.current = { idx: storyIndex, stories, cats: navCategories, cat: selectedCategory };
 
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>

@@ -55,19 +55,30 @@ function CategoryRow({ cat, catData, onOpen, onPlay, isNarrating, isCurrentCat }
       {/* Story headline list */}
       {info && info.previewStories?.length > 0 ? (
         <div>
-          {info.previewStories.map((story, i) => (
-            <button key={i}
-              onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', width: '100%', padding: '0.65rem 1.25rem', background: 'none', border: 'none', borderTop: `1px solid ${colors.border}`, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s' }}
-              onMouseEnter={e => e.currentTarget.style.background = colors.bgCard}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            >
-              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.2rem', flexShrink: 0 }}>{i + 1}</span>
-              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', color: colors.text, lineHeight: 1.4 }}>
-                {story.headline}
-              </p>
-            </button>
-          ))}
+          {info.previewStories.map((story, i) => {
+            const outlets = story.storySources?.map(s => s.outlet).filter(Boolean) || [];
+            const sourceStr = outlets.slice(0, 2).join(' · ');
+            return (
+              <button key={i}
+                onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', width: '100%', padding: '0.7rem 1.25rem', background: 'none', border: 'none', borderTop: `1px solid ${colors.border}`, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s' }}
+                onMouseEnter={e => e.currentTarget.style.background = colors.bgCard}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              >
+                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.25rem', flexShrink: 0 }}>{i + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.text, lineHeight: 1.4 }}>
+                    {story.headline}
+                  </p>
+                  {sourceStr && (
+                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '400', color: colors.textMuted, letterSpacing: '0.01em' }}>
+                      {sourceStr}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
           {/* Bottom border */}
           <div style={{ borderTop: `1px solid ${colors.border}` }} />
         </div>

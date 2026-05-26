@@ -11,6 +11,24 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_ANON_KEY
 );
 
+const STORY_TRANSITIONS = [
+  'Up next.',
+  'Moving on.',
+  'And now.',
+  'Next story.',
+  "Here's what else is happening.",
+  'Our next story.',
+];
+
+const CAT_TRANSITION_TEMPLATES = [
+  (cat) => `Now let's turn to ${cat}.`,
+  (cat) => `Next up, ${cat}.`,
+  (cat) => `Moving on to ${cat}.`,
+  (cat) => `Coming up, ${cat}.`,
+];
+
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 const TheAIRundown = () => {
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -88,7 +106,7 @@ const TheAIRundown = () => {
   const narrationDurationRef = useRef(0); // seconds — ref avoids re-renders when set
   const repeatModeRef = useRef(false);
   const playbackSpeedRef = useRef(1);
-  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false });
+  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false, pendingCategoryName: null });
   const narrateFnRef = useRef({});
   // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
   const ttsAudioCacheRef = useRef(new Map());
@@ -479,6 +497,10 @@ const TheAIRundown = () => {
     const catIdx = cats.indexOf(cat);
     const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
     if (nextCat && narrationStateRef.current.active) {
+      const transition = pickRandom(CAT_TRANSITION_TEMPLATES)(nextCat);
+      narrationStateRef.current.pendingCategoryName = transition;
+      // Pre-fetch while new category loads — will be instant by the time stories are ready
+      narrateFnRef.current.prefetchTTS?.(transition);
       narrationStateRef.current.pendingLoad = true;
       handleSelectCategoryRef.current?.(nextCat);
     } else {
@@ -503,10 +525,39 @@ const TheAIRundown = () => {
     if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
     if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
     const script = parts.filter(Boolean).join(' ');
-    narrateFnRef.current.speakText(script, () => {
-      if (!narrationStateRef.current.active) return;
-      setTimeout(() => narrateFnRef.current.narrateStory(idx + 1), 600);
-    });
+
+    const playStory = () => {
+      narrateFnRef.current.speakText(script, () => {
+        if (!narrationStateRef.current.active) return;
+        const nextIdx = idx + 1;
+        if (nextIdx < storyNavRef.current.stories.length) {
+          // More stories ahead — play a brief transition then start the next one
+          const trans = isAr ? null : pickRandom(STORY_TRANSITIONS);
+          if (trans) {
+            narrateFnRef.current.speakText(trans, () => {
+              if (!narrationStateRef.current.active) return;
+              narrateFnRef.current.narrateStory(nextIdx);
+            });
+          } else {
+            setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), 600);
+          }
+        } else {
+          setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), 600);
+        }
+      });
+    };
+
+    // Play category transition first if we just auto-advanced from another category
+    const catTransition = narrationStateRef.current.pendingCategoryName;
+    if (idx === 0 && catTransition && !isAr) {
+      narrationStateRef.current.pendingCategoryName = null;
+      narrateFnRef.current.speakText(catTransition, () => {
+        if (!narrationStateRef.current.active) return;
+        playStory();
+      });
+    } else {
+      playStory();
+    }
   };
   narrateFnRef.current.narrateStory = narrateStoryFrom;
 
@@ -1229,6 +1280,12 @@ const TheAIRundown = () => {
 
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
+
+  // Pre-warm TTS cache with all static story transition phrases at startup
+  useEffect(() => {
+    const fn = narrateFnRef.current;
+    STORY_TRANSITIONS.forEach(t => fn.prefetchTTS?.(t));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No day/time fallback needed — all days and slots are always visible.
   // Disabled slots show "News Not Available" in the body if somehow selected.

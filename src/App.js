@@ -112,8 +112,8 @@ const TheAIRundown = () => {
   const narrateFnRef = useRef({});
   // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
   const ttsAudioCacheRef = useRef(new Map());
-  // Tracks texts currently being pre-fetched to avoid duplicate requests
-  const ttsFetchingRef = useRef(new Set());
+  // Shared URL-fetch promises: text → Promise<string|null> — deduplicates concurrent fetches
+  const ttsUrlPromisesRef = useRef(new Map());
   const handleSelectCategoryRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
@@ -437,7 +437,6 @@ const TheAIRundown = () => {
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
   const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;
-    setIsAudioLoading(false); // clear spinner whenever audio actually begins
     // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
     const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
     narrationStateRef.current.audio = audio;
@@ -468,43 +467,60 @@ const TheAIRundown = () => {
       narrationStateRef.current.audio = null;
       narrateFnRef.current.stop();
     };
-    audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
+    audio.play()
+      .then(() => { setIsAudioLoading(false); })
+      .catch(() => { setIsAudioLoading(false); if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
+  };
+
+  // Returns a shared promise for a blob: URL containing the audio bytes.
+  // Deduplicates concurrent fetches — both prefetch and speakText share the same in-flight request.
+  // Uses /api/tts-stream which: (a) pipes Unreal Speech bytes directly for cache misses (~200ms to
+  // first byte), (b) returns Supabase-cached bytes for hits (~300ms). Either way the browser has a
+  // local blob URL — no secondary CDN fetch, no canplay wait, no buffering delay.
+  const getTTSAudio = (text) => {
+    const existing = ttsUrlPromisesRef.current.get(text);
+    if (existing) return existing;
+    const promise = fetch(`${BACKEND_URL}/api/tts-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+      .then(r => { if (!r.ok) throw new Error('tts-stream failed'); return r.arrayBuffer(); })
+      .then(buf => {
+        const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+        return url;
+      })
+      .catch(() => null);
+    ttsUrlPromisesRef.current.set(text, promise);
+    if (ttsUrlPromisesRef.current.size > 12) {
+      const oldest = ttsUrlPromisesRef.current.keys().next().value;
+      ttsUrlPromisesRef.current.delete(oldest);
+    }
+    return promise;
   };
 
   const speakText = (text, onDone, opts = {}) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
     if (newsLanguage === 'ar') { setIsAudioLoading(false); speakWithBrowser(cleanForTTS(text), onDone); return; }
 
-    // ── 1. Pre-loaded cache hit → play instantly (prefetch already waited for canplay) ──
+    // ── 1. Cache hit → play immediately (blob URL, already local) ──
     const preloaded = ttsAudioCacheRef.current.get(text);
     if (preloaded) {
       setupAndPlayAudio(preloaded, onDone, opts);
       return;
     }
 
-    // ── 2. Fetch signed CDN URL → wait for canplay so play() is truly instant ──
-    const gen = narrationGenRef.current; // capture; stale if user navigates before canplay fires
-    fetch(`${BACKEND_URL}/api/tts-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.trim() }),
-    })
-      .then(r => { if (!r.ok) throw new Error('tts-url failed'); return r.json(); })
-      .then(({ url }) => {
-        if (!narrationStateRef.current.active || narrationGenRef.current !== gen || !url) return;
-        const audio = new Audio(url);
-        audio.preload = 'auto';
-        let fired = false;
-        const play = () => {
-          if (fired) return;
-          fired = true;
-          audio.removeEventListener('canplay', play);
-          if (!narrationStateRef.current.active || narrationGenRef.current !== gen) { setIsAudioLoading(false); return; }
-          setupAndPlayAudio(audio, onDone, opts);
-        };
-        audio.addEventListener('canplay', play, { once: true });
-        setTimeout(play, 5000); // safety: never hang if canplay is delayed
-        audio.load();
+    // ── 2. Cache miss — shared fetch promise; play the instant bytes arrive ──
+    setIsAudioLoading(true);
+    const gen = narrationGenRef.current;
+    getTTSAudio(text.trim())
+      .then(url => {
+        if (!narrationStateRef.current.active || narrationGenRef.current !== gen) { setIsAudioLoading(false); return; }
+        if (!url) throw new Error('no url');
+        // Recheck cache — prefetch may have stored an element while we awaited bytes
+        const fromCache = ttsAudioCacheRef.current.get(text);
+        const audio = fromCache || (() => { const a = new Audio(url); a.preload = 'auto'; return a; })();
+        setupAndPlayAudio(audio, onDone, opts);
       })
       .catch(() => {
         setIsAudioLoading(false);
@@ -601,40 +617,23 @@ const TheAIRundown = () => {
     return parts.filter(Boolean).join(' ');
   };
 
-  // Pre-fetches TTS audio for `text` in the background so play is instant when triggered
+  // Pre-fetches TTS audio for `text` in the background so play is instant when triggered.
+  // Uses the shared getTTSUrl promise — no duplicate network requests even if speakText fires concurrently.
   const prefetchTTSAudio = async (text) => {
     if (!text?.trim() || newsLanguage === 'ar') return;
-    if (ttsAudioCacheRef.current.has(text) || ttsFetchingRef.current.has(text)) return;
-    ttsFetchingRef.current.add(text);
+    if (ttsAudioCacheRef.current.has(text)) return;
     try {
-      const r = await fetch(`${BACKEND_URL}/api/tts-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.trim() }),
-      });
-      if (!r.ok) return;
-      const { url } = await r.json();
-      if (!url) return;
-      const audio = new Audio(url);
+      const url = await getTTSAudio(text.trim()); // shared promise — no duplicate fetch with speakText
+      if (!url || ttsAudioCacheRef.current.has(text)) return;
+      const audio = new Audio(url); // blob: URL — already fully local, instant play
       audio.preload = 'auto';
-      // Wait until browser has buffered enough to play without stalling
-      await new Promise(resolve => {
-        audio.addEventListener('canplay', resolve, { once: true });
-        audio.addEventListener('error', resolve, { once: true });
-        setTimeout(resolve, 8000); // safety: never block indefinitely
-        audio.load();
-      });
       ttsAudioCacheRef.current.set(text, audio);
-      // Cap cache at 8 entries to avoid unbounded memory use
-      if (ttsAudioCacheRef.current.size > 8) {
+      if (ttsAudioCacheRef.current.size > 10) {
         const oldest = ttsAudioCacheRef.current.keys().next().value;
         ttsAudioCacheRef.current.delete(oldest);
       }
-    } catch {
-      // silently ignore — speakText will still work without the pre-load
-    } finally {
-      ttsFetchingRef.current.delete(text);
-    }
+      audio.addEventListener('error', () => { ttsAudioCacheRef.current.delete(text); }, { once: true });
+    } catch { }
   };
   narrateFnRef.current.prefetchTTS = prefetchTTSAudio;
   narrateFnRef.current.buildStoryScript = buildStoryScript;
@@ -1690,7 +1689,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content ── */}
       {currentView === 'home' && (
-        <main style={viewMode === 'stories' && isMobile ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: '0' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
+        <main style={viewMode === 'stories' && isMobile ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', background: 'rgba(15,15,20,0.92)', padding: '0', position: 'relative' } : { maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '0.75rem 0.75rem 2.5rem' : '1rem 2rem 3rem 2rem' }}>
 
           {/* Mobile trigger buttons — hidden in stories mode */}
           <div style={{ marginBottom: '0.6rem', display: viewMode === 'stories' ? 'none' : 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1847,9 +1846,11 @@ const TheAIRundown = () => {
             </div>
           )}
 
-          {/* ── Depth toggle — Stories mode, floats above card ── */}
+          {/* ── Depth toggle — Stories mode ── */}
+          {/* On mobile: overlays the card top (position:absolute) so it steals no height */}
+          {/* On desktop: sits above the card as a normal flow element */}
           {viewMode === 'stories' && (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
+            <div style={isMobile ? { position: 'absolute', top: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'auto' } : { display: 'flex', justifyContent: 'center', padding: '10px 16px 6px', flexShrink: 0, width: '100%' }}>
               <div style={{ display: 'flex', gap: '3px', background: isMobile ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)', borderRadius: '999px', padding: '3px' }}>
                 {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
                   <button key={level} onClick={() => handleSetDepth(level)} style={{ padding: '5px 18px', borderRadius: '999px', border: 'none', fontSize: '0.73rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? storyCardColor : 'transparent', color: depthLevel === level ? 'white' : isMobile ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>
@@ -1862,7 +1863,7 @@ const TheAIRundown = () => {
 
           {/* ── News Card ── */}
           <div
-            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', width: isMobile ? 'calc(100% - 2rem)' : '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : 'calc(100dvh - 148px)', margin: isMobile ? '0 1rem' : '1.5rem auto 0' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
+            style={viewMode === 'stories' ? { position: 'relative', background: storyDarkBg, borderRadius: isMobile ? 0 : '20px', boxShadow: isMobile ? 'none' : '0 32px 80px rgba(0,0,0,0.55)', width: '100%', maxWidth: isMobile ? 'none' : '430px', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: isMobile ? 1 : undefined, height: isMobile ? undefined : 'calc(100dvh - 148px)', margin: isMobile ? 0 : '1.5rem auto 0' } : { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', minHeight: '500px' }}
             onTouchStart={viewMode === 'stories' ? (e) => {
               swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, swiped: false };
             } : undefined}
@@ -1912,8 +1913,9 @@ const TheAIRundown = () => {
             )}
 
             {/* Progress bar — flush to very top of card, outside padding */}
+            {/* On mobile: extra top padding so story dots clear the depth-toggle overlay */}
             {viewMode === 'stories' && stories.length > 0 && (
-              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: '10px 12px 0', flexShrink: 0 }}>
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: '3px', padding: isMobile ? '58px 12px 0' : '10px 12px 0', flexShrink: 0 }}>
                 {stories.map((s, i) => (
                   <button key={i} onClick={() => setStoryIndex(i)} style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i <= storyIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)', opacity: i === storyIndex ? 1 : i < storyIndex ? 0.7 : 1, transition: 'all 0.2s' }} />
                 ))}

@@ -67,14 +67,12 @@ function CategoryRow({ cat, catData, onOpen, onPlay, isNarrating, isCurrentCat }
               >
                 <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.25rem', flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.text, lineHeight: 1.4 }}>
+                  <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textSub, lineHeight: 1.4 }}>
                     {story.headline}
                   </p>
-                  {sourceStr && (
-                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '400', color: colors.textMuted, letterSpacing: '0.01em' }}>
-                      {sourceStr}
-                    </p>
-                  )}
+                  <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '400', color: colors.textMuted, letterSpacing: '0.01em' }}>
+                    {[sourceStr, '2 min read'].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
               </button>
             );

@@ -519,11 +519,14 @@ const TheAIRundown = () => {
     const story = stories[idx];
     setStoryIndex(idx);
     const isAr = newsLanguage === 'ar';
+    const isHeadlines = depthLevel === 'headlines';
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
-    (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
-    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+    if (!isHeadlines) {
+      (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
+      if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
+      if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+    }
     const script = parts.filter(Boolean).join(' ');
 
     const playStory = () => {
@@ -531,15 +534,15 @@ const TheAIRundown = () => {
         if (!narrationStateRef.current.active) return;
         const nextIdx = idx + 1;
         if (nextIdx < storyNavRef.current.stories.length) {
-          // More stories ahead — play a brief transition then start the next one
-          const trans = isAr ? null : pickRandom(STORY_TRANSITIONS);
+          // More stories ahead — play a brief transition (skip in headlines mode)
+          const trans = (!isAr && !isHeadlines) ? pickRandom(STORY_TRANSITIONS) : null;
           if (trans) {
             narrateFnRef.current.speakText(trans, () => {
               if (!narrationStateRef.current.active) return;
               narrateFnRef.current.narrateStory(nextIdx);
             });
           } else {
-            setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), 600);
+            setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), isHeadlines ? 400 : 600);
           }
         } else {
           setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), 600);

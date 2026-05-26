@@ -47,70 +47,78 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
   };
 
   return (
-    <div style={{ marginBottom: '0.25rem' }}>
+    <div style={{ borderBottom: `1px solid ${light.border}`, marginBottom: '0.5rem' }}>
       {/* Category header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.25rem 0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.6rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
           <span style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.1em', color: light.text, textTransform: 'uppercase' }}>{cat}</span>
           {info && (
-            <span style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>
-              {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'}
+            <span style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '400' }}>
+              {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button onClick={() => onPlay(cat)}
-            style={{ width: '28px', height: '28px', borderRadius: '50%', background: color, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Play size={12} fill="white" color="white" style={{ marginLeft: '1px' }} />
-          </button>
-          <button onClick={handleOpen}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', background: 'none', border: 'none', color: light.textMuted, cursor: 'pointer', fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0' }}>
-            All <ChevronRight size={13} />
-          </button>
-        </div>
+        <button onClick={() => onPlay(cat)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.75rem', borderRadius: '999px', border: `1px solid ${color}30`, background: `${color}10`, color: color, cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}>
+          <Play size={11} fill={color} color={color} style={{ marginLeft: '1px' }} />
+          Play Category
+        </button>
       </div>
 
-      {/* Story headline list */}
+      {/* Story list */}
       {info && info.previewStories?.length > 0 ? (
         <div>
           {info.previewStories.map((story, i) => {
             const sources = story.storySources?.filter(s => s.outlet) || [];
             const topSources = sources.slice(0, 2);
+            const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 120);
             return (
               <button key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', width: '100%', padding: '0.7rem 1.25rem', background: 'none', border: 'none', borderTop: `1px solid ${light.border}`, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s' }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0', width: '100%', padding: '0.85rem 1.25rem', background: 'none', border: 'none', borderTop: `1px solid ${light.border}`, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s' }}
                 onMouseEnter={e => e.currentTarget.style.background = light.bgSub}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
-                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.25rem', flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: '600', color: light.textSub, lineHeight: 1.4 }}>
+                  <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
                     {story.headline}
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {excerpt && (
+                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {excerpt}{excerpt.length === 120 ? '…' : ''}
+                    </p>
+                  )}
+                  {/* Meta: sources + read time */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {topSources.map((s, j) => {
                       const icon = faviconUrl(s.url);
                       return (
                         <span key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          {icon && <img src={icon} alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.7 }} />}
-                          <span style={{ fontSize: '0.72rem', fontWeight: '400', color: light.textMuted }}>{s.outlet}</span>
-                          {j < topSources.length - 1 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.5 }}>·</span>}
+                          {icon && <img src={icon} alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.65 }} />}
+                          <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{s.outlet}</span>
+                          {j < topSources.length - 1 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
                         </span>
                       );
                     })}
-                    {topSources.length > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.5 }}>·</span>}
-                    <span style={{ fontSize: '0.72rem', fontWeight: '400', color: light.textMuted }}>2 min read</span>
+                    {topSources.length > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
+                    <span style={{ fontSize: '0.72rem', color: light.textMuted }}>2 min read</span>
                   </div>
                 </div>
               </button>
             );
           })}
-          <div style={{ borderTop: `1px solid ${light.border}` }} />
+
+          {/* View all */}
+          {info.storyCount > info.previewStories.length && (
+            <button onClick={handleOpen}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%', padding: '0.75rem', background: 'none', border: 'none', borderTop: `1px solid ${light.border}`, cursor: 'pointer', color: light.textMuted, fontSize: '0.8rem', fontWeight: '500' }}>
+              View all {info.storyCount} stories <ChevronRight size={14} />
+            </button>
+          )}
         </div>
       ) : (
-        <div style={{ padding: '0.75rem 1.25rem', borderTop: `1px solid ${light.border}`, borderBottom: `1px solid ${light.border}` }}>
+        <div style={{ padding: '0.75rem 1.25rem', borderTop: `1px solid ${light.border}` }}>
           <span style={{ fontSize: '0.82rem', color: light.textMuted }}>
             {catData === undefined ? 'Loading…' : 'Not available'}
           </span>

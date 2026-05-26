@@ -409,8 +409,10 @@ const TheAIRundown = () => {
   };
 
   // Attach playback handlers and start playing — reusable for both cached and fresh Audio objects
-  const setupAndPlayAudio = (audio, onDone) => {
+  const setupAndPlayAudio = (audioIn, onDone) => {
     if (!narrationStateRef.current.active) return;
+    // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
+    const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
     narrationStateRef.current.audio = audio;
     audio.currentTime = 0;
     audio.playbackRate = playbackSpeedRef.current;

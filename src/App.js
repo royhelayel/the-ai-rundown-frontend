@@ -100,6 +100,7 @@ const TheAIRundown = () => {
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [repeatMode, setRepeatMode] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [narrationProgress, setNarrationProgress] = useState(0);   // 0-100 pct of current audio
@@ -285,6 +286,7 @@ const TheAIRundown = () => {
     st.paused = false;
     setIsNarrating(false);
     setIsPaused(false);
+    setIsAudioLoading(false);
     setNarrationProgress(0);
     narrationDurationRef.current = 0;
   };
@@ -430,6 +432,7 @@ const TheAIRundown = () => {
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
   const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;
+    setIsAudioLoading(false); // clear spinner whenever audio actually begins
     // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
     const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
     narrationStateRef.current.audio = audio;
@@ -465,16 +468,41 @@ const TheAIRundown = () => {
 
   const speakText = (text, onDone, opts = {}) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
-    if (newsLanguage === 'ar') { speakWithBrowser(cleanForTTS(text), onDone); return; }
+    if (newsLanguage === 'ar') { setIsAudioLoading(false); speakWithBrowser(cleanForTTS(text), onDone); return; }
 
-    // ── 1. Pre-loaded cache hit → play instantly, zero latency ──
+    // Helper: play as soon as the audio element has buffered enough data
+    const playWhenReady = (audio) => {
+      if (!narrationStateRef.current.active) return;
+      if (audio.readyState >= 3) {
+        setupAndPlayAudio(audio, onDone, opts);
+        return;
+      }
+      // Not ready yet — wait; safety timeout falls back to play() anyway
+      let fired = false;
+      const go = () => {
+        if (fired) return;
+        fired = true;
+        audio.removeEventListener('canplay', go);
+        audio.removeEventListener('error', goErr);
+        if (narrationStateRef.current.active) setupAndPlayAudio(audio, onDone, opts);
+      };
+      const goErr = () => {
+        if (fired) return;
+        fired = true;
+        audio.removeEventListener('canplay', go);
+        if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
+        else setIsAudioLoading(false);
+      };
+      audio.addEventListener('canplay', go, { once: true });
+      audio.addEventListener('error', goErr, { once: true });
+      setTimeout(go, 5000); // never hang forever
+    };
+
+    // ── 1. Pre-loaded cache hit → play instantly ──
     const preloaded = ttsAudioCacheRef.current.get(text);
-    if (preloaded) {
-      setupAndPlayAudio(preloaded, onDone, opts);
-      return;
-    }
+    if (preloaded) { playWhenReady(preloaded); return; }
 
-    // ── 2. Fetch signed CDN URL → browser streams audio directly from Supabase ──
+    // ── 2. Fetch signed CDN URL → stream from Supabase CDN ──
     fetch(`${BACKEND_URL}/api/tts-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -483,10 +511,13 @@ const TheAIRundown = () => {
       .then(r => { if (!r.ok) throw new Error('tts-url failed'); return r.json(); })
       .then(({ url }) => {
         if (!narrationStateRef.current.active || !url) return;
-        setupAndPlayAudio(new Audio(url), onDone, opts);
+        const audio = new Audio(url);
+        audio.preload = 'auto';
+        audio.load();
+        playWhenReady(audio);
       })
       .catch(() => {
-        // Last resort: browser speech synthesis
+        setIsAudioLoading(false);
         if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
       });
   };
@@ -590,10 +621,15 @@ const TheAIRundown = () => {
       if (!r.ok) return;
       const { url } = await r.json();
       if (!url) return;
-      // Create Audio and start buffering immediately — no visible cost to the user
       const audio = new Audio(url);
       audio.preload = 'auto';
-      audio.load();
+      // Wait until browser has buffered enough to play without stalling
+      await new Promise(resolve => {
+        audio.addEventListener('canplay', resolve, { once: true });
+        audio.addEventListener('error', resolve, { once: true });
+        setTimeout(resolve, 8000); // safety: never block indefinitely
+        audio.load();
+      });
       ttsAudioCacheRef.current.set(text, audio);
       // Cap cache at 8 entries to avoid unbounded memory use
       if (ttsAudioCacheRef.current.size > 8) {
@@ -638,6 +674,7 @@ const TheAIRundown = () => {
     st.paused = false;
     setIsNarrating(true);
     setIsPaused(false);
+    setIsAudioLoading(true);
     if (viewMode === 'stories') {
       narrateFnRef.current.narrateStory(storyIndex);
     } else {
@@ -2468,8 +2505,10 @@ const TheAIRundown = () => {
                             <button onClick={goPrev} disabled={isFirst && !prevCat} title="Previous story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isFirst && !prevCat ? 'not-allowed' : 'pointer', padding: '5px', color: isFirst && !prevCat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
                               <Play size={22} style={{ transform: 'scaleX(-1)' }} />
                             </button>
-                            <button onClick={isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration} title={isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: 'pointer', background: storyColor, boxShadow: `0 4px 20px rgba(${colorRgb},0.5)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s' }} onMouseDown={e => e.currentTarget.style.transform = 'scale(0.93)'} onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} onTouchStart={e => e.currentTarget.style.transform = 'scale(0.93)'} onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}>
-                              {isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
+                            <button onClick={isAudioLoading ? undefined : (isNarrating ? (isPaused ? resumeNarration : pauseNarration) : startNarration)} title={isAudioLoading ? 'Loading…' : (isNarrating ? (isPaused ? 'Resume' : 'Pause') : 'Listen')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '52px', borderRadius: '50%', border: 'none', cursor: isAudioLoading ? 'default' : 'pointer', background: storyColor, boxShadow: `0 4px 20px rgba(${colorRgb},0.5)`, color: 'white', flexShrink: 0, transition: 'box-shadow 0.2s, transform 0.1s' }} onMouseDown={e => { if (!isAudioLoading) e.currentTarget.style.transform = 'scale(0.93)'; }} onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} onTouchStart={e => { if (!isAudioLoading) e.currentTarget.style.transform = 'scale(0.93)'; }} onTouchEnd={e => e.currentTarget.style.transform = 'scale(1)'}>
+                              {isAudioLoading
+                                ? <Loader size={20} style={{ animation: 'spin 0.8s linear infinite' }} />
+                                : (isNarrating && !isPaused ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />)}
                             </button>
                             <button onClick={goNext} disabled={isLast && !nextCat && !repeatMode} title="Next story" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: isLast && !nextCat && !repeatMode ? 'not-allowed' : 'pointer', padding: '5px', color: isLast && !nextCat && !repeatMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', transition: 'color 0.15s' }}>
                               <Play size={22} />

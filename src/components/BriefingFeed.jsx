@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, User, Play, ChevronRight, ChevronLeft, Loader } from 'lucide-react';
-import { colors, CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
+import { colors, CATEGORY_COLORS } from '../theme';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,6 @@ function isToday(dateStr) {
 function CategoryRow({ cat, catData, onOpen, onPlay, isNarrating, isCurrentCat }) {
   const navigate = useNavigate();
   const color = CATEGORY_COLORS[cat] || colors.accent;
-  const image = CATEGORY_IMAGES[cat];
   const info = catData || null;
 
   const handleOpen = () => {
@@ -30,60 +29,53 @@ function CategoryRow({ cat, catData, onOpen, onPlay, isNarrating, isCurrentCat }
   };
 
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      {/* Category header row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', padding: '0 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-          <span style={{ fontSize: '0.75rem', fontWeight: '800', letterSpacing: '0.1em', color: colors.text, textTransform: 'uppercase' }}>{cat}</span>
+    <div style={{ marginBottom: '0.25rem' }}>
+      {/* Category header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.25rem 0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+          <span style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.1em', color: colors.text, textTransform: 'uppercase' }}>{cat}</span>
           {info && (
-            <span style={{ fontSize: '0.72rem', color: colors.textMuted, fontWeight: '500' }}>
-              {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min
+            <span style={{ fontSize: '0.7rem', color: colors.textMuted, fontWeight: '500' }}>
+              {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'}
             </span>
           )}
         </div>
-        <button onClick={handleOpen} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'none', border: 'none', color: colors.textSub, cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', padding: '0.25rem 0' }}>
-          See all <ChevronRight size={14} />
-        </button>
-      </div>
-
-      {/* Story preview cards */}
-      {info && info.previewStories?.length > 0 ? (
-        <div style={{ display: 'flex', gap: '0.65rem', overflowX: 'auto', scrollbarWidth: 'none', padding: '0 1rem', paddingBottom: '0.25rem' }}>
-          {info.previewStories.map((story, i) => (
-            <button key={i} onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
-              style={{ flexShrink: 0, width: '140px', background: colors.bgCard, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', transition: 'transform 0.15s', padding: 0 }}>
-              {/* Thumbnail */}
-              <div style={{ width: '100%', height: '90px', position: 'relative', overflow: 'hidden' }}>
-                <img src={image} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'brightness(0.75)' }} loading="lazy" />
-                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7))` }} />
-              </div>
-              {/* Headline */}
-              <div style={{ padding: '0.55rem 0.6rem 0.65rem' }}>
-                <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '700', color: colors.text, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {story.headline}
-                </p>
-                <p style={{ margin: '0.35rem 0 0', fontSize: '0.65rem', color: colors.textMuted, fontWeight: '500' }}>2 min read</p>
-              </div>
-            </button>
-          ))}
-
-          {/* Play category button as last card */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button onClick={() => onPlay(cat)}
-            style={{ flexShrink: 0, width: '80px', background: `${color}18`, border: `1px solid ${color}44`, borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: color, transition: 'all 0.15s' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Play size={16} fill="white" color="white" style={{ marginLeft: '2px' }} />
-            </div>
-            <span style={{ fontSize: '0.65rem', fontWeight: '700', textAlign: 'center', lineHeight: 1.2 }}>Play</span>
+            style={{ width: '28px', height: '28px', borderRadius: '50%', background: color, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Play size={12} fill="white" color="white" style={{ marginLeft: '1px' }} />
+          </button>
+          <button onClick={handleOpen} style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0' }}>
+            All <ChevronRight size={13} />
           </button>
         </div>
+      </div>
+
+      {/* Story headline list */}
+      {info && info.previewStories?.length > 0 ? (
+        <div>
+          {info.previewStories.map((story, i) => (
+            <button key={i}
+              onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', width: '100%', padding: '0.65rem 1.25rem', background: 'none', border: 'none', borderTop: `1px solid ${colors.border}`, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.background = colors.bgCard}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.2rem', flexShrink: 0 }}>{i + 1}</span>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', color: colors.text, lineHeight: 1.4 }}>
+                {story.headline}
+              </p>
+            </button>
+          ))}
+          {/* Bottom border */}
+          <div style={{ borderTop: `1px solid ${colors.border}` }} />
+        </div>
       ) : (
-        <div style={{ padding: '0 1rem' }}>
-          <div style={{ height: '130px', background: colors.bgCard, borderRadius: '12px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>
-              {catData === undefined ? 'Loading…' : 'Not available'}
-            </span>
-          </div>
+        <div style={{ padding: '0.75rem 1.25rem', borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}` }}>
+          <span style={{ fontSize: '0.82rem', color: colors.textMuted }}>
+            {catData === undefined ? 'Loading…' : 'Not available'}
+          </span>
         </div>
       )}
     </div>
@@ -200,7 +192,7 @@ export default function BriefingFeed({
       </div>
 
       {/* ── Category sections ── */}
-      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: '6rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+      <div style={{ flex: 1, paddingTop: '0.25rem', paddingBottom: playerVisible ? '6rem' : '2rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
         {briefingLoading && totalStories === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: colors.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

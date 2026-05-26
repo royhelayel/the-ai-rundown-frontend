@@ -470,39 +470,14 @@ const TheAIRundown = () => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
     if (newsLanguage === 'ar') { setIsAudioLoading(false); speakWithBrowser(cleanForTTS(text), onDone); return; }
 
-    // Helper: play as soon as the audio element has buffered enough data
-    const playWhenReady = (audio) => {
-      if (!narrationStateRef.current.active) return;
-      if (audio.readyState >= 3) {
-        setupAndPlayAudio(audio, onDone, opts);
-        return;
-      }
-      // Not ready yet — wait; safety timeout falls back to play() anyway
-      let fired = false;
-      const go = () => {
-        if (fired) return;
-        fired = true;
-        audio.removeEventListener('canplay', go);
-        audio.removeEventListener('error', goErr);
-        if (narrationStateRef.current.active) setupAndPlayAudio(audio, onDone, opts);
-      };
-      const goErr = () => {
-        if (fired) return;
-        fired = true;
-        audio.removeEventListener('canplay', go);
-        if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
-        else setIsAudioLoading(false);
-      };
-      audio.addEventListener('canplay', go, { once: true });
-      audio.addEventListener('error', goErr, { once: true });
-      setTimeout(go, 5000); // never hang forever
-    };
-
-    // ── 1. Pre-loaded cache hit → play instantly ──
+    // ── 1. Pre-loaded cache hit → play instantly (prefetch already waited for canplay) ──
     const preloaded = ttsAudioCacheRef.current.get(text);
-    if (preloaded) { playWhenReady(preloaded); return; }
+    if (preloaded) {
+      setupAndPlayAudio(preloaded, onDone, opts);
+      return;
+    }
 
-    // ── 2. Fetch signed CDN URL → stream from Supabase CDN ──
+    // ── 2. Fetch signed CDN URL → wait for canplay so play() is truly instant ──
     fetch(`${BACKEND_URL}/api/tts-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -513,8 +488,17 @@ const TheAIRundown = () => {
         if (!narrationStateRef.current.active || !url) return;
         const audio = new Audio(url);
         audio.preload = 'auto';
+        let fired = false;
+        const play = () => {
+          if (fired) return;
+          fired = true;
+          audio.removeEventListener('canplay', play);
+          if (narrationStateRef.current.active) setupAndPlayAudio(audio, onDone, opts);
+          else setIsAudioLoading(false);
+        };
+        audio.addEventListener('canplay', play, { once: true });
+        setTimeout(play, 5000); // safety: never hang if canplay is delayed
         audio.load();
-        playWhenReady(audio);
       })
       .catch(() => {
         setIsAudioLoading(false);

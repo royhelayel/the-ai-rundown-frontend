@@ -27,6 +27,13 @@ function isToday(dateStr) {
   return dateStr === today;
 }
 
+function faviconUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch { return null; }
+}
+
 // ── CategoryRow ───────────────────────────────────────────────────────────────
 
 function CategoryRow({ cat, catData, onOpen, onPlay }) {
@@ -68,8 +75,8 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
       {info && info.previewStories?.length > 0 ? (
         <div>
           {info.previewStories.map((story, i) => {
-            const outlets = story.storySources?.map(s => s.outlet).filter(Boolean) || [];
-            const sourceStr = outlets.slice(0, 2).join(' · ');
+            const sources = story.storySources?.filter(s => s.outlet) || [];
+            const topSources = sources.slice(0, 2);
             return (
               <button key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`); }}
@@ -79,12 +86,23 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
               >
                 <span style={{ fontSize: '0.65rem', fontWeight: '700', color: color, minWidth: '16px', marginTop: '0.25rem', flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: '600', color: light.textSub, lineHeight: 1.4 }}>
+                  <p style={{ margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: '600', color: light.textSub, lineHeight: 1.4 }}>
                     {story.headline}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '400', color: light.textMuted, letterSpacing: '0.01em' }}>
-                    {[sourceStr, '2 min read'].filter(Boolean).join(' · ')}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {topSources.map((s, j) => {
+                      const icon = faviconUrl(s.url);
+                      return (
+                        <span key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          {icon && <img src={icon} alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.7 }} />}
+                          <span style={{ fontSize: '0.72rem', fontWeight: '400', color: light.textMuted }}>{s.outlet}</span>
+                          {j < topSources.length - 1 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.5 }}>·</span>}
+                        </span>
+                      );
+                    })}
+                    {topSources.length > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted, opacity: 0.5 }}>·</span>}
+                    <span style={{ fontSize: '0.72rem', fontWeight: '400', color: light.textMuted }}>2 min read</span>
+                  </div>
                 </div>
               </button>
             );

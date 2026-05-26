@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
+function faviconUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch { return null; }
+}
+
 // Light-mode tokens used only in read view
 const light = {
   bg:        '#ffffff',
@@ -80,9 +87,18 @@ export default function StoryReader({
 
         {/* Sources */}
         {story.storySources?.length > 0 && (
-          <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: light.textMuted, fontWeight: '400' }}>
-            {story.storySources.slice(0, 3).map(s => s.outlet).filter(Boolean).join(' · ')}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            {story.storySources.slice(0, 3).filter(s => s.outlet).map((s, i, arr) => {
+              const icon = faviconUrl(s.url);
+              return (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  {icon && <img src={icon} alt="" width={14} height={14} style={{ borderRadius: '3px', opacity: 0.75 }} />}
+                  <span style={{ fontSize: '0.78rem', fontWeight: '400', color: light.textMuted }}>{s.outlet}</span>
+                  {i < arr.length - 1 && <span style={{ fontSize: '0.78rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
+                </span>
+              );
+            })}
+          </div>
         )}
 
         {/* Play this story */}

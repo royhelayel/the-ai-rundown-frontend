@@ -427,7 +427,8 @@ const TheAIRundown = () => {
   };
 
   // Attach playback handlers and start playing — reusable for both cached and fresh Audio objects
-  const setupAndPlayAudio = (audioIn, onDone) => {
+  // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
+  const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;
     // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
     const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
@@ -440,19 +441,18 @@ const TheAIRundown = () => {
     audio.onended = null;
     audio.onerror = null;
     audio.onloadedmetadata = () => {
-      if (audio.duration > 0) narrationDurationRef.current = audio.duration;
+      if (!isTransition && audio.duration > 0) narrationDurationRef.current = audio.duration;
     };
     let lastPct = -1;
     audio.ontimeupdate = () => {
-      if (audio.duration > 0) {
+      if (!isTransition && audio.duration > 0) {
         const pct = (audio.currentTime / audio.duration) * 100;
         if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
       }
     };
     audio.onended = () => {
       narrationStateRef.current.audio = null;
-      setNarrationProgress(0);
-      narrationDurationRef.current = 0;
+      if (!isTransition) { setNarrationProgress(0); narrationDurationRef.current = 0; }
       if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
     };
     audio.onerror = () => {
@@ -463,14 +463,14 @@ const TheAIRundown = () => {
     audio.play().catch(() => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
   };
 
-  const speakText = (text, onDone) => {
+  const speakText = (text, onDone, opts = {}) => {
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
     if (newsLanguage === 'ar') { speakWithBrowser(cleanForTTS(text), onDone); return; }
 
     // ── 1. Pre-loaded cache hit → play instantly, zero latency ──
     const preloaded = ttsAudioCacheRef.current.get(text);
     if (preloaded) {
-      setupAndPlayAudio(preloaded, onDone);
+      setupAndPlayAudio(preloaded, onDone, opts);
       return;
     }
 
@@ -483,7 +483,7 @@ const TheAIRundown = () => {
       .then(r => { if (!r.ok) throw new Error('tts-url failed'); return r.json(); })
       .then(({ url }) => {
         if (!narrationStateRef.current.active || !url) return;
-        setupAndPlayAudio(new Audio(url), onDone);
+        setupAndPlayAudio(new Audio(url), onDone, opts);
       })
       .catch(() => {
         // Last resort: browser speech synthesis
@@ -540,7 +540,7 @@ const TheAIRundown = () => {
             narrateFnRef.current.speakText(trans, () => {
               if (!narrationStateRef.current.active) return;
               narrateFnRef.current.narrateStory(nextIdx);
-            });
+            }, { isTransition: true });
           } else {
             setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), isHeadlines ? 400 : 600);
           }
@@ -557,7 +557,7 @@ const TheAIRundown = () => {
       narrateFnRef.current.speakText(catTransition, () => {
         if (!narrationStateRef.current.active) return;
         playStory();
-      });
+      }, { isTransition: true });
     } else {
       playStory();
     }

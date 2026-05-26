@@ -107,7 +107,8 @@ const TheAIRundown = () => {
   const narrationDurationRef = useRef(0); // seconds — ref avoids re-renders when set
   const repeatModeRef = useRef(false);
   const playbackSpeedRef = useRef(1);
-  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false, pendingCategoryName: null });
+  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false, pendingCategoryName: null, pendingNarrateTimer: null });
+  const narrationGenRef = useRef(0); // incremented on every cancel/stop; stale callbacks bail out
   const narrateFnRef = useRef({});
   // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
   const ttsAudioCacheRef = useRef(new Map());
@@ -278,7 +279,9 @@ const TheAIRundown = () => {
   // ── Narration helpers (ElevenLabs TTS via backend, all reads through refs) ──
 
   const stopNarration = () => {
+    narrationGenRef.current++;
     const st = narrationStateRef.current;
+    if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     if (st.audio) { st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     st.active = false;
@@ -339,7 +342,9 @@ const TheAIRundown = () => {
 
   // Cancels in-flight audio without ending the narration session (keeps isNarrating=true)
   const cancelAudioKeepActive = () => {
+    narrationGenRef.current++; // invalidate any stale canplay/fetch callbacks
     const st = narrationStateRef.current;
+    if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     st.canceling = true;
     if (st.audio) { st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -478,6 +483,7 @@ const TheAIRundown = () => {
     }
 
     // ── 2. Fetch signed CDN URL → wait for canplay so play() is truly instant ──
+    const gen = narrationGenRef.current; // capture; stale if user navigates before canplay fires
     fetch(`${BACKEND_URL}/api/tts-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -485,7 +491,7 @@ const TheAIRundown = () => {
     })
       .then(r => { if (!r.ok) throw new Error('tts-url failed'); return r.json(); })
       .then(({ url }) => {
-        if (!narrationStateRef.current.active || !url) return;
+        if (!narrationStateRef.current.active || narrationGenRef.current !== gen || !url) return;
         const audio = new Audio(url);
         audio.preload = 'auto';
         let fired = false;
@@ -493,8 +499,8 @@ const TheAIRundown = () => {
           if (fired) return;
           fired = true;
           audio.removeEventListener('canplay', play);
-          if (narrationStateRef.current.active) setupAndPlayAudio(audio, onDone, opts);
-          else setIsAudioLoading(false);
+          if (!narrationStateRef.current.active || narrationGenRef.current !== gen) { setIsAudioLoading(false); return; }
+          setupAndPlayAudio(audio, onDone, opts);
         };
         audio.addEventListener('canplay', play, { once: true });
         setTimeout(play, 5000); // safety: never hang if canplay is delayed
@@ -502,7 +508,7 @@ const TheAIRundown = () => {
       })
       .catch(() => {
         setIsAudioLoading(false);
-        if (narrationStateRef.current.active) speakWithBrowser(text, onDone);
+        if (narrationStateRef.current.active && narrationGenRef.current === gen) speakWithBrowser(text, onDone);
       });
   };
   narrateFnRef.current.speakText = speakText;
@@ -557,10 +563,14 @@ const TheAIRundown = () => {
               narrateFnRef.current.narrateStory(nextIdx);
             }, { isTransition: true });
           } else {
-            setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), isHeadlines ? 400 : 600);
+            const st = narrationStateRef.current;
+            clearTimeout(st.pendingNarrateTimer);
+            st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, isHeadlines ? 400 : 600);
           }
         } else {
-          setTimeout(() => narrateFnRef.current.narrateStory(nextIdx), 600);
+          const st = narrationStateRef.current;
+          clearTimeout(st.pendingNarrateTimer);
+          st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, 600);
         }
       });
     };
@@ -2326,15 +2336,20 @@ const TheAIRundown = () => {
                     const colorRgb = hexToRgb(storyColor.startsWith('#') ? storyColor : '#6366f1');
                     const scrubPct = stories.length <= 1 ? 100 : (storyIndex / (stories.length - 1)) * 100;
 
+                    const scheduleNarrate = (idx, delay = 150) => {
+                      const st = narrationStateRef.current;
+                      clearTimeout(st.pendingNarrateTimer);
+                      st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory?.(idx); }, delay);
+                    };
                     const goNext = () => {
                       if (!isLast) {
                         const newIdx = storyIndex + 1;
                         setStoryIndex(newIdx);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(newIdx); }
                         else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (repeatMode) {
                         setStoryIndex(0);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(0), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(0); }
                         else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (nextCat) {
                         handleSelectCategory(nextCat); setStoryIndex(0);
@@ -2345,7 +2360,7 @@ const TheAIRundown = () => {
                       if (!isFirst) {
                         const newIdx = storyIndex - 1;
                         setStoryIndex(newIdx);
-                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); setTimeout(() => narrateFnRef.current.narrateStory?.(newIdx), 150); }
+                        if (isNarrating && !isPaused) { cancelAudioKeepActive(); scheduleNarrate(newIdx); }
                         else if (isNarrating && isPaused) { cancelAudioKeepActive(); setNarrationProgress(0); narrationDurationRef.current = 0; }
                       } else if (prevCat) {
                         if (isNarrating) { cancelAudioKeepActive(); narrationStateRef.current.pendingLoad = !isPaused; } else { goToLastStoryRef.current = true; }

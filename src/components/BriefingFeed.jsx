@@ -203,7 +203,7 @@ export default function BriefingFeed({
           100% { background-position: 0% 50%; }
         }
         .ai-btn-wrap {
-          position: relative; border-radius: 14px; padding: 2px;
+          position: relative; border-radius: 14px; padding: 3px;
           background: linear-gradient(90deg,
             #6366f1, #0891b2, #16a34a, #d97706,
             #e11d48, #9333ea, #db2777, #2563eb, #6366f1
@@ -213,7 +213,7 @@ export default function BriefingFeed({
         }
         .ai-btn-inner {
           width: 100%; padding: 0.88rem 1.5rem;
-          border-radius: 12px;
+          border-radius: 11px;
           background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);
           border: none; color: white;
           font-size: 1rem; font-weight: 800; cursor: pointer;

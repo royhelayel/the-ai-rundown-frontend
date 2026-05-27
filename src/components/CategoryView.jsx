@@ -109,17 +109,6 @@ export default function CategoryView({
                 onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                 onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : 'transparent'}
               >
-                {/* Playing indicator */}
-                {isActive && (
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.15rem' }}>
-                    <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '12px' }}>
-                      {[0.6, 1, 0.8].map((h, j) => (
-                        <span key={j} style={{ width: '2.5px', background: 'white', borderRadius: '1px', height: `${h * 12}px`, animation: `wave 0.8s ease-in-out ${j * 0.15}s infinite alternate` }} />
-                      ))}
-                    </span>
-                  </div>
-                )}
-
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
                     {story.headline}
@@ -156,11 +145,19 @@ export default function CategoryView({
                   </div>
                 </div>
 
-                {/* Play button */}
+                {/* Play / Now-playing button */}
                 <button
                   onClick={e => { e.stopPropagation(); onPlayFrom(i); }}
                   style={{ width: '32px', height: '32px', borderRadius: '50%', background: isActive ? color : light.bgSub, border: `1px solid ${isActive ? color : light.border}`, color: isActive ? 'white' : light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>
-                  <Play size={13} fill="currentColor" style={{ marginLeft: '1px' }} />
+                  {isActive ? (
+                    <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '12px' }}>
+                      {[0.6, 1, 0.8].map((h, j) => (
+                        <span key={j} style={{ width: '2.5px', background: 'white', borderRadius: '1px', height: `${h * 12}px`, animation: `wave 0.8s ease-in-out ${j * 0.15}s infinite alternate` }} />
+                      ))}
+                    </span>
+                  ) : (
+                    <Play size={13} fill="currentColor" style={{ marginLeft: '1px' }} />
+                  )}
                 </button>
               </div>
             );

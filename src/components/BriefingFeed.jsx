@@ -47,7 +47,7 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
   };
 
   return (
-    <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', borderLeft: `3px solid ${color}`, background: light.bgSub, borderRadius: '0 12px 12px 0', overflow: 'hidden' }}>
+    <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', marginRight: '1.25rem', borderLeft: `3px solid ${color}`, background: light.bgSub, borderRadius: '12px', overflow: 'hidden' }}>
 
       {/* ── Category header — full row clickable ── */}
       <div

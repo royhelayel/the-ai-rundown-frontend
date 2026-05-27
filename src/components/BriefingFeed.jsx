@@ -195,6 +195,39 @@ export default function BriefingFeed({
         body { background: ${light.bg}; margin: 0; }
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes ai-border-spin {
+          0%   { transform: translate(-50%, -50%) rotate(0deg); }
+          100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .ai-btn-wrap {
+          position: relative; border-radius: 14px; padding: 2px;
+          background: transparent; overflow: hidden;
+        }
+        .ai-btn-wrap::before {
+          content: '';
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 300%; height: 300%;
+          background: conic-gradient(
+            from 0deg,
+            #6366f1, #a855f7, #ec4899, #06b6d4, #22d3ee, #6366f1
+          );
+          animation: ai-border-spin 3s linear infinite;
+          border-radius: 0;
+        }
+        .ai-btn-inner {
+          position: relative; z-index: 1;
+          width: 100%; padding: 0.88rem 1.5rem;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);
+          border: none; color: white;
+          font-size: 1rem; font-weight: 800; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          gap: 0.6rem; letter-spacing: -0.01em;
+          transition: opacity 0.15s;
+          font-family: inherit;
+        }
+        .ai-btn-inner:hover { opacity: 0.9; }
       `}</style>
 
       {/* ── Header ── */}
@@ -259,12 +292,13 @@ export default function BriefingFeed({
           ))}
         </div>
 
-        {/* Play Briefing CTA */}
-        <button onClick={onPlayBriefing}
-          style={{ width: '100%', padding: '0.9rem 1.5rem', borderRadius: '14px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', border: 'none', color: 'white', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', letterSpacing: '-0.01em', transition: 'opacity 0.15s', boxShadow: '0 4px 24px rgba(99,102,241,0.25)' }}>
-          <Play size={18} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
-          {isNarrating ? 'Now Playing…' : 'Play Briefing'}
-        </button>
+        {/* Play Briefing CTA — animated AI gradient border */}
+        <div className="ai-btn-wrap" style={{ width: '100%' }}>
+          <button className="ai-btn-inner" onClick={onPlayBriefing}>
+            <Play size={18} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
+            {isNarrating ? 'Now Playing…' : 'Play Briefing'}
+          </button>
+        </div>
       </div>
 
       {/* ── Category sections ── */}

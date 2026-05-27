@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
@@ -31,8 +31,15 @@ export default function StoryReader({
   miniPlayerVisible,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState('takeaways'); // 'takeaways' | 'summary'
   const color = CATEGORY_COLORS[category] || '#6366f1';
+
+  const goBack = () => {
+    const from = location.state?.from;
+    if (from === 'home') navigate('/');
+    else navigate(`/category/${encodeURIComponent(category)}`);
+  };
 
   if (!story) return null;
 
@@ -57,7 +64,7 @@ export default function StoryReader({
       }}>
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
-            onClick={() => navigate(`/category/${encodeURIComponent(category)}`)}
+            onClick={goBack}
             style={{ width: '34px', height: '34px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ChevronLeft size={17} />
           </button>
@@ -87,15 +94,24 @@ export default function StoryReader({
 
         {/* Sources */}
         {story.storySources?.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
             {story.storySources.slice(0, 3).filter(s => s.outlet).map((s, i, arr) => {
               const icon = faviconUrl(s.url);
               return (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  {icon && <img src={icon} alt="" width={14} height={14} style={{ borderRadius: '3px', opacity: 0.75 }} />}
-                  <span style={{ fontSize: '0.78rem', fontWeight: '400', color: light.textMuted }}>{s.outlet}</span>
+                <React.Fragment key={i}>
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.15rem 0.55rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+                  >
+                    {icon && <img src={icon} alt="" width={13} height={13} style={{ borderRadius: '2px', opacity: 0.75 }} />}
+                    <span style={{ fontSize: '0.78rem', fontWeight: '500', color: light.textMuted }}>{s.outlet}</span>
+                  </a>
                   {i < arr.length - 1 && <span style={{ fontSize: '0.78rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
-                </span>
+                </React.Fragment>
               );
             })}
           </div>

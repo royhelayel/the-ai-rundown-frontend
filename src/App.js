@@ -1429,7 +1429,17 @@ const TheAIRundown = () => {
           .maybeSingle();
         if (!data) return [cat, null];
         const { stories: s } = buildStories(data.content, data.stories_content);
-        return [cat, { storyCount: s.length, estimatedMin: Math.round(s.length * 2.5), previewStories: s.slice(0, 3) }];
+        const totalWords = s.reduce((acc, story) => {
+          const fields = [
+            ...(story.allBullets || story.tightBullets || []),
+            story.perspectives,
+            story.why,
+            story.headline,
+          ].filter(Boolean);
+          return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
+        }, 0);
+        const estimatedMin = Math.max(1, Math.round(totalWords / 200));
+        return [cat, { storyCount: s.length, estimatedMin, previewStories: s.slice(0, 3) }];
       } catch { return [cat, null]; }
     })).then(results => {
       const out = {};

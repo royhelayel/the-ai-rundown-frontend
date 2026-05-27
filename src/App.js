@@ -138,6 +138,7 @@ const TheAIRundown = () => {
   // ── New UI state ──────────────────────────────────────────────────────────────
   const [playerVisible, setPlayerVisible] = useState(false);
   const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
@@ -1565,6 +1566,14 @@ const TheAIRundown = () => {
   const currentStory = stories[storyIdxFromUrl ?? storyIndex] || null;
   const miniPlayerVisible = playerVisible && playerMinimized;
 
+  const handleMinimizePlayer = () => {
+    setFullPlayerExiting(true);
+    setTimeout(() => {
+      setPlayerMinimized(true);
+      setFullPlayerExiting(false);
+    }, 420);
+  };
+
   // Keep narration refs in sync on every render
   storyNavRef.current = { idx: storyIndex, stories, cats: navCategories, cat: selectedCategory };
 
@@ -1800,10 +1809,11 @@ const TheAIRundown = () => {
       )}
 
       {/* ── FullPlayer overlay ── */}
-      {playerVisible && !playerMinimized && (
+      {playerVisible && (!playerMinimized || fullPlayerExiting) && (
         <FullPlayer
-          visible={true}
-          onMinimize={() => setPlayerMinimized(true)}
+          visible={!fullPlayerExiting}
+          isExiting={fullPlayerExiting}
+          onMinimize={handleMinimizePlayer}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
           category={selectedCategory}
           story={currentStory}

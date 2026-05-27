@@ -8,6 +8,7 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 // ── FullPlayer ────────────────────────────────────────────────────────────────
 export default function FullPlayer({
   visible,
+  isExiting,
   onMinimize,
   onClose,
   // Current story data
@@ -41,12 +42,12 @@ export default function FullPlayer({
   const image  = CATEGORY_IMAGES[category];
   const glow   = categoryGlow(color);
 
-  // Sheet slide-in animation
+  // Sheet slide-in / slide-out animation
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    if (visible) requestAnimationFrame(() => setMounted(true));
+    if (visible && !isExiting) requestAnimationFrame(() => setMounted(true));
     else setMounted(false);
-  }, [visible]);
+  }, [visible, isExiting]);
 
   // Sync browser chrome color with player state
   useEffect(() => {
@@ -94,7 +95,7 @@ export default function FullPlayer({
     <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
       {/* Backdrop */}
       <div
-        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: isExiting ? 0 : 1, transition: isExiting ? 'opacity 0.38s ease' : 'none' }}
         onClick={onMinimize}
       />
 
@@ -139,19 +140,19 @@ export default function FullPlayer({
         </div>
 
         {/* ── Top bar (floats over image) ── */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '1rem 1.25rem 0.5rem' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
           <button
             onClick={onMinimize}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0 }}>
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
             <ChevronDown size={20} />
           </button>
-          <div style={{ flex: 1, textAlign: 'center' }}>
+          {/* Absolutely centered breadcrumb — unaffected by button widths */}
+          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Playing Now</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
               {category} · {storyIndex + 1} of {storyCount}
             </p>
           </div>
-          <div style={{ width: '36px', flexShrink: 0 }} />
         </div>
 
         {/* ── Story progress dots (floats over image) ── */}

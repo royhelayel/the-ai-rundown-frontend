@@ -195,31 +195,23 @@ export default function BriefingFeed({
         body { background: ${light.bg}; margin: 0; }
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes ai-border-spin {
-          0%   { transform: translate(-50%, -50%) rotate(0deg);   animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
-          22%  { transform: translate(-50%, -50%) rotate(360deg); animation-timing-function: step-end; }
-          62%  { transform: translate(-50%, -50%) rotate(360deg); animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
-          84%  { transform: translate(-50%, -50%) rotate(720deg); animation-timing-function: step-end; }
-          100% { transform: translate(-50%, -50%) rotate(720deg); }
+        @keyframes border-flow {
+          0%   { background-position: 0% 50%; }
+          30%  { background-position: 100% 50%; }
+          55%  { background-position: 100% 50%; }
+          85%  { background-position: 0% 50%; }
+          100% { background-position: 0% 50%; }
         }
         .ai-btn-wrap {
           position: relative; border-radius: 14px; padding: 2px;
-          background: transparent; overflow: hidden;
-        }
-        .ai-btn-wrap::before {
-          content: '';
-          position: absolute;
-          top: 50%; left: 50%;
-          width: 300%; height: 300%;
-          background: conic-gradient(
-            from 0deg,
-            #6366f1, #a855f7, #ec4899, #06b6d4, #22d3ee, #6366f1
+          background: linear-gradient(90deg,
+            #6366f1, #0891b2, #16a34a, #d97706,
+            #e11d48, #9333ea, #db2777, #2563eb, #6366f1
           );
-          animation: ai-border-spin 9s linear infinite;
-          border-radius: 0;
+          background-size: 300% 100%;
+          animation: border-flow 10s ease-in-out infinite;
         }
         .ai-btn-inner {
-          position: relative; z-index: 1;
           width: 100%; padding: 0.88rem 1.5rem;
           border-radius: 12px;
           background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);

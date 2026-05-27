@@ -48,6 +48,18 @@ export default function FullPlayer({
     else setMounted(false);
   }, [visible]);
 
+  // Sync browser chrome color with player state
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.content = visible ? (colors.bg || '#0a0a14') : '#ffffff';
+    return () => { meta.content = '#ffffff'; };
+  }, [visible]);
+
   // Swipe-down-to-minimize gesture
   const sheetRef = useRef(null);
   const dragRef  = useRef(null);

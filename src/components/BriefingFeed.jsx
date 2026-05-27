@@ -52,31 +52,33 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
       {/* ── Category header — full row clickable ── */}
       <div
         onClick={handleOpen}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem 0.75rem 0.9rem', cursor: 'pointer', userSelect: 'none' }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1rem 0.7rem 0.9rem', cursor: 'pointer', userSelect: 'none', background: `${color}12` }}
+        onMouseEnter={e => e.currentTarget.style.background = `${color}1e`}
+        onMouseLeave={e => e.currentTarget.style.background = `${color}12`}
       >
-        <div>
-          {/* Colored pill badge */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.18rem 0.6rem', background: `${color}15`, border: `1px solid ${color}35`, borderRadius: '999px', marginBottom: '0.3rem' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cat}</span>
-          </div>
-          {info && (
-            <p style={{ margin: 0, fontSize: '0.72rem', color: light.textMuted, fontWeight: '400' }}>
-              {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min
-            </p>
-          )}
+        {/* Colored pill badge */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.6rem', background: `${color}20`, border: `1px solid ${color}40`, borderRadius: '999px', flexShrink: 0 }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+          <span style={{ fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cat}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+
+        {/* Story count — same line */}
+        {info && (
+          <span style={{ fontSize: '0.72rem', color: `${color}99`, fontWeight: '500', flex: 1 }}>
+            {info.storyCount} stories · ~{info.estimatedMin} min
+          </span>
+        )}
+
+        {/* Play + See all — right side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <button
             onClick={e => { e.stopPropagation(); onPlay(cat); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.7rem', borderRadius: '999px', border: `1px solid ${color}35`, background: `${color}12`, color: color, cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', borderRadius: '999px', border: `1px solid ${color}40`, background: `${color}18`, color: color, cursor: 'pointer', fontSize: '0.7rem', fontWeight: '700' }}>
             <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
             Play
           </button>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.1rem', fontSize: '0.78rem', fontWeight: '700', color: color }}>
-            See all <ChevronRight size={14} />
+          <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: '700', color: color }}>
+            See all <ChevronRight size={13} />
           </span>
         </div>
       </div>

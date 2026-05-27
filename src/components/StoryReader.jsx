@@ -38,8 +38,11 @@ export default function StoryReader({
 
   const goBack = () => {
     const from = location.state?.from;
-    if (from === 'home') navigate('/');
-    else navigate(`/category/${encodeURIComponent(category)}`);
+    if (from === 'home' || from === '/') navigate('/');
+    else if (from === '/my-feed') navigate('/my-feed');
+    else if (from === 'popular') navigate('/popular');
+    else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`);
+    else navigate(-1); // fallback: browser history back
   };
 
   if (!story) return null;

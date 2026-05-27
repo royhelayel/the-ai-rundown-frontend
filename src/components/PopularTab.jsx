@@ -64,7 +64,7 @@ export default function PopularTab({
       </header>
 
       {/* Content */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '9rem' : '5rem' }}>
+      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '4rem' }}>
 
         {/* Title */}
         <div style={{ marginBottom: '1.25rem' }}>

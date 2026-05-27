@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Header Differentiation Options</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f4; padding: 32px 16px; }
+
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1400px; margin: 0 auto; }
+    .column { display: flex; flex-direction: column; gap: 8px; }
+    .option-label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+    .option-desc  { font-size: 0.71rem; color: #888; line-height: 1.4; margin-bottom: 6px; }
+
+    /* ── Feed shell ── */
+    .feed { background: #ffffff; border-radius: 16px; overflow: hidden; padding: 16px 0 8px; }
+
+    /* ── Card shell: left border + margin ── */
+    .card { border-radius: 0 12px 12px 0; margin-left: 16px; margin-bottom: 14px; overflow: hidden; border-left: 3px solid; background: #f5f5f7; }
+
+    /* ── Stories ── */
+    .story { padding: 10px 14px 10px 10px; border-top: 1px solid rgba(0,0,0,0.07); background: #f5f5f7; }
+    .story-headline { font-size: 0.88rem; font-weight: 700; color: #0a0a0f; line-height: 1.3; margin-bottom: 4px; }
+    .story-excerpt  { font-size: 0.75rem; color: #8a8a9a; line-height: 1.45; margin-bottom: 6px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .sources { display: flex; align-items: center; gap: 5px; }
+    .sp { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.09); border-radius: 999px; font-size: 0.65rem; color: #8a8a9a; font-weight: 500; }
+    .sep { font-size: 0.65rem; color: #ccc; }
+
+    /* ── Shared pill / actions ── */
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; }
+    .dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .meta { font-size: 0.68rem; color: #999; margin-top: 2px; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .pbtn { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; cursor: pointer; border: 1px solid; }
+    .sall { font-size: 0.73rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+
+  <!-- ── CURRENT (baseline) ── -->
+  <div class="column">
+    <div class="option-label">Current (baseline)</div>
+    <div class="option-desc">Header and stories have the same gray background — hard to tell apart.</div>
+    <div class="feed">
+
+      <div class="card" style="border-color:#6366f1;">
+        <!-- header: same bg as stories -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px 10px;background:#f5f5f7;">
+          <div>
+            <div class="pill" style="background:#6366f115;border:1px solid #6366f135;color:#6366f1;"><div class="dot" style="background:#6366f1;"></div>World News</div>
+            <div class="meta">8 stories · ~20 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#6366f112;border-color:#6366f135;color:#6366f1;">▶ Play</div>
+            <span class="sall" style="color:#6366f1;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">Western Europe Grapples with Unprecedented Spring Heatwave</div><div class="story-excerpt">Britain, France, and Spain are experiencing temperatures unseasonable for late May…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">The Guardian</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+        <div class="story"><div class="story-headline">US Strikes in Iran Trigger Oil Market Volatility</div><div class="story-excerpt">The United States has carried out military strikes on Iranian targets, derailing diplomatic optimism…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">Reuters</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+
+      <div class="card" style="border-color:#f59e0b;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px 10px;background:#f5f5f7;">
+          <div>
+            <div class="pill" style="background:#f59e0b15;border:1px solid #f59e0b35;color:#f59e0b;"><div class="dot" style="background:#f59e0b;"></div>AI & Tech</div>
+            <div class="meta">5 stories · ~12 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#f59e0b12;border-color:#f59e0b35;color:#f59e0b;">▶ Play</div>
+            <span class="sall" style="color:#f59e0b;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">OpenAI Releases GPT-5 with Multimodal Reasoning</div><div class="story-excerpt">Significant improvements in complex reasoning tasks and real-time video understanding…</div><div class="sources"><span class="sp">The Verge</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OPTION B: Color tint on header only ── -->
+  <div class="column">
+    <div class="option-label">B — Color tint on header</div>
+    <div class="option-desc">Header gets a faint accent tint. Stories stay neutral gray beneath it.</div>
+    <div class="feed">
+
+      <div class="card" style="border-color:#6366f1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px 10px;background:#6366f110;">
+          <div>
+            <div class="pill" style="background:#6366f120;border:1px solid #6366f140;color:#6366f1;"><div class="dot" style="background:#6366f1;"></div>World News</div>
+            <div class="meta" style="color:#6366f199;">8 stories · ~20 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#6366f120;border-color:#6366f140;color:#6366f1;">▶ Play</div>
+            <span class="sall" style="color:#6366f1;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">Western Europe Grapples with Unprecedented Spring Heatwave</div><div class="story-excerpt">Britain, France, and Spain are experiencing temperatures unseasonable for late May…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">The Guardian</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+        <div class="story"><div class="story-headline">US Strikes in Iran Trigger Oil Market Volatility</div><div class="story-excerpt">The United States has carried out military strikes on Iranian targets, derailing diplomatic optimism…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">Reuters</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+
+      <div class="card" style="border-color:#f59e0b;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px 10px;background:#f59e0b10;">
+          <div>
+            <div class="pill" style="background:#f59e0b20;border:1px solid #f59e0b40;color:#f59e0b;"><div class="dot" style="background:#f59e0b;"></div>AI & Tech</div>
+            <div class="meta" style="color:#f59e0b99;">5 stories · ~12 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#f59e0b20;border-color:#f59e0b40;color:#f59e0b;">▶ Play</div>
+            <span class="sall" style="color:#f59e0b;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">OpenAI Releases GPT-5 with Multimodal Reasoning</div><div class="story-excerpt">Significant improvements in complex reasoning tasks and real-time video understanding…</div><div class="sources"><span class="sp">The Verge</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OPTION E: Solid color header band ── -->
+  <div class="column">
+    <div class="option-label">E — Solid color header band</div>
+    <div class="option-desc">Header is a solid bold band of the accent color with white text. Maximum contrast.</div>
+    <div class="feed">
+
+      <div class="card" style="border-color:#6366f1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 10px 10px;background:#6366f1;">
+          <div>
+            <div class="pill" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;"><div class="dot" style="background:white;"></div>World News</div>
+            <div class="meta" style="color:rgba(255,255,255,0.7);">8 stories · ~20 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.3);color:white;">▶ Play</div>
+            <span class="sall" style="color:white;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">Western Europe Grapples with Unprecedented Spring Heatwave</div><div class="story-excerpt">Britain, France, and Spain are experiencing temperatures unseasonable for late May…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">The Guardian</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+        <div class="story"><div class="story-headline">US Strikes in Iran Trigger Oil Market Volatility</div><div class="story-excerpt">The United States has carried out military strikes on Iranian targets, derailing diplomatic optimism…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">Reuters</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+
+      <div class="card" style="border-color:#f59e0b;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 10px 10px;background:#f59e0b;">
+          <div>
+            <div class="pill" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;"><div class="dot" style="background:white;"></div>AI & Tech</div>
+            <div class="meta" style="color:rgba(255,255,255,0.7);">5 stories · ~12 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.3);color:white;">▶ Play</div>
+            <span class="sall" style="color:white;">See all ›</span>
+          </div>
+        </div>
+        <div class="story"><div class="story-headline">OpenAI Releases GPT-5 with Multimodal Reasoning</div><div class="story-excerpt">Significant improvements in complex reasoning tasks and real-time video understanding…</div><div class="sources"><span class="sp">The Verge</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OPTION F: White header + divider line ── -->
+  <div class="column">
+    <div class="option-label">F — White header + divider</div>
+    <div class="option-desc">Header is white, stories are gray. A thick colored divider line separates them.</div>
+    <div class="feed">
+
+      <div class="card" style="border-color:#6366f1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 10px 10px;background:#ffffff;">
+          <div>
+            <div class="pill" style="background:#6366f115;border:1px solid #6366f135;color:#6366f1;"><div class="dot" style="background:#6366f1;"></div>World News</div>
+            <div class="meta">8 stories · ~20 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#6366f112;border-color:#6366f135;color:#6366f1;">▶ Play</div>
+            <span class="sall" style="color:#6366f1;">See all ›</span>
+          </div>
+        </div>
+        <!-- thick colored divider -->
+        <div style="height:2px;background:linear-gradient(to right,#6366f1,#6366f140);"></div>
+        <div class="story"><div class="story-headline">Western Europe Grapples with Unprecedented Spring Heatwave</div><div class="story-excerpt">Britain, France, and Spain are experiencing temperatures unseasonable for late May…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">The Guardian</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+        <div class="story"><div class="story-headline">US Strikes in Iran Trigger Oil Market Volatility</div><div class="story-excerpt">The United States has carried out military strikes on Iranian targets, derailing diplomatic optimism…</div><div class="sources"><span class="sp">NY Times</span><span class="sep">·</span><span class="sp">Reuters</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+
+      <div class="card" style="border-color:#f59e0b;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 10px 10px;background:#ffffff;">
+          <div>
+            <div class="pill" style="background:#f59e0b15;border:1px solid #f59e0b35;color:#f59e0b;"><div class="dot" style="background:#f59e0b;"></div>AI & Tech</div>
+            <div class="meta">5 stories · ~12 min</div>
+          </div>
+          <div class="actions">
+            <div class="pbtn" style="background:#f59e0b12;border-color:#f59e0b35;color:#f59e0b;">▶ Play</div>
+            <span class="sall" style="color:#f59e0b;">See all ›</span>
+          </div>
+        </div>
+        <div style="height:2px;background:linear-gradient(to right,#f59e0b,#f59e0b40);"></div>
+        <div class="story"><div class="story-headline">OpenAI Releases GPT-5 with Multimodal Reasoning</div><div class="story-excerpt">Significant improvements in complex reasoning tasks and real-time video understanding…</div><div class="sources"><span class="sp">The Verge</span><span class="sep">·</span><span style="font-size:.65rem;color:#aaa;">2 min</span></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

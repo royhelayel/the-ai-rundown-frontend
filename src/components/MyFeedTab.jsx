@@ -173,7 +173,7 @@ export default function MyFeedTab({
       </div>
 
       {/* Category rows */}
-      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '9rem' : '5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '4rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

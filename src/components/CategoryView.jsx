@@ -65,24 +65,26 @@ export default function CategoryView({
       </header>
 
       {/* ── Category banner ── */}
-      <div style={{ borderLeft: `3px solid ${color}`, marginLeft: '1.25rem', padding: '1rem 1.25rem 0.85rem 0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '600px', margin: '0 auto', width: '100%', marginTop: '0.5rem' }}>
-        <div>
-          <h1 style={{ margin: '0 0 0.2rem', fontSize: '1.4rem', fontWeight: '900', color: light.text, letterSpacing: '-0.025em' }}>{category}</h1>
+      <div style={{ maxWidth: '600px', margin: '0.5rem auto 0', width: '100%', padding: '0 1.25rem' }}>
+        <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ margin: '0 0 0.2rem', fontSize: '1.4rem', fontWeight: '900', color: light.text, letterSpacing: '-0.025em' }}>{category}</h1>
+            {stories.length > 0 && (
+              <p style={{ margin: 0, fontSize: '0.78rem', color: light.textMuted }}>{stories.length} stories · ~{Math.round(stories.length * 2.5)} min</p>
+            )}
+          </div>
           {stories.length > 0 && (
-            <p style={{ margin: 0, fontSize: '0.78rem', color: light.textMuted }}>{stories.length} stories · ~{Math.round(stories.length * 2.5)} min</p>
+            <button onClick={() => onPlayFrom(0)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '999px', background: color, border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', boxShadow: `0 3px 12px ${color}40`, flexShrink: 0 }}>
+              <Play size={13} fill="white" style={{ marginLeft: '1px' }} />
+              Play All
+            </button>
           )}
         </div>
-        {stories.length > 0 && (
-          <button onClick={() => onPlayFrom(0)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '999px', background: color, border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', boxShadow: `0 3px 12px ${color}40`, flexShrink: 0 }}>
-            <Play size={13} fill="white" style={{ marginLeft: '1px' }} />
-            Play All
-          </button>
-        )}
       </div>
 
       {/* ── Story list ── */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', paddingBottom: miniPlayerVisible ? '6rem' : '2rem', borderLeft: `3px solid ${color}`, marginLeft: '1.25rem', marginTop: '0.25rem' }}>
+      <div style={{ flex: 1, maxWidth: '600px', margin: '0.25rem auto 0', width: '100%', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '2rem' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
@@ -102,7 +104,7 @@ export default function CategoryView({
             return (
               <div key={i}
                 onClick={() => navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category' } })}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.85rem 1.25rem 0.85rem 0.9rem', background: isActive ? `${color}08` : 'transparent', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s' }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.85rem 0', background: isActive ? `${color}08` : 'transparent', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', borderRadius: '8px', paddingLeft: '0.75rem', paddingRight: '0.5rem' }}
                 onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                 onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : 'transparent'}
               >

@@ -196,8 +196,11 @@ export default function BriefingFeed({
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes ai-border-spin {
-          0%   { transform: translate(-50%, -50%) rotate(0deg); }
-          100% { transform: translate(-50%, -50%) rotate(360deg); }
+          0%   { transform: translate(-50%, -50%) rotate(0deg);   animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+          22%  { transform: translate(-50%, -50%) rotate(360deg); animation-timing-function: step-end; }
+          62%  { transform: translate(-50%, -50%) rotate(360deg); animation-timing-function: cubic-bezier(0.4,0,0.2,1); }
+          84%  { transform: translate(-50%, -50%) rotate(720deg); animation-timing-function: step-end; }
+          100% { transform: translate(-50%, -50%) rotate(720deg); }
         }
         .ai-btn-wrap {
           position: relative; border-radius: 14px; padding: 2px;
@@ -212,7 +215,7 @@ export default function BriefingFeed({
             from 0deg,
             #6366f1, #a855f7, #ec4899, #06b6d4, #22d3ee, #6366f1
           );
-          animation: ai-border-spin 3s linear infinite;
+          animation: ai-border-spin 9s linear infinite;
           border-radius: 0;
         }
         .ai-btn-inner {

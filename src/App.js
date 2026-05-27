@@ -9,6 +9,11 @@ import StoryReader from './components/StoryReader';
 import FullPlayer from './components/FullPlayer';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
+import BottomNav from './components/BottomNav';
+import MyFeedTab from './components/MyFeedTab';
+import PopularTab from './components/PopularTab';
+import CustomizeTab from './components/CustomizeTab';
+import { headlineKey } from './components/PopularTab';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
@@ -129,6 +134,14 @@ const TheAIRundown = () => {
   const [newsLanguage, setNewsLanguage] = useState(() => localStorage.getItem('rundown_news_language') || 'en');
   const [showFeedPicker, setShowFeedPicker] = useState(false);
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
+
+  // ── Listen tracking (for Popular tab) ────────────────────────────────────────
+  const [listenCounts, setListenCounts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rundown_listen_counts') || '{}'); } catch { return {}; }
+  });
+  const currentNarratingStoryRef = useRef({ headline: '' });
+  // playlist override: null = use navCategories; set to an array to restrict narration
+  const playlistCatsRef = useRef(null);
 
   const [showCategoryLeftArrow, setShowCategoryLeftArrow] = useState(false);
   const [showCategoryRightArrow, setShowCategoryRightArrow] = useState(true);
@@ -305,6 +318,7 @@ const TheAIRundown = () => {
     st.active = false;
     st.pendingLoad = false;
     st.paused = false;
+    playlistCatsRef.current = null; // reset playlist on stop
     setIsNarrating(false);
     setIsPaused(false);
     setIsAudioLoading(false);
@@ -469,10 +483,23 @@ const TheAIRundown = () => {
       if (!isTransition && audio.duration > 0) narrationDurationRef.current = audio.duration;
     };
     let lastPct = -1;
+    let halfwayFired = false;
     audio.ontimeupdate = () => {
       if (!isTransition && audio.duration > 0) {
         const pct = (audio.currentTime / audio.duration) * 100;
         if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
+        // Track 50% listen for Popular rankings
+        if (!halfwayFired && pct >= 50) {
+          halfwayFired = true;
+          const key = headlineKey(currentNarratingStoryRef.current.headline);
+          if (key) {
+            setListenCounts(prev => {
+              const next = { ...prev, [key]: (prev[key] || 0) + 1 };
+              localStorage.setItem('rundown_listen_counts', JSON.stringify(next));
+              return next;
+            });
+          }
+        }
       }
     };
     audio.onended = () => {
@@ -573,6 +600,7 @@ const TheAIRundown = () => {
     }
     const story = stories[idx];
     setStoryIndex(idx);
+    currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
     const cl = cleanForTTS;
@@ -1440,7 +1468,7 @@ const TheAIRundown = () => {
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
         }, 0);
         const estimatedMin = Math.max(1, Math.round(totalWords / 200));
-        return [cat, { storyCount: s.length, estimatedMin, previewStories: s.slice(0, 3) }];
+        return [cat, { storyCount: s.length, estimatedMin, previewStories: s.slice(0, 3), allStories: s }];
       } catch { return [cat, null]; }
     })).then(results => {
       const out = {};
@@ -1568,17 +1596,45 @@ const TheAIRundown = () => {
     }
   };
 
+  const handlePlayMyFeed = () => {
+    if (feedCategories.length === 0) return;
+    const playable = feedCategories.filter(c => briefingData[c]?.storyCount > 0);
+    if (playable.length === 0) return;
+    const firstCat = playable[0];
+    if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
+    playlistCatsRef.current = playable; // restrict narration to feed categories only
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(0);
+    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    if (selectedCategory === firstCat && stories.length > 0) {
+      narrateFnRef.current.narrateStory(0);
+    } else {
+      st.pendingLoad = true;
+      handleSelectCategory(firstCat);
+    }
+  };
+
   // ── URL-based routing ────────────────────────────────────────────────────────
-  const isSettingsPath = location.pathname === '/settings';
-  const catOnlyMatch = location.pathname.match(/^\/category\/([^/]+)$/);
+  const isSettingsPath  = location.pathname === '/settings';
+  const isMyFeedPath    = location.pathname === '/my-feed';
+  const isPopularPath   = location.pathname === '/popular';
+  const isCustomizePath = location.pathname === '/customize';
+  const catOnlyMatch    = location.pathname.match(/^\/category\/([^/]+)$/);
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
-  const catFromUrl = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
+  const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isHome = !catFromUrl && !isSettingsPath;
-  const isCategoryView = !!catOnlyMatch;
-  const isStoryView = !!storyRouteMatch;
-  const currentStory = stories[storyIdxFromUrl ?? storyIndex] || null;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isCustomizePath;
+  const isHome          = isLatestHome; // kept for backward compat
+  const isCategoryView  = !!catOnlyMatch;
+  const isStoryView     = !!storyRouteMatch;
+  const currentStory    = stories[storyIdxFromUrl ?? storyIndex] || null;
   const miniPlayerVisible = playerVisible && playerMinimized;
+  // Show bottom nav everywhere except settings and when full player is open
+  const showBottomNav   = !isSettingsPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
 
   const handleMinimizePlayer = () => {
     setFullPlayerExiting(true);
@@ -1592,7 +1648,8 @@ const TheAIRundown = () => {
   };
 
   // Keep narration refs in sync on every render
-  storyNavRef.current = { idx: storyIndex, stories, cats: navCategories, cat: selectedCategory };
+  // playlistCatsRef overrides navCategories so "Play My Feed" only iterates feed categories
+  storyNavRef.current = { idx: storyIndex, stories, cats: playlistCatsRef.current || navCategories, cat: selectedCategory };
 
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>
@@ -1668,7 +1725,7 @@ const TheAIRundown = () => {
       )}
 
       {/* ── Main Content (URL-routed) ── */}
-      {isHome && (
+      {isLatestHome && (
         <BriefingFeed
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -1691,6 +1748,51 @@ const TheAIRundown = () => {
           onShowSettings={() => navigate('/settings')}
           playerVisible={playerVisible}
           newsLanguage={newsLanguage}
+        />
+      )}
+
+      {isMyFeedPath && (
+        <MyFeedTab
+          briefingData={briefingData}
+          briefingLoading={briefingLoading}
+          feedCategories={feedCategories}
+          selectedDay={selectedDay}
+          selectedTime={selectedTime}
+          availableDays={availableDays}
+          availableTimes={availableTimes}
+          onSelectDay={selectDay}
+          onSelectTime={setSelectedTime}
+          onPlayMyFeed={handlePlayMyFeed}
+          onPlayCategory={handlePlayCategory}
+          onSelectCategory={handleSelectCategory}
+          isNarrating={isNarrating}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          playerVisible={playerVisible}
+        />
+      )}
+
+      {isPopularPath && (
+        <PopularTab
+          briefingData={briefingData}
+          briefingLoading={briefingLoading}
+          listenCounts={listenCounts}
+          defaultCategories={defaultCategories}
+          onSelectCategory={handleSelectCategory}
+          onPlayCategory={handlePlayCategory}
+          isNarrating={isNarrating}
+          playerVisible={playerVisible}
+        />
+      )}
+
+      {isCustomizePath && (
+        <CustomizeTab
+          feedCategories={feedCategories}
+          onSaveFeedCategories={saveFeedCategories}
+          defaultCategories={defaultCategories}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          playerVisible={playerVisible}
         />
       )}
 
@@ -1874,8 +1976,12 @@ const TheAIRundown = () => {
           onResume={() => narrateFnRef.current.resume()}
           onExpand={() => setPlayerMinimized(false)}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
+          bottomOffset={showBottomNav ? 56 : 0}
         />
       )}
+
+      {/* ── Bottom Navigation ── */}
+      {showBottomNav && <BottomNav />}
 
       {/* ── Category transition overlay ── */}
       <CategoryTransition

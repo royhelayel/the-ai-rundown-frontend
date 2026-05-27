@@ -14,11 +14,12 @@ export default function MiniPlayer({
   onResume,
   onExpand,
   onClose,
+  bottomOffset = 0,
 }) {
   const color = CATEGORY_COLORS[category] || colors.accent;
 
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, padding: '0 0.75rem', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <div style={{ position: 'fixed', bottom: bottomOffset, left: 0, right: 0, zIndex: 100, padding: '0 0.75rem 0.5rem' }}>
       <div
         onClick={onExpand}
         style={{ background: colors.bgCardHigh, borderRadius: '16px', border: `1px solid ${colors.borderLight}`, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)', marginBottom: '0.5rem' }}>

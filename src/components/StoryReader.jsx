@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
+import { readTime } from '../utils';
 
 function faviconUrl(url) {
   try {
@@ -114,6 +115,8 @@ export default function StoryReader({
                 </React.Fragment>
               );
             })}
+            <span style={{ fontSize: '0.78rem', color: light.textMuted, opacity: 0.4 }}>·</span>
+            <span style={{ fontSize: '0.78rem', color: light.textMuted }}>{readTime(story)}</span>
           </div>
         )}
 

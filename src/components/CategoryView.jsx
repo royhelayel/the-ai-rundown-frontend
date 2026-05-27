@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Play, Loader } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
+import { readTime } from '../utils';
 
 const light = {
   bg:        '#ffffff',
@@ -151,7 +152,7 @@ export default function CategoryView({
                       );
                     })}
                     {topSources.length > 0 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
-                    <span style={{ fontSize: '0.72rem', color: light.textMuted }}>2 min read</span>
+                    <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{readTime(story)}</span>
                   </div>
                 </div>
 

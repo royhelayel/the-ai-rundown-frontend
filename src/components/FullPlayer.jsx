@@ -139,19 +139,19 @@ export default function FullPlayer({
         </div>
 
         {/* ── Top bar (floats over image) ── */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '1rem 1.25rem 0.5rem' }}>
           <button
             onClick={onMinimize}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0 }}>
             <ChevronDown size={20} />
           </button>
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ flex: 1, textAlign: 'center' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Playing Now</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
               {category} · {storyIndex + 1} of {storyCount}
             </p>
           </div>
-          <div style={{ width: '36px' }} />
+          <div style={{ width: '36px', flexShrink: 0 }} />
         </div>
 
         {/* ── Story progress dots (floats over image) ── */}

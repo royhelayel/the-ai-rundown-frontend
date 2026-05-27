@@ -139,6 +139,7 @@ const TheAIRundown = () => {
   const [playerVisible, setPlayerVisible] = useState(false);
   const [playerMinimized, setPlayerMinimized] = useState(false);
   const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
+  const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
@@ -1508,6 +1509,7 @@ const TheAIRundown = () => {
 
   const onPlayFrom = (idx) => {
     if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
     const st = narrationStateRef.current;
     st.active = true; st.pendingLoad = false; st.audio = null; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1534,6 +1536,7 @@ const TheAIRundown = () => {
   const handlePlayBriefing = () => {
     const firstCat = defaultCategories.find(c => briefingData[c]?.storyCount > 0) || defaultCategories[0];
     if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1550,6 +1553,7 @@ const TheAIRundown = () => {
 
   const handlePlayCategory = (cat) => {
     if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1578,6 +1582,9 @@ const TheAIRundown = () => {
 
   const handleMinimizePlayer = () => {
     setFullPlayerExiting(true);
+    // Navigate back to source screen as the player slides down
+    const src = playerSourcePath.current;
+    if (src && src !== location.pathname) navigate(src);
     setTimeout(() => {
       setPlayerMinimized(true);
       setFullPlayerExiting(false);

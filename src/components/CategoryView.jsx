@@ -85,7 +85,7 @@ export default function CategoryView({
       </div>
 
       {/* ── Story list ── */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0.25rem auto 0', width: '100%', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '2rem' }}>
+      <div style={{ flex: 1, maxWidth: '600px', margin: '0.25rem auto 0', width: '100%', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3.5rem' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

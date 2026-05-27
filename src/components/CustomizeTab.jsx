@@ -41,7 +41,7 @@ export default function CustomizeTab({
       </header>
 
       {/* Content */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '4rem' }}>
+      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
         <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.5rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em' }}>Customize</h1>
         <p style={{ margin: '0 0 1.75rem', fontSize: '0.85rem', color: light.textMuted }}>Choose what appears in your My Feed tab.</p>

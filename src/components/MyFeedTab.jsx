@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, ChevronDown, User, Loader } from 'lucide-react';
 import CategoryRow from './CategoryRow';
+import DateTimePill from './DateTimePill';
 
 const light = {
   bg:        '#ffffff',
@@ -12,6 +13,28 @@ const light = {
   textMuted: '#8a8a9a',
   accent:    '#6366f1',
 };
+
+function SharedHeader({ user, onShowAuth, selectedDay, selectedTime, availableDays, availableTimes, onSelectDay, onSelectTime }) {
+  const navigate = useNavigate();
+  return (
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em', flexShrink: 0 }}>The Rundown</span>
+        <div style={{ flex: 1 }} />
+        <DateTimePill
+          selectedDay={selectedDay} selectedTime={selectedTime}
+          availableDays={availableDays} availableTimes={availableTimes}
+          onSelectDay={onSelectDay} onSelectTime={onSelectTime}
+        />
+        <button
+          onClick={user ? () => navigate('/settings') : onShowAuth}
+          style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
+          <User size={16} />
+        </button>
+      </div>
+    </header>
+  );
+}
 
 export default function MyFeedTab({
   briefingData, briefingLoading,
@@ -42,11 +65,7 @@ export default function MyFeedTab({
     return (
       <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
-          <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
-          </div>
-        </header>
+        <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} color={light.textMuted} />
@@ -70,11 +89,7 @@ export default function MyFeedTab({
     return (
       <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
-          <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
-          </div>
-        </header>
+        <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
           <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>⭐</div>
           <div style={{ textAlign: 'center' }}>
@@ -101,11 +116,7 @@ export default function MyFeedTab({
       `}</style>
 
       {/* Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
-        </div>
-      </header>
+      <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
 
       {/* Hero */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>

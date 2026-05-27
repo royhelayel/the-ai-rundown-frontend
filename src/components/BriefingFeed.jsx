@@ -47,7 +47,7 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
   };
 
   return (
-    <div style={{ marginBottom: '1rem', borderLeft: `3px solid ${color}`, marginLeft: '1.25rem' }}>
+    <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', borderLeft: `3px solid ${color}`, background: light.bgSub, borderRadius: '0 12px 12px 0', overflow: 'hidden' }}>
 
       {/* ── Category header — full row clickable ── */}
       <div
@@ -92,7 +92,7 @@ function CategoryRow({ cat, catData, onOpen, onPlay }) {
               <div key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`, { state: { from: 'home' } }); }}
                 style={{ display: 'flex', alignItems: 'flex-start', padding: '0.8rem 1.25rem 0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s' }}
-                onMouseEnter={e => e.currentTarget.style.background = light.bgSub}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>

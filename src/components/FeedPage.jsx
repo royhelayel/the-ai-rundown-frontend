@@ -91,25 +91,19 @@ export default function FeedPage({
       </div>
 
       {/* ── Today's Progress ── */}
-      {!briefingLoading && feed.categories.length > 0 && (
-        <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-          {/* Caught-up banner */}
-          {allCaughtUp && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.65rem',
-              background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)',
-              borderRadius: '14px', padding: '0.75rem 1rem', marginBottom: '0.75rem',
-            }}>
-              <CheckCircle2 size={20} color="#16a34a" strokeWidth={2.5} />
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#15803d', lineHeight: 1.2 }}>All Caught Up! 🎉</div>
-                <div style={{ fontSize: '0.72rem', color: light.textMuted, fontWeight: '500' }}>You've listened to all stories in this feed today.</div>
-              </div>
-            </div>
-          )}
-
-          {/* Per-category progress pills */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      {!briefingLoading && feed.categories.length > 0 && (() => {
+        const totalCats = feed.categories.filter(c => (todayProgress[c]?.total || 0) > 0).length;
+        const msg = allCaughtUp
+          ? { icon: '✅', text: "You're all caught up with today's news!", color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+          : caughtUpCount > 0
+            ? { icon: '🔥', text: `${caughtUpCount} of ${totalCats} done — keep going!`, color: '#92400e', bg: 'rgba(251,146,60,0.07)', border: 'rgba(251,146,60,0.2)' }
+            : { icon: '👇', text: 'Tap a category to start catching up.', color: light.textMuted, bg: 'transparent', border: 'transparent' };
+        return (
+          <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+            {/* Pills + message row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {/* Per-category progress pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: '1 1 auto' }}>
             {feed.categories.map(cat => {
               const p = todayProgress[cat] || {};
               const color = CATEGORY_COLORS[cat] || '#6366f1';
@@ -148,10 +142,23 @@ export default function FeedPage({
                   )}
                 </button>
               );
-            })}
+              })}
+              </div>
+
+              {/* Contextual message */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: msg.bg, border: `1px solid ${msg.border}`,
+                borderRadius: '99px', padding: '5px 12px',
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize: '0.78rem', lineHeight: 1 }}>{msg.icon}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: msg.color, whiteSpace: 'nowrap' }}>{msg.text}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Category rows */}
       <div style={{ flex: 1, paddingTop: '0.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>

@@ -35,7 +35,7 @@ export default function BriefingFeed({
   availableDays, availableTimes,
   onSelectDay, onSelectTime,
   defaultCategories, customCategories,
-  onPlayBriefing, onPlayCategory, onSelectCategory, onPlayStory,
+  onPlayBriefing, onPlayCategory, onSelectCategory, onPlayStory, onMarkRead,
   isNarrating, isPaused, selectedCategory, currentStoryIndex,
   user, onShowAuth, onShowSettings,
   playerVisible,
@@ -116,6 +116,7 @@ export default function BriefingFeed({
               onOpen={(c) => { onSelectCategory(c); }}
               onPlay={(c) => { onSelectCategory(c); onPlayCategory(c); }}
               onPlayStory={onPlayStory}
+              onMarkRead={onMarkRead}
               isNarrating={isNarrating}
               activeCategory={selectedCategory}
               activeStoryIndex={currentStoryIndex}

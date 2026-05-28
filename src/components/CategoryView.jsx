@@ -38,6 +38,7 @@ export default function CategoryView({
   currentStoryIndex,
   onPlayFrom,
   miniPlayerVisible,
+  onMarkRead,
 }) {
   const navigate = useNavigate();
   const color  = CATEGORY_COLORS[category] || '#6366f1';
@@ -116,7 +117,7 @@ export default function CategoryView({
               const excerpt    = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
               return (
                 <div key={i}
-                  onClick={() => navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category' } })}
+                  onClick={() => { onMarkRead?.(story, category, i); navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category' } }); }}
                   style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.35rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
                   onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                   onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}

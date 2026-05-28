@@ -1662,6 +1662,9 @@ const TheAIRundown = () => {
     }
   };
 
+  // Mark a story as read when user navigates into it (separate from play)
+  const handleMarkRead = (story, cat, idx) => addToHistory(story, cat, idx);
+
   const handlePlayFeed = (cats) => {
     const playable = cats.filter(c => briefingData[c]?.storyCount > 0);
     if (playable.length === 0) return;
@@ -1887,6 +1890,7 @@ const TheAIRundown = () => {
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
           onPlayStory={handlePlayStory}
+          onMarkRead={handleMarkRead}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           onShowSettings={() => navigate('/settings')}
@@ -1912,6 +1916,7 @@ const TheAIRundown = () => {
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
+          onMarkRead={handleMarkRead}
           isNarrating={isNarrating}
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
@@ -1936,6 +1941,7 @@ const TheAIRundown = () => {
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
+          onMarkRead={handleMarkRead}
           isNarrating={isNarrating}
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
@@ -1986,6 +1992,7 @@ const TheAIRundown = () => {
           currentStoryIndex={storyIndex}
           onPlayFrom={onPlayFrom}
           miniPlayerVisible={miniPlayerVisible}
+          onMarkRead={handleMarkRead}
         />
       )}
 

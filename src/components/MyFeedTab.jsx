@@ -39,7 +39,7 @@ export default function MyFeedTab({
   selectedDay, selectedTime,
   availableDays, availableTimes,
   onSelectDay, onSelectTime,
-  onPlayMyFeed, onPlayCategory, onSelectCategory, onPlayStory,
+  onPlayMyFeed, onPlayCategory, onSelectCategory, onPlayStory, onMarkRead,
   isNarrating, selectedCategory, currentStoryIndex,
   user, onShowAuth,
   playerVisible,
@@ -157,6 +157,7 @@ export default function MyFeedTab({
                     onOpen={c => onSelectCategory(c)}
                     onPlay={c => { onSelectCategory(c); onPlayCategory(c); }}
                     onPlayStory={onPlayStory}
+                    onMarkRead={onMarkRead}
                     isNarrating={isNarrating}
                     activeCategory={selectedCategory}
                     activeStoryIndex={currentStoryIndex}

@@ -23,7 +23,7 @@ export default function FeedPage({
   selectedDay, selectedTime,
   availableDays, availableTimes,
   onSelectDay, onSelectTime,
-  onPlayFeed, onPlayCategory, onSelectCategory, onPlayStory,
+  onPlayFeed, onPlayCategory, onSelectCategory, onPlayStory, onMarkRead,
   isNarrating, selectedCategory, currentStoryIndex,
   user, onShowAuth,
   playerVisible,
@@ -158,6 +158,7 @@ export default function FeedPage({
               onOpen={c => onSelectCategory(c)}
               onPlay={c => { onSelectCategory(c); onPlayCategory(c); }}
               onPlayStory={onPlayStory}
+              onMarkRead={onMarkRead}
               isNarrating={isNarrating}
               activeCategory={selectedCategory}
               activeStoryIndex={currentStoryIndex}

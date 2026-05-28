@@ -1755,6 +1755,21 @@ const TheAIRundown = () => {
   const isHome          = isLatestHome; // kept for backward compat
   const isCategoryView  = !!catOnlyMatch;
   const isStoryView     = !!storyRouteMatch;
+
+  // Which feed did the user navigate from? Used to keep the correct SideNav feed highlighted
+  // while on /category/... or /category/.../story/... pages.
+  const activeFeedId = (() => {
+    if (isFeedPage && feedIdFromUrl) return feedIdFromUrl;
+    if (isCategoryView) {
+      const from = location.state?.from;
+      if (typeof from === 'string' && from.startsWith('/feed/')) return from.replace('/feed/', '');
+    }
+    if (isStoryView) {
+      const feedFrom = location.state?.feedFrom;
+      if (typeof feedFrom === 'string' && feedFrom.startsWith('/feed/')) return feedFrom.replace('/feed/', '');
+    }
+    return null;
+  })();
   const currentStory    = stories[storyIdxFromUrl ?? storyIndex] || null;
   const miniPlayerVisible = playerVisible && playerMinimized;
   // Show bottom nav everywhere except settings and when full player is open
@@ -2245,6 +2260,7 @@ const TheAIRundown = () => {
             categories={allCategories} briefingData={briefingData} onSelectCategory={handleSelectCategory}
             user={user}
             onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+            activeFeedId={activeFeedId}
           />
         </div>
       )}

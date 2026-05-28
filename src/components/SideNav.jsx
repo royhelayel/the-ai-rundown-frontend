@@ -19,7 +19,7 @@ const ALL_TABS = [
   { path: '/customize',label: 'Customize Your Feed', Icon: PlusCircle, matchFn: p => p === '/customize',                      authRequired: true  },
 ];
 
-export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [], briefingData = {}, onSelectCategory, user = null, onShowAuth }) {
+export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [], briefingData = {}, onSelectCategory, user = null, onShowAuth, activeFeedId = null }) {
   const navigate   = useNavigate();
   const { pathname } = useLocation();
   const dragId     = useRef(null);
@@ -62,7 +62,7 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
             My Feeds
           </p>
           {userFeeds.map(feed => {
-            const active  = pathname === `/feed/${feed.id}`;
+            const active  = activeFeedId ? activeFeedId === feed.id : pathname === `/feed/${feed.id}`;
             const isOver  = dragOver === feed.id;
             return (
               <div
@@ -109,7 +109,9 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.5rem' }}>
         {ALL_TABS.map(({ path, label, Icon, matchFn, authRequired }) => {
           const locked = authRequired && !user;
-          const active = !locked && matchFn(pathname);
+          // If the user is on a category/story page that came from a custom feed,
+          // don't highlight the All Feed tab — the custom feed item handles it.
+          const active = !locked && matchFn(pathname) && !activeFeedId;
           return (
             <button key={path}
               onClick={() => locked ? onShowAuth?.() : navigate(path)}

@@ -123,22 +123,24 @@ export default function StoryReader({
           </div>
         )}
 
-        {/* Play this story */}
-        <div className="ai-btn-wrap" style={{ marginBottom: '1.75rem' }}>
-          <button className="ai-btn-inner" onClick={() => onPlayFrom(storyIndex)}>
-            <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
-            {isNarrating ? 'Playing…' : 'Play Story'}
-          </button>
-        </div>
-
-        {/* Toggle: Key Takeaways / Summary */}
-        <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', marginBottom: '1.5rem', width: 'fit-content', border: `1px solid ${light.border}` }}>
-          {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
-            <button key={val} onClick={() => setView(val)}
-              style={{ padding: '0.38rem 1rem', borderRadius: '999px', border: 'none', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted }}>
-              {label}
+        {/* Play button + view toggle on the same row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
+          <div className="ai-btn-wrap">
+            <button className="ai-btn-inner" onClick={() => onPlayFrom(storyIndex)}>
+              <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
+              {isNarrating ? 'Playing…' : 'Play Story'}
             </button>
-          ))}
+          </div>
+          <div style={{ flex: 1 }} />
+          {/* Toggle: Key Takeaways / Summary */}
+          <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}`, flexShrink: 0 }}>
+            {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
+              <button key={val} onClick={() => setView(val)}
+                style={{ padding: '0.38rem 1rem', borderRadius: '999px', border: 'none', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Key Takeaways */}

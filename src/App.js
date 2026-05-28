@@ -1611,35 +1611,39 @@ const TheAIRundown = () => {
 
   const handlePlayBriefing = () => {
     const firstCat = defaultCategories.find(c => briefingData[c]?.storyCount > 0) || defaultCategories[0];
+    const startIdx = getResumeIndex(firstCat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
-    setStoryIndex(0);
+    setStoryIndex(startIdx);
     navigate(`/category/${encodeURIComponent(firstCat)}`);
     if (selectedCategory === firstCat && stories.length > 0) {
-      narrateFnRef.current.narrateStory(0);
+      narrateFnRef.current.narrateStory(startIdx);
     } else {
       st.pendingLoad = true;
+      st.pendingStartIndex = startIdx;
       handleSelectCategory(firstCat);
     }
   };
 
   const handlePlayCategory = (cat) => {
+    const startIdx = getResumeIndex(cat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
-    setStoryIndex(0);
+    setStoryIndex(startIdx);
     navigate(`/category/${encodeURIComponent(cat)}`);
     if (selectedCategory === cat && stories.length > 0) {
-      narrateFnRef.current.narrateStory(0);
+      narrateFnRef.current.narrateStory(startIdx);
     } else {
       st.pendingLoad = true;
+      st.pendingStartIndex = startIdx;
       handleSelectCategory(cat);
     }
   };
@@ -1665,10 +1669,25 @@ const TheAIRundown = () => {
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => addToHistory(story, cat, idx);
 
+  // Resume index: first unread today for a category, bounded by where we left off (whichever is earlier)
+  const getResumeIndex = (cat) => {
+    const total = briefingData[cat]?.storyCount || 0;
+    if (total === 0) return 0;
+    const listenedSet = gamifiedStats.todayProgress[cat]?.listenedIndices || new Set();
+    for (let i = 0; i < total; i++) {
+      if (!listenedSet.has(i)) {
+        return (selectedCategory === cat && stories.length > 0) ? Math.min(storyIndex, i) : i;
+      }
+    }
+    // All stories read — resume from where we left off or start over
+    return (selectedCategory === cat && stories.length > 0) ? storyIndex : 0;
+  };
+
   const handlePlayFeed = (cats) => {
     const playable = cats.filter(c => briefingData[c]?.storyCount > 0);
     if (playable.length === 0) return;
     const firstCat = playable[0];
+    const startIdx = getResumeIndex(firstCat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable;
@@ -1676,12 +1695,13 @@ const TheAIRundown = () => {
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
-    setStoryIndex(0);
+    setStoryIndex(startIdx);
     navigate(`/category/${encodeURIComponent(firstCat)}`);
     if (selectedCategory === firstCat && stories.length > 0) {
-      narrateFnRef.current.narrateStory(0);
+      narrateFnRef.current.narrateStory(startIdx);
     } else {
       st.pendingLoad = true;
+      st.pendingStartIndex = startIdx;
       handleSelectCategory(firstCat);
     }
   };
@@ -1691,6 +1711,7 @@ const TheAIRundown = () => {
     const playable = feedCategories.filter(c => briefingData[c]?.storyCount > 0);
     if (playable.length === 0) return;
     const firstCat = playable[0];
+    const startIdx = getResumeIndex(firstCat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable; // restrict narration to feed categories only
@@ -1698,12 +1719,13 @@ const TheAIRundown = () => {
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
-    setStoryIndex(0);
+    setStoryIndex(startIdx);
     navigate(`/category/${encodeURIComponent(firstCat)}`);
     if (selectedCategory === firstCat && stories.length > 0) {
-      narrateFnRef.current.narrateStory(0);
+      narrateFnRef.current.narrateStory(startIdx);
     } else {
       st.pendingLoad = true;
+      st.pendingStartIndex = startIdx;
       handleSelectCategory(firstCat);
     }
   };

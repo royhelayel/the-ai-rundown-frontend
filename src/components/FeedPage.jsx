@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, User, CheckCircle2 } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
@@ -30,6 +30,7 @@ export default function FeedPage({
   todayProgress = {}, allCaughtUp = false, caughtUpCount = 0,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!feed) {
     return (
@@ -114,14 +115,9 @@ export default function FeedPage({
               const color = CATEGORY_COLORS[cat] || '#6366f1';
               const done = p.done;
               const total = p.total || 0;
-              // Find first unread index (fallback to 0)
-              const listenedSet = p.listenedIndices || new Set();
-              const nextUnread = total > 0
-                ? (Array.from({ length: total }, (_, i) => i).find(i => !listenedSet.has(i)) ?? 0)
-                : 0;
               return (
                 <button key={cat}
-                  onClick={() => onPlayStory(cat, nextUnread)}
+                  onClick={() => { onSelectCategory(cat); navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: location.pathname } }); }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     background: done ? 'rgba(22,163,74,0.08)' : light.bgSub,

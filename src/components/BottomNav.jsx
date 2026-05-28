@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, TrendingUp, PlusCircle, LayoutGrid, X } from 'lucide-react';
+import { BookOpen, TrendingUp, PlusCircle, LayoutGrid, X, List } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
 const light = {
@@ -45,7 +45,7 @@ export default function BottomNav({ userFeeds = [], categories = [], briefingDat
           }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: '800', color: FEED_COLOR, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Browse</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: '800', color: FEED_COLOR, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Menu</span>
               <button onClick={() => setShowSheet(false)}
                 style={{ border: 'none', background: 'none', cursor: 'pointer', color: light.textMuted, padding: '2px' }}>
                 <X size={16} />
@@ -144,13 +144,13 @@ export default function BottomNav({ userFeeds = [], categories = [], briefingDat
               background: 'transparent', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
             }}>
-            <LayoutGrid size={21} strokeWidth={hasFeedActive || showSheet ? 2.5 : 1.7}
+            <List size={21} strokeWidth={hasFeedActive || showSheet ? 2.5 : 1.7}
               color={hasFeedActive || showSheet ? light.text : light.textMuted} />
             <span style={{
               fontSize: '0.65rem', fontWeight: hasFeedActive || showSheet ? '800' : '500',
               color: hasFeedActive || showSheet ? light.text : light.textMuted,
             }}>
-              Browse
+              Categories
             </span>
           </button>
         )}

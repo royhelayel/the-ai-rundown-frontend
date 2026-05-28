@@ -72,7 +72,7 @@ export default function CategoryView({
 
         {/* ── Immersive image header — same as CategoryRow Option B ── */}
         <div className="cv-img-wrap" style={{ borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.1)', marginBottom: '1rem' }}>
-          <div style={{ height: '140px', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
+          <div style={{ height: '200px', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
             <div className="cv-img-bg" style={{
               position: 'absolute', inset: 0,
               backgroundImage: image ? `url(${image})` : 'none',
@@ -116,7 +116,7 @@ export default function CategoryView({
               return (
                 <div key={i}
                   onClick={() => navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category' } })}
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.1rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
                   onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                   onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}
                 >

@@ -105,7 +105,7 @@ export default function PopularTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sorted.map((story, rank) => {
               const color = CATEGORY_COLORS[story.category] || '#6366f1';
-              const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 120);
+              const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
               const sources = story.storySources?.filter(s => s.outlet) || [];
               const topSources = sources.slice(0, 2);
               return (
@@ -132,7 +132,7 @@ export default function PopularTab({
                     </p>
                     {excerpt && (
                       <p style={{ margin: '0 0 0.3rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {excerpt}{excerpt.length === 120 ? '…' : ''}
+                        {excerpt}{excerpt.length === 200 ? '…' : ''}
                       </p>
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.3rem' }}>

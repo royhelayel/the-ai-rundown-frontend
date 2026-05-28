@@ -56,7 +56,7 @@ function CategoryRowSkeleton() {
       boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
     }}>
       {/* Image header placeholder */}
-      <S h="130px" r="0" />
+      <S h="175px" r="0" />
       {/* Story stubs */}
       <StoryRowSkeleton />
       <StoryRowSkeleton />

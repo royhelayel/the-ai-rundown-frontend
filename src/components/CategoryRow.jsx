@@ -48,7 +48,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
       {/* ── Category header — Option B: tall image + diagonal overlay ── */}
       <div
         onClick={handleOpen}
-        style={{ height: '130px', position: 'relative', overflow: 'hidden', cursor: 'pointer', userSelect: 'none' }}
+        style={{ height: '175px', position: 'relative', overflow: 'hidden', cursor: 'pointer', userSelect: 'none' }}
       >
         {/* Background image (or solid color fallback) */}
         <div style={{

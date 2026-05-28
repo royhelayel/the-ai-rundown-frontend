@@ -9,6 +9,8 @@ const WAVE_STYLE = `
     from { transform: scaleY(0.4); }
     to   { transform: scaleY(1); }
   }
+  .cat-img-bg { transform-origin: center; }
+  div:hover > .cat-img-bg { transform: scale(1.04); }
 `;
 
 const light = {
@@ -40,40 +42,46 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
   };
 
   return (
-    <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', marginRight: '1.25rem', borderLeft: `3px solid ${color}`, background: light.bgSub, borderRadius: '12px', overflow: 'hidden' }}>
+    <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', marginRight: '1.25rem', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
       <style>{WAVE_STYLE}</style>
 
-      {/* ── Category header ── */}
+      {/* ── Category header — Option B: tall image + diagonal overlay ── */}
       <div
         onClick={handleOpen}
-        style={{ padding: '0.7rem 1rem 0.65rem 0.9rem', cursor: 'pointer', userSelect: 'none', background: `${color}12`, position: 'relative', overflow: 'hidden' }}
-        onMouseEnter={e => e.currentTarget.style.background = `${color}1e`}
-        onMouseLeave={e => e.currentTarget.style.background = `${color}12`}
+        style={{ height: '130px', position: 'relative', overflow: 'hidden', cursor: 'pointer', userSelect: 'none' }}
       >
-        {/* Row 1: pill + Play + See all + image thumbnail */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.6rem', background: `${color}20`, border: `1px solid ${color}40`, borderRadius: '999px', flexShrink: 0 }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cat}</span>
+        {/* Background image (or solid color fallback) */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: image ? `url(${image})` : 'none',
+          backgroundColor: image ? 'transparent' : color,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          transition: 'transform 0.4s ease',
+        }} className="cat-img-bg" />
+
+        {/* Diagonal dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, transparent 25%, rgba(0,0,0,0.88) 100%)' }} />
+
+        {/* Subtle category colour tint */}
+        <div style={{ position: 'absolute', inset: 0, background: color, opacity: 0.18 }} />
+
+        {/* Content pinned to bottom */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 6px ${color}` }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{cat}</div>
+            {info && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '2px' }}>{info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min</div>}
           </div>
-          <div style={{ flex: 1 }} />
           <button
             onClick={e => { e.stopPropagation(); onPlay(cat); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', borderRadius: '999px', border: `1px solid ${color}40`, background: `${color}18`, color: color, cursor: 'pointer', fontSize: '0.7rem', fontWeight: '700' }}>
-            <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
+            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.85rem', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: 'white', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}>
+            <Play size={9} fill="white" color="white" style={{ marginLeft: '1px' }} />
             Play
           </button>
-          <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: '700', color: color }}>
-            See all <ChevronRight size={13} />
+          <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
+            See all <ChevronRight size={12} />
           </span>
         </div>
-
-        {/* Row 2: story count + time */}
-        {info && (
-          <p style={{ margin: '0.3rem 0 0', fontSize: '0.71rem', color: `${color}aa`, fontWeight: '500' }}>
-            {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min
-          </p>
-        )}
       </div>
 
       {/* ── Story list ── */}

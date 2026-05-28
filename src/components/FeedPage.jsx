@@ -92,12 +92,13 @@ export default function FeedPage({
 
       {/* ── Today's Progress ── */}
       {!briefingLoading && feed.categories.length > 0 && (() => {
-        const totalCats = feed.categories.filter(c => (todayProgress[c]?.total || 0) > 0).length;
+        const totalListened = feed.categories.reduce((s, c) => s + (todayProgress[c]?.listened || 0), 0);
+        const totalStories  = feed.categories.reduce((s, c) => s + (todayProgress[c]?.total   || 0), 0);
         const msg = allCaughtUp
-          ? { icon: '✅', text: "You're all caught up with today's news!", color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
-          : caughtUpCount > 0
-            ? { icon: '🔥', text: `${caughtUpCount} of ${totalCats} done — keep going!`, color: '#92400e', bg: 'rgba(251,146,60,0.07)', border: 'rgba(251,146,60,0.2)' }
-            : { icon: '👇', text: 'Tap a category to start catching up.', color: light.textMuted, bg: 'transparent', border: 'transparent' };
+          ? { icon: '✅', text: 'You are fully caught up. Good job!', color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+          : totalStories > 0
+            ? { icon: totalListened > 0 ? '🔥' : '👇', text: `${totalListened} out of ${totalStories} read. Continue reading to be fully caught up.`, color: totalListened > 0 ? '#92400e' : light.textMuted, bg: totalListened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: totalListened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' }
+            : { icon: '👇', text: 'No stories available yet.', color: light.textMuted, bg: 'transparent', border: 'transparent' };
         return (
           <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
             {/* Pills + message row */}

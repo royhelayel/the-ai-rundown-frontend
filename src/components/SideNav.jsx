@@ -52,16 +52,9 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
       position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
       background: light.bg, borderRight: `1px solid ${light.border}`,
       display: 'flex', flexDirection: 'column', zIndex: 45,
-      padding: '1.5rem 0.75rem',
+      padding: '0.75rem 0.75rem',
       overflowY: 'auto',
     }}>
-      {/* Brand */}
-      <div style={{ padding: '0 0.5rem 1.5rem' }}>
-        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>
-          The Rundown
-        </span>
-      </div>
-
       {/* ── Custom named feeds ── */}
       {userFeeds.length > 0 && (
         <div style={{ marginBottom: '0.5rem' }}>

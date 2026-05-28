@@ -1787,7 +1787,7 @@ const TheAIRundown = () => {
           .bottom-nav-wrap { display: none; }
           .main-content-offset { margin-left: 260px; margin-right: 240px; }
           .mini-player-bar { left: 260px !important; right: 240px !important; }
-          .header-brand { display: none; }
+          .header-brand { display: inline; }
           .hero-row { flex-direction: row; align-items: center; gap: 0.75rem; }
           .hero-title-row { flex: 1; justify-content: flex-start; }
           .hero-play-row .ai-btn-wrap { display: inline-block; width: auto; }

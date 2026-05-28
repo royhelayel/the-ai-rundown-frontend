@@ -66,15 +66,6 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
           <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: '700', color: color }}>
             See all <ChevronRight size={13} />
           </span>
-          {image && (
-            <div style={{
-              width: '52px', height: '40px', borderRadius: '8px', flexShrink: 0,
-              backgroundImage: `url(${image})`,
-              backgroundSize: 'cover', backgroundPosition: 'center',
-              border: `1px solid ${color}30`,
-              overflow: 'hidden',
-            }} />
-          )}
         </div>
 
         {/* Row 2: story count + time */}

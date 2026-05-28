@@ -11,6 +11,7 @@ import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
 import SideNav from './components/SideNav';
+import FeedPage from './components/FeedPage';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import CustomizeTab from './components/CustomizeTab';
@@ -1307,6 +1308,8 @@ const TheAIRundown = () => {
     }).catch(err => console.error('Failed to save feed categories:', err));
   };
 
+  const handleReorderFeeds = (feeds) => saveUserFeeds(feeds);
+
   // Save the full list of named feeds; keep feedCategories (union) in sync for narration
   const saveUserFeeds = (feeds) => {
     setUserFeeds(feeds);
@@ -1694,11 +1697,15 @@ const TheAIRundown = () => {
   const isMyFeedPath    = location.pathname === '/my-feed';
   const isPopularPath   = location.pathname === '/popular';
   const isCustomizePath = location.pathname === '/customize';
+  const feedRouteMatch  = location.pathname.match(/^\/feed\/([^/]+)$/);
+  const feedIdFromUrl   = feedRouteMatch ? feedRouteMatch[1] : null;
+  const isFeedPage      = !!feedRouteMatch;
+  const currentFeedPage = feedIdFromUrl ? (userFeeds || []).find(f => f.id === feedIdFromUrl) : null;
   const catOnlyMatch    = location.pathname.match(/^\/category\/([^/]+)$/);
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
   const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isCustomizePath;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isCustomizePath && !isFeedPage;
   const isHome          = isLatestHome; // kept for backward compat
   const isCategoryView  = !!catOnlyMatch;
   const isStoryView     = !!storyRouteMatch;
@@ -1733,6 +1740,25 @@ const TheAIRundown = () => {
         .side-nav-wrap { display: none; }
         .bottom-nav-wrap { display: block; }
         .main-content-offset { margin-left: 0; }
+        /* ── Animated gradient Play button (shared) ── */
+        @keyframes border-flow {
+          0%,100% { background-position: 0% 50%; }
+          50%      { background-position: 100% 50%; }
+        }
+        .ai-btn-wrap {
+          position: relative; border-radius: 14px; padding: 3px; display: inline-block;
+          background: linear-gradient(90deg,#6366f1,#0891b2,#16a34a,#d97706,#e11d48,#9333ea,#db2777,#2563eb,#6366f1);
+          background-size: 300% 100%;
+          animation: border-flow 10s ease-in-out infinite;
+        }
+        .ai-btn-inner {
+          width: auto; padding: 0.6rem 1.4rem; border-radius: 11px;
+          background: linear-gradient(135deg,#18182a 0%,#1e1b35 100%);
+          border: none; color: white; font-size: 0.88rem; font-weight: 800; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          gap: 0.5rem; letter-spacing: -0.01em; transition: opacity 0.15s; font-family: inherit;
+        }
+        .ai-btn-inner:hover { opacity: 0.9; }
         @media (min-width: 1024px) {
           :root { --body-max: 780px; }
           .side-nav-wrap { display: block; }
@@ -1856,6 +1882,30 @@ const TheAIRundown = () => {
           userFeeds={userFeeds}
           onPlayFeed={handlePlayFeed}
           onPlayMyFeed={handlePlayMyFeed}
+          onPlayCategory={handlePlayCategory}
+          onSelectCategory={handleSelectCategory}
+          onPlayStory={handlePlayStory}
+          isNarrating={isNarrating}
+          selectedCategory={selectedCategory}
+          currentStoryIndex={storyIndex}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          playerVisible={playerVisible}
+        />
+      )}
+
+      {isFeedPage && (
+        <FeedPage
+          feed={currentFeedPage}
+          briefingData={briefingData}
+          briefingLoading={briefingLoading}
+          selectedDay={selectedDay}
+          selectedTime={selectedTime}
+          availableDays={availableDays}
+          availableTimes={availableTimes}
+          onSelectDay={selectDay}
+          onSelectTime={setSelectedTime}
+          onPlayFeed={handlePlayFeed}
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
@@ -2084,14 +2134,14 @@ const TheAIRundown = () => {
       {/* ── Side Navigation (desktop) ── */}
       {showBottomNav && (
         <div className="side-nav-wrap">
-          <SideNav />
+          <SideNav userFeeds={userFeeds} onReorderFeeds={handleReorderFeeds} />
         </div>
       )}
 
       {/* ── Bottom Navigation (mobile) ── */}
       {showBottomNav && (
         <div className="bottom-nav-wrap">
-          <BottomNav />
+          <BottomNav userFeeds={userFeeds} />
         </div>
       )}
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, User, Loader, Plus } from 'lucide-react';
+import { Play, User, Loader } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
 
@@ -108,7 +108,7 @@ export default function MyFeedTab({
       {/* Header */}
       <SharedHeader user={user} onShowAuth={onShowAuth} />
 
-      {/* Hero row — mirrors Briefing layout */}
+      {/* Hero row — same pattern as Briefing */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>My Feed</h1>
@@ -118,11 +118,13 @@ export default function MyFeedTab({
             onSelectDay={onSelectDay} onSelectTime={onSelectTime}
           />
           <div style={{ flex: 1 }} />
-          <button
-            onClick={() => navigate('/customize')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.38rem 0.85rem', borderRadius: '999px', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textSub, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}>
-            <Plus size={12} /> New feed
-          </button>
+          {/* Animated Play All like Briefing */}
+          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
+            <button className="ai-btn-inner" onClick={onPlayMyFeed}>
+              <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
+              {isNarrating ? 'Now Playing…' : 'Play My Feed'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -134,23 +136,18 @@ export default function MyFeedTab({
             <span style={{ fontSize: '0.88rem' }}>Loading your feed…</span>
           </div>
         ) : (
-          (userFeeds || []).map(feed => {
+          (userFeeds || []).map((feed, idx) => {
             const feedTotal = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
             const feedMin   = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
             return (
-              <div key={feed.id} style={{ marginBottom: '1rem' }}>
-                {/* Feed section header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0 1.25rem', marginBottom: '0.5rem' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: '800', color: light.text }}>{feed.name}</span>
-                  {feedTotal > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{feedTotal} {feedTotal === 1 ? 'story' : 'stories'} · ~{feedMin} min</span>}
-                  <button
-                    onClick={() => onPlayFeed(feed.categories)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', borderRadius: '999px', background: `rgba(124,58,237,0.12)`, border: `1px solid rgba(124,58,237,0.3)`, color: '#7c3aed', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
-                    <Play size={9} fill="#7c3aed" color="#7c3aed" />
-                    Play
-                  </button>
-                </div>
+              <div key={feed.id} style={{ marginBottom: '0.5rem' }}>
+                {/* Lean divider with stats — no dot/name label */}
+                {(userFeeds.length > 1) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem 0.35rem', borderTop: idx > 0 ? `1px solid ${light.border}` : 'none', marginTop: idx > 0 ? '0.75rem' : 0 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: light.text }}>{feed.name}</span>
+                    {feedTotal > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{feedTotal} {feedTotal === 1 ? 'story' : 'stories'} · ~{feedMin} min</span>}
+                  </div>
+                )}
                 {/* Categories */}
                 {feed.categories.map(cat => (
                   <CategoryRow

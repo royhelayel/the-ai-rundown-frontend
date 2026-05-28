@@ -59,34 +59,7 @@ export default function BriefingFeed({
         body { background: ${light.bg}; margin: 0; }
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes border-flow {
-          0%   { background-position: 0% 50%; }
-          30%  { background-position: 100% 50%; }
-          55%  { background-position: 100% 50%; }
-          85%  { background-position: 0% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .ai-btn-wrap {
-          position: relative; border-radius: 14px; padding: 3px;
-          background: linear-gradient(90deg,
-            #6366f1, #0891b2, #16a34a, #d97706,
-            #e11d48, #9333ea, #db2777, #2563eb, #6366f1
-          );
-          background-size: 300% 100%;
-          animation: border-flow 10s ease-in-out infinite;
-        }
-        .ai-btn-inner {
-          width: auto; padding: 0.88rem 1.5rem;
-          border-radius: 11px;
-          background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);
-          border: none; color: white;
-          font-size: 1rem; font-weight: 800; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          gap: 0.6rem; letter-spacing: -0.01em;
-          transition: opacity 0.15s;
-          font-family: inherit;
-        }
-        .ai-btn-inner:hover { opacity: 0.9; }
+        /* ai-btn styles live in global App.js <style> */
       `}</style>
 
       {/* ── Header ── */}

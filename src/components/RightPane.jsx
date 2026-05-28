@@ -65,7 +65,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
 
   return (
     <nav style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0, width: '240px',
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: '260px',
       background: light.bg, borderLeft: `1px solid ${light.border}`,
       display: 'flex', flexDirection: 'column', zIndex: 45,
       overflowY: 'auto',

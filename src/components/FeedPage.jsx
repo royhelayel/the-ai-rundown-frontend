@@ -137,8 +137,8 @@ export default function FeedPage({
                   onMouseLeave={e => { e.currentTarget.style.background = done ? 'rgba(22,163,74,0.08)' : light.bgSub; e.currentTarget.style.borderColor = done ? 'rgba(22,163,74,0.3)' : light.border; }}
                 >
                   {/* 2-letter badge */}
-                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.52rem', fontWeight: '800', color }}>{initials(cat)}</span>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(cat)}</span>
                   </div>
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', color: done ? '#15803d' : light.text, whiteSpace: 'nowrap' }}>{cat}</span>
                   {done ? (
@@ -191,6 +191,7 @@ export default function FeedPage({
               activeCategory={selectedCategory}
               activeStoryIndex={currentStoryIndex}
               fromPath={`/feed/${feed.id}`}
+              listenedIndices={todayProgress[cat]?.listenedIndices}
             />
           ))
         )}

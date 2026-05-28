@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ChevronRight } from 'lucide-react';
+import { Play, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
 import { readTime } from '../utils';
 
@@ -30,7 +30,7 @@ function faviconUrl(url) {
   } catch { return null; }
 }
 
-export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory, onMarkRead, isNarrating, activeCategory, activeStoryIndex, fromPath }) {
+export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory, onMarkRead, isNarrating, activeCategory, activeStoryIndex, fromPath, listenedIndices }) {
   const navigate = useNavigate();
   const color = CATEGORY_COLORS[cat] || light.accent;
   const image = CATEGORY_IMAGES[cat] || null;
@@ -92,6 +92,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
             const topSources = sources.slice(0, 2);
             const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
             const isActive = isNarrating && activeCategory === cat && activeStoryIndex === i;
+            const isRead   = listenedIndices?.has(i) || false;
             return (
               <div key={i}
                 onClick={() => { onOpen(cat); onMarkRead?.(story, cat, i); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`, { state: { from: fromPath || 'home' } }); }}
@@ -100,9 +101,12 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
                 onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
-                    {story.headline}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.92rem', fontWeight: '700', color: isRead ? light.textMuted : light.text, lineHeight: 1.35, flex: 1 }}>
+                      {story.headline}
+                    </p>
+                    {isRead && <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: '2px' }} />}
+                  </div>
                   {excerpt && (
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {excerpt}{excerpt.length === 200 ? '…' : ''}
@@ -134,10 +138,10 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
                   </div>
                 </div>
 
-                {/* Per-story play button */}
+                {/* Per-story play button — green when read */}
                 <button
                   onClick={e => { e.stopPropagation(); onPlayStory?.(cat, i); }}
-                  style={{ width: '30px', height: '30px', borderRadius: '50%', border: `1px solid ${isActive ? color : light.border}`, background: isActive ? color : light.bg, color: isActive ? 'white' : light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem', transition: 'all 0.15s' }}
+                  style={{ width: '30px', height: '30px', borderRadius: '50%', border: `1px solid ${isActive ? color : isRead ? '#16a34a' : light.border}`, background: isActive ? color : isRead ? 'rgba(22,163,74,0.1)' : light.bg, color: isActive ? 'white' : isRead ? '#16a34a' : light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem', transition: 'all 0.15s' }}
                 >
                   {isActive ? (
                     <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '11px' }}>

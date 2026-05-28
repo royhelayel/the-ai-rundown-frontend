@@ -40,6 +40,7 @@ export default function BriefingFeed({
   user, onShowAuth, onShowSettings,
   playerVisible,
   newsLanguage,
+  todayProgress = {},
 }) {
   const navigate = useNavigate();
 
@@ -121,6 +122,7 @@ export default function BriefingFeed({
               activeCategory={selectedCategory}
               activeStoryIndex={currentStoryIndex}
               fromPath="/"
+              listenedIndices={todayProgress[cat]?.listenedIndices}
             />
           ))
         )}

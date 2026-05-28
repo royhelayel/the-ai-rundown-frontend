@@ -1942,6 +1942,7 @@ const TheAIRundown = () => {
           onShowSettings={() => navigate('/settings')}
           playerVisible={playerVisible}
           newsLanguage={newsLanguage}
+          todayProgress={gamifiedStats.todayProgress}
         />
       )}
 

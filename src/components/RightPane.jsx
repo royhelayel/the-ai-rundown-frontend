@@ -181,8 +181,8 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
               return (
                 <div key={cat} style={{ background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: p.total > 0 ? '4px' : 0 }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.5rem', fontWeight: '800', color }}>{initials(cat)}</span>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(cat)}</span>
                     </div>
                     <span style={{ flex: 1, fontSize: '0.7rem', fontWeight: '600', color: light.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat}</span>
                     {p.done ? (
@@ -244,8 +244,8 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
               return (
                 <div key={item.id}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0', borderBottom: i < Math.min(history.length, 8) - 1 ? `1px solid ${light.border}` : 'none' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.58rem', fontWeight: '800', color, letterSpacing: '-0.01em' }}>{initials(item.category)}</span>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(item.category)}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.72rem', fontWeight: '600', color: light.text, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '1px' }}>

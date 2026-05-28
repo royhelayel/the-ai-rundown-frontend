@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Loader, User } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
+function faviconUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch { return null; }
+}
+
 const light = {
   bg:        '#ffffff',
   bgSub:     '#f5f5f7',
@@ -99,6 +106,8 @@ export default function PopularTab({
             {sorted.map((story, rank) => {
               const color = CATEGORY_COLORS[story.category] || '#6366f1';
               const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 120);
+              const sources = story.storySources?.filter(s => s.outlet) || [];
+              const topSources = sources.slice(0, 2);
               return (
                 <div
                   key={`${story.category}-${story.storyIndex}`}
@@ -126,11 +135,34 @@ export default function PopularTab({
                         {excerpt}{excerpt.length === 120 ? '…' : ''}
                       </p>
                     )}
-                    {story.listenCount > 0 && (
-                      <span style={{ fontSize: '0.72rem', color: light.textMuted }}>
-                        {story.listenCount.toLocaleString()} {story.listenCount === 1 ? 'listen' : 'listens'}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.3rem' }}>
+                      {topSources.map((s, j) => {
+                        const icon = faviconUrl(s.url);
+                        return (
+                          <React.Fragment key={j}>
+                            <a
+                              href={s.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.45rem', background: light.bg, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+                            >
+                              {icon && <img src={icon} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.7 }} />}
+                              <span style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>{s.outlet}</span>
+                            </a>
+                            {j < topSources.length - 1 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
+                          </React.Fragment>
+                        );
+                      })}
+                      {(topSources.length > 0 || story.listenCount > 0) && topSources.length > 0 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
+                      {story.listenCount > 0 && (
+                        <span style={{ fontSize: '0.72rem', color: light.textMuted }}>
+                          {story.listenCount.toLocaleString()} {story.listenCount === 1 ? 'listen' : 'listens'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <button

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, TrendingUp, PlusCircle, LayoutGrid, BarChart2, Play, X } from 'lucide-react';
+import { BookOpen, TrendingUp, PlusCircle, LayoutGrid, BarChart2, Play, X, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
-import { timeAgo } from '../hooks/useListenHistory';
+import { timeAgo, BADGE_TIERS } from '../hooks/useListenHistory';
 
 const light = {
   bg:        '#ffffff',
@@ -16,23 +16,41 @@ const FEED_COLOR = '#7c3aed';
 
 function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
-function BarChartMini({ bars }) {
-  const max = Math.max(...bars.map(b => b.count), 1);
+// ── Weekly grid ──────────────────────────────────────────────────────────────
+function WeeklyGrid({ weeklyGrid = [] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '44px' }}>
-      {bars.map((b, i) => (
-        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-          <div style={{
-            width: '100%', borderRadius: '4px 4px 0 0',
-            height: `${Math.max(4, (b.count / max) * 40)}px`,
-            background: i === bars.length - 1
-              ? 'rgba(255,255,255,0.85)'
-              : `rgba(255,255,255,${0.12 + (b.count / max) * 0.45})`,
-          }} />
-          <span style={{ fontSize: '0.52rem', color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>{b.day}</span>
-        </div>
-      ))}
+    <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
+      {weeklyGrid.map(day => {
+        const bg = day.status === 2 ? '#16a34a' : day.status === 1 ? '#d97706' : 'rgba(255,255,255,0.1)';
+        const border = day.isToday ? '2px solid rgba(255,255,255,0.7)' : '1px solid rgba(255,255,255,0.12)';
+        return (
+          <div key={day.key} title={day.key} style={{
+            flex: 1, height: '36px', borderRadius: '7px',
+            background: bg, border,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: '0.58rem', fontWeight: '700', color: day.status > 0 ? '#fff' : 'rgba(255,255,255,0.35)' }}>
+              {day.day}
+            </span>
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+// ── Badge chip ───────────────────────────────────────────────────────────────
+function BadgeChip({ tier, streak }) {
+  if (!tier) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '2px',
+      background: `${tier.color}28`, border: `1px solid ${tier.color}55`,
+      borderRadius: '5px', padding: '2px 6px',
+      fontSize: '0.58rem', fontWeight: '800', color: tier.color,
+    }}>
+      {tier.label} · {streak}d
+    </span>
   );
 }
 
@@ -49,10 +67,14 @@ export default function BottomNav({
   const closeAll = () => { setShowFeedsSheet(false); setShowStatsSheet(false); };
 
   const {
-    streak = 0, storiesThisWeek = 0, minutesThisWeek = 0,
-    storiesThisMonth = 0, topCategory = null, topCategoryPct = 0, bars = [],
+    todayProgress = {},
+    allCaughtUp = false,
+    weeklyGrid = [],
+    perfectStreak = 0,
+    categoryBadges = {},
   } = stats;
-  const topColor = topCategory ? (CATEGORY_COLORS[topCategory] || '#6366f1') : '#6366f1';
+
+  const cats = Object.keys(todayProgress);
 
   return (
     <>
@@ -119,59 +141,87 @@ export default function BottomNav({
             </div>
 
             <div style={{ padding: '0 1.25rem 1.5rem' }}>
-              {/* ── Dark stats card ── */}
+              {/* ── Dark progress card ── */}
               <div style={{ background: 'linear-gradient(135deg, #18182a 0%, #1e1b35 100%)', borderRadius: '18px', padding: '1.1rem 1.1rem 1rem', marginBottom: '1.25rem' }}>
                 <p style={{ margin: '0 0 0.75rem', fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)' }}>
-                  Your Listening Stats
+                  Today's Progress
                 </p>
 
-                {/* Streak */}
-                {streak > 0 && (
+                {/* Caught-up banner */}
+                {allCaughtUp && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(22,163,74,0.2)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: '12px', padding: '0.55rem 0.8rem', marginBottom: '0.9rem' }}>
+                    <CheckCircle2 size={16} color="#4ade80" strokeWidth={2.5} />
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#4ade80' }}>All Caught Up! 🎉</div>
+                      <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Perfect day — keep the streak going</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Perfect streak */}
+                {perfectStreak > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.3)', borderRadius: '12px', padding: '0.55rem 0.8rem', marginBottom: '0.9rem' }}>
                     <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🔥</span>
                     <div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#fb923c' }}>{streak}-day streak</div>
-                      <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Listen today to keep it going</div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#fb923c' }}>{perfectStreak}-day perfect streak</div>
+                      <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Catch up on all categories today</div>
                     </div>
                   </div>
                 )}
 
-                {/* Numbers */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem', marginBottom: '0.9rem' }}>
-                  {[
-                    { val: storiesThisWeek, lbl: 'this week' },
-                    { val: minutesThisWeek > 0 ? `${minutesThisWeek}m` : '0m', lbl: 'listened' },
-                    { val: storiesThisMonth, lbl: 'this month' },
-                    { val: streak > 0 ? streak : '—', lbl: 'day streak' },
-                  ].map(({ val, lbl }) => (
-                    <div key={lbl} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '11px', padding: '0.6rem 0.4rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.03em', lineHeight: 1 }}>{val}</div>
-                      <div style={{ fontSize: '0.56rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)', marginTop: '3px' }}>{lbl}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Bar chart */}
-                {bars.length > 0 && (
+                {/* Weekly grid */}
+                {weeklyGrid.length > 0 && (
                   <>
-                    <p style={{ margin: '0 0 5px', fontSize: '0.58rem', color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>Listening this week</p>
-                    <BarChartMini bars={bars} />
+                    <p style={{ margin: '0 0 6px', fontSize: '0.58rem', color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>This week</p>
+                    <WeeklyGrid weeklyGrid={weeklyGrid} />
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '0.9rem' }}>
+                      {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:'rgba(255,255,255,0.15)',label:'None'}].map(l => (
+                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: l.color }} />
+                          <span style={{ fontSize: '0.52rem', color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}>{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 )}
 
-                {/* Top category */}
-                {topCategory && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.07)', borderRadius: '10px', padding: '0.5rem 0.65rem', marginTop: '0.75rem' }}>
-                    <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginRight: 'auto' }}>Top category</span>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: topColor, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#fff' }}>{topCategory}</span>
-                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)' }}>{topCategoryPct}%</span>
+                {/* Per-category rows */}
+                {cats.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {cats.map(cat => {
+                      const p = todayProgress[cat] || {};
+                      const color = CATEGORY_COLORS[cat] || '#6366f1';
+                      const badge = categoryBadges[cat];
+                      return (
+                        <div key={cat} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '10px', padding: '0.55rem 0.7rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: p.total > 0 ? '5px' : 0 }}>
+                            <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: `${color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span style={{ fontSize: '0.58rem', fontWeight: '800', color }}>{initials(cat)}</span>
+                            </div>
+                            <span style={{ flex: 1, fontSize: '0.8rem', fontWeight: '600', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat}</span>
+                            {p.done ? (
+                              <CheckCircle2 size={14} color="#4ade80" strokeWidth={2.5} />
+                            ) : p.total > 0 ? (
+                              <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
+                            ) : null}
+                          </div>
+                          {p.total > 0 && (
+                            <div style={{ height: '3px', borderRadius: '99px', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${p.pct * 100}%`, background: p.done ? '#4ade80' : color, borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                            </div>
+                          )}
+                          {badge?.tier && (
+                            <div style={{ marginTop: '4px' }}>
+                              <BadgeChip tier={badge.tier} streak={badge.streak} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-
-                {storiesThisWeek === 0 && (
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
-                    Listen to stories to start tracking your stats.
+                ) : (
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1.5 }}>
+                    Add categories to a feed to track your progress here.
                   </p>
                 )}
               </div>
@@ -192,7 +242,6 @@ export default function BottomNav({
                     return (
                       <div key={item.id}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.72rem 0', borderBottom: i < history.length - 1 ? `1px solid ${light.border}` : 'none' }}>
-                        {/* 2-letter badge */}
                         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <span style={{ fontSize: '0.65rem', fontWeight: '800', color, letterSpacing: '-0.01em' }}>{initials(item.category)}</span>
                         </div>

@@ -1,9 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, User } from 'lucide-react';
+import { Play, User, CheckCircle2 } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
 import { SkeletonCategoryRows } from './SkeletonScreens';
+import { CATEGORY_COLORS } from '../theme';
+
+function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
 const light = {
   bg:        '#ffffff',
@@ -24,6 +27,7 @@ export default function FeedPage({
   isNarrating, selectedCategory, currentStoryIndex,
   user, onShowAuth,
   playerVisible,
+  todayProgress = {}, allCaughtUp = false, caughtUpCount = 0,
 }) {
   const navigate = useNavigate();
 
@@ -84,6 +88,62 @@ export default function FeedPage({
           </p>
         )}
       </div>
+
+      {/* ── Today's Progress ── */}
+      {!briefingLoading && feed.categories.length > 0 && (
+        <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+          {/* Caught-up banner */}
+          {allCaughtUp && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.65rem',
+              background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)',
+              borderRadius: '14px', padding: '0.75rem 1rem', marginBottom: '0.75rem',
+            }}>
+              <CheckCircle2 size={20} color="#16a34a" strokeWidth={2.5} />
+              <div>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#15803d', lineHeight: 1.2 }}>All Caught Up! 🎉</div>
+                <div style={{ fontSize: '0.72rem', color: light.textMuted, fontWeight: '500' }}>You've listened to all stories in this feed today.</div>
+              </div>
+            </div>
+          )}
+
+          {/* Per-category progress pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {feed.categories.map(cat => {
+              const p = todayProgress[cat] || {};
+              const color = CATEGORY_COLORS[cat] || '#6366f1';
+              const done = p.done;
+              return (
+                <div key={cat} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  background: done ? 'rgba(22,163,74,0.08)' : light.bgSub,
+                  border: done ? '1px solid rgba(22,163,74,0.3)' : `1px solid ${light.border}`,
+                  borderRadius: '99px', padding: '5px 10px 5px 6px',
+                  transition: 'background 0.3s',
+                }}>
+                  {/* 2-letter badge */}
+                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.52rem', fontWeight: '800', color }}>{initials(cat)}</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: done ? '#15803d' : light.text, whiteSpace: 'nowrap' }}>{cat}</span>
+                  {done ? (
+                    <CheckCircle2 size={13} color="#16a34a" strokeWidth={2.5} />
+                  ) : p.total > 0 ? (
+                    <>
+                      <div style={{ height: '4px', width: '36px', borderRadius: '99px', background: `${color}22`, overflow: 'hidden', flexShrink: 0 }}>
+                        <div style={{ height: '100%', width: `${(p.pct || 0) * 100}%`, background: color, borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>0 stories</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Category rows */}
       <div style={{ flex: 1, paddingTop: '0.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>

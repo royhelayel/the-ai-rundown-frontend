@@ -18,7 +18,7 @@ import PopularTab from './components/PopularTab';
 import CustomizeTab from './components/CustomizeTab';
 import { headlineKey } from './components/PopularTab';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
-import useListenHistory from './hooks/useListenHistory';
+import useListenHistory, { computeGamifiedStats } from './hooks/useListenHistory';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
@@ -160,7 +160,11 @@ const TheAIRundown = () => {
   const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
-  const { history: listenHistory, stats: listenStats, addToHistory } = useListenHistory();
+  const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory();
+  const gamifiedStats = useMemo(
+    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories),
+    [listenHistory, perfectDays, briefingData, feedCategories]
+  );
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();
@@ -939,6 +943,11 @@ const TheAIRundown = () => {
   }, []);
 
   useEffect(() => { localStorage.setItem('rundown_view_mode', viewMode); }, [viewMode]);
+
+  // ── Mark today as a perfect day when all feed categories are caught up ────────
+  useEffect(() => {
+    if (gamifiedStats.allCaughtUp) markPerfectDay();
+  }, [gamifiedStats.allCaughtUp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     document.documentElement.style.fontSize = fontSize === 'large' ? '18px' : '16px';
@@ -1933,6 +1942,9 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
+          todayProgress={gamifiedStats.todayProgress}
+          allCaughtUp={gamifiedStats.allCaughtUp}
+          caughtUpCount={gamifiedStats.caughtUpCount}
         />
       )}
 
@@ -2163,7 +2175,7 @@ const TheAIRundown = () => {
       {showBottomNav && (
         <div className="right-pane-wrap">
           <RightPane
-            stats={listenStats}
+            stats={gamifiedStats}
             history={listenHistory}
             onPlayStory={handlePlayStory}
           />
@@ -2178,7 +2190,7 @@ const TheAIRundown = () => {
             categories={allCategories}
             briefingData={briefingData}
             onSelectCategory={handleSelectCategory}
-            stats={listenStats}
+            stats={gamifiedStats}
             history={listenHistory}
             onPlayStory={handlePlayStory}
           />

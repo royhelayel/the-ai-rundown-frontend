@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play } from 'lucide-react';
+import { Play, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { timeAgo } from '../hooks/useListenHistory';
 
@@ -13,32 +13,55 @@ const light = {
 
 function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
-function BarChart({ bars }) {
-  const max = Math.max(...bars.map(b => b.count), 1);
+// ── Weekly grid ──────────────────────────────────────────────────────────────
+function WeeklyGrid({ weeklyGrid = [] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '36px', marginBottom: '3px' }}>
-      {bars.map((b, i) => (
-        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-          <div style={{
-            width: '100%', borderRadius: '3px 3px 0 0',
-            height: `${Math.max(4, (b.count / max) * 32)}px`,
-            background: i === bars.length - 1 ? '#6366f1' : `rgba(99,102,241,${0.15 + (b.count / max) * 0.55})`,
-            transition: 'height 0.3s ease',
-          }} />
-          <span style={{ fontSize: '0.5rem', color: light.textMuted, fontWeight: '600' }}>{b.day}</span>
-        </div>
-      ))}
+    <div style={{ display: 'flex', gap: '3px', marginBottom: '2px' }}>
+      {weeklyGrid.map(day => {
+        const bg = day.status === 2 ? '#16a34a' : day.status === 1 ? '#d97706' : light.bgSub;
+        const border = day.isToday ? '2px solid #6366f1' : `1px solid ${light.border}`;
+        return (
+          <div key={day.key} title={day.key} style={{
+            flex: 1, height: '28px', borderRadius: '5px',
+            background: bg, border,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: '0.5rem', fontWeight: '700', color: day.status > 0 ? '#fff' : light.textMuted }}>
+              {day.day}
+            </span>
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+// ── Badge chip ───────────────────────────────────────────────────────────────
+function BadgeChip({ tier, streak }) {
+  if (!tier) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '2px',
+      background: `${tier.color}18`, border: `1px solid ${tier.color}44`,
+      borderRadius: '5px', padding: '1px 5px',
+      fontSize: '0.52rem', fontWeight: '800', color: tier.color,
+      letterSpacing: '0.03em',
+    }}>
+      {tier.label}
+    </span>
   );
 }
 
 export default function RightPane({ stats = {}, history = [], onPlayStory }) {
   const {
-    streak = 0, storiesThisWeek = 0, minutesThisWeek = 0,
-    storiesThisMonth = 0, topCategory = null, topCategoryPct = 0, bars = [],
+    todayProgress = {},
+    allCaughtUp = false,
+    weeklyGrid = [],
+    perfectStreak = 0,
+    categoryBadges = {},
   } = stats;
 
-  const topColor = topCategory ? (CATEGORY_COLORS[topCategory] || '#6366f1') : '#6366f1';
+  const cats = Object.keys(todayProgress);
 
   return (
     <nav style={{
@@ -48,59 +71,98 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
       overflowY: 'auto',
     }}>
 
-      {/* ── Your Stats ── */}
+      {/* ── Your Progress ── */}
       <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
         <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Your Stats
+          Today's Progress
         </p>
 
-        {/* Streak */}
-        {streak > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.22)', borderRadius: '9px', padding: '0.4rem 0.55rem', marginBottom: '0.55rem' }}>
-            <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>🔥</span>
+        {/* Caught-up banner */}
+        {allCaughtUp && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.28)',
+            borderRadius: '9px', padding: '0.42rem 0.55rem', marginBottom: '0.6rem',
+          }}>
+            <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} />
             <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#c2410c', lineHeight: 1.2 }}>{streak}-day streak</div>
-              <div style={{ fontSize: '0.58rem', color: light.textMuted, fontWeight: '500' }}>Keep it up!</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803d', lineHeight: 1.2 }}>All Caught Up!</div>
+              <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '500' }}>Perfect day!</div>
             </div>
           </div>
         )}
 
-        {/* Bar chart */}
-        {bars.length > 0 && (
+        {/* Perfect streak */}
+        {perfectStreak > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.22)',
+            borderRadius: '9px', padding: '0.4rem 0.55rem', marginBottom: '0.55rem',
+          }}>
+            <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>🔥</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#c2410c', lineHeight: 1.2 }}>{perfectStreak}-day streak</div>
+              <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '500' }}>Perfect days</div>
+            </div>
+          </div>
+        )}
+
+        {/* Weekly calendar */}
+        {weeklyGrid.length > 0 && (
           <>
-            <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '600', marginBottom: '3px' }}>This week</div>
-            <BarChart bars={bars} />
+            <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '600', marginBottom: '4px' }}>This week</div>
+            <WeeklyGrid weeklyGrid={weeklyGrid} />
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.6rem', marginTop: '3px' }}>
+              {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:light.bgSub,label:'None',dark:true}].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: l.color, border: l.dark ? `1px solid ${light.border}` : 'none' }} />
+                  <span style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '600' }}>{l.label}</span>
+                </div>
+              ))}
+            </div>
           </>
         )}
 
-        {/* Stat numbers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', margin: '0.5rem 0 0.55rem' }}>
-          {[
-            { val: storiesThisWeek, lbl: 'stories / week' },
-            { val: minutesThisWeek > 0 ? `${minutesThisWeek}m` : '0m', lbl: 'listened' },
-            { val: storiesThisMonth, lbl: 'this month' },
-            { val: streak > 0 ? `${streak}🔥` : '—', lbl: 'day streak' },
-          ].map(({ val, lbl }) => (
-            <div key={lbl} style={{ background: light.bgSub, borderRadius: '8px', padding: '0.45rem 0.4rem' }}>
-              <div style={{ fontSize: '1.05rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1 }}>{val}</div>
-              <div style={{ fontSize: '0.56rem', fontWeight: '600', color: light.textMuted, marginTop: '2px' }}>{lbl}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Top category */}
-        {topCategory && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: topColor, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: '0.7rem', fontWeight: '700', color: light.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topCategory}</span>
-            <span style={{ fontSize: '0.62rem', color: light.textMuted, flexShrink: 0 }}>{topCategoryPct}%</span>
+        {/* Per-category progress */}
+        {cats.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {cats.map(cat => {
+              const p = todayProgress[cat] || {};
+              const color = CATEGORY_COLORS[cat] || '#6366f1';
+              const badge = categoryBadges[cat];
+              return (
+                <div key={cat} style={{ background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: p.total > 0 ? '4px' : 0 }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.5rem', fontWeight: '800', color }}>{initials(cat)}</span>
+                    </div>
+                    <span style={{ flex: 1, fontSize: '0.7rem', fontWeight: '600', color: light.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat}</span>
+                    {p.done ? (
+                      <CheckCircle2 size={12} color="#16a34a" strokeWidth={2.5} />
+                    ) : p.total > 0 ? (
+                      <span style={{ fontSize: '0.58rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
+                    ) : null}
+                  </div>
+                  {/* Progress bar */}
+                  {p.total > 0 && (
+                    <div style={{ height: '3px', borderRadius: '99px', background: `${color}22`, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${p.pct * 100}%`, background: p.done ? '#16a34a' : color, borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                    </div>
+                  )}
+                  {/* Category badge */}
+                  {badge?.tier && (
+                    <div style={{ marginTop: '3px' }}>
+                      <BadgeChip tier={badge.tier} streak={badge.streak} />
+                      <span style={{ fontSize: '0.5rem', color: light.textMuted, marginLeft: '4px' }}>{badge.streak}d streak</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
-
-        {/* Empty state */}
-        {storiesThisWeek === 0 && (
+        ) : (
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: light.textMuted, lineHeight: 1.5 }}>
-            Listen to stories to see your stats here.
+            Add categories to a feed to track your progress.
           </p>
         )}
       </div>
@@ -122,7 +184,6 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
               return (
                 <div key={item.id}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0', borderBottom: i < Math.min(history.length, 8) - 1 ? `1px solid ${light.border}` : 'none' }}>
-                  {/* 2-letter badge */}
                   <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.58rem', fontWeight: '800', color, letterSpacing: '-0.01em' }}>{initials(item.category)}</span>
                   </div>
@@ -132,7 +193,6 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
                     </div>
                     <div style={{ fontSize: '0.6rem', color: light.textMuted }}>{timeAgo(item.timestamp)}</div>
                   </div>
-                  {/* Replay */}
                   <button
                     onClick={() => onPlayStory?.(item.category, item.storyIndex)}
                     style={{ width: '22px', height: '22px', borderRadius: '50%', border: `1px solid ${light.border}`, background: light.bg, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

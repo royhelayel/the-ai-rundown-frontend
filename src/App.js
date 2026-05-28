@@ -1780,7 +1780,14 @@ const TheAIRundown = () => {
     setFullPlayerExiting(true);
     // Navigate back to source screen as the player slides down
     const src = playerSourcePath.current;
-    if (src && src !== location.pathname) navigate(src);
+    if (src && src !== location.pathname) {
+      navigate(src);
+    } else if (catFromUrl && catFromUrl !== selectedCategory) {
+      // Staying on the same category URL but selectedCategory drifted because
+      // narration auto-advanced to another category — re-sync so the displayed
+      // stories match the URL the user is actually looking at.
+      handleSelectCategory(catFromUrl);
+    }
     setTimeout(() => {
       setPlayerMinimized(true);
       setFullPlayerExiting(false);

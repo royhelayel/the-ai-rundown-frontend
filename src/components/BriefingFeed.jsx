@@ -77,11 +77,22 @@ export default function BriefingFeed({
 
       {/* ── Briefing hero ── */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        {/* Title row: heading + date pill + play button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {/* Row 1: heading + play button — always on one line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem' }}>
           <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
             Briefing
           </h1>
+          <div style={{ flex: 1 }} />
+          <div className="ai-btn-wrap" style={{ display: 'inline-block', flexShrink: 0 }}>
+            <button className="ai-btn-inner" onClick={onPlayBriefing}
+              style={{ width: 'auto', padding: '0.6rem 1.4rem', fontSize: '0.88rem' }}>
+              <Play size={15} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
+              {isNarrating ? 'Now Playing…' : 'Play All Feed'}
+            </button>
+          </div>
+        </div>
+        {/* Row 2: date/time pill on its own line */}
+        <div style={{ marginBottom: '1rem' }}>
           <DateTimePill
             selectedDay={selectedDay}
             selectedTime={selectedTime}
@@ -90,15 +101,6 @@ export default function BriefingFeed({
             onSelectDay={onSelectDay}
             onSelectTime={onSelectTime}
           />
-          <div style={{ flex: 1 }} />
-          {/* Play Briefing — animated gradient border, auto-sized */}
-          <div className="ai-btn-wrap" style={{ display: 'inline-block', flexShrink: 0 }}>
-            <button className="ai-btn-inner" onClick={onPlayBriefing}
-              style={{ width: 'auto', padding: '0.6rem 1.4rem', fontSize: '0.88rem' }}>
-              <Play size={15} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
-              {isNarrating ? 'Now Playing…' : 'Play All Feed'}
-            </button>
-          </div>
         </div>
       </div>
 

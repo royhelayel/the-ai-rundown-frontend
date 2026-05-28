@@ -75,7 +75,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
       {!user && (
         <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
           <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Today's Progress
+            Reading Progress
           </p>
           <button onClick={onShowAuth}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '10px', padding: '10px 11px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' }}
@@ -84,15 +84,15 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
           >
             <span style={{ fontSize: '1rem', flexShrink: 0 }}>🔒</span>
             <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: light.text, marginBottom: '2px' }}>Sign in to track progress</div>
-              <div style={{ fontSize: '0.6rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>See how many stories you've read today across all your feeds.</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: light.text, marginBottom: '2px' }}>Sign in to track your reading progress</div>
+              <div style={{ fontSize: '0.6rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>See how many stories you've read across all your feeds.</div>
             </div>
           </button>
         </div>
       )}
       {user && <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
         <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Today's Progress
+          Reading Progress
         </p>
 
         {/* Caught-up banner */}

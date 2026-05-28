@@ -184,11 +184,11 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
                     <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(cat)}</span>
                     </div>
-                    <span style={{ flex: 1, fontSize: '0.7rem', fontWeight: '600', color: light.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat}</span>
+                    <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: '600', color: light.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat}</span>
                     {p.done ? (
                       <CheckCircle2 size={12} color="#16a34a" strokeWidth={2.5} />
                     ) : p.total > 0 ? (
-                      <span style={{ fontSize: '0.58rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
+                      <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
                     ) : null}
                   </div>
                   {/* Progress bar */}
@@ -248,10 +248,10 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
                     <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(item.category)}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: light.text, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '1px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: light.text, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '1px' }}>
                       {item.headline}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: light.textMuted }}>{timeAgo(item.timestamp)}</div>
+                    <div style={{ fontSize: '0.65rem', color: light.textMuted }}>{timeAgo(item.timestamp)}</div>
                   </div>
                   <button
                     onClick={() => onPlayStory?.(item.category, item.storyIndex)}

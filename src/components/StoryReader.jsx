@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Play, User } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
@@ -33,11 +33,17 @@ export default function StoryReader({
   contextCategories = [],
   user,
   onShowAuth,
+  onMarkRead,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [view, setView] = useState('takeaways'); // 'takeaways' | 'summary'
   const color = CATEGORY_COLORS[category] || '#6366f1';
+
+  // Mark the story as read whenever the displayed story changes (open or navigate)
+  useEffect(() => {
+    if (story && onMarkRead) onMarkRead(story, category, storyIndex);
+  }, [storyIndex, story]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goBack = () => {
     const from = location.state?.from;

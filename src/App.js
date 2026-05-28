@@ -2041,6 +2041,7 @@ const TheAIRundown = () => {
           miniPlayerVisible={miniPlayerVisible}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          onMarkRead={handleMarkRead}
           contextCategories={(() => {
             const from = location.state?.from;
             if (typeof from === 'string' && from.startsWith('/feed/')) {

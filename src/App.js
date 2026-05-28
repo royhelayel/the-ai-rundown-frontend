@@ -1738,6 +1738,8 @@ const TheAIRundown = () => {
         html, body { background: #09090f; margin: 0; }
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes sk-shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
+        .sk { background: linear-gradient(90deg, #e8e8eb 25%, #f2f2f5 50%, #e8e8eb 75%); background-size: 1200px 100%; animation: sk-shimmer 1.4s ease-in-out infinite; }
         .side-nav-wrap { display: none; }
         .right-pane-wrap { display: none; }
         .bottom-nav-wrap { display: block; }

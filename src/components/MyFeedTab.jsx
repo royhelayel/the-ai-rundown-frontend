@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, User, Loader } from 'lucide-react';
+import { Play, User } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
+import { SkeletonCategoryRows } from './SkeletonScreens';
 
 const light = {
   bg:        '#ffffff',
@@ -133,10 +134,7 @@ export default function MyFeedTab({
       {/* Named feed sections */}
       <div style={{ flex: 1, paddingTop: '0.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         {isLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
-            <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: '0.88rem' }}>Loading your feed…</span>
-          </div>
+          <SkeletonCategoryRows count={3} />
         ) : (
           (userFeeds || []).map((feed, idx) => {
             const feedTotal = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);

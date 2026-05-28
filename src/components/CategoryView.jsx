@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Play, Loader } from 'lucide-react';
+import { ChevronLeft, Play } from 'lucide-react';
+import { SkeletonCategoryView } from './SkeletonScreens';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
 import { readTime } from '../utils';
 
@@ -70,7 +71,12 @@ export default function CategoryView({
       {/* ── Main content ── */}
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1rem 1.25rem', paddingBottom: miniPlayerVisible ? '8rem' : '3.5rem' }}>
 
-        {/* ── Immersive image header — same as CategoryRow Option B ── */}
+        {/* ── Skeleton while loading ── */}
+        {isLoading ? (
+          <SkeletonCategoryView />
+        ) : (
+
+        /* ── Immersive image header — same as CategoryRow Option B ── */
         <div className="cv-img-wrap" style={{ borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.1)', marginBottom: '1rem' }}>
           <div style={{ height: '240px', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
             <div className="cv-img-bg" style={{
@@ -98,12 +104,7 @@ export default function CategoryView({
           </div>
 
           {/* ── Story list — card-wrapped, white rows ── */}
-          {isLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted, background: light.bg }}>
-              <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
-              <span style={{ fontSize: '0.88rem' }}>Loading stories…</span>
-            </div>
-          ) : stories.length === 0 ? (
+          {stories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: light.textMuted, background: light.bg }}>
               <p style={{ fontSize: '0.88rem' }}>No stories available.</p>
             </div>
@@ -172,6 +173,7 @@ export default function CategoryView({
             })
           )}
         </div>
+        )}
       </div>
     </div>
   );

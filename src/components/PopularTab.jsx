@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Loader, User } from 'lucide-react';
+import { Play, User } from 'lucide-react';
+import { SkeletonPopularList } from './SkeletonScreens';
 import { CATEGORY_COLORS } from '../theme';
 
 function faviconUrl(url) {
@@ -97,10 +98,7 @@ export default function PopularTab({
 
         {/* Loading */}
         {briefingLoading && !hasAnyData ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
-            <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: '0.88rem' }}>Loading stories…</span>
-          </div>
+          <SkeletonPopularList count={7} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sorted.map((story, rank) => {

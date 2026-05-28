@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Play, Loader } from 'lucide-react';
+import { User, Play } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
+import { SkeletonCategoryRows } from './SkeletonScreens';
 
 // Light-mode tokens
 const light = {
@@ -105,10 +106,7 @@ export default function BriefingFeed({
       {/* ── Category sections ── */}
       <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         {briefingLoading && totalStories === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
-            <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: '0.88rem' }}>Loading briefing…</span>
-          </div>
+          <SkeletonCategoryRows count={5} />
         ) : (
           allCats.map(cat => (
             <CategoryRow

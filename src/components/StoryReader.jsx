@@ -41,11 +41,12 @@ export default function StoryReader({
 
   const goBack = () => {
     const from = location.state?.from;
-    if (from === 'home' || from === '/') navigate('/');
+    if (!from || from === 'home' || from === '/') navigate('/');
     else if (from === '/my-feed') navigate('/my-feed');
     else if (from === 'popular') navigate('/popular');
-    else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`);
-    else navigate(-1); // fallback: browser history back
+    else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`, { state: location.state });
+    else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
+    else navigate('/');
   };
 
   if (!story) return null;
@@ -60,7 +61,7 @@ export default function StoryReader({
   const nextCat = catIdx < contextCategories.length - 1 ? contextCategories[catIdx + 1] : null;
   const goToCat = (cat) => navigate(
     `/category/${encodeURIComponent(cat)}/story/0`,
-    { state: location.state }
+    { state: location.state, replace: true }
   );
 
   return (
@@ -227,7 +228,7 @@ export default function StoryReader({
         {/* Story row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1.25rem 0.25rem', gap: '1rem' }}>
           <button
-            onClick={() => hasPrev && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state })}
+            onClick={() => hasPrev && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true })}
             disabled={!hasPrev}
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasPrev ? light.bgSub : 'transparent', border: `1px solid ${hasPrev ? light.border : 'transparent'}`, color: hasPrev ? light.textSub : light.textMuted, cursor: hasPrev ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
             <ChevronLeft size={15} /> Prev
@@ -236,7 +237,7 @@ export default function StoryReader({
             {storyIndex + 1} / {stories.length}
           </span>
           <button
-            onClick={() => hasNext && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state })}
+            onClick={() => hasNext && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true })}
             disabled={!hasNext}
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasNext ? light.bgSub : 'transparent', border: `1px solid ${hasNext ? light.border : 'transparent'}`, color: hasNext ? light.textSub : light.textMuted, cursor: hasNext ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
             Next <ChevronRight size={15} />

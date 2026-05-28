@@ -1619,7 +1619,8 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(startIdx);
-    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    const fromPath = location.pathname;
+    navigate(`/category/${encodeURIComponent(firstCat)}`, { state: { from: fromPath } });
     if (selectedCategory === firstCat && stories.length > 0) {
       narrateFnRef.current.narrateStory(startIdx);
     } else {
@@ -1638,7 +1639,8 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(startIdx);
-    navigate(`/category/${encodeURIComponent(cat)}`);
+    const fromPath = location.pathname;
+    navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath } });
     if (selectedCategory === cat && stories.length > 0) {
       narrateFnRef.current.narrateStory(startIdx);
     } else {
@@ -1656,7 +1658,8 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(idx);
-    navigate(`/category/${encodeURIComponent(cat)}`);
+    const fromPath = location.pathname;
+    navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath } });
     if (selectedCategory === cat && stories.length > 0) {
       narrateFnRef.current.narrateStory(idx);
     } else {
@@ -1696,7 +1699,7 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(startIdx);
-    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    navigate(`/category/${encodeURIComponent(firstCat)}`, { state: { from: location.pathname } });
     if (selectedCategory === firstCat && stories.length > 0) {
       narrateFnRef.current.narrateStory(startIdx);
     } else {
@@ -1720,7 +1723,7 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(startIdx);
-    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    navigate(`/category/${encodeURIComponent(firstCat)}`, { state: { from: location.pathname } });
     if (selectedCategory === firstCat && stories.length > 0) {
       narrateFnRef.current.narrateStory(startIdx);
     } else {

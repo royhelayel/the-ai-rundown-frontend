@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Play, User } from 'lucide-react';
 import { SkeletonCategoryView } from './SkeletonScreens';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
@@ -43,7 +43,16 @@ export default function CategoryView({
   onShowAuth,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const color  = CATEGORY_COLORS[category] || '#6366f1';
+
+  const goBack = () => {
+    const from = location.state?.from;
+    if (!from || from === '/' || from === 'home') navigate('/');
+    else if (from === '/my-feed') navigate('/my-feed');
+    else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
+    else navigate('/');
+  };
   const image  = CATEGORY_IMAGES[category] || null;
   const totalMin = Math.round(stories.length * 2.5);
 
@@ -54,7 +63,7 @@ export default function CategoryView({
       {/* ── Sticky header ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button onClick={() => navigate(-1)}
+          <button onClick={goBack}
             style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ChevronLeft size={15} />
           </button>

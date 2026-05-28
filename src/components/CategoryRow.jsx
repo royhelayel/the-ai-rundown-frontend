@@ -96,9 +96,9 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
             return (
               <div key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`, { state: { from: fromPath || 'home' } }); }}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : 'transparent' }}
-                onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : 'rgba(0,0,0,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : 'transparent'}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
+                onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
+                onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>

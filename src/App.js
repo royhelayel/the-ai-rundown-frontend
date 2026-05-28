@@ -1765,6 +1765,7 @@ const TheAIRundown = () => {
           .bottom-nav-wrap { display: none; }
           .main-content-offset { margin-left: 220px; }
           .mini-player-bar { left: 220px !important; }
+          .header-brand { display: none; }
         }
       `}</style>
 

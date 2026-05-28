@@ -50,25 +50,8 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
         onMouseEnter={e => e.currentTarget.style.background = `${color}1e`}
         onMouseLeave={e => e.currentTarget.style.background = `${color}12`}
       >
-        {/* Category image — fades in from right */}
-        {image && (
-          <div style={{
-            position: 'absolute', top: 0, right: 0, bottom: 0, width: '45%', pointerEvents: 'none',
-            backgroundImage: `url(${image})`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-          }}>
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: `linear-gradient(to right, ${color}1a 0%, transparent 100%)`,
-            }} />
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to right, #f5f5f7 0%, transparent 55%)',
-            }} />
-          </div>
-        )}
-        {/* Row 1: pill + Play + See all */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+        {/* Row 1: pill + Play + See all + image thumbnail */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.6rem', background: `${color}20`, border: `1px solid ${color}40`, borderRadius: '999px', flexShrink: 0 }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
             <span style={{ fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{cat}</span>
@@ -83,11 +66,20 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
           <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: '700', color: color }}>
             See all <ChevronRight size={13} />
           </span>
+          {image && (
+            <div style={{
+              width: '52px', height: '40px', borderRadius: '8px', flexShrink: 0,
+              backgroundImage: `url(${image})`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              border: `1px solid ${color}30`,
+              overflow: 'hidden',
+            }} />
+          )}
         </div>
 
         {/* Row 2: story count + time */}
         {info && (
-          <p style={{ margin: '0.3rem 0 0', fontSize: '0.71rem', color: `${color}aa`, fontWeight: '500', position: 'relative' }}>
+          <p style={{ margin: '0.3rem 0 0', fontSize: '0.71rem', color: `${color}aa`, fontWeight: '500' }}>
             {info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min
           </p>
         )}

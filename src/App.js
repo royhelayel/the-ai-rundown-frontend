@@ -1761,6 +1761,11 @@ const TheAIRundown = () => {
           gap: 0.5rem; letter-spacing: -0.01em; transition: opacity 0.15s; font-family: inherit;
         }
         .ai-btn-inner:hover { opacity: 0.9; }
+        /* ── Hero row responsive layout ── */
+        .hero-row { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem; }
+        .hero-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: nowrap; }
+        .hero-play-row .ai-btn-wrap { display: block; width: 100%; }
+        .hero-play-row .ai-btn-inner { width: 100%; justify-content: center; border-radius: 14px; }
         @media (min-width: 1024px) {
           :root { --body-max: 780px; }
           .side-nav-wrap { display: block; }
@@ -1769,6 +1774,10 @@ const TheAIRundown = () => {
           .main-content-offset { margin-left: 220px; margin-right: 200px; }
           .mini-player-bar { left: 220px !important; right: 200px !important; }
           .header-brand { display: none; }
+          .hero-row { flex-direction: row; align-items: center; gap: 0.75rem; }
+          .hero-title-row { flex: 1; }
+          .hero-play-row .ai-btn-wrap { display: inline-block; width: auto; }
+          .hero-play-row .ai-btn-inner { width: auto; justify-content: center; border-radius: 11px; }
         }
       `}</style>
 

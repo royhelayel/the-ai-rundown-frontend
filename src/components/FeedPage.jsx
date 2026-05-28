@@ -57,25 +57,28 @@ export default function FeedPage({
 
       {/* Hero */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
-            {feed.name}
-          </h1>
-          <DateTimePill
-            selectedDay={selectedDay} selectedTime={selectedTime}
-            availableDays={availableDays} availableTimes={availableTimes}
-            onSelectDay={onSelectDay} onSelectTime={onSelectTime}
-          />
-          <div style={{ flex: 1 }} />
-          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
-            <button className="ai-btn-inner" onClick={() => onPlayFeed(feed.categories)}>
-              <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
-              {isNarrating ? 'Now Playing…' : `Play ${feed.name}`}
-            </button>
+        <div className="hero-row">
+          <div className="hero-title-row">
+            <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15, flexShrink: 0 }}>
+              {feed.name}
+            </h1>
+            <DateTimePill
+              selectedDay={selectedDay} selectedTime={selectedTime}
+              availableDays={availableDays} availableTimes={availableTimes}
+              onSelectDay={onSelectDay} onSelectTime={onSelectTime}
+            />
+          </div>
+          <div className="hero-play-row">
+            <div className="ai-btn-wrap">
+              <button className="ai-btn-inner" onClick={() => onPlayFeed(feed.categories)}>
+                <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
+                {isNarrating ? 'Now Playing…' : `Play ${feed.name}`}
+              </button>
+            </div>
           </div>
         </div>
         {totalStories > 0 && (
-          <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: light.textMuted }}>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: light.textMuted }}>
             {totalStories} {totalStories === 1 ? 'story' : 'stories'} · ~{totalMin} min
           </p>
         )}

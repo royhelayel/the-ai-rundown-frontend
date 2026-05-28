@@ -108,22 +108,24 @@ export default function MyFeedTab({
       {/* Header */}
       <SharedHeader user={user} onShowAuth={onShowAuth} />
 
-      {/* Hero row — same pattern as Briefing */}
+      {/* Hero row */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>My Feed</h1>
-          <DateTimePill
-            selectedDay={selectedDay} selectedTime={selectedTime}
-            availableDays={availableDays} availableTimes={availableTimes}
-            onSelectDay={onSelectDay} onSelectTime={onSelectTime}
-          />
-          <div style={{ flex: 1 }} />
-          {/* Animated Play All like Briefing */}
-          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
-            <button className="ai-btn-inner" onClick={onPlayMyFeed}>
-              <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
-              {isNarrating ? 'Now Playing…' : 'Play My Feed'}
-            </button>
+        <div className="hero-row">
+          <div className="hero-title-row">
+            <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15, flexShrink: 0 }}>My Feed</h1>
+            <DateTimePill
+              selectedDay={selectedDay} selectedTime={selectedTime}
+              availableDays={availableDays} availableTimes={availableTimes}
+              onSelectDay={onSelectDay} onSelectTime={onSelectTime}
+            />
+          </div>
+          <div className="hero-play-row">
+            <div className="ai-btn-wrap">
+              <button className="ai-btn-inner" onClick={onPlayMyFeed}>
+                <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
+                {isNarrating ? 'Now Playing…' : 'Play My Feed'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

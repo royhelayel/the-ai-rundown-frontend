@@ -4,6 +4,13 @@ import { Play, ChevronRight } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { readTime } from '../utils';
 
+const WAVE_STYLE = `
+  @keyframes cr-wave {
+    from { transform: scaleY(0.4); }
+    to   { transform: scaleY(1); }
+  }
+`;
+
 const light = {
   bg:        '#ffffff',
   bgSub:     '#f5f5f7',
@@ -21,7 +28,7 @@ function faviconUrl(url) {
   } catch { return null; }
 }
 
-export default function CategoryRow({ cat, catData, onOpen, onPlay, fromPath }) {
+export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory, isNarrating, activeCategory, activeStoryIndex, fromPath }) {
   const navigate = useNavigate();
   const color = CATEGORY_COLORS[cat] || light.accent;
   const info = catData || null;
@@ -33,6 +40,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, fromPath }) 
 
   return (
     <div style={{ marginBottom: '1rem', marginLeft: '1.25rem', marginRight: '1.25rem', borderLeft: `3px solid ${color}`, background: light.bgSub, borderRadius: '12px', overflow: 'hidden' }}>
+      <style>{WAVE_STYLE}</style>
 
       {/* ── Category header ── */}
       <div
@@ -74,12 +82,13 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, fromPath }) 
             const sources = story.storySources?.filter(s => s.outlet) || [];
             const topSources = sources.slice(0, 2);
             const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 120);
+            const isActive = isNarrating && activeCategory === cat && activeStoryIndex === i;
             return (
               <div key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`, { state: { from: fromPath || 'home' } }); }}
-                style={{ display: 'flex', alignItems: 'flex-start', padding: '0.8rem 1.25rem 0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.8rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : 'transparent' }}
+                onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : 'rgba(0,0,0,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : 'transparent'}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
@@ -115,6 +124,22 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, fromPath }) 
                     <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{readTime(story)}</span>
                   </div>
                 </div>
+
+                {/* Per-story play button */}
+                <button
+                  onClick={e => { e.stopPropagation(); onPlayStory?.(cat, i); }}
+                  style={{ width: '30px', height: '30px', borderRadius: '50%', border: `1px solid ${isActive ? color : light.border}`, background: isActive ? color : light.bg, color: isActive ? 'white' : light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem', transition: 'all 0.15s' }}
+                >
+                  {isActive ? (
+                    <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '11px' }}>
+                      {[0.6, 1, 0.8].map((h, j) => (
+                        <span key={j} style={{ width: '2px', background: 'white', borderRadius: '1px', height: `${h * 11}px`, animation: `cr-wave 0.8s ease-in-out ${j * 0.15}s infinite alternate` }} />
+                      ))}
+                    </span>
+                  ) : (
+                    <Play size={11} fill="currentColor" style={{ marginLeft: '1px' }} />
+                  )}
+                </button>
               </div>
             );
           })}

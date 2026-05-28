@@ -120,7 +120,7 @@ const TheAIRundown = () => {
   const narrationDurationRef = useRef(0); // seconds — ref avoids re-renders when set
   const repeatModeRef = useRef(false);
   const playbackSpeedRef = useRef(1);
-  const narrationStateRef = useRef({ active: false, pendingLoad: false, paused: false, canceling: false, pendingCategoryName: null, pendingNarrateTimer: null });
+  const narrationStateRef = useRef({ active: false, pendingLoad: false, pendingStartIndex: 0, paused: false, canceling: false, pendingCategoryName: null, pendingNarrateTimer: null });
   const narrationGenRef = useRef(0); // incremented on every cancel/stop; stale callbacks bail out
   const narrateFnRef = useRef({});
   // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
@@ -1391,8 +1391,10 @@ const TheAIRundown = () => {
     if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
     if (viewMode === 'stories') {
-      setStoryIndex(0);
-      setTimeout(() => narrateFnRef.current.narrateStory?.(0), 200);
+      const startIdx = narrationStateRef.current.pendingStartIndex || 0;
+      narrationStateRef.current.pendingStartIndex = 0;
+      setStoryIndex(startIdx);
+      setTimeout(() => narrateFnRef.current.narrateStory?.(startIdx), 200);
     } else {
       const content = narrateFnRef.current.getNarrationContent?.() || newsSummary?.content;
       setTimeout(() => narrateFnRef.current.narrateDigest?.(content), 200);
@@ -1597,6 +1599,24 @@ const TheAIRundown = () => {
     }
   };
 
+  const handlePlayStory = (cat, idx) => {
+    if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(idx);
+    navigate(`/category/${encodeURIComponent(cat)}`);
+    if (selectedCategory === cat && stories.length > 0) {
+      narrateFnRef.current.narrateStory(idx);
+    } else {
+      st.pendingLoad = true;
+      st.pendingStartIndex = idx;
+      handleSelectCategory(cat);
+    }
+  };
+
   const handlePlayMyFeed = () => {
     if (feedCategories.length === 0) return;
     const playable = feedCategories.filter(c => briefingData[c]?.storyCount > 0);
@@ -1759,6 +1779,8 @@ const TheAIRundown = () => {
           isNarrating={isNarrating}
           isPaused={isPaused}
           selectedCategory={selectedCategory}
+          currentStoryIndex={storyIndex}
+          onPlayStory={handlePlayStory}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           onShowSettings={() => navigate('/settings')}
@@ -1781,7 +1803,10 @@ const TheAIRundown = () => {
           onPlayMyFeed={handlePlayMyFeed}
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
+          onPlayStory={handlePlayStory}
           isNarrating={isNarrating}
+          selectedCategory={selectedCategory}
+          currentStoryIndex={storyIndex}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}

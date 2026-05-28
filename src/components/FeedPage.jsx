@@ -113,14 +113,26 @@ export default function FeedPage({
               const p = todayProgress[cat] || {};
               const color = CATEGORY_COLORS[cat] || '#6366f1';
               const done = p.done;
+              const total = p.total || 0;
+              // Find first unread index (fallback to 0)
+              const listenedSet = p.listenedIndices || new Set();
+              const nextUnread = total > 0
+                ? (Array.from({ length: total }, (_, i) => i).find(i => !listenedSet.has(i)) ?? 0)
+                : 0;
               return (
-                <div key={cat} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  background: done ? 'rgba(22,163,74,0.08)' : light.bgSub,
-                  border: done ? '1px solid rgba(22,163,74,0.3)' : `1px solid ${light.border}`,
-                  borderRadius: '99px', padding: '5px 10px 5px 6px',
-                  transition: 'background 0.3s',
-                }}>
+                <button key={cat}
+                  onClick={() => onPlayStory(cat, nextUnread)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: done ? 'rgba(22,163,74,0.08)' : light.bgSub,
+                    border: done ? '1px solid rgba(22,163,74,0.3)' : `1px solid ${light.border}`,
+                    borderRadius: '99px', padding: '5px 10px 5px 6px',
+                    cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => { if (!done) { e.currentTarget.style.background = `${color}12`; e.currentTarget.style.borderColor = `${color}55`; } }}
+                  onMouseLeave={e => { e.currentTarget.style.background = done ? 'rgba(22,163,74,0.08)' : light.bgSub; e.currentTarget.style.borderColor = done ? 'rgba(22,163,74,0.3)' : light.border; }}
+                >
                   {/* 2-letter badge */}
                   <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.52rem', fontWeight: '800', color }}>{initials(cat)}</span>
@@ -128,17 +140,17 @@ export default function FeedPage({
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', color: done ? '#15803d' : light.text, whiteSpace: 'nowrap' }}>{cat}</span>
                   {done ? (
                     <CheckCircle2 size={13} color="#16a34a" strokeWidth={2.5} />
-                  ) : p.total > 0 ? (
+                  ) : total > 0 ? (
                     <>
                       <div style={{ height: '4px', width: '36px', borderRadius: '99px', background: `${color}22`, overflow: 'hidden', flexShrink: 0 }}>
                         <div style={{ height: '100%', width: `${(p.pct || 0) * 100}%`, background: color, borderRadius: '99px', transition: 'width 0.4s ease' }} />
                       </div>
-                      <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{p.total}</span>
+                      <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', flexShrink: 0 }}>{p.listened}/{total}</span>
                     </>
                   ) : (
                     <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>0 stories</span>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>

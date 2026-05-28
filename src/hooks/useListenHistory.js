@@ -51,12 +51,14 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   const todayProgress = {};
   feedCategories.forEach(cat => {
     const total    = briefingData?.[cat]?.storyCount || 0;
-    const listened = todayListened[cat]?.size || 0;
+    const listenedSet = todayListened[cat] || new Set();
+    const listened = listenedSet.size;
     todayProgress[cat] = {
       listened,
       total,
       done: total > 0 && listened >= total,
       pct:  total > 0 ? Math.min(1, listened / total) : 0,
+      listenedIndices: listenedSet,
     };
   });
 

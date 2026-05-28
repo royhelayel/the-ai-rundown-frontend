@@ -2047,6 +2047,21 @@ const TheAIRundown = () => {
                 </div>
               </div>
             </div>
+            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🔤</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Font Size</h3>
+                </div>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                  {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
+                    <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'white' : 'transparent', color: fontSize === val ? '#111827' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             {user && (
               <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>

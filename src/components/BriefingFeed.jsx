@@ -81,7 +81,7 @@ export default function BriefingFeed({
           {/* Title + pill */}
           <div className="hero-title-row">
             <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15, flexShrink: 0 }}>
-              Briefing
+              All Feed
             </h1>
             <DateTimePill
               selectedDay={selectedDay} selectedTime={selectedTime}

@@ -161,9 +161,10 @@ const TheAIRundown = () => {
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
   const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
+  const [selectedProgressDay, setSelectedProgressDay] = useState(null); // null = today
   const gamifiedStats = useMemo(
-    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null),
-    [listenHistory, perfectDays, briefingData, feedCategories, selectedTime]
+    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay),
+    [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay]
   );
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
   const navigate = useNavigate();
@@ -2274,6 +2275,8 @@ const TheAIRundown = () => {
             onPlayStory={handlePlayStory}
             user={user}
             onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+            selectedProgressDay={selectedProgressDay}
+            onSelectProgressDay={setSelectedProgressDay}
           />
         </div>
       )}

@@ -35,17 +35,18 @@ export { BADGE_TIERS };
 
 // ── Pure stats computation ────────────────────────────────────────────────────
 
-export function computeGamifiedStats(history, perfectDays, briefingData, feedCategories, selectedTimeSlot = null) {
+export function computeGamifiedStats(history, perfectDays, briefingData, feedCategories, selectedTimeSlot = null, viewDay = null) {
   const empty = { todayProgress: {}, allCaughtUp: false, caughtUpCount: 0, weeklyGrid: [], perfectStreak: 0, categoryBadges: {} };
   if (!feedCategories?.length) return empty;
 
   const today    = dayKey(Date.now());
+  const activeDay = viewDay || today; // day whose progress is shown in category rows
   const perfectSet = new Set(perfectDays || []);
 
-  // ── Today's listened per category (optionally filtered by time slot) ───────
+  // ── Listened per category for the active day (optionally filtered by time slot) ─
   const todayListened = {}; // {[cat]: Set<storyIndex>}
   history.forEach(h => {
-    if (dayKey(h.timestamp) !== today) return;
+    if (dayKey(h.timestamp) !== activeDay) return;
     if (selectedTimeSlot && h.timeSlot && h.timeSlot !== selectedTimeSlot) return;
     if (!todayListened[h.category]) todayListened[h.category] = new Set();
     todayListened[h.category].add(h.storyIndex);

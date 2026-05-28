@@ -14,22 +14,33 @@ const light = {
 function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
 // ── Weekly grid ──────────────────────────────────────────────────────────────
-function WeeklyGrid({ weeklyGrid = [] }) {
+function WeeklyGrid({ weeklyGrid = [], selectedDay = null, onSelectDay }) {
   return (
     <div style={{ display: 'flex', gap: '3px', marginBottom: '2px' }}>
       {weeklyGrid.map(day => {
+        const isSelected = selectedDay ? day.key === selectedDay : day.isToday;
         const bg = day.status === 2 ? '#16a34a' : day.status === 1 ? '#d97706' : light.bgSub;
-        const border = day.isToday ? '2px solid #6366f1' : `1px solid ${light.border}`;
+        const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
         return (
-          <div key={day.key} title={day.key} style={{
-            flex: 1, height: '28px', borderRadius: '5px',
-            background: bg, border,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <button
+            key={day.key}
+            title={day.key}
+            onClick={() => onSelectDay?.(isSelected && !day.isToday ? null : day.key)}
+            style={{
+              flex: 1, height: '28px', borderRadius: '5px',
+              background: bg, border,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0,
+              outline: 'none', transition: 'opacity 0.1s',
+              opacity: isSelected ? 1 : 0.75,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
+          >
             <span style={{ fontSize: '0.5rem', fontWeight: '700', color: day.status > 0 ? '#fff' : light.textMuted }}>
               {day.day}
             </span>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -52,7 +63,7 @@ function BadgeChip({ tier, streak }) {
   );
 }
 
-export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth }) {
+export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth, selectedProgressDay = null, onSelectProgressDay }) {
   const {
     todayProgress = {},
     allCaughtUp = false,
@@ -62,6 +73,14 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
   } = stats;
 
   const cats = Object.keys(todayProgress);
+
+  // Label for the selected day (e.g. "Thu 28" or "Today")
+  const today = new Date().toISOString().slice(0, 10);
+  const progressDayLabel = (() => {
+    if (!selectedProgressDay || selectedProgressDay === today) return null;
+    const d = new Date(selectedProgressDay + 'T12:00:00'); // noon avoids DST shifts
+    return new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric' }).format(d);
+  })();
 
   return (
     <nav style={{
@@ -91,12 +110,23 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
         </div>
       )}
       {user && <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
-        <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Reading Progress
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem' }}>
+          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', flex: 1 }}>
+            Reading Progress
+          </p>
+          {progressDayLabel && (
+            <button
+              onClick={() => onSelectProgressDay?.(null)}
+              style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '99px', padding: '2px 7px', cursor: 'pointer', fontSize: '0.55rem', fontWeight: '700', color: '#6366f1' }}
+              title="Back to today"
+            >
+              {progressDayLabel} ✕
+            </button>
+          )}
+        </div>
 
-        {/* Caught-up banner */}
-        {allCaughtUp && (
+        {/* Caught-up banner — only for today */}
+        {allCaughtUp && !selectedProgressDay && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
             background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.28)',
@@ -128,8 +158,8 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
         {/* Weekly calendar */}
         {weeklyGrid.length > 0 && (
           <>
-            <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '600', marginBottom: '4px' }}>This week</div>
-            <WeeklyGrid weeklyGrid={weeklyGrid} />
+            <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '600', marginBottom: '4px' }}>This week · tap a day</div>
+            <WeeklyGrid weeklyGrid={weeklyGrid} selectedDay={selectedProgressDay} onSelectDay={onSelectProgressDay} />
             <div style={{ display: 'flex', gap: '8px', marginBottom: '0.6rem', marginTop: '3px' }}>
               {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:light.bgSub,label:'None',dark:true}].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>

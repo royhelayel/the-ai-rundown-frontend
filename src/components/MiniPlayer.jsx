@@ -19,7 +19,7 @@ export default function MiniPlayer({
   const color = CATEGORY_COLORS[category] || colors.accent;
 
   return (
-    <div style={{ position: 'fixed', bottom: bottomOffset, left: 0, right: 0, zIndex: 100, padding: '0 0.75rem 0.5rem' }}>
+    <div className="mini-player-bar" style={{ position: 'fixed', bottom: bottomOffset, left: 0, right: 0, zIndex: 100, padding: '0 0.75rem 0.5rem' }}>
       <div
         onClick={onExpand}
         style={{ background: colors.bgCardHigh, borderRadius: '16px', border: `1px solid ${colors.borderLight}`, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)', marginBottom: '0.5rem' }}>

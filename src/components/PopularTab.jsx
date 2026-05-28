@@ -95,52 +95,45 @@ export default function PopularTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sorted.map((story, rank) => {
               const color = CATEGORY_COLORS[story.category] || '#6366f1';
-              const isTop3 = rank < 3 && hasAnyListens;
+              const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 120);
               return (
                 <div
                   key={`${story.category}-${story.storyIndex}`}
                   onClick={() => handleStoryClick(story.category, story.storyIndex)}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.85rem',
-                    padding: '0.9rem 1rem',
-                    background: isTop3 ? `${color}08` : light.bgSub,
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                    padding: '0.85rem 0.9rem',
+                    background: light.bgSub,
                     borderRadius: '12px', cursor: 'pointer', transition: 'background 0.12s',
-                    border: isTop3 ? `1px solid ${color}20` : `1px solid transparent`,
+                    border: `1px solid ${light.border}`,
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = isTop3 ? `${color}12` : 'rgba(0,0,0,0.05)'}
-                  onMouseLeave={e => e.currentTarget.style.background = isTop3 ? `${color}08` : light.bgSub}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = light.bgSub}
                 >
-                  {/* Rank number */}
-                  <span style={{
-                    fontSize: isTop3 ? '1.1rem' : '0.95rem',
-                    fontWeight: '900',
-                    color: isTop3 ? color : light.textMuted,
-                    minWidth: '22px', textAlign: 'right',
-                    lineHeight: 1.4, flexShrink: 0, paddingTop: '0.05rem',
-                  }}>
-                    {rank + 1}
-                  </span>
-
                   {/* Story info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', fontSize: '0.6rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
                       {story.category}
                     </span>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: light.text, lineHeight: 1.35, marginBottom: '0.3rem' }}>
+                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
                       {story.headline}
                     </p>
-                    <span style={{ fontSize: '0.75rem', color: story.listenCount > 0 ? light.textSub : light.textMuted }}>
-                      {story.listenCount > 0
-                        ? `${story.listenCount.toLocaleString()} ${story.listenCount === 1 ? 'listen' : 'listens'}`
-                        : 'No listens yet'}
-                    </span>
+                    {excerpt && (
+                      <p style={{ margin: '0 0 0.3rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {excerpt}{excerpt.length === 120 ? '…' : ''}
+                      </p>
+                    )}
+                    {story.listenCount > 0 && (
+                      <span style={{ fontSize: '0.72rem', color: light.textMuted }}>
+                        {story.listenCount.toLocaleString()} {story.listenCount === 1 ? 'listen' : 'listens'}
+                      </span>
+                    )}
                   </div>
 
                   <button
                     onClick={e => { e.stopPropagation(); onSelectCategory(story.category); onPlayCategory(story.category); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.6rem', borderRadius: '999px', border: `1px solid ${color}40`, background: `${color}15`, color: color, cursor: 'pointer', fontSize: '0.7rem', fontWeight: '700', flexShrink: 0, alignSelf: 'flex-start', marginTop: '0.2rem' }}>
-                    <Play size={9} fill={color} color={color} />
-                    Play
+                    style={{ width: '30px', height: '30px', borderRadius: '50%', border: `1px solid ${color}40`, background: `${color}15`, color: color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>
+                    <Play size={11} fill={color} color={color} style={{ marginLeft: '1px' }} />
                   </button>
                 </div>
               );

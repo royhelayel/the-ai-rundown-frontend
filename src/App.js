@@ -130,6 +130,7 @@ const TheAIRundown = () => {
   const handleSelectCategoryRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
+  const [userFeeds, setUserFeeds] = useState([]); // [{ id, name, categories }]
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [slotsLoaded, setSlotsLoaded] = useState(false); // true after first completedSlots fetch
   const [newsLanguage, setNewsLanguage] = useState(() => localStorage.getItem('rundown_news_language') || 'en');
@@ -861,6 +862,12 @@ const TheAIRundown = () => {
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         const savedFeed = userData.feedCategories || [];
         setFeedCategories(savedFeed);
+        // Hydrate named feeds; migrate legacy flat array if needed
+        if (userData.userFeeds) {
+          setUserFeeds(userData.userFeeds);
+        } else if (savedFeed.length > 0) {
+          setUserFeeds([{ id: 'default', name: 'My Feed', categories: savedFeed }]);
+        }
         if (savedFeed.length > 0) setSelectedCategory('My Rundown');
         // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
@@ -879,10 +886,17 @@ const TheAIRundown = () => {
           setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);
           setFeedCategories(feed);
+          // Hydrate named feeds from DB; migrate legacy flat array if needed
+          const dbFeeds = prefRes.data?.user_feeds || userData.userFeeds || null;
+          if (dbFeeds) {
+            setUserFeeds(dbFeeds);
+          } else if (feed.length > 0) {
+            setUserFeeds([{ id: 'default', name: 'My Feed', categories: feed }]);
+          }
           setNewsLanguage(lang);
           localStorage.setItem('rundown_news_language', lang);
           if (feed.length > 0) setSelectedCategory('My Rundown');
-          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
+          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed, userFeeds: dbFeeds || userData.userFeeds };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
         });
@@ -1293,6 +1307,21 @@ const TheAIRundown = () => {
     }).catch(err => console.error('Failed to save feed categories:', err));
   };
 
+  // Save the full list of named feeds; keep feedCategories (union) in sync for narration
+  const saveUserFeeds = (feeds) => {
+    setUserFeeds(feeds);
+    const allCats = [...new Set(feeds.flatMap(f => f.categories))];
+    setFeedCategories(allCats);
+    const userData = { ...user, userFeeds: feeds, feedCategories: allCats };
+    localStorage.setItem('newsdigest_user', JSON.stringify(userData));
+    setUser(userData);
+    // Persist union of categories to backend for narration compat
+    fetch(`${BACKEND_URL}/api/user/feed-categories`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, categories: allCats })
+    }).catch(err => console.error('Failed to save feed categories:', err));
+  };
+
   const saveNewsLanguage = (lang) => {
     setNewsLanguage(lang);
     localStorage.setItem('rundown_news_language', lang);
@@ -1617,6 +1646,27 @@ const TheAIRundown = () => {
     }
   };
 
+  const handlePlayFeed = (cats) => {
+    const playable = cats.filter(c => briefingData[c]?.storyCount > 0);
+    if (playable.length === 0) return;
+    const firstCat = playable[0];
+    if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
+    playlistCatsRef.current = playable;
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStoryIndex(0);
+    navigate(`/category/${encodeURIComponent(firstCat)}`);
+    if (selectedCategory === firstCat && stories.length > 0) {
+      narrateFnRef.current.narrateStory(0);
+    } else {
+      st.pendingLoad = true;
+      handleSelectCategory(firstCat);
+    }
+  };
+
   const handlePlayMyFeed = () => {
     if (feedCategories.length === 0) return;
     const playable = feedCategories.filter(c => briefingData[c]?.storyCount > 0);
@@ -1686,6 +1736,7 @@ const TheAIRundown = () => {
           .side-nav-wrap { display: block; }
           .bottom-nav-wrap { display: none; }
           .main-content-offset { margin-left: 220px; }
+          .mini-player-bar { left: 220px !important; }
         }
       `}</style>
 
@@ -1800,6 +1851,8 @@ const TheAIRundown = () => {
           availableTimes={availableTimes}
           onSelectDay={selectDay}
           onSelectTime={setSelectedTime}
+          userFeeds={userFeeds}
+          onPlayFeed={handlePlayFeed}
           onPlayMyFeed={handlePlayMyFeed}
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
@@ -1828,6 +1881,8 @@ const TheAIRundown = () => {
 
       {isCustomizePath && (
         <CustomizeTab
+          userFeeds={userFeeds}
+          onSaveUserFeeds={saveUserFeeds}
           feedCategories={feedCategories}
           onSaveFeedCategories={saveFeedCategories}
           defaultCategories={defaultCategories}

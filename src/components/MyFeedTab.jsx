@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ChevronDown, User, Loader } from 'lucide-react';
+import { Play, User, Loader, Plus } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
 
@@ -39,6 +39,7 @@ function SharedHeader({ user, onShowAuth, selectedDay, selectedTime, availableDa
 export default function MyFeedTab({
   briefingData, briefingLoading,
   feedCategories,
+  userFeeds, onPlayFeed,
   selectedDay, selectedTime,
   availableDays, availableTimes,
   onSelectDay, onSelectTime,
@@ -48,16 +49,10 @@ export default function MyFeedTab({
   playerVisible,
 }) {
   const navigate = useNavigate();
-  const [showFeedMenu, setShowFeedMenu] = useState(false);
 
-  const feedCatData = feedCategories.reduce((acc, cat) => {
-    if (briefingData[cat]) acc[cat] = briefingData[cat];
-    return acc;
-  }, {});
-
-  const totalStories = feedCategories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
-  const totalMin     = feedCategories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
-
+  // Union of all categories across all feeds (for loading check)
+  const allFeedCats = [...new Set((userFeeds || []).flatMap(f => f.categories))];
+  const totalStories = allFeedCats.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
   const isLoading = briefingLoading && totalStories === 0;
 
   // Not logged in
@@ -85,7 +80,7 @@ export default function MyFeedTab({
   }
 
   // Logged in but no feed set up
-  if (feedCategories.length === 0) {
+  if (!userFeeds?.length) {
     return (
       <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
@@ -118,82 +113,59 @@ export default function MyFeedTab({
       {/* Header */}
       <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
 
-      {/* Hero */}
-      <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-
-        {/* Feed picker pill */}
-        <div style={{ position: 'relative', display: 'inline-block', marginBottom: '0.6rem' }}>
-          <button
-            onClick={() => setShowFeedMenu(v => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.75rem 0.3rem 0.65rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: '700', color: light.textSub }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
-            My Feed
-            <ChevronDown size={12} color={light.textMuted} />
-          </button>
-
-          {showFeedMenu && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowFeedMenu(false)} />
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100, background: light.bg, border: `1px solid ${light.border}`, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', minWidth: '180px', overflow: 'hidden' }}>
-                <div style={{ padding: '0.55rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: `rgba(124,58,237,0.06)` }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: '700', color: light.text }}>My Feed</span>
-                  <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: '800', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active</span>
-                </div>
-                <div style={{ height: '1px', background: light.border }} />
-                <button
-                  onClick={() => { setShowFeedMenu(false); navigate('/customize'); }}
-                  style={{ width: '100%', padding: '0.55rem 0.9rem', background: 'none', border: 'none', textAlign: 'left', fontSize: '0.82rem', color: light.textMuted, cursor: 'pointer', fontWeight: '500' }}
-                  onMouseEnter={e => e.currentTarget.style.background = light.bgSub}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
-                  + Create new feed
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
-          My Feed
-        </h1>
-        {totalStories > 0 && (
-          <p style={{ margin: '0 0 1.25rem', fontSize: '0.82rem', color: light.textSub, fontWeight: '500' }}>
-            {totalStories} {totalStories === 1 ? 'story' : 'stories'} · {feedCategories.length} {feedCategories.length === 1 ? 'category' : 'categories'} · ~{totalMin} min
-          </p>
-        )}
-
-        {/* Play My Feed button */}
+      {/* Page title + create shortcut */}
+      <div style={{ padding: '1.5rem 1.25rem 0.5rem', maxWidth: '600px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>My Feed</h1>
         <button
-          onClick={onPlayMyFeed}
-          style={{ width: '100%', padding: '0.88rem 1.5rem', background: 'linear-gradient(135deg, #18182a 0%, #1e1b35 100%)', border: '2px solid #7c3aed', borderRadius: '12px', color: 'white', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', letterSpacing: '-0.01em', marginBottom: '0.5rem' }}>
-          <Play size={18} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
-          {isNarrating ? 'Now Playing…' : 'Play My Feed'}
+          onClick={() => navigate('/customize')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.8rem', borderRadius: '999px', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer' }}>
+          <Plus size={12} /> New feed
         </button>
       </div>
 
-      {/* Category rows */}
-      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+      {/* Named feed sections */}
+      <div style={{ flex: 1, paddingTop: '0.75rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
             <span style={{ fontSize: '0.88rem' }}>Loading your feed…</span>
           </div>
         ) : (
-          feedCategories.map(cat => (
-            <CategoryRow
-              key={cat}
-              cat={cat}
-              catData={feedCatData[cat]}
-              onOpen={c => onSelectCategory(c)}
-              onPlay={c => { onSelectCategory(c); onPlayCategory(c); }}
-              onPlayStory={onPlayStory}
-              isNarrating={isNarrating}
-              activeCategory={selectedCategory}
-              activeStoryIndex={currentStoryIndex}
-              fromPath="/my-feed"
-            />
-          ))
+          (userFeeds || []).map(feed => {
+            const feedTotal = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
+            const feedMin   = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
+            return (
+              <div key={feed.id} style={{ marginBottom: '1rem' }}>
+                {/* Feed section header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0 1.25rem', marginBottom: '0.5rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: '800', color: light.text }}>{feed.name}</span>
+                  {feedTotal > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{feedTotal} {feedTotal === 1 ? 'story' : 'stories'} · ~{feedMin} min</span>}
+                  <button
+                    onClick={() => onPlayFeed(feed.categories)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', borderRadius: '999px', background: `rgba(124,58,237,0.12)`, border: `1px solid rgba(124,58,237,0.3)`, color: '#7c3aed', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                    <Play size={9} fill="#7c3aed" color="#7c3aed" />
+                    Play
+                  </button>
+                </div>
+                {/* Categories */}
+                {feed.categories.map(cat => (
+                  <CategoryRow
+                    key={cat}
+                    cat={cat}
+                    catData={briefingData[cat]}
+                    onOpen={c => onSelectCategory(c)}
+                    onPlay={c => { onSelectCategory(c); onPlayCategory(c); }}
+                    onPlayStory={onPlayStory}
+                    isNarrating={isNarrating}
+                    activeCategory={selectedCategory}
+                    activeStoryIndex={currentStoryIndex}
+                    fromPath="/my-feed"
+                  />
+                ))}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

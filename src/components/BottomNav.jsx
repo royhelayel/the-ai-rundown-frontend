@@ -18,7 +18,7 @@ const TABS = [
   },
   {
     path: '/',
-    label: 'Latest',
+    label: 'All Feed',
     Icon: LayoutList,
     matchFn: p => p === '/' || p.startsWith('/category/'),
   },

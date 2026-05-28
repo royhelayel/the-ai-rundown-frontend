@@ -19,7 +19,7 @@ const TABS = [
   },
   {
     path: '/',
-    label: 'Briefing',
+    label: 'All Feed',
     Icon: BookOpen,
     matchFn: p => p === '/' || p.startsWith('/category/'),
   },

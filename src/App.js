@@ -10,6 +10,7 @@ import FullPlayer from './components/FullPlayer';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
+import SideNav from './components/SideNav';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import CustomizeTab from './components/CustomizeTab';
@@ -1653,7 +1654,20 @@ const TheAIRundown = () => {
 
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>
-      <style>{`* { box-sizing: border-box; } html, body { background: #09090f; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        * { box-sizing: border-box; }
+        html, body { background: #09090f; margin: 0; }
+        ::-webkit-scrollbar { display: none; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .side-nav-wrap { display: none; }
+        .bottom-nav-wrap { display: block; }
+        .main-content-offset { margin-left: 0; }
+        @media (min-width: 1024px) {
+          .side-nav-wrap { display: block; }
+          .bottom-nav-wrap { display: none; }
+          .main-content-offset { margin-left: 220px; }
+        }
+      `}</style>
 
       {/* ── Auth Modal ── */}
       {showAuth && (
@@ -1725,6 +1739,8 @@ const TheAIRundown = () => {
       )}
 
       {/* ── Main Content (URL-routed) ── */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+      <div className="main-content-offset">
       {isLatestHome && (
         <BriefingFeed
           briefingData={briefingData}
@@ -1961,6 +1977,7 @@ const TheAIRundown = () => {
           }}
         />
       )}
+      </div>{/* end .main-content-offset */}
 
       {/* ── MiniPlayer bar ── */}
       {miniPlayerVisible && (
@@ -1976,12 +1993,23 @@ const TheAIRundown = () => {
           onResume={() => narrateFnRef.current.resume()}
           onExpand={() => setPlayerMinimized(false)}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
-          bottomOffset={showBottomNav ? 56 : 0}
+          bottomOffset={showBottomNav && typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 0}
         />
       )}
 
-      {/* ── Bottom Navigation ── */}
-      {showBottomNav && <BottomNav />}
+      {/* ── Side Navigation (desktop) ── */}
+      {showBottomNav && (
+        <div className="side-nav-wrap">
+          <SideNav />
+        </div>
+      )}
+
+      {/* ── Bottom Navigation (mobile) ── */}
+      {showBottomNav && (
+        <div className="bottom-nav-wrap">
+          <BottomNav />
+        </div>
+      )}
 
       {/* ── Category transition overlay ── */}
       <CategoryTransition

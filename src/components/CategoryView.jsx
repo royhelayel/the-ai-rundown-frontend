@@ -45,7 +45,7 @@ export default function CategoryView({
 
       {/* ── Header ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}` }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', padding: '0.9rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', padding: '0.9rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button onClick={() => navigate('/')}
             style={{ width: '34px', height: '34px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ChevronLeft size={17} />
@@ -66,7 +66,7 @@ export default function CategoryView({
       </header>
 
       {/* ── Category banner ── */}
-      <div style={{ maxWidth: '600px', margin: '0.5rem auto 0', width: '100%', padding: '0 1.25rem' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0.5rem auto 0', width: '100%', padding: '0 1.25rem' }}>
         <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 style={{ margin: '0 0 0.2rem', fontSize: '1.4rem', fontWeight: '900', color: light.text, letterSpacing: '-0.025em' }}>{category}</h1>
@@ -85,7 +85,7 @@ export default function CategoryView({
       </div>
 
       {/* ── Story list ── */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0.25rem auto 0', width: '100%', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3.5rem' }}>
+      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0.25rem auto 0', width: '100%', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3.5rem' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

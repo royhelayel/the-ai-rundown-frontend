@@ -76,7 +76,7 @@ export default function BriefingFeed({
           animation: border-flow 10s ease-in-out infinite;
         }
         .ai-btn-inner {
-          width: 100%; padding: 0.88rem 1.5rem;
+          width: auto; padding: 0.88rem 1.5rem;
           border-radius: 11px;
           background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);
           border: none; color: white;
@@ -91,7 +91,7 @@ export default function BriefingFeed({
 
       {/* ── Header ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em', flexShrink: 0 }}>The Rundown</span>
           <div style={{ flex: 1 }} />
           <button
@@ -103,8 +103,9 @@ export default function BriefingFeed({
       </header>
 
       {/* ── Briefing hero ── */}
-      <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+      <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+        {/* Title row: heading + date pill + play button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
             Briefing
           </h1>
@@ -116,20 +117,21 @@ export default function BriefingFeed({
             onSelectDay={onSelectDay}
             onSelectTime={onSelectTime}
           />
-        </div>
-
-        {/* Play Briefing CTA — animated AI gradient border */}
-        <div className="ai-btn-wrap" style={{ width: '100%' }}>
-          <button className="ai-btn-inner" onClick={onPlayBriefing}>
-            <Play size={18} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
-            {isNarrating ? 'Now Playing…' : 'Play Briefing'}
-          </button>
+          <div style={{ flex: 1 }} />
+          {/* Play Briefing — animated gradient border, auto-sized */}
+          <div className="ai-btn-wrap" style={{ display: 'inline-block', flexShrink: 0 }}>
+            <button className="ai-btn-inner" onClick={onPlayBriefing}
+              style={{ width: 'auto', padding: '0.6rem 1.4rem', fontSize: '0.88rem' }}>
+              <Play size={15} fill="white" style={{ marginLeft: '2px', flexShrink: 0 }} />
+              {isNarrating ? 'Now Playing…' : 'Play All Feed'}
+            </button>
+          </div>
         </div>
       </div>
 
 
       {/* ── Category sections ── */}
-      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+      <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         {briefingLoading && totalStories === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

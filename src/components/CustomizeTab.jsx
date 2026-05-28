@@ -56,13 +56,13 @@ export default function CustomizeTab({
 
       {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
         </div>
       </header>
 
       {/* Content */}
-      <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
+      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
         <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.5rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em' }}>Create Feed</h1>
         <p style={{ margin: '0 0 1.75rem', fontSize: '0.85rem', color: light.textMuted }}>Build named feeds that appear in My Feed.</p>

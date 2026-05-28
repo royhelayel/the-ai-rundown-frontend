@@ -66,7 +66,7 @@ export default function StoryReader({
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${light.border}`,
       }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             onClick={goBack}
             style={{ width: '34px', height: '34px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -82,7 +82,7 @@ export default function StoryReader({
       </header>
 
       {/* ── Content ── */}
-      <article style={{ flex: 1, maxWidth: '680px', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3rem' }}>
+      <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3rem' }}>
 
         {/* Category badge */}
         <div style={{ marginBottom: '1rem' }}>
@@ -183,7 +183,7 @@ export default function StoryReader({
         borderTop: `1px solid ${light.border}`,
         padding: '0.75rem 1.25rem',
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.75rem)',
-        maxWidth: '680px', margin: '0 auto', width: '100%',
+        maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
       }}>
         <button

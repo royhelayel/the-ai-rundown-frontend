@@ -1725,6 +1725,7 @@ const TheAIRundown = () => {
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>
       <style>{`
+        :root { --body-max: 600px; }
         * { box-sizing: border-box; }
         html, body { background: #09090f; margin: 0; }
         ::-webkit-scrollbar { display: none; }
@@ -1733,6 +1734,7 @@ const TheAIRundown = () => {
         .bottom-nav-wrap { display: block; }
         .main-content-offset { margin-left: 0; }
         @media (min-width: 1024px) {
+          :root { --body-max: 780px; }
           .side-nav-wrap { display: block; }
           .bottom-nav-wrap { display: none; }
           .main-content-offset { margin-left: 220px; }

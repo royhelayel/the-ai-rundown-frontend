@@ -95,7 +95,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
             return (
               <div key={i}
                 onClick={() => { onOpen(cat); navigate(`/category/${encodeURIComponent(cat)}/story/${i}`, { state: { from: fromPath || 'home' } }); }}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.1rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.35rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
                 onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                 onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}
               >

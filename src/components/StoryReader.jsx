@@ -30,6 +30,7 @@ export default function StoryReader({
   isNarrating,
   isPaused,
   miniPlayerVisible,
+  contextCategories = [],
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +51,15 @@ export default function StoryReader({
   const bullets  = story.allBullets || story.tightBullets || [];
   const hasPrev  = storyIndex > 0;
   const hasNext  = storyIndex < stories.length - 1;
+
+  // Category navigation within the current feed context
+  const catIdx  = contextCategories.indexOf(category);
+  const prevCat = catIdx > 0 ? contextCategories[catIdx - 1] : null;
+  const nextCat = catIdx < contextCategories.length - 1 ? contextCategories[catIdx + 1] : null;
+  const goToCat = (cat) => navigate(
+    `/category/${encodeURIComponent(cat)}/story/0`,
+    { state: location.state }
+  );
 
   return (
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -179,33 +189,52 @@ export default function StoryReader({
         )}
       </article>
 
-      {/* ── Story navigation ── */}
+      {/* ── Navigation ── */}
       <div style={{
         position: 'sticky', bottom: miniPlayerVisible ? '5rem' : '0',
-        background: light.bg,
-        borderTop: `1px solid ${light.border}`,
-        padding: '0.75rem 1.25rem',
-        paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.75rem)',
+        background: light.bg, borderTop: `1px solid ${light.border}`,
+        paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',
         maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
       }}>
-        <button
-          onClick={() => hasPrev && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`)}
-          disabled={!hasPrev}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', borderRadius: '999px', background: hasPrev ? light.bgSub : 'transparent', border: `1px solid ${hasPrev ? light.border : 'transparent'}`, color: hasPrev ? light.textSub : light.textMuted, cursor: hasPrev ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
-          <ChevronLeft size={15} /> Prev
-        </button>
+        {/* Category row */}
+        {(prevCat || nextCat) && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 1.25rem 0', gap: '0.75rem' }}>
+            <button
+              onClick={() => prevCat && goToCat(prevCat)}
+              disabled={!prevCat}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '999px', background: prevCat ? `${CATEGORY_COLORS[prevCat] || '#6366f1'}12` : 'transparent', border: `1px solid ${prevCat ? `${CATEGORY_COLORS[prevCat] || '#6366f1'}35` : 'transparent'}`, color: prevCat ? (CATEGORY_COLORS[prevCat] || '#6366f1') : light.textMuted, cursor: prevCat ? 'pointer' : 'default', fontSize: '0.72rem', fontWeight: '700', maxWidth: '45%' }}>
+              <ChevronLeft size={13} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prevCat || ''}</span>
+            </button>
+            <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Category</span>
+            <button
+              onClick={() => nextCat && goToCat(nextCat)}
+              disabled={!nextCat}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '999px', background: nextCat ? `${CATEGORY_COLORS[nextCat] || '#6366f1'}12` : 'transparent', border: `1px solid ${nextCat ? `${CATEGORY_COLORS[nextCat] || '#6366f1'}35` : 'transparent'}`, color: nextCat ? (CATEGORY_COLORS[nextCat] || '#6366f1') : light.textMuted, cursor: nextCat ? 'pointer' : 'default', fontSize: '0.72rem', fontWeight: '700', maxWidth: '45%' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextCat || ''}</span>
+              <ChevronRight size={13} style={{ flexShrink: 0 }} />
+            </button>
+          </div>
+        )}
 
-        <span style={{ fontSize: '0.78rem', color: light.textMuted, fontWeight: '500' }}>
-          {storyIndex + 1} / {stories.length}
-        </span>
-
-        <button
-          onClick={() => hasNext && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`)}
-          disabled={!hasNext}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', borderRadius: '999px', background: hasNext ? light.bgSub : 'transparent', border: `1px solid ${hasNext ? light.border : 'transparent'}`, color: hasNext ? light.textSub : light.textMuted, cursor: hasNext ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
-          Next <ChevronRight size={15} />
-        </button>
+        {/* Story row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1.25rem 0.25rem', gap: '1rem' }}>
+          <button
+            onClick={() => hasPrev && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state })}
+            disabled={!hasPrev}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasPrev ? light.bgSub : 'transparent', border: `1px solid ${hasPrev ? light.border : 'transparent'}`, color: hasPrev ? light.textSub : light.textMuted, cursor: hasPrev ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
+            <ChevronLeft size={15} /> Prev
+          </button>
+          <span style={{ fontSize: '0.78rem', color: light.textMuted, fontWeight: '500' }}>
+            {storyIndex + 1} / {stories.length}
+          </span>
+          <button
+            onClick={() => hasNext && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state })}
+            disabled={!hasNext}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasNext ? light.bgSub : 'transparent', border: `1px solid ${hasNext ? light.border : 'transparent'}`, color: hasNext ? light.textSub : light.textMuted, cursor: hasNext ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
+            Next <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -2028,6 +2028,15 @@ const TheAIRundown = () => {
           isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
           isPaused={isPaused}
           miniPlayerVisible={miniPlayerVisible}
+          contextCategories={(() => {
+            const from = location.state?.from;
+            if (typeof from === 'string' && from.startsWith('/feed/')) {
+              const feedId = from.replace('/feed/', '');
+              return userFeeds.find(f => f.id === feedId)?.categories || allCategories;
+            }
+            if (from === '/my-feed') return feedCategories;
+            return allCategories;
+          })()}
         />
       )}
 

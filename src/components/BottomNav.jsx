@@ -14,9 +14,8 @@ const light = {
 const FEED_COLOR = '#7c3aed';
 
 const FIXED_TABS = [
-  { path: '/',         label: 'All Feed',    Icon: BookOpen,    matchFn: p => p === '/' || p.startsWith('/category/') },
-  { path: '/popular',  label: 'Popular',     Icon: TrendingUp,  matchFn: p => p === '/popular' },
-  { path: '/customize',label: 'Create Feed', Icon: PlusCircle,  matchFn: p => p === '/customize' },
+  { path: '/',        label: 'All Feed', Icon: BookOpen,   matchFn: p => p === '/' || p.startsWith('/category/') },
+  { path: '/popular', label: 'Popular',  Icon: TrendingUp, matchFn: p => p === '/popular' },
 ];
 
 export default function BottomNav({ userFeeds = [], categories = [], briefingData = {}, onSelectCategory }) {
@@ -26,7 +25,7 @@ export default function BottomNav({ userFeeds = [], categories = [], briefingDat
 
   const hasFeedActive = userFeeds.some(f => pathname === `/feed/${f.id}`);
   const hasCats       = categories.length > 0;
-  const showGridTab   = userFeeds.length > 0 || hasCats;
+  const showGridTab   = true; // always show — sheet contains feeds, categories, and Create Feed
 
   return (
     <>
@@ -78,6 +77,21 @@ export default function BottomNav({ userFeeds = [], categories = [], briefingDat
                 </div>
               </>
             )}
+
+            {/* Create Feed */}
+            <button
+              onClick={() => { navigate('/customize'); setShowSheet(false); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.65rem',
+                padding: '0.65rem 0.85rem', borderRadius: '10px', border: 'none', textAlign: 'left',
+                background: pathname === '/customize' ? `rgba(99,102,241,0.08)` : 'transparent',
+                cursor: 'pointer', width: '100%', marginBottom: '0.75rem',
+              }}>
+              <PlusCircle size={15} color="#6366f1" strokeWidth={2} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.92rem', fontWeight: pathname === '/customize' ? '700' : '500', color: pathname === '/customize' ? '#6366f1' : light.textMuted }}>
+                Create Feed
+              </span>
+            </button>
 
             {/* Categories section */}
             {hasCats && (

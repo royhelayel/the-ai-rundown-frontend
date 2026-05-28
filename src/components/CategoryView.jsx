@@ -41,7 +41,9 @@ export default function CategoryView({
   onMarkRead,
   user,
   onShowAuth,
+  categoryProgress = {},
 }) {
+
   const navigate = useNavigate();
   const location = useLocation();
   const color  = CATEGORY_COLORS[category] || '#6366f1';
@@ -116,6 +118,47 @@ export default function CategoryView({
             </div>
           </div>
 
+          {/* ── Today's progress for this category ── */}
+          {!isLoading && stories.length > 0 && !user && (
+            <div style={{ padding: '0.75rem 0.9rem 0.25rem', background: light.bg }}>
+              <button onClick={onShowAuth}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '99px', padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+              >
+                <span style={{ fontSize: '0.75rem' }}>🔒</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: light.textMuted }}>Sign in to track your reading progress</span>
+              </button>
+            </div>
+          )}
+          {!isLoading && stories.length > 0 && user && (() => {
+            const listened = categoryProgress?.listened || 0;
+            const total    = categoryProgress?.total    || 0;
+            const done     = categoryProgress?.done     || false;
+            const pct      = categoryProgress?.pct      || 0;
+            if (total === 0) return null;
+            const msg = done
+              ? { icon: '✅', text: `${listened} out of ${total} stories read. You are fully caught up!`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+              : { icon: listened > 0 ? '🔥' : '👇', text: `${listened} out of ${total} stories read. ${listened > 0 ? 'You are almost there, continue reading!' : 'Continue reading to be fully caught up!'}`, color: listened > 0 ? '#92400e' : light.textMuted, bg: listened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: listened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' };
+            return (
+              <div style={{ padding: '0.75rem 0.9rem 0.25rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: light.bg }}>
+                {/* Progress pill */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '99px', padding: '5px 10px 5px 8px', flexShrink: 0 }}>
+                  <div style={{ height: '4px', width: '48px', borderRadius: '99px', background: `${color}22`, overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ height: '100%', width: `${pct * 100}%`, background: done ? '#16a34a' : color, borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: done ? '#15803d' : light.text, flexShrink: 0 }}>{listened}/{total}</span>
+                  {done && <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>✅</span>}
+                </div>
+                {/* Message */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: msg.bg, border: `1px solid ${msg.border}`, borderRadius: '99px', padding: '5px 12px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.78rem', lineHeight: 1 }}>{msg.icon}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: msg.color }}>{msg.text}</span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── Story list — card-wrapped, white rows ── */}
           {stories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: light.textMuted, background: light.bg }}>
@@ -129,7 +172,7 @@ export default function CategoryView({
               const excerpt    = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
               return (
                 <div key={i}
-                  onClick={() => { onMarkRead?.(story, category, i); navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category' } }); }}
+                  onClick={() => { onMarkRead?.(story, category, i); navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: { from: 'category', feedFrom: location.state?.from } }); }}
                   style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.35rem 0.9rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', transition: 'background 0.12s', background: isActive ? `${color}08` : light.bg }}
                   onMouseEnter={e => e.currentTarget.style.background = isActive ? `${color}10` : light.bgSub}
                   onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}

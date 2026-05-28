@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, TrendingUp, PlusCircle, GripVertical } from 'lucide-react';
+import { BookOpen, TrendingUp, PlusCircle, GripVertical, Lock } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
 const light = {
@@ -13,13 +13,13 @@ const light = {
 
 const FEED_COLOR = '#7c3aed';
 
-const BOTTOM_TABS = [
-  { path: '/',         label: 'All Feed',     Icon: BookOpen,   matchFn: p => p === '/' || p.startsWith('/category/') },
-  { path: '/popular',  label: 'Popular',      Icon: TrendingUp, matchFn: p => p === '/popular' },
-  { path: '/customize',label: 'Create Feed',  Icon: PlusCircle, matchFn: p => p === '/customize' },
+const ALL_TABS = [
+  { path: '/',         label: 'All Feed',     Icon: BookOpen,   matchFn: p => p === '/' || p.startsWith('/category/'), authRequired: false },
+  { path: '/popular',  label: 'Popular',      Icon: TrendingUp, matchFn: p => p === '/popular',                        authRequired: false },
+  { path: '/customize',label: 'Customize Your Feed', Icon: PlusCircle, matchFn: p => p === '/customize',                      authRequired: true  },
 ];
 
-export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [], briefingData = {}, onSelectCategory }) {
+export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [], briefingData = {}, onSelectCategory, user = null, onShowAuth }) {
   const navigate   = useNavigate();
   const { pathname } = useLocation();
   const dragId     = useRef(null);
@@ -107,23 +107,27 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
 
       {/* ── Fixed tabs ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.5rem' }}>
-        {BOTTOM_TABS.map(({ path, label, Icon, matchFn }) => {
-          const active = matchFn(pathname);
+        {ALL_TABS.map(({ path, label, Icon, matchFn, authRequired }) => {
+          const locked = authRequired && !user;
+          const active = !locked && matchFn(pathname);
           return (
-            <button key={path} onClick={() => navigate(path)}
+            <button key={path}
+              onClick={() => locked ? onShowAuth?.() : navigate(path)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
                 padding: '0.65rem 0.75rem', borderRadius: '10px', border: 'none',
                 background: active ? light.bgSub : 'transparent',
                 cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s', width: '100%',
+                opacity: locked ? 0.5 : 1,
               }}
               onMouseEnter={e => { if (!active) e.currentTarget.style.background = light.bgSub; }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
             >
               <Icon size={18} strokeWidth={active ? 2.5 : 1.8} color={active ? light.text : light.textMuted} />
-              <span style={{ fontSize: '0.9rem', fontWeight: active ? '700' : '500', color: active ? light.text : light.textMuted }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: active ? '700' : '500', color: active ? light.text : light.textMuted, flex: 1 }}>
                 {label}
               </span>
+              {locked && <Lock size={11} color={light.textMuted} strokeWidth={2} style={{ flexShrink: 0 }} />}
             </button>
           );
         })}
@@ -149,11 +153,20 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
                     padding: '0.5rem 0.75rem', borderRadius: '10px', border: 'none',
                     background: active ? light.bgSub : 'transparent',
                     cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.1s',
+                    overflow: 'visible',
                   }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background = light.bgSub; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0, opacity: active ? 1 : 0.6 }} />
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '26px', height: '26px', borderRadius: '50%',
+                    background: color + '22', border: `1px solid ${color}`,
+                    flexShrink: 0, fontSize: '0.62rem', fontWeight: '800', color,
+                    letterSpacing: '-0.01em', lineHeight: 1,
+                  }}>
+                    {(cat || '').slice(0, 2).toUpperCase()}
+                  </span>
                   <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: active ? '700' : '500', color: active ? light.text : light.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {cat}
                   </span>

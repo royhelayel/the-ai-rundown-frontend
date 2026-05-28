@@ -1,7 +1,10 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 
 const HISTORY_KEY = 'rundown_listen_history';
-const PERFECT_KEY = 'rundown_perfect_days';
+const PERFECT_KEY  = 'rundown_perfect_days';
+
+function historyKey(userId) { return userId ? `${HISTORY_KEY}_${userId}` : HISTORY_KEY; }
+function perfectKey(userId) { return userId ? `${PERFECT_KEY}_${userId}`  : PERFECT_KEY;  }
 const MAX_HISTORY = 120;
 const MAX_PERFECT = 120; // ~4 months
 
@@ -32,17 +35,18 @@ export { BADGE_TIERS };
 
 // ── Pure stats computation ────────────────────────────────────────────────────
 
-export function computeGamifiedStats(history, perfectDays, briefingData, feedCategories) {
+export function computeGamifiedStats(history, perfectDays, briefingData, feedCategories, selectedTimeSlot = null) {
   const empty = { todayProgress: {}, allCaughtUp: false, caughtUpCount: 0, weeklyGrid: [], perfectStreak: 0, categoryBadges: {} };
   if (!feedCategories?.length) return empty;
 
   const today    = dayKey(Date.now());
   const perfectSet = new Set(perfectDays || []);
 
-  // ── Today's listened per category ──────────────────────────────────────────
+  // ── Today's listened per category (optionally filtered by time slot) ───────
   const todayListened = {}; // {[cat]: Set<storyIndex>}
   history.forEach(h => {
     if (dayKey(h.timestamp) !== today) return;
+    if (selectedTimeSlot && h.timeSlot && h.timeSlot !== selectedTimeSlot) return;
     if (!todayListened[h.category]) todayListened[h.category] = new Set();
     todayListened[h.category].add(h.storyIndex);
   });
@@ -51,7 +55,9 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   const todayProgress = {};
   feedCategories.forEach(cat => {
     const total    = briefingData?.[cat]?.storyCount || 0;
-    const listenedSet = todayListened[cat] || new Set();
+    const rawSet   = todayListened[cat] || new Set();
+    // Only count indices that exist in the current story list
+    const listenedSet = total > 0 ? new Set([...rawSet].filter(idx => idx < total)) : new Set();
     const listened = listenedSet.size;
     todayProgress[cat] = {
       listened,
@@ -72,7 +78,7 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
     const d  = new Date(ts);
     const k  = dayKey(ts);
     const isPerfect  = perfectSet.has(k);
-    const hadListens = history.some(h => dayKey(h.timestamp) === k && feedCategories.includes(h.category));
+    const hadListens = history.some(h => dayKey(h.timestamp) === k && feedCategories.includes(h.category) && (!selectedTimeSlot || !h.timeSlot || h.timeSlot === selectedTimeSlot));
     return {
       key: k,
       day: DAY_NAMES[d.getDay()],
@@ -117,15 +123,27 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
-export default function useListenHistory() {
+export default function useListenHistory(userId = null) {
+  const hKey = historyKey(userId);
+  const pKey = perfectKey(userId);
+
   const [history, setHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(hKey) || '[]'); } catch { return []; }
   });
   const [perfectDays, setPerfectDays] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(PERFECT_KEY) || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(pKey) || '[]'); } catch { return []; }
   });
 
-  const addToHistory = useCallback((story, category, storyIndex) => {
+  // Re-load from the correct key when userId changes (sign-in / sign-out)
+  const prevUserIdRef = React.useRef(userId);
+  React.useEffect(() => {
+    if (prevUserIdRef.current === userId) return;
+    prevUserIdRef.current = userId;
+    try { setHistory(JSON.parse(localStorage.getItem(historyKey(userId)) || '[]')); } catch { setHistory([]); }
+    try { setPerfectDays(JSON.parse(localStorage.getItem(perfectKey(userId)) || '[]')); } catch { setPerfectDays([]); }
+  }, [userId]);
+
+  const addToHistory = useCallback((story, category, storyIndex, timeSlot = null) => {
     if (!story?.headline || !category) return;
     setHistory(prev => {
       if (prev[0]?.headline === story.headline && prev[0]?.category === category
@@ -135,23 +153,24 @@ export default function useListenHistory() {
         headline: story.headline,
         category,
         storyIndex: storyIndex ?? 0,
+        timeSlot: timeSlot || null,
         timestamp: Date.now(),
       };
       const next = [entry, ...prev].slice(0, MAX_HISTORY);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(historyKey(userId), JSON.stringify(next)); } catch {}
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const markPerfectDay = useCallback(() => {
     const today = dayKey(Date.now());
     setPerfectDays(prev => {
       if (prev.includes(today)) return prev;
       const next = [today, ...prev].slice(0, MAX_PERFECT);
-      try { localStorage.setItem(PERFECT_KEY, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(perfectKey(userId), JSON.stringify(next)); } catch {}
       return next;
     });
-  }, []);
+  }, [userId]);
 
   return { history, perfectDays, addToHistory, markPerfectDay };
 }

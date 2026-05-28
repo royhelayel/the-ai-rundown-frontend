@@ -44,7 +44,7 @@ export default function StoryReader({
     if (!from || from === 'home' || from === '/') navigate('/');
     else if (from === '/my-feed') navigate('/my-feed');
     else if (from === 'popular') navigate('/popular');
-    else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`, { state: location.state });
+    else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`, { state: { from: location.state?.feedFrom || '/' } });
     else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
     else navigate('/');
   };
@@ -161,7 +161,7 @@ export default function StoryReader({
           </div>
         </div>
 
-        {/* Key Takeaways */}
+        {/* Key Takeaways — bullets only */}
         {view === 'takeaways' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
             {bullets.map((bullet, i) => (
@@ -172,9 +172,23 @@ export default function StoryReader({
                 <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.65 }}>{bullet}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Summary — elaborate narrative + perspectives + why it matters */}
+        {view === 'summary' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Narrative paragraph (new stories) or fallback note (old stories) */}
+            {story.summary ? (
+              <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.8 }}>{story.summary}</p>
+            ) : (
+              <p style={{ margin: 0, fontSize: '0.88rem', color: light.textMuted, lineHeight: 1.7, fontStyle: 'italic' }}>
+                Full summary available for newly generated stories.
+              </p>
+            )}
 
             {story.perspectives && (
-              <div style={{ marginTop: '0.5rem', padding: '0.9rem 1rem', background: `${color}08`, borderRadius: '12px', borderLeft: `3px solid ${color}` }}>
+              <div style={{ padding: '0.9rem 1rem', background: `${color}08`, borderRadius: '12px', borderLeft: `3px solid ${color}` }}>
                 <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perspectives</p>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textSub, lineHeight: 1.65 }}>{story.perspectives}</p>
               </div>
@@ -188,13 +202,6 @@ export default function StoryReader({
             )}
           </div>
         )}
-
-        {/* Summary */}
-        {view === 'summary' && (
-          <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.8 }}>
-            {[...bullets, story.perspectives, story.why].filter(Boolean).join(' ')}
-          </p>
-        )}
       </article>
 
       {/* ── Navigation ── */}
@@ -204,45 +211,42 @@ export default function StoryReader({
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',
         maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%',
       }}>
-        {/* Category row */}
-        {(prevCat || nextCat) && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 1.25rem 0', gap: '0.75rem' }}>
-            <button
-              onClick={() => prevCat && goToCat(prevCat)}
-              disabled={!prevCat}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '999px', background: prevCat ? `${CATEGORY_COLORS[prevCat] || '#6366f1'}12` : 'transparent', border: `1px solid ${prevCat ? `${CATEGORY_COLORS[prevCat] || '#6366f1'}35` : 'transparent'}`, color: prevCat ? (CATEGORY_COLORS[prevCat] || '#6366f1') : light.textMuted, cursor: prevCat ? 'pointer' : 'default', fontSize: '0.72rem', fontWeight: '700', maxWidth: '45%' }}>
-              <ChevronLeft size={13} style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prevCat || ''}</span>
-            </button>
-            <span style={{ fontSize: '0.65rem', color: light.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Category</span>
-            <button
-              onClick={() => nextCat && goToCat(nextCat)}
-              disabled={!nextCat}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', borderRadius: '999px', background: nextCat ? `${CATEGORY_COLORS[nextCat] || '#6366f1'}12` : 'transparent', border: `1px solid ${nextCat ? `${CATEGORY_COLORS[nextCat] || '#6366f1'}35` : 'transparent'}`, color: nextCat ? (CATEGORY_COLORS[nextCat] || '#6366f1') : light.textMuted, cursor: nextCat ? 'pointer' : 'default', fontSize: '0.72rem', fontWeight: '700', maxWidth: '45%' }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextCat || ''}</span>
-              <ChevronRight size={13} style={{ flexShrink: 0 }} />
-            </button>
-          </div>
-        )}
-
-        {/* Story row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1.25rem 0.25rem', gap: '1rem' }}>
-          <button
-            onClick={() => hasPrev && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true })}
-            disabled={!hasPrev}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasPrev ? light.bgSub : 'transparent', border: `1px solid ${hasPrev ? light.border : 'transparent'}`, color: hasPrev ? light.textSub : light.textMuted, cursor: hasPrev ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
-            <ChevronLeft size={15} /> Prev
-          </button>
-          <span style={{ fontSize: '0.78rem', color: light.textMuted, fontWeight: '500' }}>
-            {storyIndex + 1} / {stories.length}
-          </span>
-          <button
-            onClick={() => hasNext && navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true })}
-            disabled={!hasNext}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: hasNext ? light.bgSub : 'transparent', border: `1px solid ${hasNext ? light.border : 'transparent'}`, color: hasNext ? light.textSub : light.textMuted, cursor: hasNext ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600' }}>
-            Next <ChevronRight size={15} />
-          </button>
-        </div>
+        {/* Single navigation row — shows category name at boundaries */}
+        {(() => {
+          const showPrevCat = !hasPrev && prevCat;
+          const showNextCat = !hasNext && nextCat;
+          const prevColor = prevCat ? (CATEGORY_COLORS[prevCat] || '#6366f1') : null;
+          const nextColor = nextCat ? (CATEGORY_COLORS[nextCat] || '#6366f1') : null;
+          const prevActive = hasPrev || showPrevCat;
+          const nextActive = hasNext || showNextCat;
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1.25rem 0.25rem', gap: '1rem' }}>
+              <button
+                onClick={() => {
+                  if (hasPrev) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true });
+                  else if (showPrevCat) goToCat(prevCat);
+                }}
+                disabled={!prevActive}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: prevActive ? (showPrevCat ? `${prevColor}12` : light.bgSub) : 'transparent', border: `1px solid ${prevActive ? (showPrevCat ? `${prevColor}35` : light.border) : 'transparent'}`, color: prevActive ? (showPrevCat ? prevColor : light.textSub) : light.textMuted, cursor: prevActive ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600', maxWidth: '42%' }}>
+                <ChevronLeft size={15} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{showPrevCat ? prevCat : 'Prev'}</span>
+              </button>
+              <span style={{ fontSize: '0.78rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>
+                {storyIndex + 1} / {stories.length}
+              </span>
+              <button
+                onClick={() => {
+                  if (hasNext) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true });
+                  else if (showNextCat) goToCat(nextCat);
+                }}
+                disabled={!nextActive}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: nextActive ? (showNextCat ? `${nextColor}12` : light.bgSub) : 'transparent', border: `1px solid ${nextActive ? (showNextCat ? `${nextColor}35` : light.border) : 'transparent'}`, color: nextActive ? (showNextCat ? nextColor : light.textSub) : light.textMuted, cursor: nextActive ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600', maxWidth: '42%' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{showNextCat ? nextCat : 'Next'}</span>
+                <ChevronRight size={15} style={{ flexShrink: 0 }} />
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

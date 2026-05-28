@@ -52,7 +52,7 @@ function BadgeChip({ tier, streak }) {
   );
 }
 
-export default function RightPane({ stats = {}, history = [], onPlayStory }) {
+export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth }) {
   const {
     todayProgress = {},
     allCaughtUp = false,
@@ -72,7 +72,25 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
     }}>
 
       {/* ── Your Progress ── */}
-      <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
+      {!user && (
+        <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
+          <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Today's Progress
+          </p>
+          <button onClick={onShowAuth}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '10px', padding: '10px 11px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+          >
+            <span style={{ fontSize: '1rem', flexShrink: 0 }}>🔒</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: light.text, marginBottom: '2px' }}>Sign in to track progress</div>
+              <div style={{ fontSize: '0.6rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>See how many stories you've read today across all your feeds.</div>
+            </div>
+          </button>
+        </div>
+      )}
+      {user && <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
         <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           Today's Progress
         </p>
@@ -165,7 +183,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
             Add categories to a feed to track your progress.
           </p>
         )}
-      </div>
+      </div>}
 
       {/* ── Recently Played ── */}
       <div style={{ borderTop: `1px solid ${light.border}`, padding: '0.85rem 0.85rem 1rem', flex: 1 }}>
@@ -173,7 +191,19 @@ export default function RightPane({ stats = {}, history = [], onPlayStory }) {
           Recently Played
         </p>
 
-        {history.length === 0 ? (
+        {!user ? (
+          <button onClick={onShowAuth}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '10px', padding: '10px 11px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+          >
+            <span style={{ fontSize: '1rem', flexShrink: 0 }}>🔒</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: '700', color: light.text, marginBottom: '2px' }}>Sign in to see history</div>
+              <div style={{ fontSize: '0.6rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>Your recently played stories will appear here.</div>
+            </div>
+          </button>
+        ) : history.length === 0 ? (
           <p style={{ margin: 0, fontSize: '0.72rem', color: light.textMuted, lineHeight: 1.5 }}>
             Stories you listen to will appear here.
           </p>

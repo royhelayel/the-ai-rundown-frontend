@@ -91,13 +91,25 @@ export default function FeedPage({
       </div>
 
       {/* ── Today's Progress ── */}
-      {!briefingLoading && feed.categories.length > 0 && (() => {
+      {!briefingLoading && feed.categories.length > 0 && !user && (
+        <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+          <button onClick={onShowAuth}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '99px', padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
+          >
+            <span style={{ fontSize: '0.75rem' }}>🔒</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: light.textMuted }}>Sign in to track your reading progress</span>
+          </button>
+        </div>
+      )}
+      {!briefingLoading && feed.categories.length > 0 && user && (() => {
         const totalListened = feed.categories.reduce((s, c) => s + (todayProgress[c]?.listened || 0), 0);
         const totalStories  = feed.categories.reduce((s, c) => s + (todayProgress[c]?.total   || 0), 0);
         const msg = allCaughtUp
-          ? { icon: '✅', text: 'You are fully caught up. Good job!', color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+          ? { icon: '✅', text: `${totalListened} out of ${totalStories} stories read. You are fully caught up!`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
           : totalStories > 0
-            ? { icon: totalListened > 0 ? '🔥' : '👇', text: `${totalListened} out of ${totalStories} read. Continue reading to be fully caught up.`, color: totalListened > 0 ? '#92400e' : light.textMuted, bg: totalListened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: totalListened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' }
+            ? { icon: totalListened > 0 ? '🔥' : '👇', text: `${totalListened} out of ${totalStories} stories read. ${totalListened > 0 ? 'You are almost there, continue reading!' : 'Continue reading to be fully caught up!'}`, color: totalListened > 0 ? '#92400e' : light.textMuted, bg: totalListened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: totalListened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' }
             : { icon: '👇', text: 'No stories available yet.', color: light.textMuted, bg: 'transparent', border: 'transparent' };
         return (
           <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>

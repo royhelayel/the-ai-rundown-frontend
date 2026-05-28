@@ -160,10 +160,10 @@ const TheAIRundown = () => {
   const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
-  const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory();
+  const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
   const gamifiedStats = useMemo(
-    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories),
-    [listenHistory, perfectDays, briefingData, feedCategories]
+    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null),
+    [listenHistory, perfectDays, briefingData, feedCategories, selectedTime]
   );
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
   const navigate = useNavigate();
@@ -281,8 +281,11 @@ const TheAIRundown = () => {
         const lines = chunk.trim().split('\n');
         const h = lines[0].replace(/^#{1,3}\s+/, '').replace(/^\[(.+?)\]\(https?:\/\/[^)]+\)$/, '$1')
           .replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
-        const bullets = [...lines.slice(1).join('\n').matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
-        if (h && bullets.length > 0) punchyMap[normalizeHeadline(h)] = bullets;
+        const bodyText = lines.slice(1).join('\n');
+        const bullets = [...bodyText.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
+        const summaryMatch = bodyText.match(/\*\*Summary:\*\*\s*([\s\S]+)/);
+        const summary = summaryMatch ? summaryMatch[1].trim() : null;
+        if (h && bullets.length > 0) punchyMap[normalizeHeadline(h)] = { bullets, summary };
       });
     }
 
@@ -297,14 +300,15 @@ const TheAIRundown = () => {
       const key = normalizeHeadline(chunk.headline);
       const punchy = punchyMap[key];
       if (punchy) anyPunchy = true;
-      const tightBullets = punchy || allBullets.slice(0, 3);
+      const tightBullets = punchy?.bullets || allBullets.slice(0, 3);
       if (!chunk.headline || allBullets.length === 0) return null;
       return {
         headline: chunk.headline,
-        tightBullets,   // short: from storiesContent if available, else first 3 from content
-        allBullets,     // full: all bullets from content
+        tightBullets,       // short: from storiesContent if available, else first 3 from content
+        allBullets,         // full: all bullets from content
         perspectives: perspMatch?.[1] || null,
         why: whyMatch?.[1] || null,
+        summary: punchy?.summary || null,  // elaborate narrative paragraph (new generation cycle only)
         storySources,
         bodyLines: chunk.bodyLines, // kept for Read mode renderer
       };
@@ -611,7 +615,7 @@ const TheAIRundown = () => {
     const story = stories[idx];
     setStoryIndex(idx);
     currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
-    addToHistory(story, storyNavRef.current.cat, idx);
+    addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
     const cl = cleanForTTS;
@@ -1670,7 +1674,7 @@ const TheAIRundown = () => {
   };
 
   // Mark a story as read when user navigates into it (separate from play)
-  const handleMarkRead = (story, cat, idx) => addToHistory(story, cat, idx);
+  const handleMarkRead = (story, cat, idx) => addToHistory(story, cat, idx, selectedTime || null);
 
   // Resume index: first unread today for a category, bounded by where we left off (whichever is earlier)
   const getResumeIndex = (cat) => {
@@ -2020,6 +2024,7 @@ const TheAIRundown = () => {
           onMarkRead={handleMarkRead}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          categoryProgress={gamifiedStats.todayProgress[catFromUrl]}
         />
       )}
 
@@ -2065,7 +2070,16 @@ const TheAIRundown = () => {
                     <div style={{ fontSize: '0.88rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{user.email}</div>
                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.15rem' }}>Signed in</div>
                   </div>
-                  <button onClick={async () => { await supabase.auth.signOut(); setUser(null); localStorage.removeItem('newsdigest_user'); navigate('/'); }}
+                  <button onClick={async () => {
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    setUserFeeds([]);
+                    setFeedCategories([]);
+                    setCustomCategories([]);
+                    setCustomCategoryDescriptions({});
+                    localStorage.removeItem('newsdigest_user');
+                    navigate('/');
+                  }}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#f87171', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
                     <LogOut size={14} /> Sign Out
                   </button>
@@ -2227,6 +2241,8 @@ const TheAIRundown = () => {
           <SideNav
             userFeeds={userFeeds} onReorderFeeds={handleReorderFeeds}
             categories={allCategories} briefingData={briefingData} onSelectCategory={handleSelectCategory}
+            user={user}
+            onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           />
         </div>
       )}
@@ -2238,6 +2254,8 @@ const TheAIRundown = () => {
             stats={gamifiedStats}
             history={listenHistory}
             onPlayStory={handlePlayStory}
+            user={user}
+            onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           />
         </div>
       )}

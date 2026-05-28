@@ -1878,6 +1878,8 @@ const TheAIRundown = () => {
           onPlayCategory={handlePlayCategory}
           isNarrating={isNarrating}
           playerVisible={playerVisible}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
         />
       )}
 

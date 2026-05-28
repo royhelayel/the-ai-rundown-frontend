@@ -14,18 +14,13 @@ const light = {
   accent:    '#6366f1',
 };
 
-function SharedHeader({ user, onShowAuth, selectedDay, selectedTime, availableDays, availableTimes, onSelectDay, onSelectTime }) {
+function SharedHeader({ user, onShowAuth }) {
   const navigate = useNavigate();
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em', flexShrink: 0 }}>The Rundown</span>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
         <div style={{ flex: 1 }} />
-        <DateTimePill
-          selectedDay={selectedDay} selectedTime={selectedTime}
-          availableDays={availableDays} availableTimes={availableTimes}
-          onSelectDay={onSelectDay} onSelectTime={onSelectTime}
-        />
         <button
           onClick={user ? () => navigate('/settings') : onShowAuth}
           style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
@@ -60,7 +55,7 @@ export default function MyFeedTab({
     return (
       <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
+        <SharedHeader user={user} onShowAuth={onShowAuth} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} color={light.textMuted} />
@@ -84,7 +79,7 @@ export default function MyFeedTab({
     return (
       <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
+        <SharedHeader user={user} onShowAuth={onShowAuth} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
           <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>⭐</div>
           <div style={{ textAlign: 'center' }}>
@@ -111,20 +106,28 @@ export default function MyFeedTab({
       `}</style>
 
       {/* Header */}
-      <SharedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} selectedTime={selectedTime} availableDays={availableDays} availableTimes={availableTimes} onSelectDay={onSelectDay} onSelectTime={onSelectTime} />
+      <SharedHeader user={user} onShowAuth={onShowAuth} />
 
-      {/* Page title + create shortcut */}
-      <div style={{ padding: '1.5rem 1.25rem 0.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>My Feed</h1>
-        <button
-          onClick={() => navigate('/customize')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.8rem', borderRadius: '999px', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer' }}>
-          <Plus size={12} /> New feed
-        </button>
+      {/* Hero row — mirrors Briefing layout */}
+      <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>My Feed</h1>
+          <DateTimePill
+            selectedDay={selectedDay} selectedTime={selectedTime}
+            availableDays={availableDays} availableTimes={availableTimes}
+            onSelectDay={onSelectDay} onSelectTime={onSelectTime}
+          />
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => navigate('/customize')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.38rem 0.85rem', borderRadius: '999px', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textSub, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}>
+            <Plus size={12} /> New feed
+          </button>
+        </div>
       </div>
 
       {/* Named feed sections */}
-      <div style={{ flex: 1, paddingTop: '0.75rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      <div style={{ flex: 1, paddingTop: '0.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '0.75rem', color: light.textMuted }}>
             <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />

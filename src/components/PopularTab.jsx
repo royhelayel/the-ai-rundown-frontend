@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, TrendingUp, Loader } from 'lucide-react';
+import { Play, Loader, User } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 
 const light = {
@@ -22,6 +22,7 @@ export default function PopularTab({
   defaultCategories,
   onSelectCategory, onPlayCategory,
   isNarrating, playerVisible,
+  user, onShowAuth,
 }) {
   const navigate = useNavigate();
 
@@ -56,23 +57,25 @@ export default function PopularTab({
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
+      {/* Header — matches Briefing: brand left, user icon right */}
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={user ? () => navigate('/settings') : onShowAuth}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
+            <User size={16} />
+          </button>
         </div>
       </header>
 
       {/* Content */}
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
-        {/* Title */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <TrendingUp size={20} color={light.text} strokeWidth={2.5} />
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em' }}>Popular</h1>
-          </div>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: light.textMuted }}>Most listened stories today</p>
+        {/* Title row — matches Briefing hero */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>Popular</h1>
         </div>
 
         {/* Empty-state banner: no listens yet */}

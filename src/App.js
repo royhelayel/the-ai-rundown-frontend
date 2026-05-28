@@ -926,13 +926,14 @@ const TheAIRundown = () => {
       const validDays = daysOfWeek.filter(d => timesOfDay.some(t => completedSlots.has(`${d.fullDate}|${t.value}`)));
       if (validDays.length > 0) {
         const newDay = validDays[validDays.length - 1].fullDate;
-        const avail = timesOfDay.find(t => completedSlots.has(`${newDay}|${t.value}`));
+        // Pick the latest slot for that day (Evening before Morning) — reverse so newest wins
+        const avail = [...timesOfDay].reverse().find(t => completedSlots.has(`${newDay}|${t.value}`));
         setSelectedDay(newDay);
         if (avail) setSelectedTime(avail.value);
       }
     } else if (!completedSlots.has(`${selectedDay}|${selectedTime}`)) {
-      // Day is fine but selected time slot is unavailable — pick first available slot for this day
-      const avail = timesOfDay.find(t => completedSlots.has(`${selectedDay}|${t.value}`));
+      // Day is fine but selected time slot is unavailable — pick latest available slot for this day
+      const avail = [...timesOfDay].reverse().find(t => completedSlots.has(`${selectedDay}|${t.value}`));
       if (avail) setSelectedTime(avail.value);
     }
   }, [slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps

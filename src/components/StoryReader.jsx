@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, User } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { readTime } from '../utils';
 
@@ -31,6 +31,8 @@ export default function StoryReader({
   isPaused,
   miniPlayerVisible,
   contextCategories = [],
+  user,
+  onShowAuth,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,19 +77,24 @@ export default function StoryReader({
         background: `${light.bg}f0`,
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${light.border}`,
+        padding: '0.75rem 1.25rem',
       }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button
             onClick={goBack}
-            style={{ width: '34px', height: '34px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ChevronLeft size={17} />
+            style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ChevronLeft size={15} />
           </button>
-          <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: '700', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {category}
-          </span>
-          <span style={{ fontSize: '0.78rem', color: light.textMuted, flexShrink: 0 }}>
+          <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: '0.75rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>
             {storyIndex + 1} / {stories.length}
           </span>
+          <button
+            onClick={user ? () => navigate('/settings') : onShowAuth}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
+            <User size={16} />
+          </button>
         </div>
       </header>
 

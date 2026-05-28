@@ -2015,6 +2015,8 @@ const TheAIRundown = () => {
           onPlayFrom={onPlayFrom}
           miniPlayerVisible={miniPlayerVisible}
           onMarkRead={handleMarkRead}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
         />
       )}
 
@@ -2028,6 +2030,8 @@ const TheAIRundown = () => {
           isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
           isPaused={isPaused}
           miniPlayerVisible={miniPlayerVisible}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           contextCategories={(() => {
             const from = location.state?.from;
             if (typeof from === 'string' && from.startsWith('/feed/')) {

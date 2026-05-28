@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Play } from 'lucide-react';
+import { ChevronLeft, Play, User } from 'lucide-react';
 import { SkeletonCategoryView } from './SkeletonScreens';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
 import { readTime } from '../utils';
@@ -39,6 +39,8 @@ export default function CategoryView({
   onPlayFrom,
   miniPlayerVisible,
   onMarkRead,
+  user,
+  onShowAuth,
 }) {
   const navigate = useNavigate();
   const color  = CATEGORY_COLORS[category] || '#6366f1';
@@ -49,23 +51,20 @@ export default function CategoryView({
     <div style={{ background: light.bgSub, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{WAVE_STYLE}</style>
 
-      {/* ── Sticky header — back + category pill ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}` }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* ── Sticky header ── */}
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button onClick={() => navigate(-1)}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ChevronLeft size={16} />
+            style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ChevronLeft size={15} />
           </button>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.6rem', background: `${color}15`, border: `1px solid ${color}35`, borderRadius: '999px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }} />
-            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
-          </div>
+          <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
           <div style={{ flex: 1 }} />
-          {stories.length > 0 && (
-            <span style={{ fontSize: '0.75rem', color: light.textMuted, fontWeight: '500' }}>
-              {stories.length} {stories.length === 1 ? 'story' : 'stories'}
-            </span>
-          )}
+          <button
+            onClick={user ? () => navigate('/settings') : onShowAuth}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
+            <User size={16} />
+          </button>
         </div>
       </header>
 
@@ -88,26 +87,25 @@ export default function CategoryView({
             }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, transparent 25%, rgba(0,0,0,0.88) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: color, opacity: 0.18 }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 6px ${color}` }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.85rem 1rem', display: 'flex', alignItems: 'flex-end', gap: '0.75rem' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 6px ${color}` }} />
+                  <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+                </div>
                 <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{category}</div>
                 {stories.length > 0 && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '3px' }}>{stories.length} {stories.length === 1 ? 'story' : 'stories'} · ~{totalMin} min</div>}
               </div>
+              {stories.length > 0 && (
+                <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
+                  <button className="ai-btn-inner" onClick={() => onPlayFrom(0)}>
+                    <Play size={13} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
+                    {isNarrating ? 'Playing…' : 'Play All'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* ── Play button ── */}
-          {stories.length > 0 && (
-            <div style={{ padding: '0.9rem 0.9rem 0' }}>
-              <div className="ai-btn-wrap">
-                <button className="ai-btn-inner" onClick={() => onPlayFrom(0)}>
-                  <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
-                  {isNarrating ? 'Now Playing…' : `Play ${category}`}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* ── Story list — card-wrapped, white rows ── */}
           {stories.length === 0 ? (

@@ -94,15 +94,6 @@ export default function BriefingFeed({
         <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em', flexShrink: 0 }}>The Rundown</span>
           <div style={{ flex: 1 }} />
-          {/* Global date/time picker pill */}
-          <DateTimePill
-            selectedDay={selectedDay}
-            selectedTime={selectedTime}
-            availableDays={availableDays}
-            availableTimes={availableTimes}
-            onSelectDay={onSelectDay}
-            onSelectTime={onSelectTime}
-          />
           <button
             onClick={user ? () => navigate('/settings') : onShowAuth}
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
@@ -113,17 +104,19 @@ export default function BriefingFeed({
 
       {/* ── Briefing hero ── */}
       <div style={{ padding: '1.5rem 1.25rem 1rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-        <p style={{ margin: '0 0 0.2rem', fontSize: '0.72rem', fontWeight: '700', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          {dayLabel}
-        </p>
-        <h1 style={{ margin: '0 0 0.5rem', fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
-          {greeting}
-        </h1>
-        {totalStories > 0 && (
-          <p style={{ margin: '0 0 1.25rem', fontSize: '0.82rem', color: light.textSub, fontWeight: '500' }}>
-            {totalStories} {totalStories === 1 ? 'story' : 'stories'} · {totalCats} {totalCats === 1 ? 'category' : 'categories'} · ~{totalMin} min
-          </p>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+            Briefing
+          </h1>
+          <DateTimePill
+            selectedDay={selectedDay}
+            selectedTime={selectedTime}
+            availableDays={availableDays}
+            availableTimes={availableTimes}
+            onSelectDay={onSelectDay}
+            onSelectTime={onSelectTime}
+          />
+        </div>
 
         {/* Play Briefing CTA — animated AI gradient border */}
         <div className="ai-btn-wrap" style={{ width: '100%' }}>
@@ -133,6 +126,7 @@ export default function BriefingFeed({
           </button>
         </div>
       </div>
+
 
       {/* ── Category sections ── */}
       <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: '600px', margin: '0 auto', width: '100%' }}>

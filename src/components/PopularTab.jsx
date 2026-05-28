@@ -97,7 +97,7 @@ export default function PopularTab({
         )}
 
         {/* Loading */}
-        {briefingLoading && !hasAnyData ? (
+        {briefingLoading ? (
           <SkeletonPopularList count={7} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

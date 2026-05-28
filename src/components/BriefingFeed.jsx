@@ -105,7 +105,7 @@ export default function BriefingFeed({
 
       {/* ── Category sections ── */}
       <div style={{ flex: 1, paddingTop: '0.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        {briefingLoading && totalStories === 0 ? (
+        {briefingLoading ? (
           <SkeletonCategoryRows count={5} />
         ) : (
           allCats.map(cat => (

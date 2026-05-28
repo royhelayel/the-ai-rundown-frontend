@@ -37,7 +37,7 @@ export default function FeedPage({
 
   const totalStories = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
   const totalMin     = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
-  const isLoading    = briefingLoading && totalStories === 0;
+  const isLoading    = briefingLoading;
 
   return (
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>

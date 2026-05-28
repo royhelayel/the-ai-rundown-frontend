@@ -49,7 +49,7 @@ export default function MyFeedTab({
   // Union of all categories across all feeds (for loading check)
   const allFeedCats = [...new Set((userFeeds || []).flatMap(f => f.categories))];
   const totalStories = allFeedCats.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
-  const isLoading = briefingLoading && totalStories === 0;
+  const isLoading = briefingLoading;
 
   // Not logged in
   if (!user) {

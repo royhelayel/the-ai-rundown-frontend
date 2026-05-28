@@ -158,7 +158,7 @@ const TheAIRundown = () => {
   const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
   const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
-  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [briefingLoading, setBriefingLoading] = useState(true);
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();

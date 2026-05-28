@@ -192,6 +192,7 @@ export default function FeedPage({
               activeStoryIndex={currentStoryIndex}
               fromPath={`/feed/${feed.id}`}
               listenedIndices={todayProgress[cat]?.listenedIndices}
+              categoryProgress={todayProgress[cat]}
             />
           ))
         )}

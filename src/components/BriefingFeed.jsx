@@ -123,6 +123,7 @@ export default function BriefingFeed({
               activeStoryIndex={currentStoryIndex}
               fromPath="/"
               listenedIndices={todayProgress[cat]?.listenedIndices}
+              categoryProgress={todayProgress[cat]}
             />
           ))
         )}

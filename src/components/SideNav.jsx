@@ -163,9 +163,8 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: '26px', height: '26px', borderRadius: '50%',
-                    background: color + '22', border: `1px solid ${color}`,
-                    flexShrink: 0, fontSize: '0.62rem', fontWeight: '800', color,
-                    letterSpacing: '-0.01em', lineHeight: 1,
+                    background: color + '22',
+                    flexShrink: 0, fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1,
                   }}>
                     {(cat || '').slice(0, 2).toUpperCase()}
                   </span>

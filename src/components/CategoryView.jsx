@@ -179,12 +179,9 @@ export default function CategoryView({
                   onMouseLeave={e => e.currentTarget.style.background = isActive ? `${color}08` : light.bg}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', marginBottom: '0.3rem' }}>
-                      <p style={{ margin: 0, fontSize: '0.92rem', fontWeight: '700', color: isRead ? light.textMuted : light.text, lineHeight: 1.35, flex: 1 }}>
-                        {story.headline}
-                      </p>
-                      {isRead && <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} style={{ flexShrink: 0, marginTop: '2px' }} />}
-                    </div>
+                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.92rem', fontWeight: '700', color: isRead ? light.textMuted : light.text, lineHeight: 1.35 }}>
+                      {story.headline}
+                    </p>
                     {excerpt && (
                       <p style={{ margin: '0 0 0.4rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {excerpt}{excerpt.length === 200 ? '…' : ''}
@@ -210,6 +207,14 @@ export default function CategoryView({
                       })}
                       {topSources.length > 0 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
                       <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{readTime(story)}</span>
+                      {isRead && (
+                        <>
+                          <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '0.7rem', fontWeight: '600', color: '#16a34a' }}>
+                            <CheckCircle2 size={11} strokeWidth={2.5} />Read
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 

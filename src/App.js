@@ -12,6 +12,7 @@ import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
 import SideNav from './components/SideNav';
 import FeedPage from './components/FeedPage';
+import RightPane from './components/RightPane';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import CustomizeTab from './components/CustomizeTab';
@@ -1738,6 +1739,7 @@ const TheAIRundown = () => {
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .side-nav-wrap { display: none; }
+        .right-pane-wrap { display: none; }
         .bottom-nav-wrap { display: block; }
         .main-content-offset { margin-left: 0; }
         /* ── Animated gradient Play button (shared) ── */
@@ -1762,9 +1764,10 @@ const TheAIRundown = () => {
         @media (min-width: 1024px) {
           :root { --body-max: 780px; }
           .side-nav-wrap { display: block; }
+          .right-pane-wrap { display: block; }
           .bottom-nav-wrap { display: none; }
-          .main-content-offset { margin-left: 220px; }
-          .mini-player-bar { left: 220px !important; }
+          .main-content-offset { margin-left: 220px; margin-right: 200px; }
+          .mini-player-bar { left: 220px !important; right: 200px !important; }
           .header-brand { display: none; }
         }
       `}</style>
@@ -2139,10 +2142,26 @@ const TheAIRundown = () => {
         </div>
       )}
 
+      {/* ── Right Pane — Categories (desktop) ── */}
+      {showBottomNav && (
+        <div className="right-pane-wrap">
+          <RightPane
+            categories={allCategories}
+            briefingData={briefingData}
+            onSelectCategory={handleSelectCategory}
+          />
+        </div>
+      )}
+
       {/* ── Bottom Navigation (mobile) ── */}
       {showBottomNav && (
         <div className="bottom-nav-wrap">
-          <BottomNav userFeeds={userFeeds} />
+          <BottomNav
+            userFeeds={userFeeds}
+            categories={allCategories}
+            briefingData={briefingData}
+            onSelectCategory={handleSelectCategory}
+          />
         </div>
       )}
 

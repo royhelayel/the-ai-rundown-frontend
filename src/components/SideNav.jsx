@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, TrendingUp, PlusCircle, GripVertical } from 'lucide-react';
+import { CATEGORY_COLORS } from '../theme';
 
 const light = {
   bg:        '#ffffff',
@@ -18,7 +19,7 @@ const BOTTOM_TABS = [
   { path: '/customize',label: 'Create Feed',  Icon: PlusCircle, matchFn: p => p === '/customize' },
 ];
 
-export default function SideNav({ userFeeds = [], onReorderFeeds }) {
+export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [], briefingData = {}, onSelectCategory }) {
   const navigate   = useNavigate();
   const { pathname } = useLocation();
   const dragId     = useRef(null);
@@ -112,7 +113,7 @@ export default function SideNav({ userFeeds = [], onReorderFeeds }) {
       {userFeeds.length > 0 && <div style={{ height: '1px', background: light.border, margin: '0.5rem 0.5rem 0.75rem' }} />}
 
       {/* ── Fixed tabs ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.5rem' }}>
         {BOTTOM_TABS.map(({ path, label, Icon, matchFn }) => {
           const active = matchFn(pathname);
           return (
@@ -134,6 +135,46 @@ export default function SideNav({ userFeeds = [], onReorderFeeds }) {
           );
         })}
       </div>
+
+      {/* ── Categories ── */}
+      {categories.length > 0 && (
+        <>
+          <div style={{ height: '1px', background: light.border, margin: '0 0.5rem 0.65rem' }} />
+          <p style={{ margin: '0 0 0.35rem 0.75rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Categories
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            {categories.map(cat => {
+              const color  = CATEGORY_COLORS[cat] || '#6366f1';
+              const count  = briefingData[cat]?.storyCount || 0;
+              const active = pathname === `/category/${encodeURIComponent(cat)}`;
+              return (
+                <button key={cat}
+                  onClick={() => { onSelectCategory?.(cat); navigate(`/category/${encodeURIComponent(cat)}`); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
+                    padding: '0.5rem 0.75rem', borderRadius: '10px', border: 'none',
+                    background: active ? light.bgSub : 'transparent',
+                    cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = light.bgSub; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0, opacity: active ? 1 : 0.6 }} />
+                  <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: active ? '700' : '500', color: active ? light.text : light.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cat}
+                  </span>
+                  {count > 0 && (
+                    <span style={{ fontSize: '0.65rem', color: light.textMuted, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </nav>
   );
 }

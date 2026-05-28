@@ -18,6 +18,7 @@ import PopularTab from './components/PopularTab';
 import CustomizeTab from './components/CustomizeTab';
 import { headlineKey } from './components/PopularTab';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
+import useListenHistory from './hooks/useListenHistory';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
@@ -159,6 +160,7 @@ const TheAIRundown = () => {
   const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
+  const { history: listenHistory, stats: listenStats, addToHistory } = useListenHistory();
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();
@@ -605,6 +607,7 @@ const TheAIRundown = () => {
     const story = stories[idx];
     setStoryIndex(idx);
     currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
+    addToHistory(story, storyNavRef.current.cat, idx);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
     const cl = cleanForTTS;
@@ -2149,7 +2152,10 @@ const TheAIRundown = () => {
       {/* ── Side Navigation (desktop) ── */}
       {showBottomNav && (
         <div className="side-nav-wrap">
-          <SideNav userFeeds={userFeeds} onReorderFeeds={handleReorderFeeds} />
+          <SideNav
+            userFeeds={userFeeds} onReorderFeeds={handleReorderFeeds}
+            categories={allCategories} briefingData={briefingData} onSelectCategory={handleSelectCategory}
+          />
         </div>
       )}
 
@@ -2157,9 +2163,9 @@ const TheAIRundown = () => {
       {showBottomNav && (
         <div className="right-pane-wrap">
           <RightPane
-            categories={allCategories}
-            briefingData={briefingData}
-            onSelectCategory={handleSelectCategory}
+            stats={listenStats}
+            history={listenHistory}
+            onPlayStory={handlePlayStory}
           />
         </div>
       )}
@@ -2172,6 +2178,9 @@ const TheAIRundown = () => {
             categories={allCategories}
             briefingData={briefingData}
             onSelectCategory={handleSelectCategory}
+            stats={listenStats}
+            history={listenHistory}
+            onPlayStory={handlePlayStory}
           />
         </div>
       )}

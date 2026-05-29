@@ -76,6 +76,9 @@ export default function StoryReader({
         * { box-sizing: border-box; }
         body { background: ${light.bg}; margin: 0; }
         ::-webkit-scrollbar { display: none; }
+        @media (max-width: 1023px) {
+          .story-nav-bar { bottom: 56px !important; }
+        }
       `}</style>
 
       {/* ── Header ── */}
@@ -215,7 +218,7 @@ export default function StoryReader({
       </article>
 
       {/* ── Navigation ── */}
-      <div style={{
+      <div className="story-nav-bar" style={{
         position: 'sticky', bottom: miniPlayerVisible ? '5rem' : '0',
         background: light.bg, borderTop: `1px solid ${light.border}`,
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',

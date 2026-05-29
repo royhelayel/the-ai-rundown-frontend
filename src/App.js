@@ -156,6 +156,7 @@ const TheAIRundown = () => {
   // ── New UI state ──────────────────────────────────────────────────────────────
   const [playerVisible, setPlayerVisible] = useState(false);
   const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [miniPlayerDock, setMiniPlayerDock] = useState('bottom'); // 'bottom' | 'top'
   const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
   const playerSourcePath = useRef('/');
   const [briefingData, setBriefingData] = useState({});
@@ -2045,7 +2046,7 @@ const TheAIRundown = () => {
           isPaused={isPaused}
           currentStoryIndex={storyIndex}
           onPlayFrom={onPlayFrom}
-          miniPlayerVisible={miniPlayerVisible}
+          miniPlayerVisible={miniPlayerVisible && miniPlayerDock === 'bottom'}
           onMarkRead={handleMarkRead}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
@@ -2062,7 +2063,7 @@ const TheAIRundown = () => {
           onPlayFrom={onPlayFrom}
           isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
           isPaused={isPaused}
-          miniPlayerVisible={miniPlayerVisible}
+          miniPlayerVisible={miniPlayerVisible && miniPlayerDock === 'bottom'}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           onMarkRead={handleMarkRead}
@@ -2257,7 +2258,10 @@ const TheAIRundown = () => {
           onResume={() => narrateFnRef.current.resume()}
           onExpand={() => setPlayerMinimized(false)}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
+          dockPosition={miniPlayerDock}
+          onDockChange={setMiniPlayerDock}
           bottomOffset={showBottomNav && typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 0}
+          topOffset={0}
         />
       )}
 

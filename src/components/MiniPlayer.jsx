@@ -35,7 +35,9 @@ export default function MiniPlayer({
 
   const onPointerDown = useCallback((e) => {
     if (e.target.closest('[data-nodrag]')) return;
-    e.preventDefault();
+    // Do NOT preventDefault here — it suppresses the click event on touch devices,
+    // breaking the tap-to-expand behaviour. touchAction:'none' + userSelect:'none'
+    // on the wrapper already prevent scroll interference and text selection.
     isDragRef.current = false;
     const rect = barRef.current?.getBoundingClientRect() ?? { top: 0 };
     pointerStart.current = {

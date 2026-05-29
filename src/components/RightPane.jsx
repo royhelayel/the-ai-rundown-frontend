@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { CATEGORY_COLORS } from '../theme';
 import { timeAgo } from '../hooks/useListenHistory';
 
@@ -63,7 +64,9 @@ function BadgeChip({ tier, streak }) {
   );
 }
 
-export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth, selectedProgressDay = null, onSelectProgressDay }) {
+export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth, selectedProgressDay = null, onSelectProgressDay, onGoToCategory }) {
+  const navigate = useNavigate();
+
   const {
     todayProgress = {},
     allCaughtUp = false,
@@ -179,7 +182,16 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
               const color = CATEGORY_COLORS[cat] || '#6366f1';
               const badge = categoryBadges[cat];
               return (
-                <div key={cat} style={{ background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem' }}>
+                <button
+                  key={cat}
+                  onClick={() => {
+                    onGoToCategory?.(cat);
+                    navigate(`/category/${encodeURIComponent(cat)}`);
+                  }}
+                  style={{ background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem', border: '1px solid transparent', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.12s, background 0.12s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = `${color}40`; e.currentTarget.style.background = `${color}0a`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = light.bgSub; }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: p.total > 0 ? '4px' : 0 }}>
                     <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.62rem', fontWeight: '800', color, lineHeight: 1 }}>{initials(cat)}</span>
@@ -204,7 +216,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
                       <span style={{ fontSize: '0.5rem', color: light.textMuted, marginLeft: '4px' }}>{badge.streak}d streak</span>
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>

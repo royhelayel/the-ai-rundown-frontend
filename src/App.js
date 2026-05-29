@@ -2289,6 +2289,12 @@ const TheAIRundown = () => {
             onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
             selectedProgressDay={selectedProgressDay}
             onSelectProgressDay={setSelectedProgressDay}
+            onGoToCategory={(cat) => {
+              if (selectedProgressDay && selectedProgressDay !== today) {
+                selectDay(selectedProgressDay);
+              }
+              handleSelectCategory(cat);
+            }}
           />
         </div>
       )}

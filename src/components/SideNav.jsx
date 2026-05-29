@@ -149,7 +149,7 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
               const active = pathname === `/category/${encodeURIComponent(cat)}`;
               return (
                 <button key={cat}
-                  onClick={() => { onSelectCategory?.(cat); navigate(`/category/${encodeURIComponent(cat)}`); }}
+                  onClick={() => { onSelectCategory?.(cat); navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: pathname } }); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.6rem',
                     padding: '0.5rem 0.75rem', borderRadius: '10px', border: 'none',

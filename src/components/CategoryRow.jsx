@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Play, ChevronRight, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
-import { readTime } from '../utils';
+import { readTime, formatDuration } from '../utils';
 
 const WAVE_STYLE = `
   @keyframes cr-wave {
@@ -35,10 +35,11 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
   const color = CATEGORY_COLORS[cat] || light.accent;
   const image = CATEGORY_IMAGES[cat] || null;
   const info = catData || null;
+  const [expanded, setExpanded] = useState(false);
 
   const handleOpen = () => {
     onOpen(cat);
-    navigate(`/category/${encodeURIComponent(cat)}`);
+    navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath || '/' } });
   };
 
   return (
@@ -74,7 +75,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
               </div>
               <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{cat}</div>
             </div>
-            {info && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '4px' }}>{info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min</div>}
+            {info && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '4px' }}>{info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{formatDuration(info.estimatedSec)}</div>}
           </div>
           <button
             onClick={e => { e.stopPropagation(); onPlay(cat); }}
@@ -103,7 +104,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
       {/* ── Story list ── */}
       {info && info.previewStories?.length > 0 ? (
         <div>
-          {info.previewStories.map((story, i) => {
+          {(expanded ? (info.allStories || info.previewStories) : info.previewStories).map((story, i) => {
             const sources = story.storySources?.filter(s => s.outlet) || [];
             const topSources = sources.slice(0, 2);
             const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
@@ -178,16 +179,27 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
             );
           })}
 
-          {/* View all */}
+          {/* Expand / collapse */}
           {info.storyCount > info.previewStories.length && (
-            <div
-              onClick={handleOpen}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.7rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', color: color, fontSize: '0.8rem', fontWeight: '600' }}
-              onMouseEnter={e => e.currentTarget.style.background = `${color}08`}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              View all {info.storyCount} stories <ChevronRight size={14} />
-            </div>
+            expanded ? (
+              <div
+                onClick={() => setExpanded(false)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.7rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', color: color, fontSize: '0.8rem', fontWeight: '600' }}
+                onMouseEnter={e => e.currentTarget.style.background = `${color}08`}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                View less <ChevronUp size={14} />
+              </div>
+            ) : (
+              <div
+                onClick={() => setExpanded(true)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.7rem', borderTop: `1px solid ${light.border}`, cursor: 'pointer', color: color, fontSize: '0.8rem', fontWeight: '600' }}
+                onMouseEnter={e => e.currentTarget.style.background = `${color}08`}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                View all {info.storyCount} stories <ChevronRight size={14} />
+              </div>
+            )
           )}
         </div>
       ) : (

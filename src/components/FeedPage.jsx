@@ -5,6 +5,7 @@ import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
 import { SkeletonCategoryRows } from './SkeletonScreens';
 import { CATEGORY_COLORS } from '../theme';
+import { formatDuration } from '../utils';
 
 function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
@@ -41,11 +42,11 @@ export default function FeedPage({
   }
 
   const totalStories = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
-  const totalMin     = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
+  const totalSec     = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedSec || 0), 0);
   const isLoading    = briefingLoading;
 
   return (
-    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
@@ -85,7 +86,7 @@ export default function FeedPage({
         </div>
         {totalStories > 0 && (
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: light.textMuted }}>
-            {totalStories} {totalStories === 1 ? 'story' : 'stories'} · ~{totalMin} min
+            {totalStories} {totalStories === 1 ? 'story' : 'stories'} · ~{formatDuration(totalSec)}
           </p>
         )}
       </div>
@@ -107,9 +108,9 @@ export default function FeedPage({
         const totalListened = feed.categories.reduce((s, c) => s + (todayProgress[c]?.listened || 0), 0);
         const totalStories  = feed.categories.reduce((s, c) => s + (todayProgress[c]?.total   || 0), 0);
         const msg = allCaughtUp
-          ? { icon: '✅', text: `${totalListened} out of ${totalStories} stories read. You are fully caught up!`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+          ? { icon: '✅', text: `You've caught up on all ${totalStories} stories.`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
           : totalStories > 0
-            ? { icon: totalListened > 0 ? '🔥' : '👇', text: `${totalListened} out of ${totalStories} stories read. ${totalListened > 0 ? 'You are almost there, continue reading!' : 'Continue reading to be fully caught up!'}`, color: totalListened > 0 ? '#92400e' : light.textMuted, bg: totalListened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: totalListened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' }
+            ? { icon: totalListened > 0 ? '🔥' : '👇', text: `You've caught up on ${totalListened} of ${totalStories} stories.`, color: totalListened > 0 ? '#92400e' : light.textMuted, bg: totalListened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: totalListened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' }
             : { icon: '👇', text: 'No stories available yet.', color: light.textMuted, bg: 'transparent', border: 'transparent' };
         return (
           <div style={{ padding: '0 1.25rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>

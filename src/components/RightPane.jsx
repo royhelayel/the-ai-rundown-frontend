@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CATEGORY_COLORS } from '../theme';
 import { timeAgo } from '../hooks/useListenHistory';
 
@@ -66,6 +66,7 @@ function BadgeChip({ tier, streak }) {
 
 export default function RightPane({ stats = {}, history = [], onPlayStory, user = null, onShowAuth, selectedProgressDay = null, onSelectProgressDay, onGoToCategory }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const {
     todayProgress = {},
@@ -186,7 +187,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
                   key={cat}
                   onClick={() => {
                     onGoToCategory?.(cat);
-                    navigate(`/category/${encodeURIComponent(cat)}`);
+                    navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: pathname } });
                   }}
                   style={{ background: light.bgSub, borderRadius: '8px', padding: '0.38rem 0.5rem', border: '1px solid transparent', cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.12s, background 0.12s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = `${color}40`; e.currentTarget.style.background = `${color}0a`; }}

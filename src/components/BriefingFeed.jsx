@@ -48,7 +48,7 @@ export default function BriefingFeed({
 
   const totalStories = Object.values(briefingData).reduce((s, d) => s + (d?.storyCount || 0), 0);
   const totalCats    = Object.values(briefingData).filter(d => d?.storyCount > 0).length;
-  const totalMin     = Object.values(briefingData).reduce((s, d) => s + (d?.estimatedMin || 0), 0);
+  const totalSec     = Object.values(briefingData).reduce((s, d) => s + (d?.estimatedSec || 0), 0); // eslint-disable-line no-unused-vars
 
   const timeLabel = availableTimes?.find(t => t.value === selectedTime)?.label || '';
   const greeting  = timeLabel === 'Morning' ? 'Morning Briefing' : timeLabel === 'Evening' ? 'Evening Briefing' : 'Your Briefing';

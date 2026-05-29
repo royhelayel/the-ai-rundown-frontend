@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, categoryGradient, categoryGlow } from '../theme';
+import { formatDuration } from '../utils';
 
-export default function CategoryTransition({ visible, category, storyCount, estimatedMin, nextStoryTitle, onDone }) {
+export default function CategoryTransition({ visible, category, storyCount, estimatedSec, nextStoryTitle, onDone }) {
   const color = CATEGORY_COLORS[category] || colors.accent;
   const image = CATEGORY_IMAGES[category];
   const [opacity, setOpacity] = useState(0);
@@ -40,7 +41,7 @@ export default function CategoryTransition({ visible, category, storyCount, esti
         </h1>
         {storyCount > 0 && (
           <p style={{ margin: '0 0 2rem', fontSize: '0.88rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>
-            {storyCount} {storyCount === 1 ? 'story' : 'stories'} · ~{estimatedMin} min
+            {storyCount} {storyCount === 1 ? 'story' : 'stories'} · ~{formatDuration(estimatedSec)}
           </p>
         )}
         {nextStoryTitle && (

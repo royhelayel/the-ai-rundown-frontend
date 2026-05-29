@@ -1,9 +1,19 @@
-// ── readTime ──────────────────────────────────────────────────────────────────
-// Counts words across all story text fields and returns a "X min read" string.
-// Average reading speed: 200 wpm. Minimum: 1 min.
+// ── readTime / formatDuration ─────────────────────────────────────────────────
+// formatDuration: converts a total-seconds value to a concise human string.
+//   < 60s  →  "45s"
+//   ≥ 60s  →  "1m 30s"  (or "3m" when seconds is 0)
+export function formatDuration(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r === 0 ? `${m}m` : `${m}m ${r}s`;
+}
 
+// readTime: counts words across all story text fields and returns an exact
+// duration string using formatDuration.  Reading speed: 200 wpm.
 export function readTime(story) {
-  if (!story) return '1 min read';
+  if (!story) return '30s';
   const fields = [
     ...(story.allBullets || story.tightBullets || []),
     story.perspectives,
@@ -12,6 +22,6 @@ export function readTime(story) {
   ].filter(Boolean);
 
   const wordCount = fields.join(' ').trim().split(/\s+/).length;
-  const mins = Math.max(1, Math.round(wordCount / 200));
-  return `${mins} min read`;
+  const totalSeconds = Math.max(10, Math.round((wordCount / 200) * 60));
+  return formatDuration(totalSeconds);
 }

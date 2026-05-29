@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Play, User, CheckCircle2 } from 'lucide-react';
 import { SkeletonCategoryView } from './SkeletonScreens';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from '../theme';
-import { readTime } from '../utils';
+import { readTime, formatDuration } from '../utils';
 
 const light = {
   bg:        '#ffffff',
@@ -50,13 +50,20 @@ export default function CategoryView({
 
   const goBack = () => {
     const from = location.state?.from;
-    if (!from || from === '/' || from === 'home') navigate('/');
-    else if (from === '/my-feed') navigate('/my-feed');
-    else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
-    else navigate('/');
+    // Trust any absolute path that was explicitly passed as `from` state.
+    // Fall back to home only when there's nothing to go back to.
+    if (from && from !== 'home' && typeof from === 'string' && from.startsWith('/')) {
+      navigate(from);
+    } else {
+      navigate('/');
+    }
   };
   const image  = CATEGORY_IMAGES[category] || null;
-  const totalMin = Math.round(stories.length * 2.5);
+  const totalSec = stories.reduce((sum, s) => {
+    const fields = [...(s.allBullets || s.tightBullets || []), s.perspectives, s.why, s.headline].filter(Boolean);
+    const words = fields.join(' ').trim().split(/\s+/).length;
+    return sum + Math.max(10, Math.round((words / 200) * 60));
+  }, 0);
 
   return (
     <div style={{ background: light.bgSub, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -106,7 +113,7 @@ export default function CategoryView({
                   </div>
                   <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{category}</div>
                 </div>
-                {stories.length > 0 && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '3px' }}>{stories.length} {stories.length === 1 ? 'story' : 'stories'} · ~{totalMin} min</div>}
+                {stories.length > 0 && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '3px' }}>{stories.length} {stories.length === 1 ? 'story' : 'stories'} · ~{formatDuration(totalSec)}</div>}
               </div>
               {stories.length > 0 && (
                 <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
@@ -139,8 +146,8 @@ export default function CategoryView({
             const pct      = categoryProgress?.pct      || 0;
             if (total === 0) return null;
             const msg = done
-              ? { icon: '✅', text: `${listened} out of ${total} stories read. You are fully caught up!`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
-              : { icon: listened > 0 ? '🔥' : '👇', text: `${listened} out of ${total} stories read. ${listened > 0 ? 'You are almost there, continue reading!' : 'Continue reading to be fully caught up!'}`, color: listened > 0 ? '#92400e' : light.textMuted, bg: listened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: listened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' };
+              ? { icon: '✅', text: `You've caught up on all ${total} stories.`, color: '#15803d', bg: 'rgba(22,163,74,0.07)', border: 'rgba(22,163,74,0.2)' }
+              : { icon: listened > 0 ? '🔥' : '👇', text: `You've caught up on ${listened} of ${total} stories.`, color: listened > 0 ? '#92400e' : light.textMuted, bg: listened > 0 ? 'rgba(251,146,60,0.07)' : 'transparent', border: listened > 0 ? 'rgba(251,146,60,0.2)' : 'transparent' };
             return (
               <div style={{ padding: '0.75rem 0.9rem 0.25rem', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: light.bg }}>
                 {/* Progress pill */}

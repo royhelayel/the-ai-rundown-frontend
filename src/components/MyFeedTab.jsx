@@ -4,6 +4,7 @@ import { Play, User } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
 import { SkeletonCategoryRows } from './SkeletonScreens';
+import { formatDuration } from '../utils';
 
 const light = {
   bg:        '#ffffff',
@@ -54,7 +55,7 @@ export default function MyFeedTab({
   // Not logged in
   if (!user) {
     return (
-      <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
         <SharedHeader user={user} onShowAuth={onShowAuth} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
@@ -78,7 +79,7 @@ export default function MyFeedTab({
   // Logged in but no feed set up
   if (!userFeeds?.length) {
     return (
-      <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
         <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
         <SharedHeader user={user} onShowAuth={onShowAuth} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
@@ -98,7 +99,7 @@ export default function MyFeedTab({
   }
 
   return (
-    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
       <style>{`
         * { box-sizing: border-box; }
         body { background: ${light.bg}; margin: 0; }
@@ -138,14 +139,14 @@ export default function MyFeedTab({
         ) : (
           (userFeeds || []).map((feed, idx) => {
             const feedTotal = feed.categories.reduce((s, c) => s + (briefingData[c]?.storyCount || 0), 0);
-            const feedMin   = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedMin || 0), 0);
+            const feedSec   = feed.categories.reduce((s, c) => s + (briefingData[c]?.estimatedSec || 0), 0);
             return (
               <div key={feed.id} style={{ marginBottom: '0.5rem' }}>
                 {/* Lean divider with stats — no dot/name label */}
                 {(userFeeds.length > 1) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem 0.35rem', borderTop: idx > 0 ? `1px solid ${light.border}` : 'none', marginTop: idx > 0 ? '0.75rem' : 0 }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: '700', color: light.text }}>{feed.name}</span>
-                    {feedTotal > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{feedTotal} {feedTotal === 1 ? 'story' : 'stories'} · ~{feedMin} min</span>}
+                    {feedTotal > 0 && <span style={{ fontSize: '0.72rem', color: light.textMuted }}>{feedTotal} {feedTotal === 1 ? 'story' : 'stories'} · ~{formatDuration(feedSec)}</span>}
                   </div>
                 )}
                 {/* Categories */}

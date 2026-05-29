@@ -167,7 +167,7 @@ const TheAIRundown = () => {
     () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay),
     [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay]
   );
-  const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedMin, nextStoryTitle }
+  const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -285,7 +285,8 @@ const TheAIRundown = () => {
           .replace(/https?:\/\/\S+/g, '').replace(/[()[\]]/g, '').trim();
         const bodyText = lines.slice(1).join('\n');
         const bullets = [...bodyText.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
-        const summaryMatch = bodyText.match(/\*\*Summary:\*\*\s*([\s\S]+)/);
+        // Stop capture at the next **Field:** boundary so adjacent fields aren't included
+        const summaryMatch = bodyText.match(/\*\*Summary:\*\*\s*([\s\S]+?)(?=\n\*\*[A-Z]|\n#{1,3} |$)/);
         const summary = summaryMatch ? summaryMatch[1].trim() : null;
         if (h && bullets.length > 0) punchyMap[normalizeHeadline(h)] = { bullets, summary };
       });
@@ -1532,8 +1533,8 @@ const TheAIRundown = () => {
           ].filter(Boolean);
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
         }, 0);
-        const estimatedMin = Math.max(1, Math.round(totalWords / 200));
-        return [cat, { storyCount: s.length, estimatedMin, previewStories: s.slice(0, 3), allStories: s }];
+        const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
+        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s }];
       } catch { return [cat, null]; }
     })).then(results => {
       const out = {};
@@ -2340,7 +2341,7 @@ const TheAIRundown = () => {
         visible={categoryTransition !== null}
         category={categoryTransition?.category || ''}
         storyCount={categoryTransition?.storyCount || 0}
-        estimatedMin={categoryTransition?.estimatedMin || 0}
+        estimatedSec={categoryTransition?.estimatedSec || 0}
         nextStoryTitle={categoryTransition?.nextStoryTitle || ''}
         onDone={() => setCategoryTransition(null)}
       />

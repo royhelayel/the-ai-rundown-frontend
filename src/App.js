@@ -887,7 +887,7 @@ const TheAIRundown = () => {
         // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
-          supabase.from('users').select('email_preferences, feed_categories, news_language').eq('id', userData.id).single()
+          supabase.from('users').select('email_preferences, feed_categories, news_language, user_feeds').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
           const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
@@ -1226,16 +1226,23 @@ const TheAIRundown = () => {
         const categories = categoriesData?.map(c => c.category_name) || [];
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
         const feed = userProfile.feed_categories || [];
+        const dbFeeds = userProfile.user_feeds || null;
         const userData = {
           id: authData.user.id,
           email: authData.user.email,
           categories,
           emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
           feedCategories: feed,
+          userFeeds: dbFeeds,
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
         setFeedCategories(feed);
+        if (dbFeeds) {
+          setUserFeeds(dbFeeds);
+        } else if (feed.length > 0) {
+          setUserFeeds([{ id: 'default', name: 'My Feed', categories: feed }]);
+        }
         if (feed.length > 0) setSelectedCategory('My Rundown');
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword(''); setAuthMessage(null);
       } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); }
@@ -1343,6 +1350,9 @@ const TheAIRundown = () => {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id, categories: allCats })
     }).catch(err => console.error('Failed to save feed categories:', err));
+    // Persist named feeds structure directly to Supabase so it survives sign-out/sign-in
+    supabase.from('users').update({ user_feeds: feeds }).eq('id', user.id)
+      .then(({ error }) => { if (error) console.error('Failed to save user_feeds:', error); });
   };
 
   const saveNewsLanguage = (lang) => {

@@ -68,14 +68,18 @@ export default function MiniPlayer({
     barRef.current?.releasePointerCapture(e.pointerId);
 
     if (ps.moved) {
-      const rect    = barRef.current?.getBoundingClientRect();
-      const centreY = rect ? rect.top + rect.height / 2 : dragTop;
-      const newDock = centreY < window.innerHeight / 2 ? 'top' : 'bottom';
+      // Small directional flick is enough — no need to drag across the whole screen.
+      // If dragged ≥ DOCK_THRESHOLD px toward the opposite edge, flip dock; else snap back.
+      const DOCK_THRESHOLD = 72;
+      const dy = e.clientY - ps.startY;
+      let newDock = dockPosition;
+      if (dockPosition === 'bottom' && dy < -DOCK_THRESHOLD) newDock = 'top';
+      if (dockPosition === 'top'    && dy >  DOCK_THRESHOLD) newDock = 'bottom';
       onDockChange?.(newDock);
       setDragging(false);
     }
     pointerStart.current = null;
-  }, [dragTop, onDockChange]);
+  }, [dockPosition, onDockChange]);
 
   // Reset isDragRef after a tick so the next tap starts clean
   const handleClick = useCallback((e) => {

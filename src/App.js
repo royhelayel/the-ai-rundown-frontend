@@ -742,6 +742,25 @@ const TheAIRundown = () => {
     }
   };
 
+  // ── Heartbeat — "on the website right now" counter ───────────────────────
+  // Fires immediately on every page load (guest or signed-in) and every 60s.
+  // Uses a sessionStorage ID so each browser tab is one session.
+  // The backend stores this in an in-memory map (no DB writes).
+  useEffect(() => {
+    let sid = sessionStorage.getItem('_hb_sid');
+    if (!sid) {
+      sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      sessionStorage.setItem('_hb_sid', sid);
+    }
+    const ping = () => fetch(`${BACKEND_URL}/api/metrics/heartbeat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: sid, userId: user?.id || null }),
+    }).catch(() => {});
+    ping();
+    const t = setInterval(ping, 60_000);
+    return () => clearInterval(t);
+  }, [user?.id]); // re-fires when auth state changes so userId is always current
+
   // Pre-fetch TTS audio for the current + next story as soon as the card is visible.
   // By the time the user presses play the audio is already buffered → instant playback.
   useEffect(() => {

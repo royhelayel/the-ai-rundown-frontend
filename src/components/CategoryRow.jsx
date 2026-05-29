@@ -67,12 +67,14 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
 
         {/* Content pinned to bottom */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: color + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: 'white', lineHeight: 1 }}>{(cat || '').slice(0, 2).toUpperCase()}</span>
-          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{cat}</div>
-            {info && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '2px' }}>{info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: color + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: 'white', lineHeight: 1 }}>{(cat || '').slice(0, 2).toUpperCase()}</span>
+              </div>
+              <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{cat}</div>
+            </div>
+            {info && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '4px' }}>{info.storyCount} {info.storyCount === 1 ? 'story' : 'stories'} · ~{info.estimatedMin} min</div>}
           </div>
           <button
             onClick={e => { e.stopPropagation(); onPlay(cat); }}

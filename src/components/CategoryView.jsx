@@ -100,13 +100,12 @@ export default function CategoryView({
             <div style={{ position: 'absolute', inset: 0, background: color, opacity: 0.18 }} />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.85rem 1rem', display: 'flex', alignItems: 'flex-end', gap: '0.75rem' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
                   <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: color + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.62rem', fontWeight: '800', color: 'white', lineHeight: 1 }}>{(category || '').slice(0, 2).toUpperCase()}</span>
                   </div>
-                  <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{category}</div>
                 </div>
-                <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>{category}</div>
                 {stories.length > 0 && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500', marginTop: '3px' }}>{stories.length} {stories.length === 1 ? 'story' : 'stories'} · ~{totalMin} min</div>}
               </div>
               {stories.length > 0 && (

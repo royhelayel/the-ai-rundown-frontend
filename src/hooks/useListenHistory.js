@@ -36,7 +36,7 @@ export { BADGE_TIERS };
 // ── Pure stats computation ────────────────────────────────────────────────────
 
 export function computeGamifiedStats(history, perfectDays, briefingData, feedCategories, selectedTimeSlot = null, viewDay = null) {
-  const empty = { todayProgress: {}, allCaughtUp: false, caughtUpCount: 0, weeklyGrid: [], perfectStreak: 0, categoryBadges: {} };
+  const empty = { todayProgress: {}, allCaughtUp: false, caughtUpCount: 0, weeklyGrid: [], perfectStreak: 0, categoryBadges: {}, morningAllDone: false, eveningAllDone: false };
   if (!feedCategories?.length) return empty;
 
   const today    = dayKey(Date.now());
@@ -72,19 +72,59 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   const caughtUpCount = feedCategories.filter(c => todayProgress[c]?.done).length;
   const allCaughtUp   = feedCategories.length > 0 && caughtUpCount === feedCategories.length;
 
-  // ── Weekly grid (last 7 days, oldest → newest) ─────────────────────────────
+  // ── Per-slot completion for TODAY (used by banner + weekly grid) ───────────
+  // Entries with no timeSlot are treated as Morning (backward compat with old data).
+  const slotListened = { Morning: {}, Evening: {} };
+  history.forEach(h => {
+    if (dayKey(h.timestamp) !== today) return;
+    if (!feedCategories.includes(h.category)) return;
+    const slot = h.timeSlot === 'Evening' ? 'Evening' : 'Morning';
+    if (!slotListened[slot][h.category]) slotListened[slot][h.category] = new Set();
+    slotListened[slot][h.category].add(h.storyIndex);
+  });
+
+  const slotAllDone = (slot) => feedCategories.length > 0 && feedCategories.every(cat => {
+    const total = briefingData?.[cat]?.storyCount || 0;
+    if (total === 0) return true;
+    const indices = slotListened[slot][cat] || new Set();
+    return [...indices].filter(idx => idx < total).length >= total;
+  });
+  const morningAllDone = slotAllDone('Morning');
+  const eveningAllDone = slotAllDone('Evening');
+
+  // ── Weekly grid — two rows (morning + evening) per day ────────────────────
+  // For today: use precise completion check against briefingData.
+  // For past days: green = all feed cats had listens in that slot, amber = any, gray = none.
   const DAY_NAMES = ['S','M','T','W','T','F','S'];
   const weeklyGrid = Array.from({ length: 7 }, (_, i) => {
     const ts = Date.now() - (6 - i) * 86400000;
     const d  = new Date(ts);
     const k  = dayKey(ts);
-    const isPerfect  = perfectSet.has(k);
-    const hadListens = history.some(h => dayKey(h.timestamp) === k && feedCategories.includes(h.category) && (!selectedTimeSlot || !h.timeSlot || h.timeSlot === selectedTimeSlot));
+    const isToday = k === today;
+
+    const slotStatus = (slot) => {
+      const slotEntries = history.filter(h =>
+        dayKey(h.timestamp) === k &&
+        feedCategories.includes(h.category) &&
+        (slot === 'Morning' ? (!h.timeSlot || h.timeSlot === 'Morning') : h.timeSlot === 'Evening')
+      );
+      if (slotEntries.length === 0) return 0;
+      if (isToday) {
+        // exact: check all cats fully read
+        const done = slotAllDone(slot);
+        return done ? 2 : 1;
+      }
+      // past days: green = every feed cat had at least one listen, amber = some
+      const catsWithListens = new Set(slotEntries.map(h => h.category));
+      return catsWithListens.size >= feedCategories.length ? 2 : 1;
+    };
+
     return {
       key: k,
       day: DAY_NAMES[d.getDay()],
-      isToday: k === today,
-      status: isPerfect ? 2 : hadListens ? 1 : 0, // 2=green(done) 1=yellow(partial) 0=gray
+      isToday,
+      morningStatus: slotStatus('Morning'),
+      eveningStatus: slotStatus('Evening'),
     };
   });
 
@@ -119,7 +159,7 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
     };
   });
 
-  return { todayProgress, allCaughtUp, caughtUpCount, weeklyGrid, perfectStreak, categoryBadges };
+  return { todayProgress, allCaughtUp, caughtUpCount, weeklyGrid, perfectStreak, categoryBadges, morningAllDone, eveningAllDone };
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────

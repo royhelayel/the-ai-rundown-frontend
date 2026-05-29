@@ -14,39 +14,6 @@ const light = {
 
 function initials(cat) { return (cat || '').slice(0, 2).toUpperCase(); }
 
-// ── Weekly grid ──────────────────────────────────────────────────────────────
-function WeeklyGrid({ weeklyGrid = [], selectedDay = null, onSelectDay }) {
-  return (
-    <div style={{ display: 'flex', gap: '3px', marginBottom: '2px' }}>
-      {weeklyGrid.map(day => {
-        const isSelected = selectedDay ? day.key === selectedDay : day.isToday;
-        const bg = day.status === 2 ? '#16a34a' : day.status === 1 ? '#d97706' : light.bgSub;
-        const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
-        return (
-          <button
-            key={day.key}
-            title={day.key}
-            onClick={() => onSelectDay?.(isSelected && !day.isToday ? null : day.key)}
-            style={{
-              flex: 1, height: '28px', borderRadius: '5px',
-              background: bg, border,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', padding: 0,
-              outline: 'none', transition: 'opacity 0.1s',
-              opacity: isSelected ? 1 : 0.75,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
-          >
-            <span style={{ fontSize: '0.5rem', fontWeight: '700', color: day.status > 0 ? '#fff' : light.textMuted }}>
-              {day.day}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Badge chip ───────────────────────────────────────────────────────────────
 function BadgeChip({ tier, streak }) {
@@ -74,6 +41,8 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
     weeklyGrid = [],
     perfectStreak = 0,
     categoryBadges = {},
+    morningAllDone = false,
+    eveningAllDone = false,
   } = stats;
 
   const cats = Object.keys(todayProgress);
@@ -88,17 +57,17 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
 
   return (
     <nav style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0, width: '260px',
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: '300px',
       background: light.bg, borderLeft: `1px solid ${light.border}`,
       display: 'flex', flexDirection: 'column', zIndex: 45,
       overflowY: 'auto',
     }}>
 
-      {/* ── Your Progress ── */}
+      {/* ── Reading Challenge ── */}
       {!user && (
         <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
           <p style={{ margin: '0 0 0.65rem', fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Reading Progress
+            Reading Challenge
           </p>
           <button onClick={onShowAuth}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '10px', padding: '10px 11px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s' }}
@@ -116,7 +85,7 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
       {user && <div style={{ padding: '1.4rem 0.85rem 0.9rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem' }}>
           <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em', flex: 1 }}>
-            Reading Progress
+            Reading Challenge
           </p>
           {progressDayLabel && (
             <button
@@ -129,20 +98,48 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
           )}
         </div>
 
-        {/* Caught-up banner — only for today */}
-        {allCaughtUp && !selectedProgressDay && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.28)',
-            borderRadius: '9px', padding: '0.42rem 0.55rem', marginBottom: '0.6rem',
-          }}>
-            <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} />
-            <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803d', lineHeight: 1.2 }}>All Caught Up!</div>
-              <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '500' }}>Perfect day!</div>
+        {/* ── Reading Challenge banner (today only) ── */}
+        {!selectedProgressDay && (() => {
+          const bothDone = morningAllDone && eveningAllDone;
+          const morningOnly = morningAllDone && !eveningAllDone;
+          const eveningOnly = !morningAllDone && eveningAllDone;
+          if (bothDone) return (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.22)', borderRadius: '9px', padding: '0.5rem 0.6rem', marginBottom: '0.65rem' }}>
+              <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>✅</span>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803d', lineHeight: 1.2, marginBottom: '2px' }}>All Caught Up!</div>
+                <div style={{ fontSize: '0.57rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>You've caught up on all stories!</div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+          if (morningOnly) return (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.22)', borderRadius: '9px', padding: '0.5rem 0.6rem', marginBottom: '0.65rem' }}>
+              <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>🔥</span>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#c2410c', lineHeight: 1.2, marginBottom: '2px' }}>Morning Complete!</div>
+                <div style={{ fontSize: '0.57rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>Catch up on Evening stories.</div>
+              </div>
+            </div>
+          );
+          if (eveningOnly) return (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.22)', borderRadius: '9px', padding: '0.5rem 0.6rem', marginBottom: '0.65rem' }}>
+              <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>🔥</span>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#c2410c', lineHeight: 1.2, marginBottom: '2px' }}>Evening Complete!</div>
+                <div style={{ fontSize: '0.57rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>Catch up on Morning stories.</div>
+              </div>
+            </div>
+          );
+          return (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '9px', padding: '0.5rem 0.6rem', marginBottom: '0.65rem' }}>
+              <span style={{ fontSize: '1rem', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>📖</span>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: '800', color: light.text, lineHeight: 1.2, marginBottom: '2px' }}>Start Today's Challenge</div>
+                <div style={{ fontSize: '0.57rem', color: light.textMuted, fontWeight: '500', lineHeight: 1.4 }}>Catch up on your daily stories.</div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Perfect streak */}
         {perfectStreak > 0 && (
@@ -159,11 +156,43 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
           </div>
         )}
 
-        {/* Weekly calendar */}
+        {/* Two-row weekly grid — Morning + Evening */}
         {weeklyGrid.length > 0 && (
           <>
-            <div style={{ fontSize: '0.56rem', color: light.textMuted, fontWeight: '600', marginBottom: '4px' }}>This week · tap a day</div>
-            <WeeklyGrid weeklyGrid={weeklyGrid} selectedDay={selectedProgressDay} onSelectDay={onSelectProgressDay} />
+            <div style={{ fontSize: '0.52rem', color: light.textMuted, fontWeight: '700', marginBottom: '3px' }}>☀️ Morning</div>
+            <div style={{ display: 'flex', gap: '3px', marginBottom: '6px' }}>
+              {weeklyGrid.map(day => {
+                const isSelected = selectedProgressDay ? day.key === selectedProgressDay : day.isToday;
+                const bg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : light.bgSub;
+                const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
+                return (
+                  <button key={day.key} title={day.key} onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
+                    style={{ flex: 1, height: '24px', borderRadius: '5px', background: bg, border, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', opacity: isSelected ? 1 : 0.75, transition: 'opacity 0.1s' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
+                  >
+                    <span style={{ fontSize: '0.46rem', fontWeight: '700', color: day.morningStatus > 0 ? '#fff' : light.textMuted }}>{day.day}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: '0.52rem', color: light.textMuted, fontWeight: '700', marginBottom: '3px' }}>🌙 Evening</div>
+            <div style={{ display: 'flex', gap: '3px', marginBottom: '4px' }}>
+              {weeklyGrid.map(day => {
+                const isSelected = selectedProgressDay ? day.key === selectedProgressDay : day.isToday;
+                const bg = day.eveningStatus === 2 ? '#16a34a' : day.eveningStatus === 1 ? '#d97706' : light.bgSub;
+                const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
+                return (
+                  <button key={day.key} title={day.key} onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
+                    style={{ flex: 1, height: '24px', borderRadius: '5px', background: bg, border, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', opacity: isSelected ? 1 : 0.75, transition: 'opacity 0.1s' }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
+                  >
+                    <span style={{ fontSize: '0.46rem', fontWeight: '700', color: day.eveningStatus > 0 ? '#fff' : light.textMuted }}>{day.day}</span>
+                  </button>
+                );
+              })}
+            </div>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '0.6rem', marginTop: '3px' }}>
               {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:light.bgSub,label:'None',dark:true}].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>

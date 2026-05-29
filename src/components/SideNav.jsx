@@ -49,7 +49,7 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
 
   return (
     <nav style={{
-      position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
+      position: 'fixed', top: 0, left: 0, bottom: 0, width: '300px',
       background: light.bg, borderRight: `1px solid ${light.border}`,
       display: 'flex', flexDirection: 'column', zIndex: 45,
       padding: '0.75rem 0.75rem',

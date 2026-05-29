@@ -1864,8 +1864,8 @@ const TheAIRundown = () => {
           .side-nav-wrap { display: block; }
           .right-pane-wrap { display: block; }
           .bottom-nav-wrap { display: none; }
-          .main-content-offset { margin-left: 260px; margin-right: 260px; }
-          .mini-player-bar { left: 260px !important; right: 260px !important; }
+          .main-content-offset { margin-left: 300px; margin-right: 300px; }
+          .mini-player-bar { left: 300px !important; right: 300px !important; }
           .header-brand { display: inline; }
           .hero-row { flex-direction: row; align-items: center; gap: 0.75rem; }
           .hero-title-row { flex: 1; justify-content: flex-start; }

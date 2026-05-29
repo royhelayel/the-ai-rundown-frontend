@@ -2135,21 +2135,26 @@ const TheAIRundown = () => {
 
       {/* ── Settings ── */}
       {isSettingsPath && (
-        <main style={{ background: '#09090f', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
-          <button onClick={() => navigate('/')} style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '999px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem' }}>
-            <ChevronLeft size={16} /> Back
-          </button>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+        <main style={{ background: '#f5f5f7', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '0 0 4rem' }}>
+          <style>{`html, body { background: #ffffff !important; }`}</style>
+          {/* Sticky header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem' }}>
+            <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#8a8a9a', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
+              <ChevronLeft size={16} /> Back
+            </button>
+            <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0a0a0f', flex: 1 }}>Settings</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem 1rem 0' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                <User size={18} color="rgba(255,255,255,0.6)" />
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Account</h3>
+                <User size={18} color="#8a8a9a" />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Account</h3>
               </div>
               {user ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>{user.email}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.15rem' }}>Signed in</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#0a0a0f' }}>{user.email}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#8a8a9a', marginTop: '0.15rem' }}>Signed in</div>
                   </div>
                   <button onClick={async () => {
                     await supabase.auth.signOut();
@@ -2161,69 +2166,69 @@ const TheAIRundown = () => {
                     localStorage.removeItem('newsdigest_user');
                     navigate('/');
                   }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#f87171', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#dc2626', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
                     <LogOut size={14} /> Sign Out
                   </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                   <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Sign In</button>
-                  <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
+                  <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1.5px solid rgba(0,0,0,0.08)', color: '#0a0a0f', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
                 </div>
               )}
             </div>
-            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🌐</span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>News Language</h3>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>News Language</h3>
                 </div>
-                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
                   {[['en', 'English'], ['ar', 'عربي']].map(([val, label]) => (
-                    <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? 'white' : 'transparent', color: newsLanguage === val ? '#111827' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                    <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? '#0a0a0f' : 'transparent', color: newsLanguage === val ? 'white' : '#8a8a9a', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                       {label}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🔤</span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Font Size</h3>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Font Size</h3>
                 </div>
-                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
                   {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
-                    <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'white' : 'transparent', color: fontSize === val ? '#111827' : 'rgba(255,255,255,0.4)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                    <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? '#0a0a0f' : 'transparent', color: fontSize === val ? 'white' : '#8a8a9a', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                       {label}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
                   <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>My Rundown</h3>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My Rundown</h3>
                 </div>
                 {!user ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', padding: '0.75rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px' }}>
                     <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>Sign in to personalise your feed</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0a0a0f', marginBottom: '2px' }}>Sign in to personalise your feed</div>
                       <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to add or remove. Numbers show story order.</p>
+                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Tap to add or remove. Numbers show story order.</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {defaultCategories.map(cat => {
                         const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
                         const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
                         return (
-                          <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                          <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : '#0a0a0f', border: `1.5px solid ${isSel ? color : 'rgba(0,0,0,0.08)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
                             {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
                             {cat}
                           </button>
@@ -2233,42 +2238,42 @@ const TheAIRundown = () => {
                   </>
                 )}
               </div>
-            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                  <Mail size={18} color="rgba(255,255,255,0.6)" />
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Email Digest</h3>
+                  <Mail size={18} color="#8a8a9a" />
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Email Digest</h3>
                 </div>
                 {!user ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px' }}>
                     <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>Sign in to set up email digests</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0a0a0f', marginBottom: '2px' }}>Sign in to set up email digests</div>
                       <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
                     </div>
                   </div>
                 ) : (<>
-                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
                   {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
                     const active = (emailPreferences.categories || []).includes(cat);
                     return (
-                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : 'rgba(255,255,255,0.6)', border: `1.5px solid ${active ? color : 'rgba(255,255,255,0.15)'}`, borderRadius: '999px', cursor: 'pointer' }}>
-                        {cat === 'My Rundown' ? '\u2605 My Rundown' : cat}
+                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : '#0a0a0f', border: `1.5px solid ${active ? color : 'rgba(0,0,0,0.08)'}`, borderRadius: '999px', cursor: 'pointer' }}>
+                        {cat === 'My Rundown' ? '★ My Rundown' : cat}
                       </button>
                     );
                   })}
                 </div>
-                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '0 0 1rem' }} />
-                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
+                <hr style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0 0 1rem' }} />
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
                   {timesOfDay.map(time => {
                     const slotKey = time.value.toLowerCase(); const isEnabled = !!emailPreferences[slotKey];
                     return (
-                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)', border: `1.5px solid ${isEnabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
+                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.06)' : '#f5f5f7', border: `1.5px solid ${isEnabled ? '#6366f1' : 'rgba(0,0,0,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
                         <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'white' }}>{time.label}</div>
-                          <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.4)' }}>{time.time}</div>
+                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0a0a0f' }}>{time.label}</div>
+                          <div style={{ fontSize: '0.73rem', color: '#8a8a9a' }}>{time.time}</div>
                         </div>
                       </label>
                     );
@@ -2280,7 +2285,6 @@ const TheAIRundown = () => {
           </div>
         </main>
       )}
-
       {/* ── FullPlayer overlay ── */}
       {playerVisible && (!playerMinimized || fullPlayerExiting) && (
         <FullPlayer

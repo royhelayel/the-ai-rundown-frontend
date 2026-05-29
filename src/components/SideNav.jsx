@@ -114,7 +114,7 @@ export default function SideNav({ userFeeds = [], onReorderFeeds, categories = [
           const active = !locked && matchFn(pathname) && !activeFeedId;
           return (
             <button key={path}
-              onClick={() => locked ? onShowAuth?.() : navigate(path)}
+              onClick={() => locked ? navigate('/settings') : navigate(path)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
                 padding: '0.65rem 0.75rem', borderRadius: '10px', border: 'none',

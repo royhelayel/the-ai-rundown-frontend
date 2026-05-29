@@ -43,7 +43,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
   };
 
   return (
-    <div style={{ marginBottom: '1rem', overflow: 'hidden', borderBottom: `1px solid ${light.border}` }}>
+    <div style={{ borderBottom: `1px solid ${light.border}` }}>
       <style>{WAVE_STYLE}</style>
 
       {/* ── Category header — Option B: tall image + diagonal overlay ── */}

@@ -156,45 +156,40 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
           </div>
         )}
 
-        {/* Two-row weekly grid — shared day header + Morning + Evening */}
+        {/* Weekly grid — one button per day column, stacks day label + ☀️ + 🌙 */}
         {weeklyGrid.length > 0 && (
           <>
-            {/* Day header — the only row that carries the selection indicator */}
-            <div style={{ display: 'flex', gap: '3px', marginBottom: '3px' }}>
+            <div style={{ fontSize: '0.52rem', color: light.textMuted, fontWeight: '600', marginBottom: '5px' }}>This week · tap a day</div>
+            <div style={{ display: 'flex', gap: '3px', marginBottom: '4px' }}>
               {weeklyGrid.map(day => {
                 const isSelected = selectedProgressDay ? day.key === selectedProgressDay : day.isToday;
+                const mBg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : '#e5e7eb';
+                const eBg = day.eveningStatus === 2 ? '#16a34a' : day.eveningStatus === 1 ? '#d97706' : '#e5e7eb';
                 return (
-                  <button key={day.key} title={day.key}
+                  <button
+                    key={day.key}
+                    title={day.key}
                     onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
-                    style={{ flex: 1, height: '18px', borderRadius: '4px', background: isSelected ? '#6366f1' : 'transparent', border: isSelected ? '1px solid #6366f1' : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', transition: 'background 0.12s' }}
+                    style={{
+                      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                      padding: '4px 2px 5px', borderRadius: '6px',
+                      background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
+                      border: `1.5px solid ${isSelected ? '#6366f1' : 'transparent'}`,
+                      cursor: 'pointer', outline: 'none',
+                    }}
                   >
-                    <span style={{ fontSize: '0.46rem', fontWeight: '800', color: isSelected ? '#fff' : light.textMuted }}>{day.day}</span>
+                    <span style={{ fontSize: '0.46rem', fontWeight: '800', color: isSelected ? '#6366f1' : light.textMuted }}>{day.day}</span>
+                    <div style={{ width: '100%', height: '7px', borderRadius: '2px', background: mBg }} />
+                    <div style={{ width: '100%', height: '7px', borderRadius: '2px', background: eBg }} />
                   </button>
                 );
               })}
             </div>
-            {/* Morning row — pure visual, not interactive */}
-            <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px', marginTop: '4px' }}>☀️ Morning</div>
-            <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
-              {weeklyGrid.map(day => {
-                const bg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : light.bgSub;
-                return (
-                  <div key={day.key} style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}` }} />
-                );
-              })}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '4px', fontSize: '0.46rem', color: light.textMuted }}>
+              <span>☀️ Morning</span><span style={{ opacity: 0.4 }}>·</span><span>🌙 Evening</span>
             </div>
-            {/* Evening row — pure visual, not interactive */}
-            <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px' }}>🌙 Evening</div>
-            <div style={{ display: 'flex', gap: '3px', marginBottom: '4px' }}>
-              {weeklyGrid.map(day => {
-                const bg = day.eveningStatus === 2 ? '#16a34a' : day.eveningStatus === 1 ? '#d97706' : light.bgSub;
-                return (
-                  <div key={day.key} style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}` }} />
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.6rem', marginTop: '3px' }}>
-              {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:light.bgSub,label:'None',dark:true}].map(l => (
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.6rem' }}>
+              {[{color:'#16a34a',label:'All done'},{color:'#d97706',label:'Partial'},{color:'#e5e7eb',label:'None',dark:true}].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: l.color, border: l.dark ? `1px solid ${light.border}` : 'none' }} />
                   <span style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '600' }}>{l.label}</span>

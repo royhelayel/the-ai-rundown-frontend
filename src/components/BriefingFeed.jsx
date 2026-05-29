@@ -70,7 +70,7 @@ export default function BriefingFeed({
           <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em', flexShrink: 0 }}>The Rundown</span>
           <div style={{ flex: 1 }} />
           <button
-            onClick={user ? () => navigate('/settings') : onShowAuth}
+            onClick={() => navigate('/settings')}
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
             <User size={16} />
           </button>

@@ -2170,33 +2170,51 @@ const TheAIRundown = () => {
                 </div>
               </div>
             </div>
-            {user && (
-              <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
                   <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>My Rundown</h3>
                 </div>
-                <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to add or remove. Numbers show story order.</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {defaultCategories.map(cat => {
-                    const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
-                    const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
-                    return (
-                      <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
-                        {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
-                        {cat}
-                      </button>
-                    );
-                  })}
-                </div>
+                {!user ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px' }}>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>Sign in to personalise your feed</div>
+                      <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to add or remove. Numbers show story order.</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {defaultCategories.map(cat => {
+                        const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
+                        const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
+                        return (
+                          <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                            {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
+                            {cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
-            {user && (
-              <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
+            <div style={{ background: '#18181f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
                   <Mail size={18} color="rgba(255,255,255,0.6)" />
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'white' }}>Email Digest</h3>
                 </div>
+                {!user ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px' }}>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>Sign in to set up email digests</div>
+                      <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
+                    </div>
+                  </div>
+                ) : (<>
                 <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
                   {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
@@ -2224,8 +2242,9 @@ const TheAIRundown = () => {
                     );
                   })}
                 </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </main>
       )}

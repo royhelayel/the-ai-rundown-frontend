@@ -156,40 +156,46 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
           </div>
         )}
 
-        {/* Two-row weekly grid — Morning + Evening */}
+        {/* Two-row weekly grid — shared day header + Morning + Evening */}
         {weeklyGrid.length > 0 && (
           <>
-            <div style={{ fontSize: '0.52rem', color: light.textMuted, fontWeight: '700', marginBottom: '3px' }}>☀️ Morning</div>
-            <div style={{ display: 'flex', gap: '3px', marginBottom: '6px' }}>
+            {/* Day header — the only row that carries the selection indicator */}
+            <div style={{ display: 'flex', gap: '3px', marginBottom: '3px' }}>
               {weeklyGrid.map(day => {
                 const isSelected = selectedProgressDay ? day.key === selectedProgressDay : day.isToday;
-                const bg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : light.bgSub;
-                const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
                 return (
-                  <button key={day.key} title={day.key} onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
-                    style={{ flex: 1, height: '24px', borderRadius: '5px', background: bg, border, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', opacity: isSelected ? 1 : 0.75, transition: 'opacity 0.1s' }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
+                  <button key={day.key} title={day.key}
+                    onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
+                    style={{ flex: 1, height: '18px', borderRadius: '4px', background: isSelected ? '#6366f1' : 'transparent', border: isSelected ? '1px solid #6366f1' : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', transition: 'background 0.12s' }}
                   >
-                    <span style={{ fontSize: '0.46rem', fontWeight: '700', color: day.morningStatus > 0 ? '#fff' : light.textMuted }}>{day.day}</span>
+                    <span style={{ fontSize: '0.46rem', fontWeight: '800', color: isSelected ? '#fff' : light.textMuted }}>{day.day}</span>
                   </button>
                 );
               })}
             </div>
-            <div style={{ fontSize: '0.52rem', color: light.textMuted, fontWeight: '700', marginBottom: '3px' }}>🌙 Evening</div>
+            {/* Morning row — status colours only, no selection outline */}
+            <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px', marginTop: '4px' }}>☀️ Morning</div>
+            <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
+              {weeklyGrid.map(day => {
+                const bg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : light.bgSub;
+                return (
+                  <button key={day.key} title={day.key}
+                    onClick={() => onSelectProgressDay?.(selectedProgressDay === day.key && !day.isToday ? null : day.key)}
+                    style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}`, cursor: 'pointer', padding: 0, outline: 'none' }}
+                  />
+                );
+              })}
+            </div>
+            {/* Evening row */}
+            <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px' }}>🌙 Evening</div>
             <div style={{ display: 'flex', gap: '3px', marginBottom: '4px' }}>
               {weeklyGrid.map(day => {
-                const isSelected = selectedProgressDay ? day.key === selectedProgressDay : day.isToday;
                 const bg = day.eveningStatus === 2 ? '#16a34a' : day.eveningStatus === 1 ? '#d97706' : light.bgSub;
-                const border = isSelected ? '2px solid #6366f1' : `1px solid ${light.border}`;
                 return (
-                  <button key={day.key} title={day.key} onClick={() => onSelectProgressDay?.(isSelected && !day.isToday ? null : day.key)}
-                    style={{ flex: 1, height: '24px', borderRadius: '5px', background: bg, border, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, outline: 'none', opacity: isSelected ? 1 : 0.75, transition: 'opacity 0.1s' }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.75'; }}
-                  >
-                    <span style={{ fontSize: '0.46rem', fontWeight: '700', color: day.eveningStatus > 0 ? '#fff' : light.textMuted }}>{day.day}</span>
-                  </button>
+                  <button key={day.key} title={day.key}
+                    onClick={() => onSelectProgressDay?.(selectedProgressDay === day.key && !day.isToday ? null : day.key)}
+                    style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}`, cursor: 'pointer', padding: 0, outline: 'none' }}
+                  />
                 );
               })}
             </div>

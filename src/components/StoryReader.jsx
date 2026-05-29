@@ -101,7 +101,7 @@ export default function StoryReader({
             {storyIndex + 1} / {stories.length}
           </span>
           <button
-            onClick={user ? () => navigate('/settings') : onShowAuth}
+            onClick={() => navigate('/settings')}
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
             <User size={16} />
           </button>

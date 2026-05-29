@@ -1809,6 +1809,17 @@ const TheAIRundown = () => {
   // playlistCatsRef overrides navCategories so "Play My Feed" only iterates feed categories
   storyNavRef.current = { idx: storyIndex, stories, cats: playlistCatsRef.current || navCategories, cat: selectedCategory };
 
+  // ── View-stories: use briefingData for default categories so CategoryView / StoryReader
+  // are never contaminated by the My Rundown merged-stories state.
+  // Custom categories have no briefingData entry, so they still rely on the stories state.
+  const isViewingCustomCat = catFromUrl && customCategories.includes(catFromUrl);
+  const viewStories = (!isViewingCustomCat && catFromUrl && briefingData[catFromUrl]?.allStories?.length > 0)
+    ? briefingData[catFromUrl].allStories
+    : stories;
+  const viewIsLoading = !isViewingCustomCat && catFromUrl
+    ? (briefingLoading && !briefingData[catFromUrl])
+    : newsLoading;
+
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>
       <style>{`
@@ -2050,8 +2061,8 @@ const TheAIRundown = () => {
       {isCategoryView && (
         <CategoryView
           category={catFromUrl}
-          stories={stories}
-          isLoading={newsLoading}
+          stories={viewStories}
+          isLoading={viewIsLoading}
           isNarrating={isNarrating}
           isPaused={isPaused}
           currentStoryIndex={storyIndex}
@@ -2067,9 +2078,9 @@ const TheAIRundown = () => {
       {isStoryView && (
         <StoryReader
           category={catFromUrl}
-          story={stories[storyIdxFromUrl] || null}
+          story={viewStories[storyIdxFromUrl] || null}
           storyIndex={storyIdxFromUrl}
-          stories={stories}
+          stories={viewStories}
           onPlayFrom={onPlayFrom}
           isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
           isPaused={isPaused}

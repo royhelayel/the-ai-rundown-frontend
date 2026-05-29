@@ -1707,7 +1707,20 @@ const TheAIRundown = () => {
   };
 
   // Mark a story as read when user navigates into it (separate from play)
-  const handleMarkRead = (story, cat, idx) => addToHistory(story, cat, idx, selectedTime || null);
+  const handleMarkRead = (story, cat, idx) => {
+    addToHistory(story, cat, idx, selectedTime || null);
+    // Track individual story reads in the backend for read rate analytics (signed-in only)
+    if (user) {
+      fetch(`${BACKEND_URL}/api/metrics/track`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id, eventType: 'story_read',
+          category: cat, day: selectedDay,
+          metadata: { story_index: idx },
+        }),
+      }).catch(() => {});
+    }
+  };
 
   // Resume index: first unread today for a category, bounded by where we left off (whichever is earlier)
   const getResumeIndex = (cat) => {

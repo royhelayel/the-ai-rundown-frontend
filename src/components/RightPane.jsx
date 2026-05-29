@@ -173,29 +173,23 @@ export default function RightPane({ stats = {}, history = [], onPlayStory, user 
                 );
               })}
             </div>
-            {/* Morning row — status colours only, no selection outline */}
+            {/* Morning row — pure visual, not interactive */}
             <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px', marginTop: '4px' }}>☀️ Morning</div>
             <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
               {weeklyGrid.map(day => {
                 const bg = day.morningStatus === 2 ? '#16a34a' : day.morningStatus === 1 ? '#d97706' : light.bgSub;
                 return (
-                  <button key={day.key} title={day.key}
-                    onClick={() => onSelectProgressDay?.(selectedProgressDay === day.key && !day.isToday ? null : day.key)}
-                    style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}`, cursor: 'pointer', padding: 0, outline: 'none' }}
-                  />
+                  <div key={day.key} style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}` }} />
                 );
               })}
             </div>
-            {/* Evening row */}
+            {/* Evening row — pure visual, not interactive */}
             <div style={{ fontSize: '0.48rem', color: light.textMuted, fontWeight: '700', marginBottom: '2px' }}>🌙 Evening</div>
             <div style={{ display: 'flex', gap: '3px', marginBottom: '4px' }}>
               {weeklyGrid.map(day => {
                 const bg = day.eveningStatus === 2 ? '#16a34a' : day.eveningStatus === 1 ? '#d97706' : light.bgSub;
                 return (
-                  <button key={day.key} title={day.key}
-                    onClick={() => onSelectProgressDay?.(selectedProgressDay === day.key && !day.isToday ? null : day.key)}
-                    style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}`, cursor: 'pointer', padding: 0, outline: 'none' }}
-                  />
+                  <div key={day.key} style={{ flex: 1, height: '22px', borderRadius: '4px', background: bg, border: `1px solid ${light.border}` }} />
                 );
               })}
             </div>

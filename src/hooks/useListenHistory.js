@@ -162,6 +162,64 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   return { todayProgress, allCaughtUp, caughtUpCount, weeklyGrid, perfectStreak, categoryBadges, morningAllDone, eveningAllDone };
 }
 
+// ── Challenge stats (daily goal, streak, weekly) ─────────────────────────────
+
+export function computeChallengeStats(history, dailyGoal = 10) {
+  const today = dayKey(Date.now());
+
+  // Count unique (category, storyIndex) pairs per day
+  const dailyCounts = {};
+  history.forEach(h => {
+    const k = dayKey(h.timestamp);
+    if (!dailyCounts[k]) dailyCounts[k] = new Set();
+    dailyCounts[k].add(`${h.category}|${h.storyIndex}`);
+  });
+  const dailyCountMap = {};
+  Object.keys(dailyCounts).forEach(k => { dailyCountMap[k] = dailyCounts[k].size; });
+
+  const todayCount = dailyCountMap[today] || 0;
+
+  // Streak: consecutive days meeting goal (include today if goal met)
+  let streakDays = 0;
+  const cur = new Date();
+  if (todayCount >= dailyGoal) {
+    streakDays++;
+    cur.setDate(cur.getDate() - 1);
+  } else {
+    cur.setDate(cur.getDate() - 1);
+  }
+  for (let i = 0; i < 365; i++) {
+    const k = dayKey(cur.getTime());
+    if ((dailyCountMap[k] || 0) >= dailyGoal) {
+      streakDays++;
+      cur.setDate(cur.getDate() - 1);
+    } else break;
+  }
+
+  // Weekly: how many of last 7 days met goal
+  let weeklyDays = 0;
+  const weekGrid = Array.from({ length: 7 }, (_, i) => {
+    const ts  = Date.now() - (6 - i) * 86400000;
+    const k   = dayKey(ts);
+    const d   = new Date(ts);
+    const DAY = ['S','M','T','W','T','F','S'];
+    const cnt = dailyCountMap[k] || 0;
+    const met = cnt >= dailyGoal;
+    if (met) weeklyDays++;
+    return { key: k, day: DAY[d.getDay()], isToday: k === today, count: cnt, met };
+  });
+
+  return {
+    todayCount,
+    dailyGoal,
+    streakDays,
+    weeklyDays,
+    weeklyGoal: 6,
+    weekGrid,
+    dailyCountMap,
+  };
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export default function useListenHistory(userId = null) {

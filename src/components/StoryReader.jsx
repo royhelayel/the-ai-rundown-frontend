@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play, User, CheckCircle2 } from 'lucide-react';
+import { Play, User, CheckCircle2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { readTime } from '../utils';
 
@@ -11,7 +11,6 @@ function faviconUrl(url) {
   } catch { return null; }
 }
 
-// Light-mode tokens used only in read view
 const light = {
   bg:        '#ffffff',
   bgSub:     '#f5f5f7',
@@ -20,6 +19,35 @@ const light = {
   textSub:   '#3a3a4a',
   textMuted: '#8a8a9a',
 };
+
+// ── Nav button (<<, <, >, >>) ─────────────────────────────────────────────────
+function NavBtn({ onClick, disabled, title, children, wide = false }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        width: wide ? 40 : 32, height: 32,
+        borderRadius: '8px',
+        border: `1px solid ${disabled ? 'transparent' : light.border}`,
+        background: disabled ? 'transparent' : light.bgSub,
+        color: disabled ? 'rgba(0,0,0,0.2)' : light.textMuted,
+        cursor: disabled ? 'default' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Chevron SVGs
+const ChevL  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+const ChevR  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
+const ChevLL = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>;
+const ChevRR = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>;
 
 export default function StoryReader({
   category,
@@ -34,13 +62,15 @@ export default function StoryReader({
   user,
   onShowAuth,
   onMarkRead,
+  savedStories = [],
+  onToggleSaved,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [view, setView] = useState('takeaways'); // 'takeaways' | 'summary'
   const color = CATEGORY_COLORS[category] || '#6366f1';
 
-  // Mark the story as read whenever the displayed story changes (open or navigate)
+  // Mark the story as read whenever the displayed story changes
   useEffect(() => {
     if (story && onMarkRead) onMarkRead(story, category, storyIndex);
   }, [storyIndex, story]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -50,6 +80,7 @@ export default function StoryReader({
     if (!from || from === 'home' || from === '/') navigate('/');
     else if (from === '/my-feed') navigate('/my-feed');
     else if (from === 'popular') navigate('/popular');
+    else if (from === '/important') navigate('/important');
     else if (from === 'category') navigate(`/category/${encodeURIComponent(category)}`, { state: { from: location.state?.feedFrom || '/' } });
     else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
     else navigate('/');
@@ -61,14 +92,28 @@ export default function StoryReader({
   const hasPrev  = storyIndex > 0;
   const hasNext  = storyIndex < stories.length - 1;
 
-  // Category navigation within the current feed context
+  // Category navigation
   const catIdx  = contextCategories.indexOf(category);
   const prevCat = catIdx > 0 ? contextCategories[catIdx - 1] : null;
   const nextCat = catIdx < contextCategories.length - 1 ? contextCategories[catIdx + 1] : null;
-  const goToCat = (cat) => navigate(
-    `/category/${encodeURIComponent(cat)}/story/0`,
+
+  const goToCat = (cat, idx = 0) => navigate(
+    `/category/${encodeURIComponent(cat)}/story/${idx}`,
     { state: location.state, replace: true }
   );
+
+  // Story nav handlers
+  const goPrevStory = () => {
+    if (hasPrev) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true });
+  };
+  const goNextStory = () => {
+    if (hasNext) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true });
+  };
+  const goBackCat  = () => { if (prevCat) goToCat(prevCat); };
+  const goNextCat  = () => { if (nextCat) goToCat(nextCat); };
+
+  // Bookmark state
+  const isSaved = savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
 
   return (
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -79,6 +124,7 @@ export default function StoryReader({
         @media (max-width: 1023px) {
           .story-nav-bar { bottom: 56px !important; }
         }
+        .rdr-cat-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* ── Header ── */}
@@ -93,13 +139,17 @@ export default function StoryReader({
           <button
             onClick={goBack}
             style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ChevronLeft size={15} />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: '0.75rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>
-            {storyIndex + 1} / {stories.length}
-          </span>
+          {/* Bookmark */}
+          <button
+            onClick={() => onToggleSaved?.(story, category, storyIndex)}
+            title={isSaved ? 'Remove from Important' : 'Save to Important'}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub, border: `1px solid ${isSaved ? 'rgba(124,58,237,0.3)' : light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isSaved ? '#7c3aed' : light.textMuted, flexShrink: 0 }}>
+            {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+          </button>
           <button
             onClick={() => navigate('/settings')}
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
@@ -108,8 +158,38 @@ export default function StoryReader({
         </div>
       </header>
 
+      {/* ── Category strip ── */}
+      {contextCategories.length > 1 && (
+        <div className="rdr-cat-strip" style={{ overflowX: 'auto', scrollbarWidth: 'none', borderBottom: `1px solid ${light.border}` }}>
+          <div style={{ display: 'flex', gap: '5px', padding: '8px 16px', minWidth: 'max-content' }}>
+            {contextCategories.map(cat => {
+              const c   = CATEGORY_COLORS[cat] || '#6366f1';
+              const act = cat === category;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => !act && goToCat(cat)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 10px', borderRadius: '8px',
+                    border: act ? `1px solid ${c}55` : `1px solid ${light.border}`,
+                    background: act ? `${c}12` : 'transparent',
+                    cursor: act ? 'default' : 'pointer',
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: '0.72rem', fontWeight: act ? '800' : '600', color: act ? c : light.textMuted }}>
+                    {cat}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Content ── */}
-      <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '6rem' : '3rem' }}>
+      <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '10rem' : '6rem' }}>
 
         {/* Category badge + read status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -135,9 +215,7 @@ export default function StoryReader({
               return (
                 <React.Fragment key={i}>
                   <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={s.url} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.15rem 0.55rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
                     onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
@@ -154,7 +232,7 @@ export default function StoryReader({
           </div>
         )}
 
-        {/* Play button + view toggle on the same row */}
+        {/* Play button + view toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
           <div className="ai-btn-wrap">
             <button className="ai-btn-inner" onClick={() => onPlayFrom(storyIndex)}>
@@ -163,7 +241,6 @@ export default function StoryReader({
             </button>
           </div>
           <div style={{ flex: 1 }} />
-          {/* Toggle: Key Takeaways / Summary */}
           <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}`, flexShrink: 0 }}>
             {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
               <button key={val} onClick={() => setView(val)}
@@ -174,13 +251,13 @@ export default function StoryReader({
           </div>
         </div>
 
-        {/* Key Takeaways — bullets only */}
+        {/* Key Takeaways */}
         {view === 'takeaways' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
             {bullets.map((bullet, i) => (
               <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: '800', color: color }}>{i + 1}</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: '800', color }}>{i + 1}</span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.65 }}>{bullet}</p>
               </div>
@@ -188,10 +265,9 @@ export default function StoryReader({
           </div>
         )}
 
-        {/* Summary — elaborate narrative + perspectives + why it matters */}
+        {/* Summary */}
         {view === 'summary' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Narrative paragraph (new stories) or fallback note (old stories) */}
             {story.summary ? (
               <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.8 }}>{story.summary}</p>
             ) : (
@@ -199,14 +275,12 @@ export default function StoryReader({
                 Full summary available for newly generated stories.
               </p>
             )}
-
             {story.perspectives && (
               <div style={{ padding: '0.9rem 1rem', background: `${color}08`, borderRadius: '12px', borderLeft: `3px solid ${color}` }}>
-                <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perspectives</p>
+                <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perspectives</p>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textSub, lineHeight: 1.65 }}>{story.perspectives}</p>
               </div>
             )}
-
             {story.why && (
               <div style={{ padding: '0.9rem 1rem', background: light.bgSub, borderRadius: '12px', borderLeft: `3px solid ${light.border}` }}>
                 <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Why This Matters</p>
@@ -217,49 +291,44 @@ export default function StoryReader({
         )}
       </article>
 
-      {/* ── Navigation ── */}
+      {/* ── Navigation footer: << < [Cat · X/N] > >> ── */}
       <div className="story-nav-bar" style={{
         position: 'sticky', bottom: miniPlayerVisible ? '5rem' : '0',
         background: light.bg, borderTop: `1px solid ${light.border}`,
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',
         maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%',
       }}>
-        {/* Single navigation row — shows category name at boundaries */}
-        {(() => {
-          const showPrevCat = !hasPrev && prevCat;
-          const showNextCat = !hasNext && nextCat;
-          const prevColor = prevCat ? (CATEGORY_COLORS[prevCat] || '#6366f1') : null;
-          const nextColor = nextCat ? (CATEGORY_COLORS[nextCat] || '#6366f1') : null;
-          const prevActive = hasPrev || showPrevCat;
-          const nextActive = hasNext || showNextCat;
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 1.25rem 0.25rem', gap: '1rem' }}>
-              <button
-                onClick={() => {
-                  if (hasPrev) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true });
-                  else if (showPrevCat) goToCat(prevCat);
-                }}
-                disabled={!prevActive}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: prevActive ? (showPrevCat ? `${prevColor}12` : light.bgSub) : 'transparent', border: `1px solid ${prevActive ? (showPrevCat ? `${prevColor}35` : light.border) : 'transparent'}`, color: prevActive ? (showPrevCat ? prevColor : light.textSub) : light.textMuted, cursor: prevActive ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600', maxWidth: '42%' }}>
-                <ChevronLeft size={15} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{showPrevCat ? prevCat : 'Prev'}</span>
-              </button>
-              <span style={{ fontSize: '0.78rem', color: light.textMuted, fontWeight: '500', flexShrink: 0 }}>
-                {storyIndex + 1} / {stories.length}
-              </span>
-              <button
-                onClick={() => {
-                  if (hasNext) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true });
-                  else if (showNextCat) goToCat(nextCat);
-                }}
-                disabled={!nextActive}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '999px', background: nextActive ? (showNextCat ? `${nextColor}12` : light.bgSub) : 'transparent', border: `1px solid ${nextActive ? (showNextCat ? `${nextColor}35` : light.border) : 'transparent'}`, color: nextActive ? (showNextCat ? nextColor : light.textSub) : light.textMuted, cursor: nextActive ? 'pointer' : 'default', fontSize: '0.82rem', fontWeight: '600', maxWidth: '42%' }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{showNextCat ? nextCat : 'Next'}</span>
-                <ChevronRight size={15} style={{ flexShrink: 0 }} />
-              </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem 0.25rem' }}>
+          {/* << back category */}
+          <NavBtn onClick={goBackCat} disabled={!prevCat} title={prevCat ? `Back to ${prevCat}` : 'First category'} wide>
+            <ChevLL />
+          </NavBtn>
+
+          {/* < prev story */}
+          <NavBtn onClick={goPrevStory} disabled={!hasPrev} title="Previous story">
+            <ChevL />
+          </NavBtn>
+
+          {/* Centre label */}
+          <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {category}
             </div>
-          );
-        })()}
+            <div style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>
+              {storyIndex + 1} / {stories.length}
+            </div>
+          </div>
+
+          {/* > next story */}
+          <NavBtn onClick={goNextStory} disabled={!hasNext} title="Next story">
+            <ChevR />
+          </NavBtn>
+
+          {/* >> next category */}
+          <NavBtn onClick={goNextCat} disabled={!nextCat} title={nextCat ? `Skip to ${nextCat}` : 'Last category'} wide>
+            <ChevRR />
+          </NavBtn>
+        </div>
       </div>
     </div>
   );

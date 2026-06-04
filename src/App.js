@@ -15,10 +15,11 @@ import FeedPage from './components/FeedPage';
 import RightPane from './components/RightPane';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
+import ImportantTab from './components/ImportantTab';
 import CustomizeTab from './components/CustomizeTab';
 import { headlineKey } from './components/PopularTab';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
-import useListenHistory, { computeGamifiedStats } from './hooks/useListenHistory';
+import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
@@ -167,6 +168,43 @@ const TheAIRundown = () => {
     () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay),
     [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay]
   );
+
+  // ── Daily goal + challenge stats ──────────────────────────────────────────
+  const [dailyGoal, setDailyGoal] = useState(() => {
+    const saved = parseInt(localStorage.getItem('rundown_daily_goal'), 10);
+    return [5, 10, 15, 20].includes(saved) ? saved : 10;
+  });
+  const handleSetDailyGoal = (g) => {
+    setDailyGoal(g);
+    localStorage.setItem('rundown_daily_goal', String(g));
+  };
+  const challengeStats = useMemo(
+    () => computeChallengeStats(listenHistory, dailyGoal),
+    [listenHistory, dailyGoal]
+  );
+
+  // ── Saved / Important stories ─────────────────────────────────────────────
+  const [savedStories, setSavedStories] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rundown_saved_stories') || '[]'); } catch { return []; }
+  });
+  const handleToggleSaved = (story, category, storyIndex) => {
+    setSavedStories(prev => {
+      const exists = prev.some(s => s.category === category && s.storyIndex === storyIndex);
+      const next = exists
+        ? prev.filter(s => !(s.category === category && s.storyIndex === storyIndex))
+        : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }, ...prev];
+      try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const handleRemoveSaved = (category, storyIndex) => {
+    setSavedStories(prev => {
+      const next = prev.filter(s => !(s.category === category && s.storyIndex === storyIndex));
+      try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();
@@ -827,11 +865,19 @@ const TheAIRundown = () => {
     return h === 24 ? 0 : h;
   };
 
-  function getDaysOfWeek(offset = 0) {
+  function getDaysOfWeek() {
+    // Anchor on the most recent day that has news; fall back to today before slots load
+    let anchorStr = toUAEDate();
+    if (slotsLoaded && completedSlots.size > 0) {
+      const dates = [...completedSlots].map(s => s.split('|')[0]);
+      dates.sort();
+      anchorStr = dates[dates.length - 1];
+    }
+    const [y, m, d] = anchorStr.split('-').map(Number);
+    const anchor = new Date(y, m - 1, d, 12, 0, 0); // local noon avoids DST edge cases
     const days = [];
-    const base = offset * 7;
-    for (let i = base - 6; i <= base; i++) {
-      const date = new Date();
+    for (let i = -6; i <= 0; i++) {
+      const date = new Date(anchor);
       date.setDate(date.getDate() + i);
       const fullDate = toUAEDate(date);
       const dayName = new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'Asia/Dubai' }).format(date);
@@ -841,7 +887,7 @@ const TheAIRundown = () => {
     return days;
   }
 
-  const daysOfWeek = getDaysOfWeek(weekOffset);
+  const daysOfWeek = getDaysOfWeek();
   const allCategories = [...defaultCategories, ...customCategories];
 
   const getCurrentTimeSlot = () => getUAEHour() >= 18 ? 'Evening' : 'Morning';
@@ -863,9 +909,7 @@ const TheAIRundown = () => {
   // Hide days that have no news at all (both slots unavailable) once slots have loaded.
   const availableDays = isCustomCategory
     ? daysOfWeek.filter(d => d.fullDate === today)
-    : slotsLoaded
-      ? daysOfWeek.filter(d => timesOfDay.some(t => completedSlots.has(`${d.fullDate}|${t.value}`)))
-      : daysOfWeek;
+    : daysOfWeek;
 
   // Selects a day and auto-corrects selectedTime to the first available slot for that day.
   const selectDay = (fullDate) => {
@@ -887,7 +931,7 @@ const TheAIRundown = () => {
   };
 
   useEffect(() => {
-    setSelectedDay(getDaysOfWeek(0)[6].fullDate);
+    setSelectedDay(getDaysOfWeek()[6].fullDate);
     setSelectedTime(lastCompletedTimeSlot);
     try {
       const savedUser = localStorage.getItem('newsdigest_user');
@@ -1787,6 +1831,7 @@ const TheAIRundown = () => {
   const isSettingsPath  = location.pathname === '/settings';
   const isMyFeedPath    = location.pathname === '/my-feed';
   const isPopularPath   = location.pathname === '/popular';
+  const isImportantPath = location.pathname === '/important';
   const isCustomizePath = location.pathname === '/customize';
   const feedRouteMatch  = location.pathname.match(/^\/feed\/([^/]+)$/);
   const feedIdFromUrl   = feedRouteMatch ? feedRouteMatch[1] : null;
@@ -1796,7 +1841,7 @@ const TheAIRundown = () => {
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
   const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isCustomizePath && !isFeedPage;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isCustomizePath && !isFeedPage;
   const isHome          = isLatestHome; // kept for backward compat
   const isCategoryView  = !!catOnlyMatch;
   const isStoryView     = !!storyRouteMatch;
@@ -2005,6 +2050,8 @@ const TheAIRundown = () => {
           playerVisible={playerVisible}
           newsLanguage={newsLanguage}
           todayProgress={gamifiedStats.todayProgress}
+          challengeStats={challengeStats}
+          gamifiedStats={gamifiedStats}
         />
       )}
 
@@ -2032,6 +2079,8 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
+          challengeStats={challengeStats}
+          gamifiedStats={gamifiedStats}
         />
       )}
 
@@ -2075,6 +2124,21 @@ const TheAIRundown = () => {
           playerVisible={playerVisible}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          challengeStats={challengeStats}
+        />
+      )}
+
+      {isImportantPath && (
+        <ImportantTab
+          savedStories={savedStories}
+          briefingData={briefingData}
+          onRemoveSaved={handleRemoveSaved}
+          onSelectCategory={handleSelectCategory}
+          onPlayStory={handlePlayStory}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          playerVisible={playerVisible}
+          challengeStats={challengeStats}
         />
       )}
 
@@ -2121,6 +2185,8 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           onMarkRead={handleMarkRead}
+          savedStories={savedStories}
+          onToggleSaved={handleToggleSaved}
           contextCategories={(() => {
             const from = location.state?.from;
             if (typeof from === 'string' && from.startsWith('/feed/')) {
@@ -2187,6 +2253,24 @@ const TheAIRundown = () => {
                   {[['en', 'English'], ['ar', 'عربي']].map(([val, label]) => (
                     <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? '#0a0a0f' : 'transparent', color: newsLanguage === val ? 'white' : '#8a8a9a', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                       {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🎯</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Daily Goal</h3>
+                    <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: '#8a8a9a' }}>Stories to read or listen to each day</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+                  {[5, 10, 15, 20].map(g => (
+                    <button key={g} onClick={() => handleSetDailyGoal(g)} style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: dailyGoal === g ? '#0a0a0f' : 'transparent', color: dailyGoal === g ? 'white' : '#8a8a9a', transition: 'all 0.15s' }}>
+                      {g}
                     </button>
                   ))}
                 </div>
@@ -2279,10 +2363,9 @@ const TheAIRundown = () => {
                     );
                   })}
                 </div>
-                )}
+                </>)}
               </div>
             </div>
-          </div>
         </main>
       )}
       {/* ── FullPlayer overlay ── */}
@@ -2379,15 +2462,7 @@ const TheAIRundown = () => {
       {/* ── Bottom Navigation (mobile) ── */}
       {showBottomNav && (
         <div className="bottom-nav-wrap">
-          <BottomNav
-            userFeeds={userFeeds}
-            categories={allCategories}
-            briefingData={briefingData}
-            onSelectCategory={handleSelectCategory}
-            stats={gamifiedStats}
-            history={listenHistory}
-            onPlayStory={handlePlayStory}
-          />
+          <BottomNav />
         </div>
       )}
 

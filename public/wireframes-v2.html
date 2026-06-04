@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Rundown — Mobile Wireframes v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  background: #e2e2e8;
+  padding: 40px 32px;
+}
+.doc-header { margin-bottom: 32px; }
+.doc-title { font-size: 1.6rem; font-weight: 900; color: #0a0a0f; letter-spacing: -0.03em; margin-bottom: 6px; }
+.doc-sub { font-size: 0.88rem; color: #6b7280; }
+.doc-sub strong { color: #7c3aed; }
+
+.screens { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+.screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.screen-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
+
+/* ── Phone shell ── */
+.phone {
+  width: 390px; min-height: 844px;
+  background: #0d0d16;
+  border-radius: 46px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.35), 0 0 0 12px #1a1a26, 0 0 0 13px rgba(255,255,255,0.05);
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.phone.light-shell { background: #f5f5f7; }
+
+/* Status bar */
+.sb {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 28px 8px;
+  font-size: 0.75rem; font-weight: 700;
+  color: rgba(255,255,255,0.75);
+}
+.sb.dark-text { color: rgba(0,0,0,0.7); }
+
+/* Scrollable content */
+.pane { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* Bottom nav */
+.bnav {
+  display: flex;
+  padding: 10px 0 28px;
+  background: rgba(13,13,22,0.96);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+}
+.bnav.light-nav { background: rgba(248,248,250,0.96); border-top: 1px solid rgba(0,0,0,0.07); }
+.nt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; }
+.ni { font-size: 1.25rem; line-height: 1; }
+.nl { font-size: 0.56rem; font-weight: 600; color: rgba(255,255,255,0.32); }
+.nl.dark-text { color: rgba(0,0,0,0.32); }
+.nt.on .nl { color: #a78bfa; }
+.nt.locked { opacity: 0.28; }
+
+/* ── Design tokens ── */
+:root {
+  --bg:      #0d0d16;
+  --s1:      #17172a;   /* card bg */
+  --s2:      #1f1f35;   /* elevated */
+  --border:  rgba(255,255,255,0.07);
+  --pri:     #7c3aed;
+  --pri-l:   #a78bfa;
+  --pri-dim: rgba(124,58,237,0.14);
+  --fire:    #f97316;
+  --green:   #22c55e;
+  --text:    #f0f0f8;
+  --muted:   rgba(255,255,255,0.42);
+  --dim:     rgba(255,255,255,0.2);
+}
+
+/* ── Shared atoms ── */
+.brand { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.03em; }
+.brand span { background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hdr { display: flex; align-items: center; justify-content: space-between; padding: 6px 22px 10px; }
+.hbtn { width: 36px; height: 36px; background: rgba(255,255,255,0.06); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: var(--muted); }
+.tag { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
+.sec-title { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 0 22px; margin: 14px 0 8px; }
+.divider { height: 1px; background: var(--border); margin: 8px 22px; }
+
+/* Pills row */
+.pills { display: flex; gap: 8px; padding: 0 22px 14px; overflow-x: auto; scrollbar-width: none; }
+.pill { padding: 6px 14px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; background: var(--s1); border: 1px solid var(--border); color: var(--muted); }
+.pill.on { background: var(--pri-dim); border-color: rgba(124,58,237,0.35); color: var(--pri-l); }
+
+/* Featured card */
+.feat-card { margin: 4px 18px 14px; border-radius: 20px; overflow: hidden; background: var(--s1); border: 1px solid var(--border); position: relative; }
+.feat-img { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; position: relative; }
+.feat-badge { position: absolute; top: 10px; left: 10px; background: #f97316; color: #fff; font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; padding: 3px 9px; border-radius: 999px; }
+.feat-body { padding: 12px 14px; }
+.feat-meta { font-size: 0.6rem; color: var(--muted); margin-bottom: 6px; display: flex; gap: 5px; align-items: center; }
+.feat-hl { font-size: 1rem; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 10px; }
+.feat-foot { display: flex; align-items: center; justify-content: space-between; }
+.rt { font-size: 0.62rem; color: var(--muted); }
+.action-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; background: var(--pri); border-radius: 999px; font-size: 0.68rem; font-weight: 700; color: #fff; }
+
+/* Story list item */
+.si { display: flex; gap: 10px; padding: 11px 22px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.si-num { font-size: 0.7rem; font-weight: 800; color: var(--dim); width: 18px; flex-shrink: 0; padding-top: 2px; }
+.si-body { flex: 1; min-width: 0; }
+.si-hl { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.35; margin-bottom: 4px; }
+.si-meta { font-size: 0.6rem; color: var(--muted); }
+.si-play { width: 30px; height: 30px; background: var(--s2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--muted); flex-shrink: 0; }
+
+/* Sign-in nudge */
+.nudge { margin: 4px 18px 14px; background: var(--pri-dim); border: 1px solid rgba(124,58,237,0.22); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.nudge-text .nt2 { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.nudge-text .ns2 { font-size: 0.65rem; color: var(--muted); }
+.nudge-btn { padding: 9px 16px; background: var(--pri); border-radius: 999px; font-size: 0.7rem; font-weight: 700; color: #fff; white-space: nowrap; }
+
+/* ── Reading Challenge card ── */
+.ch-card {
+  margin: 0 18px 16px; border-radius: 22px;
+  background: linear-gradient(135deg, #130a30 0%, #0e1726 100%);
+  border: 1px solid rgba(124,58,237,0.28);
+  padding: 16px 18px; position: relative; overflow: hidden;
+}
+.ch-card::after {
+  content: ''; position: absolute; top: -50px; right: -50px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(124,58,237,0.25), transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.ch-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.ch-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pri-l); }
+.streak-pill { display: flex; align-items: center; gap: 5px; background: rgba(249,115,22,0.14); border: 1px solid rgba(249,115,22,0.28); border-radius: 999px; padding: 4px 11px; }
+.sp-num { font-size: 0.85rem; font-weight: 900; color: #fb923c; }
+.sp-txt { font-size: 0.58rem; font-weight: 700; color: rgba(249,115,22,0.65); }
+
+.ch-mid { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+
+/* Ring */
+.ring-wrap { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+.ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-pct { font-size: 1.1rem; font-weight: 900; color: #fff; line-height: 1; }
+.ring-sub { font-size: 0.44rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Slot bars */
+.slots { flex: 1; }
+.slot-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.slot-ico { font-size: 0.78rem; }
+.slot-track { flex: 1; height: 6px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+.slot-fill { height: 100%; border-radius: 99px; }
+.slot-cnt { font-size: 0.6rem; font-weight: 700; color: var(--muted); min-width: 30px; text-align: right; }
+
+.ch-cta { width: 100%; padding: 12px; background: var(--pri); border-radius: 13px; font-size: 0.82rem; font-weight: 700; color: #fff; text-align: center; display: flex; align-items: center; justify-content: center; gap: 7px; }
+
+/* Category chips */
+.chips { display: flex; gap: 9px; padding: 0 18px 14px; overflow-x: auto; scrollbar-width: none; }
+.chip { display: flex; flex-direction: column; align-items: center; gap: 5px; background: var(--s1); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px; min-width: 72px; flex-shrink: 0; }
+.chip.on { border-color: rgba(124,58,237,0.35); background: rgba(124,58,237,0.07); }
+.chip-av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; }
+.chip-nm { font-size: 0.6rem; font-weight: 600; color: var(--muted); }
+.chip-ct { font-size: 0.6rem; font-weight: 700; color: var(--dim); }
+.chip-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+.chip-fill { height: 100%; border-radius: 99px; }
+
+/* ── Reader ── */
+.rdr-hdr { display: flex; align-items: center; gap: 10px; padding: 6px 18px 12px; }
+.rdr-back { font-size: 1.15rem; color: var(--muted); }
+.rdr-cat { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; flex: 1; }
+.rdr-pos { font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+
+.dots { display: flex; gap: 4px; padding: 0 18px 14px; }
+.dot { flex: 1; height: 4px; border-radius: 99px; background: rgba(255,255,255,0.1); }
+.dot.done { background: var(--green); }
+.dot.cur  { background: var(--pri-l); }
+
+.rdr-body { padding: 0 22px; flex: 1; }
+.rdr-hl { font-size: 1.4rem; font-weight: 900; color: var(--text); line-height: 1.22; margin-bottom: 8px; letter-spacing: -0.025em; }
+.rdr-src { font-size: 0.65rem; color: var(--muted); margin-bottom: 16px; display: flex; gap: 7px; align-items: center; }
+.src-tag { background: rgba(255,255,255,0.07); padding: 2px 8px; border-radius: 5px; font-weight: 700; }
+
+/* Read/Listen toggle */
+.rl-toggle { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: 13px; padding: 3px; margin-bottom: 18px; gap: 3px; }
+.rl-btn { flex: 1; padding: 9px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; text-align: center; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 5px; }
+.rl-btn.on { background: var(--s2); color: var(--text); }
+
+/* Section pills (labels, not buttons) */
+.spill { display: inline-flex; align-items: center; gap: 4px; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.2); border-radius: 999px; padding: 3px 10px; font-size: 0.56rem; font-weight: 800; color: var(--pri-l); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 9px; }
+.spill.gray { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); color: var(--dim); }
+
+.bullet { display: flex; gap: 9px; margin-bottom: 9px; align-items: flex-start; }
+.bdot { width: 5px; height: 5px; border-radius: 50%; background: var(--pri-l); flex-shrink: 0; margin-top: 7px; }
+.btxt { font-size: 0.86rem; font-weight: 500; color: var(--text); line-height: 1.5; }
+
+.summ { font-size: 0.82rem; color: rgba(255,255,255,0.68); line-height: 1.6; margin-bottom: 14px; }
+
+.src-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.src-chip { display: flex; align-items: center; gap: 4px; padding: 4px 9px; background: var(--s1); border: 1px solid var(--border); border-radius: 7px; font-size: 0.6rem; font-weight: 600; color: var(--muted); }
+
+/* Reader bottom */
+.rdr-foot { padding: 12px 18px 22px; display: flex; gap: 10px; border-top: 1px solid var(--border); background: var(--bg); }
+.btn-prev { flex: 1; padding: 13px; border-radius: 13px; background: var(--s1); border: 1px solid var(--border); font-size: 0.78rem; font-weight: 700; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.btn-next { flex: 2; padding: 13px; border-radius: 13px; background: var(--pri); font-size: 0.78rem; font-weight: 700; color: #fff; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+/* Audio player */
+.audio-box { background: var(--s1); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 16px; }
+.waveform { height: 40px; display: flex; align-items: center; gap: 2px; margin-bottom: 10px; }
+.wb { flex: 1; border-radius: 2px; background: rgba(167,139,250,0.18); }
+.wb.p { background: var(--pri-l); }
+.aud-ctrl { display: flex; align-items: center; justify-content: space-between; }
+.aud-time { font-size: 0.62rem; color: var(--muted); }
+.aud-btns { display: flex; align-items: center; gap: 14px; }
+.aud-sk { font-size: 1.1rem; color: rgba(255,255,255,0.3); }
+.aud-play { width: 44px; height: 44px; background: var(--pri); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.aud-spd { font-size: 0.65rem; font-weight: 800; color: var(--muted); background: var(--s2); padding: 5px 9px; border-radius: 7px; }
+
+/* ── Caught up ── */
+.cu { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 24px; text-align: center; }
+.cu-icon { font-size: 4.5rem; margin-bottom: 16px; }
+.cu-title { font-size: 1.9rem; font-weight: 900; color: var(--text); letter-spacing: -0.04em; margin-bottom: 8px; }
+.cu-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 28px; line-height: 1.6; max-width: 280px; }
+.cu-stats { display: flex; gap: 28px; margin-bottom: 24px; }
+.cu-s { display: flex; flex-direction: column; align-items: center; }
+.cu-n { font-size: 1.9rem; font-weight: 900; color: var(--text); }
+.cu-l { font-size: 0.62rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.cu-week { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 18px; padding: 14px 16px; width: 100%; margin-bottom: 24px; }
+.cu-week-label { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--dim); margin-bottom: 9px; }
+.cu-days { display: flex; gap: 5px; }
+.cu-day { flex: 1; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; }
+.cu-day.green { background: var(--green); color: #fff; }
+.cu-day.amber { background: #d97706; color: #fff; }
+.cu-day.today { outline: 2.5px solid var(--pri-l); outline-offset: 2px; }
+.cu-day.empty { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.25); }
+.cu-share { padding: 14px 36px; background: var(--pri); border-radius: 999px; font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 14px; }
+.cu-note { font-size: 0.7rem; color: rgba(255,255,255,0.25); }
+
+/* ── Greeting ── */
+.greet { padding: 6px 22px 14px; }
+.greet-hi { font-size: 1.25rem; font-weight: 900; color: var(--text); letter-spacing: -0.025em; margin-bottom: 3px; }
+.greet-dt { font-size: 0.7rem; color: var(--muted); }
+
+/* Auth */
+.auth-wrap { flex: 1; display: flex; flex-direction: column; padding: 0 26px 24px; }
+.auth-logo { text-align: center; padding: 36px 0 20px; }
+.auth-logo-icon { font-size: 2.8rem; margin-bottom: 6px; }
+.auth-logo-title { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.04em; margin-bottom: 4px; }
+.auth-tagline { font-size: 0.82rem; color: var(--muted); }
+.vp { display: flex; flex-direction: column; gap: 12px; margin: 20px 0 24px; }
+.vp-row { display: flex; align-items: center; gap: 12px; }
+.vp-icon { font-size: 1.3rem; }
+.vp-title { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+.vp-sub { font-size: 0.65rem; color: var(--muted); }
+.ai { width: 100%; padding: 14px 16px; background: var(--s1); border: 1px solid var(--border); border-radius: 13px; color: #9090b0; font-size: 0.85rem; margin-bottom: 10px; }
+.a-submit { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--pri), #a855f7); border-radius: 13px; color: #fff; font-size: 0.9rem; font-weight: 700; text-align: center; margin-bottom: 14px; }
+.a-div { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.a-div-line { flex: 1; height: 1px; background: var(--border); }
+.a-div-txt { font-size: 0.62rem; color: var(--muted); }
+.a-social { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; padding: 12px; background: var(--s1); border: 1px solid var(--border); border-radius: 13px; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 9px; }
+.a-switch { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 14px; }
+.a-switch span { color: var(--pri-l); font-weight: 700; }
+
+/* ── My Feed list ── */
+.feed-hdr { padding: 6px 22px 12px; display: flex; align-items: center; justify-content: space-between; }
+.feed-title { font-size: 1.3rem; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
+.feed-slot-tabs { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: 10px; padding: 2px; gap: 2px; }
+.fst { padding: 5px 12px; border-radius: 8px; font-size: 0.68rem; font-weight: 700; color: var(--muted); }
+.fst.on { background: var(--s2); color: var(--text); }
+
+.cat-section { margin-bottom: 2px; }
+.cat-hdr-row { display: flex; align-items: center; gap: 10px; padding: 12px 22px 8px; cursor: pointer; }
+.cat-av-lg { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+.cat-info { flex: 1; }
+.cat-nm-lg { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.cat-prog { font-size: 0.62rem; color: var(--muted); }
+.cat-check { font-size: 1rem; color: var(--green); }
+.cat-arr { font-size: 0.8rem; color: var(--dim); }
+.cat-bar-row { padding: 0 22px 12px; }
+.cat-bar-full { height: 4px; border-radius: 99px; overflow: hidden; }
+
+/* Annotation card */
+.ann { width: 390px; padding: 12px 16px; background: white; border-radius: 12px; }
+.ann-h { font-size: 0.75rem; font-weight: 800; color: #0a0a0f; margin-bottom: 5px; }
+.ann-b { font-size: 0.65rem; color: #6b7280; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-title">The Rundown — Mobile Redesign v2</div>
+  <div class="doc-sub">Gen-Z news gamification · Mobile-first · <strong>6 core screens</strong> · Iterate before implementing</div>
+</div>
+
+<div class="screens">
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 1. GUEST HOME                               -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">1 · Guest — Trending</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● ▲ 🔋</span></div>
+    <div class="hdr">
+      <div class="brand">✦ <span>The Rundown</span></div>
+      <div style="display:flex;gap:8px">
+        <div class="hbtn">🔍</div>
+        <div class="hbtn" style="font-size:0.75rem;color:var(--muted)">👤</div>
+      </div>
+    </div>
+
+    <div class="pane">
+      <!-- Featured breaking -->
+      <div class="feat-card">
+        <div class="feat-img" style="background:linear-gradient(135deg,#1a1040,#2d1060)">🌍</div>
+        <div class="feat-badge">🔥 Breaking</div>
+        <div class="feat-body">
+          <div class="feat-meta">
+            <span class="tag" style="color:#a78bfa">WORLD</span>
+            <span>·</span><span>Reuters · 12m ago</span>
+          </div>
+          <div class="feat-hl">Israel and Hamas agree to new ceasefire framework</div>
+          <div class="feat-foot">
+            <span class="rt">📖 2m · 🎧 1m 30s</span>
+            <div class="action-btn">▶ Read / Listen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category pills -->
+      <div class="pills">
+        <div class="pill on">🔥 Trending</div>
+        <div class="pill">🌍 World</div>
+        <div class="pill">💻 Tech</div>
+        <div class="pill">💼 Business</div>
+        <div class="pill">⚽ Sports</div>
+        <div class="pill">⚕️ Health</div>
+      </div>
+
+      <!-- Stories -->
+      <div class="si">
+        <div class="si-num">1</div>
+        <div class="si-body">
+          <div class="tag" style="color:#38bdf8;margin-bottom:4px">TECH</div>
+          <div class="si-hl">OpenAI unveils GPT-5 with major reasoning improvements</div>
+          <div class="si-meta">TechCrunch · 3m read · 45m ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+      <div class="si">
+        <div class="si-num">2</div>
+        <div class="si-body">
+          <div class="tag" style="color:#34d399;margin-bottom:4px">BUSINESS</div>
+          <div class="si-hl">Fed signals caution on rate cuts at May minutes</div>
+          <div class="si-meta">WSJ · 2m read · 1h ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+      <div class="si">
+        <div class="si-num">3</div>
+        <div class="si-body">
+          <div class="tag" style="color:#fb923c;margin-bottom:4px">WORLD</div>
+          <div class="si-hl">NATO condemns Russia after drone hits Romanian building</div>
+          <div class="si-meta">BBC · 2m read · 2h ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+      <div class="si">
+        <div class="si-num">4</div>
+        <div class="si-body">
+          <div class="tag" style="color:#a78bfa;margin-bottom:4px">SCIENCE</div>
+          <div class="si-hl">WHO approves new malaria vaccine for children in Africa</div>
+          <div class="si-meta">Nature · 3m read · 3h ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+
+      <!-- Sign-up nudge -->
+      <div class="nudge">
+        <div class="nudge-text">
+          <div class="nt2">🎯 Never miss what matters</div>
+          <div class="ns2">Build reading streaks with your personal daily briefing</div>
+        </div>
+        <div class="nudge-btn">Join free</div>
+      </div>
+    </div>
+
+    <div class="bnav">
+      <div class="nt on"><div class="ni">🏠</div><div class="nl" style="color:#a78bfa">Trending</div></div>
+      <div class="nt"><div class="ni">📰</div><div class="nl">All News</div></div>
+      <div class="nt locked"><div class="ni">⭐</div><div class="nl">My Feed 🔒</div></div>
+      <div class="nt locked"><div class="ni">📊</div><div class="nl">Stats 🔒</div></div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Guest Home · Trending</div>
+    <div class="ann-b">
+      • Breaking/featured story is the first thing you see<br>
+      • Category filter pills — swipe to browse<br>
+      • Each story shows read time + audio length<br>
+      • My Feed + Stats locked (visible but dim/locked)<br>
+      • Non-pushy sign-up nudge after 4 stories
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 2. SIGN UP                                  -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">2 · Sign Up</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● 🔋</span></div>
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">✦</div>
+        <div class="auth-logo-title">The Rundown</div>
+        <div class="auth-tagline">Get caught up in 5 minutes a day</div>
+      </div>
+      <div class="vp">
+        <div class="vp-row">
+          <div class="vp-icon">🔥</div>
+          <div><div class="vp-title">Daily reading streaks</div><div class="vp-sub">Morning & evening briefings, every day</div></div>
+        </div>
+        <div class="vp-row">
+          <div class="vp-icon">⭐</div>
+          <div><div class="vp-title">Your personal feed</div><div class="vp-sub">Only the categories that matter to you</div></div>
+        </div>
+        <div class="vp-row">
+          <div class="vp-icon">🎧</div>
+          <div><div class="vp-title">Read or listen to every story</div><div class="vp-sub">Commute, gym, or desk — your choice</div></div>
+        </div>
+      </div>
+      <div class="ai" style="margin-bottom:10px">Email address</div>
+      <div class="ai" style="margin-bottom:14px">Password</div>
+      <div class="a-submit">Create free account →</div>
+      <div class="a-div">
+        <div class="a-div-line"></div>
+        <div class="a-div-txt">or continue with</div>
+        <div class="a-div-line"></div>
+      </div>
+      <div class="a-social">🍎 &nbsp;Continue with Apple</div>
+      <div class="a-social">G &nbsp;Continue with Google</div>
+      <div class="a-switch">Already have an account? <span>Sign in</span></div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Sign Up Screen</div>
+    <div class="ann-b">
+      • Value proposition first, form second<br>
+      • 3 hook points: streaks, personalization, audio<br>
+      • Apple + Google sign-in options (frictionless)<br>
+      • Clean, single scroll — not overwhelming
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 3. SIGNED-IN HOME                           -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">3 · Home (Signed In)</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● 🔋</span></div>
+    <div class="hdr" style="padding-bottom:2px">
+      <div>
+        <div class="greet-hi" style="padding:0;margin:0;font-size:1.15rem">Good morning, Roy 🌅</div>
+        <div class="greet-dt" style="padding:0">Saturday, May 30</div>
+      </div>
+      <div class="hbtn" style="font-size:0.75rem">⚙️</div>
+    </div>
+
+    <div class="pane">
+      <!-- Reading Challenge Card -->
+      <div class="ch-card" style="margin-top:10px">
+        <div class="ch-top">
+          <div class="ch-label">📚 Reading Challenge</div>
+          <div class="streak-pill">
+            <span>🔥</span>
+            <span class="sp-num">3</span>
+            <span class="sp-txt">day streak</span>
+          </div>
+        </div>
+        <div class="ch-mid">
+          <div class="ring-wrap">
+            <svg width="76" height="76" viewBox="0 0 76 76">
+              <circle cx="38" cy="38" r="31" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+              <circle cx="38" cy="38" r="31" fill="none" stroke="#7c3aed" stroke-width="7"
+                stroke-dasharray="194.8" stroke-dashoffset="122" stroke-linecap="round"
+                transform="rotate(-90 38 38)"/>
+            </svg>
+            <div class="ring-inner">
+              <div class="ring-pct">38%</div>
+              <div class="ring-sub">caught up</div>
+            </div>
+          </div>
+          <div class="slots">
+            <div class="slot-row">
+              <span class="slot-ico">☀️</span>
+              <div class="slot-track"><div class="slot-fill" style="width:45%;background:#a78bfa"></div></div>
+              <span class="slot-cnt" style="color:#a78bfa">3/8</span>
+            </div>
+            <div class="slot-row" style="margin-bottom:0">
+              <span class="slot-ico">🌙</span>
+              <div class="slot-track"><div class="slot-fill" style="width:0%"></div></div>
+              <span class="slot-cnt">0/8</span>
+            </div>
+          </div>
+        </div>
+        <div class="ch-cta">▶ Continue Morning Briefing</div>
+      </div>
+
+      <!-- My Categories chips -->
+      <div class="sec-title">My Categories</div>
+      <div class="chips">
+        <div class="chip on">
+          <div class="chip-av" style="background:rgba(99,102,241,0.18);color:#818cf8">WN</div>
+          <div class="chip-nm">World</div>
+          <div class="chip-ct" style="color:#818cf8">3/8</div>
+          <div class="chip-bar"><div class="chip-fill" style="width:37%;background:#818cf8"></div></div>
+        </div>
+        <div class="chip">
+          <div class="chip-av" style="background:rgba(56,189,248,0.18);color:#38bdf8">TE</div>
+          <div class="chip-nm">Tech</div>
+          <div class="chip-ct">0/6</div>
+          <div class="chip-bar"></div>
+        </div>
+        <div class="chip">
+          <div class="chip-av" style="background:rgba(234,179,8,0.18);color:#eab308">BU</div>
+          <div class="chip-nm">Business</div>
+          <div class="chip-ct">0/7</div>
+          <div class="chip-bar"></div>
+        </div>
+        <div class="chip">
+          <div class="chip-av" style="background:rgba(239,68,68,0.18);color:#f87171">PO</div>
+          <div class="chip-nm">Politics</div>
+          <div class="chip-ct">0/8</div>
+          <div class="chip-bar"></div>
+        </div>
+        <div class="chip" style="min-width:52px;justify-content:center">
+          <div style="font-size:1.3rem;color:var(--dim)">+</div>
+          <div class="chip-nm">More</div>
+        </div>
+      </div>
+
+      <!-- Trending below fold -->
+      <div class="sec-title">🔥 Trending Now</div>
+      <div class="si">
+        <div class="si-num">1</div>
+        <div class="si-body">
+          <div class="tag" style="color:#818cf8;margin-bottom:4px">WORLD</div>
+          <div class="si-hl">Israel and Hamas reach ceasefire framework</div>
+          <div class="si-meta">Reuters · 2m · 45m ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+      <div class="si">
+        <div class="si-num">2</div>
+        <div class="si-body">
+          <div class="tag" style="color:#38bdf8;margin-bottom:4px">TECH</div>
+          <div class="si-hl">OpenAI unveils GPT-5 with improved reasoning</div>
+          <div class="si-meta">TechCrunch · 3m · 1h ago</div>
+        </div>
+        <div class="si-play">▶</div>
+      </div>
+    </div>
+
+    <div class="bnav">
+      <div class="nt on"><div class="ni">🏠</div><div class="nl" style="color:#a78bfa">Home</div></div>
+      <div class="nt"><div class="ni">🔥</div><div class="nl">Discover</div></div>
+      <div class="nt"><div class="ni">⭐</div><div class="nl">My Feed</div></div>
+      <div class="nt"><div class="ni">📊</div><div class="nl">Progress</div></div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Signed-in Home (morning, in progress)</div>
+    <div class="ann-b">
+      • Reading challenge card is the #1 visual element<br>
+      • Progress ring shows combined % caught up<br>
+      • Morning/evening slot bars side by side<br>
+      • CTA: Continue Briefing → goes to My Feed<br>
+      • Category chips show individual progress at a glance<br>
+      • Trending below for serendipitous discovery
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 4. STORY READER — READ MODE                 -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">4 · Story Reader — Read</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● 🔋</span></div>
+
+    <div class="rdr-hdr">
+      <div class="rdr-back">←</div>
+      <div class="rdr-cat" style="color:#818cf8">World News</div>
+      <div class="rdr-pos">3 of 8</div>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="dots">
+      <div class="dot done"></div><div class="dot done"></div>
+      <div class="dot cur"></div>
+      <div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="pane" style="padding-bottom:0">
+      <div class="rdr-body">
+        <div class="rdr-hl">Israel and Hamas agree to new ceasefire framework</div>
+        <div class="rdr-src">
+          <span class="src-tag">Reuters</span>
+          <span>·</span><span>📖 2 min</span>
+          <span>·</span><span>🎧 1m 30s</span>
+        </div>
+
+        <!-- Toggle -->
+        <div class="rl-toggle">
+          <div class="rl-btn on">📖 Read</div>
+          <div class="rl-btn">🎧 Listen</div>
+        </div>
+
+        <!-- Key Takeaways -->
+        <div class="spill">Key Takeaways</div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Mediators reached a ceasefire deal after weeks of negotiations in Cairo</div></div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Agreement includes prisoner exchange and humanitarian aid provisions</div></div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Ceasefire expected to start Sunday, pending formal approval</div></div>
+
+        <!-- Summary -->
+        <div class="spill" style="margin-top:10px">Summary</div>
+        <div class="summ">Israel and Hamas have reached a framework for a ceasefire, mediators said Wednesday. Talks will continue over humanitarian and long-term arrangements between the parties...</div>
+
+        <!-- Sources -->
+        <div class="spill gray">Sources</div>
+        <div class="src-row">
+          <div class="src-chip">📰 Reuters</div>
+          <div class="src-chip">📰 BBC News</div>
+          <div class="src-chip">📰 Al Jazeera</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rdr-foot">
+      <div class="btn-prev">← Prev</div>
+      <div class="btn-next">Next — marks as read →</div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Story Reader — Read Mode</div>
+    <div class="ann-b">
+      • Progress dots (green = read, purple = current)<br>
+      • Read / Listen toggle at the top of content area<br>
+      • Section pills are labels only — not toggle buttons<br>
+      • Takeaways first, then Summary, then Sources<br>
+      • "Next" button marks story as read then advances<br>
+      • Back arrow → returns to category list
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 5. STORY READER — LISTEN MODE               -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">5 · Story Reader — Listen</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● 🔋</span></div>
+
+    <div class="rdr-hdr">
+      <div class="rdr-back">←</div>
+      <div class="rdr-cat" style="color:#818cf8">World News</div>
+      <div class="rdr-pos">3 of 8</div>
+    </div>
+    <div class="dots">
+      <div class="dot done"></div><div class="dot done"></div>
+      <div class="dot cur"></div>
+      <div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="pane" style="padding-bottom:0">
+      <div class="rdr-body">
+        <div class="rdr-hl">Israel and Hamas agree to new ceasefire framework</div>
+        <div class="rdr-src">
+          <span class="src-tag">Reuters</span>
+          <span>·</span><span>📖 2 min</span>
+          <span>·</span><span>🎧 1m 30s</span>
+        </div>
+
+        <!-- Toggle -->
+        <div class="rl-toggle">
+          <div class="rl-btn">📖 Read</div>
+          <div class="rl-btn on">🎧 Listen</div>
+        </div>
+
+        <!-- Audio player -->
+        <div class="audio-box">
+          <div class="waveform">
+            <div class="wb p" style="height:35%"></div><div class="wb p" style="height:60%"></div>
+            <div class="wb p" style="height:80%"></div><div class="wb p" style="height:48%"></div>
+            <div class="wb p" style="height:72%"></div><div class="wb p" style="height:90%"></div>
+            <div class="wb p" style="height:42%"></div>
+            <div class="wb" style="height:65%"></div><div class="wb" style="height:78%"></div>
+            <div class="wb" style="height:52%"></div><div class="wb" style="height:88%"></div>
+            <div class="wb" style="height:40%"></div><div class="wb" style="height:70%"></div>
+            <div class="wb" style="height:58%"></div><div class="wb" style="height:45%"></div>
+            <div class="wb" style="height:68%"></div><div class="wb" style="height:55%"></div>
+            <div class="wb" style="height:82%"></div><div class="wb" style="height:72%"></div>
+            <div class="wb" style="height:50%"></div>
+          </div>
+          <div class="aud-ctrl">
+            <div class="aud-time">0:43 / 1:30</div>
+            <div class="aud-btns">
+              <div class="aud-sk">⏮</div>
+              <div class="aud-play">⏸</div>
+              <div class="aud-sk">⏭</div>
+            </div>
+            <div class="aud-spd">1.0×</div>
+          </div>
+        </div>
+
+        <!-- Takeaways shown while listening -->
+        <div class="spill">Key Takeaways</div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Mediators reached a deal after weeks of negotiations in Cairo</div></div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Agreement includes prisoner exchange and humanitarian aid</div></div>
+        <div class="bullet"><div class="bdot"></div><div class="btxt">Ceasefire expected to start Sunday</div></div>
+      </div>
+    </div>
+
+    <div class="rdr-foot">
+      <div class="btn-prev">← Prev</div>
+      <div class="btn-next">Next Story →</div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Story Reader — Listen Mode</div>
+    <div class="ann-b">
+      • Tap Listen tab → audio player replaces text body<br>
+      • Waveform scrubber shows position in audio<br>
+      • Play/pause, skip, speed control<br>
+      • Key takeaways shown below as visual aid<br>
+      • Next auto-queues next story audio<br>
+      • Story marked as read when audio completes or Next tapped
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- 6. BRIEFING COMPLETE CELEBRATION            -->
+<!-- ════════════════════════════════════════════ -->
+<div class="screen-wrap">
+  <span class="screen-label">6 · Morning Complete 🎉</span>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>●●● 🔋</span></div>
+    <div class="pane">
+      <div class="cu">
+        <div class="cu-icon">🎉</div>
+        <div class="cu-title">Morning Complete!</div>
+        <div class="cu-sub">You've caught up on all morning stories. Come back at 6 PM for your evening briefing.</div>
+
+        <div class="cu-stats">
+          <div class="cu-s">
+            <div class="cu-n" style="color:#a78bfa">8</div>
+            <div class="cu-l">stories read</div>
+          </div>
+          <div class="cu-s">
+            <div class="cu-n" style="color:#fb923c">🔥 4</div>
+            <div class="cu-l">day streak</div>
+          </div>
+          <div class="cu-s">
+            <div class="cu-n" style="color:#22c55e">5m</div>
+            <div class="cu-l">time spent</div>
+          </div>
+        </div>
+
+        <div class="cu-week">
+          <div class="cu-week-label">This week</div>
+          <div class="cu-days">
+            <div class="cu-day green">M</div>
+            <div class="cu-day green">T</div>
+            <div class="cu-day amber">W</div>
+            <div class="cu-day green today">T</div>
+            <div class="cu-day empty">F</div>
+            <div class="cu-day empty">S</div>
+            <div class="cu-day empty">S</div>
+          </div>
+        </div>
+
+        <div class="cu-share">📤 Share your streak</div>
+        <div class="cu-note">Evening briefing unlocks at 6:00 PM</div>
+      </div>
+    </div>
+
+    <div class="bnav">
+      <div class="nt"><div class="ni">🏠</div><div class="nl">Home</div></div>
+      <div class="nt"><div class="ni">🔥</div><div class="nl">Discover</div></div>
+      <div class="nt"><div class="ni">⭐</div><div class="nl">My Feed</div></div>
+      <div class="nt on"><div class="ni">📊</div><div class="nl" style="color:#a78bfa">Progress</div></div>
+    </div>
+  </div>
+  <div class="ann">
+    <div class="ann-h">Briefing Complete Screen (Duolingo moment)</div>
+    <div class="ann-b">
+      • Full-screen celebration — reward the habit<br>
+      • Stories read + streak day + time spent<br>
+      • Weekly calendar shows their consistency<br>
+      • Share streak button (social retention loop)<br>
+      • Preview of when evening briefing unlocks
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens -->
+</body>
+</html>

@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Rundown — Wireframes v4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; background: #dcdce4; padding: 40px 32px; }
+
+.doc-header { margin-bottom: 36px; }
+.doc-title { font-size: 1.6rem; font-weight: 900; color: #0a0a0f; letter-spacing: -0.03em; margin-bottom: 5px; }
+.doc-sub { font-size: 0.85rem; color: #6b7280; line-height: 1.6; }
+.doc-sub strong { color: #7c3aed; }
+
+.section-divider { margin: 44px 0 20px; padding-bottom: 10px; border-bottom: 2px solid rgba(0,0,0,0.1); }
+.section-divider h2 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #7c3aed; }
+
+.row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
+.sw { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sl { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
+
+/* ── PHONE ── */
+.phone {
+  width: 375px; min-height: 812px;
+  border-radius: 44px; overflow: hidden;
+  display: flex; flex-direction: column;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4), 0 0 0 11px rgba(255,255,255,0.08);
+}
+.phone.dark  { background: #0c0c18; }
+.phone.light { background: #f5f5f7; }
+
+.sb { display: flex; justify-content: space-between; align-items: center; padding: 16px 26px 6px; font-size: 0.73rem; font-weight: 700; }
+.sb.d { color: rgba(255,255,255,0.75); }
+.sb.l { color: rgba(0,0,0,0.65); }
+
+.pane { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* DARK tokens */
+.dark  { --bg:#0c0c18; --s1:#171726; --s2:#1f1f38; --br:rgba(255,255,255,0.07); --pri:#7c3aed; --pl:#a78bfa; --pdim:rgba(124,58,237,0.14); --fire:#f97316; --grn:#22c55e; --tx:#f0f0f8; --mu:rgba(255,255,255,0.42); --dm:rgba(255,255,255,0.2); --tx2:#0c0c18; }
+/* LIGHT tokens */
+.light { --bg:#f5f5f7; --s1:#ffffff; --s2:#f0f0f6; --br:rgba(0,0,0,0.08); --pri:#7c3aed; --pl:#7c3aed; --pdim:rgba(124,58,237,0.08); --fire:#f97316; --grn:#16a34a; --tx:#0a0a0f; --mu:#8a8a9a; --dm:rgba(0,0,0,0.25); --tx2:#ffffff; }
+
+/* ── BOTTOM NAV ── */
+.bnav { display: flex; padding: 8px 0 26px; }
+.dark  .bnav { background: rgba(12,12,24,0.97); border-top: 1px solid rgba(255,255,255,0.06); }
+.light .bnav { background: rgba(248,248,252,0.97); border-top: 1px solid rgba(0,0,0,0.07); }
+.nt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; position: relative; cursor: pointer; }
+.ni { display: flex; align-items: center; justify-content: center; }
+.dark  .ni svg { stroke: rgba(255,255,255,0.28); }
+.light .ni svg { stroke: rgba(0,0,0,0.3); }
+.nt.on .ni svg { stroke: #7c3aed !important; }
+.dark  .nl { font-size: 0.55rem; font-weight: 600; color: rgba(255,255,255,0.3); }
+.light .nl { font-size: 0.55rem; font-weight: 600; color: rgba(0,0,0,0.3); }
+.nt.on .nl { color: #7c3aed !important; }
+.nt.on .ni-dot { display: block; }
+.ni-dot { display: none; width: 4px; height: 4px; border-radius: 50%; background: #7c3aed; margin: 0 auto; }
+
+/* ── SHARED ATOMS ── */
+.hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 10px; }
+.hbtn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; cursor: pointer; }
+.dark  .hbtn { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.45); }
+.light .hbtn { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+
+/* ── PROGRESS PILL (top of every feed + reader) ── */
+.prog-pill {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 16px 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.dark  .prog-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+.light .prog-pill { background: #fff; border: 1px solid rgba(0,0,0,0.09); box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+
+/* mini ring */
+.mini-ring { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
+.mini-ring svg { transform: rotate(-90deg); }
+.mini-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.48rem; font-weight: 900; }
+.dark  .mini-ring-label { color: #f0f0f8; }
+.light .mini-ring-label { color: #0a0a0f; }
+
+.prog-pill-mid { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.prog-pill-txt { font-size: 0.65rem; font-weight: 700; }
+.dark  .prog-pill-txt { color: rgba(255,255,255,0.75); }
+.light .prog-pill-txt { color: #0a0a0f; }
+.prog-pill-sub { font-size: 0.55rem; }
+.dark  .prog-pill-sub { color: rgba(255,255,255,0.35); }
+.light .prog-pill-sub { color: #8a8a9a; }
+
+/* segmented bar inside pill */
+.seg-bar { display: flex; gap: 2px; }
+.seg { flex: 1; height: 3px; border-radius: 2px; }
+.dark  .seg { background: rgba(255,255,255,0.1); }
+.light .seg { background: rgba(0,0,0,0.09); }
+.seg.done { background: #7c3aed; }
+.seg.goal { background: #22c55e; }
+
+.prog-pill-arrow { font-size: 0.65rem; }
+.dark  .prog-pill-arrow { color: rgba(255,255,255,0.25); }
+.light .prog-pill-arrow { color: rgba(0,0,0,0.25); }
+
+/* ── DAY SELECTOR ── */
+.day-sel { display: flex; gap: 4px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+.day-sel::-webkit-scrollbar { display: none; }
+.day-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 10px; border-radius: 12px; cursor: pointer; flex-shrink: 0; min-width: 42px; }
+.dark  .day-item { border: 1px solid rgba(255,255,255,0.07); }
+.light .day-item { border: 1px solid rgba(0,0,0,0.07); background: #fff; }
+.day-item.today { border-color: #7c3aed !important; background: rgba(124,58,237,0.12) !important; }
+.day-item.has-read { }
+.day-lbl { font-size: 0.52rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.dark  .day-lbl { color: rgba(255,255,255,0.35); }
+.light .day-lbl { color: #8a8a9a; }
+.day-item.today .day-lbl { color: #a78bfa; }
+.light .day-item.today .day-lbl { color: #7c3aed; }
+.day-num { font-size: 0.82rem; font-weight: 800; }
+.dark  .day-num { color: rgba(255,255,255,0.55); }
+.light .day-num { color: #374151; }
+.day-item.today .day-num { color: #f0f0f8; }
+.light .day-item.today .day-num { color: #0a0a0f; }
+.day-dot { width: 4px; height: 4px; border-radius: 50%; }
+.dark  .day-dot { background: rgba(255,255,255,0.15); }
+.light .day-dot { background: rgba(0,0,0,0.12); }
+.day-dot.done { background: #22c55e; }
+.day-dot.partial { background: #f97316; }
+
+/* ── CATEGORY PILLS ── */
+.pills { display: flex; gap: 7px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+.pills::-webkit-scrollbar { display: none; }
+.pill { padding: 6px 13px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.dark  .pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+.light .pill { background: #fff; border: 1px solid rgba(0,0,0,0.1); color: #6b7280; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.pill.on { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.35); color: #a78bfa; }
+.light .pill.on { background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.4); color: #7c3aed; }
+
+/* ── CATEGORY HEADER IN FEED ── */
+.cat-hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 6px; }
+.cat-hdr-name { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; }
+.dark  .cat-hdr-name { color: rgba(255,255,255,0.35); }
+.light .cat-hdr-name { color: #9ca3af; }
+.cat-hdr-ct { font-size: 0.58rem; font-weight: 700; }
+.dark  .cat-hdr-ct { color: rgba(255,255,255,0.25); }
+.light .cat-hdr-ct { color: #c4c4d0; }
+
+/* ── STORY ITEM ── */
+.si { display: flex; gap: 10px; padding: 10px 20px 12px; align-items: flex-start; }
+.dark  .si { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.light .si { border-bottom: 1px solid rgba(0,0,0,0.07); }
+.si-n { font-size: 0.68rem; font-weight: 800; width: 18px; flex-shrink: 0; padding-top: 3px; }
+.dark  .si-n { color: rgba(255,255,255,0.2); }
+.light .si-n { color: rgba(0,0,0,0.22); }
+.si-b { flex: 1; min-width: 0; }
+.si-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.si-h { font-size: 0.86rem; font-weight: 700; line-height: 1.32; flex: 1; }
+.dark  .si-h { color: #f0f0f8; }
+.light .si-h { color: #0a0a0f; }
+.si-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 99px; font-size: 0.55rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+.si-badge.read    { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+.si-badge.unread  { background: rgba(124,58,237,0.1); color: #a78bfa; border: 1px solid rgba(124,58,237,0.22); }
+.light .si-badge.unread { color: #7c3aed; }
+.si-summary { font-size: 0.72rem; line-height: 1.48; margin-bottom: 8px; }
+.dark  .si-summary { color: rgba(255,255,255,0.55); }
+.light .si-summary { color: #6b7280; }
+
+/* story actions row */
+.si-actions { display: flex; align-items: center; gap: 6px; }
+.si-srcs { display: flex; align-items: center; gap: 0; flex: 1; flex-wrap: wrap; }
+
+/* action buttons */
+.btn-sm { padding: 4px 10px; border-radius: 7px; font-size: 0.6rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.btn-read { background: #7c3aed; color: #fff; }
+.btn-play { background: transparent; color: #a78bfa; border: 1px solid rgba(124,58,237,0.35); }
+.light .btn-play { color: #7c3aed; border-color: rgba(124,58,237,0.3); }
+
+/* ── BOTTOM SHEET ── */
+.sheet-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.dark  .sheet-overlay { background: rgba(0,0,0,0.55); }
+.light .sheet-overlay { background: rgba(0,0,0,0.3); }
+.sheet {
+  border-radius: 24px 24px 0 0;
+  padding: 0 0 32px;
+  max-height: 85%;
+  overflow-y: auto;
+}
+.dark  .sheet { background: #171726; border-top: 1px solid rgba(255,255,255,0.09); }
+.light .sheet { background: #fff; border-top: 1px solid rgba(0,0,0,0.08); box-shadow: 0 -8px 40px rgba(0,0,0,0.12); }
+.sheet-handle { width: 36px; height: 4px; border-radius: 2px; margin: 12px auto 16px; }
+.dark  .sheet-handle { background: rgba(255,255,255,0.15); }
+.light .sheet-handle { background: rgba(0,0,0,0.12); }
+.sheet-title { font-size: 0.95rem; font-weight: 900; padding: 0 20px 14px; letter-spacing: -0.02em; }
+.dark  .sheet-title { color: #f0f0f8; }
+.light .sheet-title { color: #0a0a0f; }
+
+/* challenge blocks inside sheet */
+.chal-block { margin: 0 16px 10px; padding: 14px; border-radius: 16px; }
+.dark  .chal-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+.light .chal-block { background: #f9f9fc; border: 1px solid rgba(0,0,0,0.06); }
+.chal-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.chal-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.chal-name { font-size: 0.78rem; font-weight: 800; }
+.dark  .chal-name { color: #f0f0f8; }
+.light .chal-name { color: #0a0a0f; }
+.chal-sub { font-size: 0.58rem; margin-top: 1px; }
+.dark  .chal-sub  { color: rgba(255,255,255,0.4); }
+.light .chal-sub  { color: #9ca3af; }
+.chal-stat { margin-left: auto; font-size: 0.75rem; font-weight: 900; }
+
+/* streak dots */
+.streak-dots { display: flex; gap: 5px; margin-top: 4px; }
+.s-dot { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 800; }
+.dark  .s-dot.empty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); }
+.light .s-dot.empty { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.25); }
+.s-dot.done { background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.35); color: #4ade80; }
+.light .s-dot.done { color: #16a34a; }
+.s-dot.today { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+/* weekly grid */
+.week-grid { display: flex; gap: 4px; margin-top: 6px; }
+.wg-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.wg-lbl { font-size: 0.48rem; font-weight: 700; text-transform: uppercase; }
+.dark  .wg-lbl { color: rgba(255,255,255,0.3); }
+.light .wg-lbl { color: #9ca3af; }
+.wg-box { width: 100%; aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; }
+.dark  .wg-box.empty { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+.light .wg-box.empty { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); }
+.wg-box.done  { background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.3); }
+.wg-box.today { outline: 2px solid #7c3aed; outline-offset: 2px; }
+.wg-box.rest  { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); }
+
+/* ── READER ── */
+.rdr-phone { min-height: 900px; }
+.rdr-hdr { display: flex; align-items: center; gap: 10px; padding: 10px 16px 8px; }
+.rdr-back { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+.dark  .rdr-back { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); }
+.light .rdr-back { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.5); }
+.rdr-hdr-mid { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.rdr-feed-lbl { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.dark  .rdr-feed-lbl { color: rgba(255,255,255,0.35); }
+.light .rdr-feed-lbl { color: #9ca3af; }
+.rdr-prog-lbl { font-size: 0.72rem; font-weight: 800; }
+.dark  .rdr-prog-lbl { color: #f0f0f8; }
+.light .rdr-prog-lbl { color: #0a0a0f; }
+.rdr-imp-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+.dark  .rdr-imp-btn { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.22); }
+.light .rdr-imp-btn { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.18); }
+
+/* read/listen toggle */
+.mode-toggle { display: flex; gap: 0; margin: 0 16px 12px; border-radius: 10px; padding: 3px; }
+.dark  .mode-toggle { background: rgba(255,255,255,0.06); }
+.light .mode-toggle { background: rgba(0,0,0,0.06); }
+.mt-btn { flex: 1; padding: 7px; border-radius: 8px; font-size: 0.68rem; font-weight: 700; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+.dark  .mt-btn { color: rgba(255,255,255,0.4); }
+.light .mt-btn { color: rgba(0,0,0,0.4); }
+.mt-btn.on { background: #7c3aed; color: #fff; }
+
+/* story card in reader */
+.rdr-card {
+  margin: 0 16px 12px; border-radius: 20px; overflow: hidden;
+}
+.dark  .rdr-card { background: #171726; border: 1px solid rgba(255,255,255,0.07); }
+.light .rdr-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+.rdr-cat-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 16px 10px; }
+.rdr-headline { font-size: 1.05rem; font-weight: 900; line-height: 1.25; letter-spacing: -0.02em; padding: 0 16px 12px; }
+.dark  .rdr-headline { color: #f0f0f8; }
+.light .rdr-headline { color: #0a0a0f; }
+
+/* section pill */
+.spill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 3px 10px; font-size: 0.54rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 16px 8px; }
+.spill.pk { background: rgba(167,139,250,0.18); border: 1px solid rgba(167,139,250,0.28); color: #c4b5fd; }
+.light .spill.pk { background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.25); color: #7c3aed; }
+.spill.gs { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.45); }
+.light .spill.gs { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); color: #9ca3af; }
+
+/* bullet takeaways */
+.bullet { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 7px; align-items: flex-start; }
+.bdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+.dark  .bdot { background: #a78bfa; }
+.light .bdot { background: #7c3aed; }
+.btxt { font-size: 0.8rem; font-weight: 500; line-height: 1.48; }
+.dark  .btxt { color: rgba(255,255,255,0.85); }
+.light .btxt { color: #1f2937; }
+
+/* summary text */
+.rdr-summ { padding: 0 16px 14px; font-size: 0.74rem; line-height: 1.6; }
+.dark  .rdr-summ { color: rgba(255,255,255,0.55); }
+.light .rdr-summ { color: #6b7280; }
+
+/* sources row */
+.src-row { display: flex; align-items: center; gap: 5px; padding: 10px 16px 14px; border-top: 1px solid; flex-wrap: wrap; }
+.dark  .src-row { border-color: rgba(255,255,255,0.06); }
+.light .src-row { border-color: rgba(0,0,0,0.06); }
+.src-lbl { font-size: 0.58rem; }
+.dark  .src-lbl { color: rgba(255,255,255,0.3); }
+.light .src-lbl { color: #9ca3af; }
+/* outlet name pill */
+.src-name { font-size: 0.56rem; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+.dark  .src-name { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); }
+.light .src-name { background: rgba(0,0,0,0.06); color: #6b7280; }
+/* story list outlet names */
+.si-src-name { font-size: 0.56rem; font-weight: 700; padding: 2px 6px; border-radius: 5px; margin-right: 3px; }
+.dark  .si-src-name { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); }
+.light .si-src-name { background: rgba(0,0,0,0.06); color: #6b7280; }
+
+/* reader 2-row footer */
+.rdr-foot {
+  padding: 8px 12px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.dark  .rdr-foot { background: var(--bg); border-top: 1px solid rgba(255,255,255,0.06); }
+.light .rdr-foot { background: var(--bg); border-top: 1px solid rgba(0,0,0,0.07); }
+.rdr-nav-row { display: flex; align-items: center; gap: 3px; }
+.rdr-nav-centre { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.rdr-nav-lbl { font-size: 0.52rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; }
+.dark  .rdr-nav-lbl { color: rgba(255,255,255,0.25); }
+.light .rdr-nav-lbl { color: #9ca3af; }
+.rdr-nav-pos { font-size: 0.68rem; font-weight: 800; }
+.dark  .rdr-nav-pos { color: rgba(255,255,255,0.6); }
+.light .rdr-nav-pos { color: #374151; }
+/* nav buttons: single < > and double << >> */
+.nav-btn { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+.nav-btn-dbl { width: 40px; }
+.dark  .nav-btn { background: rgba(255,255,255,0.05); }
+.light .nav-btn { background: rgba(0,0,0,0.05); }
+.dark  .nav-btn svg { stroke: rgba(255,255,255,0.4); }
+.light .nav-btn svg { stroke: rgba(0,0,0,0.4); }
+/* category strip inside reader (shows all loaded categories) */
+.rdr-cat-scroll { display: flex; gap: 5px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+.rdr-cat-scroll::-webkit-scrollbar { display: none; }
+.rdr-cat-chip { display: flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
+.dark  .rdr-cat-chip { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+.light .rdr-cat-chip { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.07); }
+.rdr-cat-chip.active { border-color: rgba(124,58,237,0.4) !important; background: rgba(124,58,237,0.1) !important; }
+.rdr-cat-chip-name { font-size: 0.6rem; font-weight: 700; }
+.dark  .rdr-cat-chip-name { color: rgba(255,255,255,0.45); }
+.light .rdr-cat-chip-name { color: #6b7280; }
+.rdr-cat-chip.active .rdr-cat-chip-name { color: #a78bfa; }
+.light .rdr-cat-chip.active .rdr-cat-chip-name { color: #7c3aed; }
+.rdr-cat-chip-ct { font-size: 0.52rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; }
+.dark  .rdr-cat-chip-ct { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.28); }
+.light .rdr-cat-chip-ct { background: rgba(0,0,0,0.06); color: #9ca3af; }
+.rdr-cat-chip.active .rdr-cat-chip-ct { background: rgba(124,58,237,0.2); color: #a78bfa; }
+.light .rdr-cat-chip.active .rdr-cat-chip-ct { color: #7c3aed; }
+/* audio player icon buttons */
+.ask { display: flex; align-items: center; justify-content: center; cursor: pointer; width: 28px; height: 28px; }
+.dark  .ask svg { stroke: rgba(255,255,255,0.4); }
+.light .ask svg { stroke: rgba(0,0,0,0.4); }
+
+/* ── AUDIO PLAYER ── */
+.audio-card { margin: 0 16px 12px; border-radius: 18px; padding: 16px; }
+.dark  .audio-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); }
+.light .audio-card { background: #fff; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.waveform { height: 40px; display: flex; align-items: center; gap: 2px; margin-bottom: 12px; }
+.wb { flex: 1; border-radius: 2px; }
+.dark  .wb { background: rgba(167,139,250,0.15); }
+.light .wb { background: rgba(124,58,237,0.1); }
+.wb.p { background: #7c3aed; }
+.audio-row { display: flex; align-items: center; justify-content: space-between; }
+.audio-time { font-size: 0.6rem; }
+.dark  .audio-time { color: rgba(255,255,255,0.4); }
+.light .audio-time { color: #9ca3af; }
+.audio-btns { display: flex; align-items: center; gap: 14px; }
+.ask { font-size: 1.1rem; cursor: pointer; }
+.dark  .ask { color: rgba(255,255,255,0.35); }
+.light .ask { color: rgba(0,0,0,0.35); }
+.aplay { width: 46px; height: 46px; background: #7c3aed; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.4); }
+.aspd { font-size: 0.62rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.dark  .aspd { color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.07); }
+.light .aspd { color: #6b7280; background: rgba(0,0,0,0.06); }
+
+/* depth picker inside sheet */
+.depth-opt { margin: 0 16px 8px; padding: 14px; border-radius: 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.dark  .depth-opt { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.light .depth-opt { background: #f9f9fc; border: 1px solid rgba(0,0,0,0.07); }
+.depth-opt.selected { border-color: #7c3aed !important; background: rgba(124,58,237,0.1) !important; }
+.depth-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.depth-text { flex: 1; }
+.depth-name { font-size: 0.78rem; font-weight: 800; }
+.dark  .depth-name { color: #f0f0f8; }
+.light .depth-name { color: #0a0a0f; }
+.depth-dur { font-size: 0.58rem; margin-top: 2px; }
+.dark  .depth-dur  { color: rgba(255,255,255,0.4); }
+.light .depth-dur  { color: #9ca3af; }
+.depth-check { font-size: 1rem; flex-shrink: 0; }
+
+/* ── SETTINGS ── */
+.settings-section { padding: 12px 20px 4px; }
+.settings-section-lbl { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.dark  .settings-section-lbl { color: rgba(255,255,255,0.3); }
+.light .settings-section-lbl { color: #9ca3af; }
+.settings-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid; }
+.dark  .settings-row { border-color: rgba(255,255,255,0.06); }
+.light .settings-row { border-color: rgba(0,0,0,0.06); }
+.settings-row:last-child { border-bottom: none; }
+.settings-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+.settings-lbl { flex: 1; font-size: 0.78rem; font-weight: 700; }
+.dark  .settings-lbl { color: #f0f0f8; }
+.light .settings-lbl { color: #0a0a0f; }
+.settings-sub { font-size: 0.58rem; margin-top: 1px; }
+.dark  .settings-sub { color: rgba(255,255,255,0.35); }
+.light .settings-sub { color: #9ca3af; }
+/* toggle switch */
+.tog { width: 38px; height: 22px; border-radius: 11px; position: relative; flex-shrink: 0; cursor: pointer; }
+.dark  .tog.off { background: rgba(255,255,255,0.1); }
+.light .tog.off { background: rgba(0,0,0,0.12); }
+.tog.on  { background: #7c3aed; }
+.tog::after { content: ''; position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.18s; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.tog.off::after { left: 3px; }
+.tog.on::after  { left: 19px; }
+
+/* annotation card */
+.ann { width: 375px; padding: 12px 16px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+.ah { font-size: 0.73rem; font-weight: 800; color: #0a0a0f; margin-bottom: 5px; }
+.ab { font-size: 0.64rem; color: #6b7280; line-height: 1.6; }
+
+/* celebration glow */
+.celebrate .prog-pill { box-shadow: 0 0 0 2px #22c55e, 0 0 20px rgba(34,197,94,0.35) !important; border-color: #22c55e !important; }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-title">The Rundown — Wireframes v4</div>
+  <div class="doc-sub">
+    <strong>New architecture:</strong> Unified slim progress pill on all feeds &amp; reader · Day selector · Category pills · 4-feed bottom nav · Depth picker in Listen mode · Challenge bottom sheet
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION A — FEED PAGE (dark + light)
+════════════════════════════════════════════ -->
+<div class="section-divider"><h2>A — Feed Page: Dark vs Light</h2></div>
+<div class="row">
+
+  <!-- DARK FEED -->
+  <div class="sw">
+    <span class="sl">My Feed · Dark</span>
+    <div class="phone dark">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <!-- header -->
+      <div class="hdr">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:1.15rem;font-weight:900;color:#f0f0f8;letter-spacing:-0.025em">My Feed</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="hbtn">🔍</div>
+          <div class="hbtn">⚙️</div>
+        </div>
+      </div>
+
+      <div class="pane">
+        <!-- PROGRESS PILL -->
+        <div class="prog-pill">
+          <!-- mini ring SVG -->
+          <div class="mini-ring">
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+              <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3"
+                stroke-dasharray="69.12" stroke-dashoffset="27.65" stroke-linecap="round"/>
+            </svg>
+            <div class="mini-ring-label">6</div>
+          </div>
+          <div class="prog-pill-mid">
+            <div class="prog-pill-txt">6 of 10 today</div>
+            <div class="seg-bar">
+              <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+              <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+              <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            <div style="font-size:0.52rem;font-weight:700;color:rgba(255,255,255,0.3)">🔥 2-day streak</div>
+            <div class="prog-pill-arrow">›</div>
+          </div>
+        </div>
+
+        <!-- DAY SELECTOR -->
+        <div class="day-sel">
+          <div class="day-item">
+            <div class="day-lbl">Mon</div>
+            <div class="day-num">26</div>
+            <div class="day-dot done"></div>
+          </div>
+          <div class="day-item">
+            <div class="day-lbl">Tue</div>
+            <div class="day-num">27</div>
+            <div class="day-dot done"></div>
+          </div>
+          <div class="day-item">
+            <div class="day-lbl">Wed</div>
+            <div class="day-num">28</div>
+            <div class="day-dot partial"></div>
+          </div>
+          <div class="day-item">
+            <div class="day-lbl">Thu</div>
+            <div class="day-num">29</div>
+            <div class="day-dot"></div>
+          </div>
+          <div class="day-item">
+            <div class="day-lbl">Fri</div>
+            <div class="day-num">30</div>
+            <div class="day-dot"></div>
+          </div>
+          <div class="day-item today">
+            <div class="day-lbl">Sat</div>
+            <div class="day-num">31</div>
+            <div class="day-dot partial"></div>
+          </div>
+          <div class="day-item">
+            <div class="day-lbl">Sun</div>
+            <div class="day-num">1</div>
+            <div class="day-dot"></div>
+          </div>
+        </div>
+
+        <!-- CATEGORY PILLS -->
+        <div class="pills">
+          <div class="pill on">All</div>
+          <div class="pill">🌍 World</div>
+          <div class="pill">💻 Tech</div>
+          <div class="pill">💼 Business</div>
+          <div class="pill">🏥 Health</div>
+          <div class="pill">⚽ Sport</div>
+        </div>
+
+        <!-- STORIES: World -->
+        <div class="cat-hdr">
+          <div class="cat-hdr-name">🌍 World News</div>
+          <div class="cat-hdr-ct">8 stories</div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">1</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">G7 leaders agree on new AI governance framework after three-day summit</div>
+              <div class="si-badge read">✓ Read</div>
+            </div>
+            <div class="si-summary">World leaders reached a landmark agreement on artificial intelligence regulation, establishing binding safety standards for frontier models and setting up a new international oversight body...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">Reuters</span><span class="si-src-name">FT</span><span class="si-src-name">+3</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">2</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">Ukraine ceasefire talks resume in Istanbul with US mediation</div>
+              <div class="si-badge unread">● New</div>
+            </div>
+            <div class="si-summary">Diplomatic negotiations resumed for the first time in months, with Washington sending a senior envoy as both sides signal cautious willingness to discuss terms for a temporary halt to fighting...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">BBC</span><span class="si-src-name">AP</span><span class="si-src-name">+2</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tech category -->
+        <div class="cat-hdr" style="margin-top:6px">
+          <div class="cat-hdr-name">💻 Tech</div>
+          <div class="cat-hdr-ct">6 stories</div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">1</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">OpenAI announces GPT-5 with real-time reasoning and multimodal memory</div>
+              <div class="si-badge unread">● New</div>
+            </div>
+            <div class="si-summary">The company's most capable model yet introduces persistent cross-session memory and can reason over images, documents and audio simultaneously in a single context window...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">The Verge</span><span class="si-src-name">Wired</span><span class="si-src-name">+5</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /pane -->
+
+      <!-- BOTTOM NAV -->
+      <div class="bnav">
+        <div class="nt on">
+          <div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="nl">My Feed</div>
+          <div class="ni-dot"></div>
+        </div>
+        <div class="nt">
+          <div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div>
+          <div class="nl">All News</div>
+          <div class="ni-dot"></div>
+        </div>
+        <div class="nt">
+          <div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="nl">Popular</div>
+          <div class="ni-dot"></div>
+        </div>
+        <div class="nt">
+          <div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="nl">Important</div>
+          <div class="ni-dot"></div>
+        </div>
+      </div>
+    </div><!-- /phone dark -->
+  </div>
+
+  <!-- LIGHT FEED -->
+  <div class="sw">
+    <span class="sl">All News · Light</span>
+    <div class="phone light">
+      <div class="sb l"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="hdr">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:1.15rem;font-weight:900;color:#0a0a0f;letter-spacing:-0.025em">All News</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="hbtn">🔍</div>
+        </div>
+      </div>
+
+      <div class="pane">
+        <!-- PROGRESS PILL (light) -->
+        <div class="prog-pill">
+          <div class="mini-ring">
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="3"/>
+              <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3"
+                stroke-dasharray="69.12" stroke-dashoffset="27.65" stroke-linecap="round"/>
+            </svg>
+            <div class="mini-ring-label">6</div>
+          </div>
+          <div class="prog-pill-mid">
+            <div class="prog-pill-txt">6 of 10 today</div>
+            <div class="seg-bar">
+              <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+              <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+              <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            <div style="font-size:0.52rem;font-weight:700;color:#9ca3af">🔥 2-day streak</div>
+            <div class="prog-pill-arrow">›</div>
+          </div>
+        </div>
+
+        <!-- DAY SELECTOR -->
+        <div class="day-sel">
+          <div class="day-item"><div class="day-lbl">Mon</div><div class="day-num">26</div><div class="day-dot done"></div></div>
+          <div class="day-item"><div class="day-lbl">Tue</div><div class="day-num">27</div><div class="day-dot done"></div></div>
+          <div class="day-item"><div class="day-lbl">Wed</div><div class="day-num">28</div><div class="day-dot partial"></div></div>
+          <div class="day-item"><div class="day-lbl">Thu</div><div class="day-num">29</div><div class="day-dot"></div></div>
+          <div class="day-item"><div class="day-lbl">Fri</div><div class="day-num">30</div><div class="day-dot"></div></div>
+          <div class="day-item today"><div class="day-lbl">Sat</div><div class="day-num">31</div><div class="day-dot partial"></div></div>
+          <div class="day-item"><div class="day-lbl">Sun</div><div class="day-num">1</div><div class="day-dot"></div></div>
+        </div>
+
+        <!-- CATEGORY PILLS -->
+        <div class="pills">
+          <div class="pill on">🌍 World</div>
+          <div class="pill">💻 Tech</div>
+          <div class="pill">💼 Business</div>
+          <div class="pill">🏥 Health</div>
+          <div class="pill">🎨 Culture</div>
+          <div class="pill">⚽ Sport</div>
+        </div>
+
+        <div class="cat-hdr">
+          <div class="cat-hdr-name">🌍 World News</div>
+          <div class="cat-hdr-ct">12 stories</div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">1</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">G7 leaders agree on new AI governance framework after three-day summit</div>
+              <div class="si-badge read">✓ Read</div>
+            </div>
+            <div class="si-summary">World leaders reached a landmark agreement on artificial intelligence regulation, establishing binding safety standards for frontier models and setting up a new international oversight body...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">Reuters</span><span class="si-src-name">FT</span><span class="si-src-name">+3</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">2</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">Ukraine ceasefire talks resume in Istanbul with US mediation</div>
+              <div class="si-badge unread">● New</div>
+            </div>
+            <div class="si-summary">Diplomatic negotiations resumed for the first time in months, with Washington sending a senior envoy as both sides signal cautious willingness to discuss terms for a temporary halt to fighting...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">BBC</span><span class="si-src-name">AP</span><span class="si-src-name">+2</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="si">
+          <div class="si-n">3</div>
+          <div class="si-b">
+            <div class="si-top">
+              <div class="si-h">India's Supreme Court rules on landmark data privacy case</div>
+              <div class="si-badge unread">● New</div>
+            </div>
+            <div class="si-summary">The court's unanimous decision sets sweeping new limits on government surveillance and gives citizens the right to request deletion of biometric data held by state agencies...</div>
+            <div class="si-actions">
+              <div class="si-srcs">
+                <span class="si-src-name">NYT</span><span class="si-src-name">Guardian</span><span class="si-src-name">+1</span>
+              </div>
+              <div class="btn-sm btn-read">Read</div>
+              <div class="btn-sm btn-play">Play</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bnav">
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nl">My Feed</div><div class="ni-dot"></div></div>
+        <div class="nt on"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div><div class="nl">All News</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="nl">Popular</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div><div class="nl">Important</div><div class="ni-dot"></div></div>
+      </div>
+    </div><!-- /phone light -->
+  </div>
+
+  <div class="ann" style="align-self:flex-start;margin-top:50px">
+    <div class="ah">Feed page anatomy</div>
+    <div class="ab">
+      <strong>Progress pill</strong> — mini ring + segmented bar + streak hint. Same on all 4 feeds and inside the reader. Tap → challenge bottom sheet.<br><br>
+      <strong>Day selector</strong> — horizontal scroll strip. Dots: green = hit goal · orange = partial · grey = nothing. Today highlighted in purple.<br><br>
+      <strong>Category pills</strong> — auto-scroll. "All" on My Feed; specific cats on All News/Popular/Important.<br><br>
+      <strong>Story item</strong> — number · headline · 3-line preview · Read/unread badge · source favicons · Read + Play buttons.<br><br>
+      <strong>Bottom nav</strong> — My Feed · All News · Popular · Important. Active tab shows purple dot indicator below icon.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION B — CHALLENGE BOTTOM SHEET
+════════════════════════════════════════════ -->
+<div class="section-divider"><h2>B — Challenge Bottom Sheet (tap progress pill)</h2></div>
+<div class="row">
+
+  <!-- DARK SHEET -->
+  <div class="sw">
+    <span class="sl">Dark · Sheet open</span>
+    <div class="phone dark">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+      <div class="hdr">
+        <span style="font-size:1.15rem;font-weight:900;color:#f0f0f8">My Feed</span>
+        <div class="hbtn">⚙️</div>
+      </div>
+      <div class="pane" style="position:relative">
+        <!-- dimmed bg content -->
+        <div style="opacity:0.3;pointer-events:none">
+          <div class="prog-pill">
+            <div class="mini-ring">
+              <svg width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="69.12" stroke-dashoffset="27.65" stroke-linecap="round"/>
+              </svg>
+              <div class="mini-ring-label">6</div>
+            </div>
+            <div class="prog-pill-mid">
+              <div class="prog-pill-txt">6 of 10 today</div>
+              <div class="seg-bar"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+            </div>
+          </div>
+          <div class="pills"><div class="pill on">All</div><div class="pill">🌍 World</div><div class="pill">💻 Tech</div></div>
+          <div class="si"><div class="si-n">1</div><div class="si-b"><div class="si-h">G7 leaders agree on new AI governance framework…</div></div></div>
+          <div class="si"><div class="si-n">2</div><div class="si-b"><div class="si-h">Ukraine ceasefire talks resume in Istanbul…</div></div></div>
+        </div>
+
+        <!-- BOTTOM SHEET OVERLAY -->
+        <div class="sheet-overlay">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">This Week's Challenge</div>
+
+            <!-- Daily Goal -->
+            <div class="chal-block">
+              <div class="chal-row">
+                <div class="chal-icon" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3)">📖</div>
+                <div>
+                  <div class="chal-name">Daily Goal</div>
+                  <div class="chal-sub">Read 10 stories a day</div>
+                </div>
+                <div class="chal-stat" style="color:#a78bfa">6/10</div>
+              </div>
+              <div class="seg-bar" style="gap:3px">
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg done" style="height:5px;border-radius:3px"></div>
+                <div class="seg" style="height:5px;border-radius:3px"></div>
+                <div class="seg" style="height:5px;border-radius:3px"></div>
+                <div class="seg" style="height:5px;border-radius:3px"></div>
+                <div class="seg" style="height:5px;border-radius:3px"></div>
+              </div>
+              <div style="font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:5px">4 more to hit today's goal</div>
+            </div>
+
+            <!-- 3-Day Streak -->
+            <div class="chal-block">
+              <div class="chal-row">
+                <div class="chal-icon" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.28)">🔥</div>
+                <div>
+                  <div class="chal-name">3-Day Streak</div>
+                  <div class="chal-sub">Hit 10 stories 3 days in a row</div>
+                </div>
+                <div class="chal-stat" style="color:#fb923c">2/3</div>
+              </div>
+              <div class="streak-dots">
+                <div class="s-dot done">✓</div>
+                <div class="s-dot done">✓</div>
+                <div class="s-dot today empty">—</div>
+              </div>
+              <div style="font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:6px">Hit your goal today to complete the streak!</div>
+            </div>
+
+            <!-- Weekly Goal -->
+            <div class="chal-block">
+              <div class="chal-row">
+                <div class="chal-icon" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.28)">📅</div>
+                <div>
+                  <div class="chal-name">Weekly Goal</div>
+                  <div class="chal-sub">6 of 7 days · 1 rest day. You pick 🧘</div>
+                </div>
+                <div class="chal-stat" style="color:#4ade80">2/6</div>
+              </div>
+              <div class="week-grid">
+                <div class="wg-day"><div class="wg-lbl">M</div><div class="wg-box done">✓</div></div>
+                <div class="wg-day"><div class="wg-lbl">T</div><div class="wg-box done">✓</div></div>
+                <div class="wg-day"><div class="wg-lbl">W</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">T</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">F</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">S</div><div class="wg-box today empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">S</div><div class="wg-box empty"></div></div>
+              </div>
+              <div style="font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:6px">4 more days needed this week</div>
+            </div>
+
+            <div style="margin:4px 16px 0;padding:12px;border-radius:12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18);text-align:center">
+              <div style="font-size:0.72rem;font-weight:800;color:#4ade80">Total read this week: 47 stories 🚀</div>
+              <div style="font-size:0.58rem;color:rgba(255,255,255,0.35);margin-top:3px">Counts toward future social challenges</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="nt on"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nl">My Feed</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div><div class="nl">All News</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="nl">Popular</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div><div class="nl">Important</div><div class="ni-dot"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHT SHEET -->
+  <div class="sw">
+    <span class="sl">Light · Goal reached 🎉</span>
+    <div class="phone light celebrate">
+      <div class="sb l"><span>9:41</span><span>●●● 🔋</span></div>
+      <div class="hdr">
+        <span style="font-size:1.15rem;font-weight:900;color:#0a0a0f">My Feed</span>
+        <div class="hbtn">⚙️</div>
+      </div>
+      <div class="pane" style="position:relative">
+        <div style="opacity:0.3;pointer-events:none">
+          <!-- CELEBRATION PILL -->
+          <div class="prog-pill" style="border-color:#22c55e;box-shadow:0 0 0 2px #22c55e,0 0 20px rgba(34,197,94,0.25)">
+            <div class="mini-ring">
+              <svg width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="3"/>
+                <circle cx="14" cy="14" r="11" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="69.12" stroke-dashoffset="0" stroke-linecap="round"/>
+              </svg>
+              <div class="mini-ring-label" style="color:#16a34a">10</div>
+            </div>
+            <div class="prog-pill-mid">
+              <div class="prog-pill-txt" style="color:#16a34a">Goal hit! 10/10 🎉</div>
+              <div class="seg-bar"><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div><div class="seg goal"></div></div>
+            </div>
+            <div style="font-size:0.9rem">🎉</div>
+          </div>
+          <div class="pills"><div class="pill on">All</div><div class="pill">🌍 World</div></div>
+          <div class="si"><div class="si-n">1</div><div class="si-b"><div class="si-h">Keep reading — every story counts! 🚀</div><div class="si-summary" style="font-size:0.65rem;color:#9ca3af">You've hit today's goal. Keep going — your total story count is tracked for upcoming social challenges.</div></div></div>
+        </div>
+
+        <!-- SHEET: completed state -->
+        <div class="sheet-overlay">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">🎉 Daily Goal Complete!</div>
+
+            <div style="margin:0 16px 12px;padding:14px;border-radius:16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)">
+              <div style="font-size:1rem;font-weight:900;color:#16a34a;margin-bottom:4px">10 stories today ✓</div>
+              <div style="font-size:0.65rem;color:#6b7280">Keep reading — your count is now 12 and climbing. This data powers social challenges coming soon.</div>
+              <div class="seg-bar" style="margin-top:8px;gap:3px">
+                <div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div><div class="seg goal" style="height:5px;border-radius:3px"></div>
+              </div>
+            </div>
+
+            <div class="chal-block">
+              <div class="chal-row">
+                <div class="chal-icon" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25)">🔥</div>
+                <div><div class="chal-name">3-Day Streak</div><div class="chal-sub">Hit 10/day, 3 days running</div></div>
+                <div class="chal-stat" style="color:#f97316">3/3 ✓</div>
+              </div>
+              <div class="streak-dots">
+                <div class="s-dot done">✓</div>
+                <div class="s-dot done">✓</div>
+                <div class="s-dot done" style="outline:2px solid #22c55e;outline-offset:2px">✓</div>
+              </div>
+              <div style="font-size:0.62rem;font-weight:800;color:#16a34a;margin-top:6px">🏆 Streak complete! Amazing!</div>
+            </div>
+
+            <div class="chal-block">
+              <div class="chal-row">
+                <div class="chal-icon" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25)">📅</div>
+                <div><div class="chal-name">Weekly Goal</div><div class="chal-sub">6 of 7 days this week 🧘</div></div>
+                <div class="chal-stat" style="color:#16a34a">3/6</div>
+              </div>
+              <div class="week-grid">
+                <div class="wg-day"><div class="wg-lbl">M</div><div class="wg-box done" style="color:#16a34a">✓</div></div>
+                <div class="wg-day"><div class="wg-lbl">T</div><div class="wg-box done" style="color:#16a34a">✓</div></div>
+                <div class="wg-day"><div class="wg-lbl">W</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">T</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">F</div><div class="wg-box empty"></div></div>
+                <div class="wg-day"><div class="wg-lbl">S</div><div class="wg-box done today" style="color:#16a34a">✓</div></div>
+                <div class="wg-day"><div class="wg-lbl">S</div><div class="wg-box empty"></div></div>
+              </div>
+            </div>
+
+            <div style="margin:4px 16px 0;padding:12px;border-radius:12px;background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.15);text-align:center">
+              <div style="font-size:0.72rem;font-weight:800;color:#7c3aed">Total this week: 52 stories 🚀</div>
+              <div style="font-size:0.58rem;color:#9ca3af;margin-top:3px">Social leaderboard coming soon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bnav">
+        <div class="nt on"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nl">My Feed</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div><div class="nl">All News</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="nl">Popular</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div><div class="nl">Important</div><div class="ni-dot"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ann" style="align-self:flex-start;margin-top:50px">
+    <div class="ah">Challenge bottom sheet</div>
+    <div class="ab">
+      <strong>Trigger:</strong> tap the slim progress pill from any feed or reader.<br><br>
+      <strong>3 challenges:</strong><br>
+      📖 Daily Goal — 10/day, segmented bar<br>
+      🔥 3-Day Streak — day circles, consecutive<br>
+      📅 Weekly — any 6 of 7 days, rest-day is user's choice<br><br>
+      <strong>Goal hit state:</strong> pill turns green + glow. Sheet shows celebration copy. Counter keeps incrementing past 10 for future social features.<br><br>
+      <strong>Streak complete:</strong> outline turns green, badge shown.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION C — READER: READ MODE
+════════════════════════════════════════════ -->
+<div class="section-divider"><h2>C — Reader: Read Mode</h2></div>
+<div class="row">
+
+  <!-- DARK READ MODE -->
+  <div class="sw">
+    <span class="sl">Read Mode · Dark</span>
+    <div class="phone dark rdr-phone">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <!-- Reader header -->
+      <div class="rdr-hdr">
+        <div class="rdr-back">←</div>
+        <div class="rdr-hdr-mid">
+          <div class="rdr-feed-lbl">My Feed · World News</div>
+          <div class="rdr-prog-lbl">Story 7 of 10</div>
+        </div>
+        <!-- progress pill (mini, in-reader) -->
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3.5"/>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-dasharray="69.12" stroke-dashoffset="20.74" stroke-linecap="round"/>
+          </svg>
+          <span style="font-size:0.62rem;font-weight:800;color:rgba(255,255,255,0.6)">7/10</span>
+        </div>
+        <div class="rdr-imp-btn">⭐</div>
+      </div>
+
+      <!-- Read/Listen toggle -->
+      <div class="mode-toggle">
+        <div class="mt-btn on">📖 Read</div>
+        <div class="mt-btn">🎧 Listen</div>
+      </div>
+
+      <!-- Category strip: all categories loaded in this feed session -->
+      <div class="rdr-cat-scroll">
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">World</div><div class="rdr-cat-chip-ct">1/8</div></div>
+        <div class="rdr-cat-chip active"><div class="rdr-cat-chip-name">World</div><div class="rdr-cat-chip-ct">7/8</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Tech</div><div class="rdr-cat-chip-ct">0/6</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Business</div><div class="rdr-cat-chip-ct">0/5</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Health</div><div class="rdr-cat-chip-ct">0/4</div></div>
+      </div>
+
+      <div class="pane">
+        <!-- Story card -->
+        <div class="rdr-card">
+          <div class="rdr-cat-badge" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#93c5fd">🌍 World News</div>
+          <div class="rdr-headline">G7 leaders agree on new AI governance framework after three-day summit</div>
+
+          <!-- Takeaways -->
+          <div class="spill pk">✦ Key Takeaways</div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">G7 nations signed a binding accord establishing minimum safety requirements for all AI models above a compute threshold.</div></div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">A new International AI Safety Body will conduct annual audits of frontier labs, with power to issue fines up to 3% of global revenue.</div></div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">China and Russia declined to join, raising questions about enforcement in non-signatory countries.</div></div>
+
+          <!-- Full Summary toggle -->
+          <div class="spill gs" style="margin-top:6px">≡ Full Summary <span style="opacity:0.5;margin-left:3px">▾</span></div>
+          <div class="rdr-summ">Leaders from the US, UK, France, Germany, Italy, Japan and Canada wrapped up the three-day Hiroshima AI summit with a sweeping agreement that goes well beyond last year's non-binding Bletchley Declaration. The new accord requires that any model trained on more than 10²⁶ FLOP undergo mandatory pre-deployment safety evaluations by the newly created International AI Safety Body (IASB). Enforcement provisions include third-party audits, mandatory incident reporting within 72 hours, and financial penalties of up to 3% of a company's global annual revenue for violations. The EU welcomed the deal as broadly compatible with the AI Act, while US tech companies expressed cautious support pending review of the technical annexes. Notably absent from the signing ceremony were China and Russia, whose state-backed AI programs fall outside the framework entirely.</div>
+
+          <!-- Sources -->
+          <div class="src-row">
+            <span class="src-name">Reuters</span><span class="src-name">FT</span><span class="src-name">BBC</span><span class="src-lbl">+2 more</span>
+          </div>
+        </div>
+
+        <!-- spacer -->
+        <div style="flex:1"></div>
+      </div>
+
+      <!-- 2-row footer nav -->
+      <div class="rdr-foot">
+        <!-- Category row: << < World News · 2 of 4 cats > >> -->
+        <div class="rdr-nav-row">
+          <div class="nav-btn nav-btn-dbl" title="First category"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12,3 7,8 12,13"/><polyline points="18,3 13,8 18,13"/></svg></div>
+          <div class="nav-btn" title="Prev category"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg></div>
+          <div class="rdr-nav-centre">
+            <div class="rdr-nav-lbl">Category · 2 of 4</div>
+            <div class="rdr-nav-pos">World News</div>
+          </div>
+          <div class="nav-btn" title="Next category"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></div>
+          <div class="nav-btn nav-btn-dbl" title="Last category"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3 7,8 2,13"/><polyline points="8,3 13,8 8,13"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHT READ MODE -->
+  <div class="sw">
+    <span class="sl">Read Mode · Light</span>
+    <div class="phone light rdr-phone">
+      <div class="sb l"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="rdr-hdr">
+        <div class="rdr-back">←</div>
+        <div class="rdr-hdr-mid">
+          <div class="rdr-feed-lbl">All News · Tech</div>
+          <div class="rdr-prog-lbl">Story 3 of 6</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:#fff;border:1px solid rgba(0,0,0,0.09);box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="3.5"/>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-dasharray="69.12" stroke-dashoffset="41.47" stroke-linecap="round"/>
+          </svg>
+          <span style="font-size:0.62rem;font-weight:800;color:#374151">4/10</span>
+        </div>
+        <div class="rdr-imp-btn">⭐</div>
+      </div>
+
+      <div class="mode-toggle">
+        <div class="mt-btn on">📖 Read</div>
+        <div class="mt-btn">🎧 Listen</div>
+      </div>
+
+      <!-- Category strip -->
+      <div class="rdr-cat-scroll">
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">World</div><div class="rdr-cat-chip-ct">8/8</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Business</div><div class="rdr-cat-chip-ct">2/5</div></div>
+        <div class="rdr-cat-chip active"><div class="rdr-cat-chip-name">Tech</div><div class="rdr-cat-chip-ct">3/6</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Health</div><div class="rdr-cat-chip-ct">0/4</div></div>
+      </div>
+
+      <div class="pane">
+        <div class="rdr-card">
+          <div class="rdr-cat-badge" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);color:#7c3aed">💻 Tech</div>
+          <div class="rdr-headline">OpenAI announces GPT-5 with real-time reasoning and multimodal memory</div>
+
+          <div class="spill pk">✦ Key Takeaways</div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">GPT-5 introduces persistent cross-session memory, allowing the model to recall context from previous conversations without explicit prompting.</div></div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">A new "reasoning mode" lets users toggle deeper chain-of-thought processing, trading latency for accuracy on complex tasks.</div></div>
+          <div class="bullet"><div class="bdot"></div><div class="btxt">Native multimodal input supports simultaneous processing of text, images, PDFs, spreadsheets, and audio in one request.</div></div>
+
+          <div class="spill gs" style="margin-top:6px">≡ Full Summary <span style="opacity:0.5;margin-left:3px">▾</span></div>
+          <div class="rdr-summ">Sam Altman introduced GPT-5 at OpenAI's first developer conference in two years, calling it "a genuine step change in capability." The flagship upgrade centres on three pillars: persistent memory, native multimodal understanding, and a selectable reasoning depth. Early benchmarks show GPT-5 outperforming GPT-4o on mathematical reasoning by 18 percentage points and matching human expert performance on medical licensing exams for the first time. Pricing starts at $0.01 per 1k input tokens — a 40% reduction from GPT-4o — made possible by efficiency gains in the new MoE architecture. Enterprise customers get the option to keep memory isolated within a single tenant vault. Competitors Anthropic and Google are expected to respond with their own capability announcements within weeks.</div>
+
+          <div class="src-row">
+            <span class="src-name">The Verge</span><span class="src-name">NYT</span><span class="src-name">Reuters</span><span class="src-lbl">+4 more</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+      </div>
+
+      <div class="rdr-foot">
+        <div class="rdr-nav-row">
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12,3 7,8 12,13"/><polyline points="18,3 13,8 18,13"/></svg></div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg></div>
+          <div class="rdr-nav-centre">
+            <div class="rdr-nav-lbl">Category · 3 of 4</div>
+            <div class="rdr-nav-pos">Tech</div>
+          </div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></div>
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3 7,8 2,13"/><polyline points="8,3 13,8 8,13"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ann" style="align-self:flex-start;margin-top:50px">
+    <div class="ah">Read mode anatomy</div>
+    <div class="ab">
+      <strong>Header:</strong> ← back · feed + category label · "Story X of N" · mini progress pill (tappable) · ⭐ mark important<br><br>
+      <strong>Toggle:</strong> Read (active) | Listen — segmented pill below header<br><br>
+      <strong>Category strip:</strong> horizontal scroll of all categories in this session. Active one highlighted. Shows read/total per category (e.g. 3/6).<br><br>
+      <strong>Content:</strong> category badge · headline · ✦ Takeaways (always visible) · Full Summary (collapsible) · Sources row<br><br>
+      <strong>Footer row 1 — Category nav:</strong> &lt;&lt; (first cat) · &lt; (prev cat) · Name · 2 of 4 · &gt; (next cat) · &gt;&gt; (last cat)<br>
+      <strong>Footer row 2 — Story nav:</strong> &lt; (prev story) · Story X of N · &gt; (next story)
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION D — READER: LISTEN MODE
+════════════════════════════════════════════ -->
+<div class="section-divider"><h2>D — Reader: Listen Mode (depth picker → player)</h2></div>
+<div class="row">
+
+  <!-- DARK: DEPTH PICKER SHEET -->
+  <div class="sw">
+    <span class="sl">Dark · Choose depth</span>
+    <div class="phone dark rdr-phone">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="rdr-hdr">
+        <div class="rdr-back">←</div>
+        <div class="rdr-hdr-mid">
+          <div class="rdr-feed-lbl">My Feed · Tech</div>
+          <div class="rdr-prog-lbl">Story 3 of 10</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3.5"/>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-dasharray="69.12" stroke-dashoffset="48.38" stroke-linecap="round"/>
+          </svg>
+          <span style="font-size:0.62rem;font-weight:800;color:rgba(255,255,255,0.6)">3/10</span>
+        </div>
+        <div class="rdr-imp-btn">⭐</div>
+      </div>
+
+      <div class="mode-toggle">
+        <div class="mt-btn">📖 Read</div>
+        <div class="mt-btn on">🎧 Listen</div>
+      </div>
+
+      <!-- Category strip -->
+      <div class="rdr-cat-scroll">
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">World</div><div class="rdr-cat-chip-ct">8/8</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Business</div><div class="rdr-cat-chip-ct">2/5</div></div>
+        <div class="rdr-cat-chip active"><div class="rdr-cat-chip-name">Tech</div><div class="rdr-cat-chip-ct">3/6</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Health</div><div class="rdr-cat-chip-ct">0/4</div></div>
+      </div>
+
+      <div class="pane" style="position:relative">
+        <!-- dim content behind -->
+        <div style="opacity:0.3;pointer-events:none">
+          <div class="rdr-card">
+            <div class="rdr-cat-badge" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:#c4b5fd">💻 Tech</div>
+            <div class="rdr-headline">OpenAI announces GPT-5 with real-time reasoning and multimodal memory</div>
+            <div class="spill pk">✦ Key Takeaways</div>
+            <div class="bullet"><div class="bdot"></div><div class="btxt">GPT-5 introduces persistent memory across sessions.</div></div>
+            <div class="bullet"><div class="bdot"></div><div class="btxt">New reasoning mode trades latency for accuracy.</div></div>
+          </div>
+        </div>
+
+        <!-- DEPTH PICKER SHEET -->
+        <div class="sheet-overlay">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">What do you want to hear?</div>
+
+            <div class="depth-opt selected">
+              <div class="depth-icon" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3)">⚡</div>
+              <div class="depth-text">
+                <div class="depth-name">Key Takeaways</div>
+                <div class="depth-dur">~1.5 min · Quick brief, eyes-free</div>
+              </div>
+              <div class="depth-check">🟣</div>
+            </div>
+
+            <div class="depth-opt">
+              <div class="depth-icon" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1)">📄</div>
+              <div class="depth-text">
+                <div class="depth-name">Full Summary</div>
+                <div class="depth-dur">~3 min · Full context, all details</div>
+              </div>
+              <div class="depth-check" style="opacity:0.2">○</div>
+            </div>
+
+            <div style="margin:14px 16px 0;padding:13px;border-radius:13px;background:#7c3aed;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,0.4)">
+              <span style="font-size:0.88rem;font-weight:800;color:#fff">▶ Start Playing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rdr-foot">
+        <div class="rdr-nav-row">
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12,3 7,8 12,13"/><polyline points="18,3 13,8 18,13"/></svg></div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg></div>
+          <div class="rdr-nav-centre">
+            <div class="rdr-nav-lbl">Category · 3 of 4</div>
+            <div class="rdr-nav-pos">Tech</div>
+          </div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></div>
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3 7,8 2,13"/><polyline points="8,3 13,8 8,13"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK: PLAYER PLAYING -->
+  <div class="sw">
+    <span class="sl">Dark · Now playing</span>
+    <div class="phone dark rdr-phone">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="rdr-hdr">
+        <div class="rdr-back">←</div>
+        <div class="rdr-hdr-mid">
+          <div class="rdr-feed-lbl">My Feed · Tech · Takeaways</div>
+          <div class="rdr-prog-lbl">Story 3 of 10</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">
+          <svg width="18" height="18" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3.5"/>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-dasharray="69.12" stroke-dashoffset="48.38" stroke-linecap="round"/>
+          </svg>
+          <span style="font-size:0.62rem;font-weight:800;color:rgba(255,255,255,0.6)">3/10</span>
+        </div>
+        <div class="rdr-imp-btn">⭐</div>
+      </div>
+
+      <div class="mode-toggle">
+        <div class="mt-btn">📖 Read</div>
+        <div class="mt-btn on">🎧 Listen</div>
+      </div>
+
+      <!-- Category strip -->
+      <div class="rdr-cat-scroll">
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">World</div><div class="rdr-cat-chip-ct">8/8</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Business</div><div class="rdr-cat-chip-ct">2/5</div></div>
+        <div class="rdr-cat-chip active"><div class="rdr-cat-chip-name">Tech</div><div class="rdr-cat-chip-ct">3/6</div></div>
+        <div class="rdr-cat-chip"><div class="rdr-cat-chip-name">Health</div><div class="rdr-cat-chip-ct">0/4</div></div>
+      </div>
+
+      <div class="pane">
+        <div class="rdr-card" style="margin-bottom:10px">
+          <div class="rdr-cat-badge" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:#c4b5fd">💻 Tech · Now Playing</div>
+          <div class="rdr-headline">OpenAI announces GPT-5 with real-time reasoning and multimodal memory</div>
+
+          <!-- Audio player embedded in card -->
+          <div style="padding:0 16px 16px">
+            <!-- Waveform -->
+            <div class="waveform">
+              <div class="wb p" style="height:60%"></div><div class="wb p" style="height:80%"></div><div class="wb p" style="height:45%"></div><div class="wb p" style="height:90%"></div><div class="wb p" style="height:70%"></div><div class="wb p" style="height:55%"></div><div class="wb p" style="height:75%"></div>
+              <div class="wb" style="height:85%"></div><div class="wb" style="height:50%"></div><div class="wb" style="height:65%"></div><div class="wb" style="height:40%"></div><div class="wb" style="height:75%"></div><div class="wb" style="height:55%"></div><div class="wb" style="height:80%"></div><div class="wb" style="height:60%"></div><div class="wb" style="height:45%"></div><div class="wb" style="height:70%"></div><div class="wb" style="height:50%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+              <span class="audio-time">0:38</span>
+              <span class="audio-time">1:22 remaining</span>
+            </div>
+            <div class="audio-row">
+              <div class="aspd">1×</div>
+              <div class="audio-btns">
+                <!-- repeat -->
+                <div class="ask" title="Repeat story">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                  </svg>
+                </div>
+                <!-- prev story -->
+                <div class="ask" title="Previous story">
+                  <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="10,3 5,8 10,13"/>
+                  </svg>
+                </div>
+                <div class="aplay">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                </div>
+                <!-- next story -->
+                <div class="ask" title="Next story">
+                  <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6,3 11,8 6,13"/>
+                  </svg>
+                </div>
+              </div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEXT UP card preview -->
+        <div style="margin:0 16px;padding:12px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+          <div style="font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.25);margin-bottom:6px">Next up · Story 4</div>
+          <div style="font-size:0.78rem;font-weight:700;color:rgba(255,255,255,0.7);line-height:1.35">Meta's AR glasses ship to developers with built-in AI assistant</div>
+          <div style="font-size:0.6rem;color:rgba(255,255,255,0.3);margin-top:3px">~1.5 min · Takeaways</div>
+        </div>
+
+        <div style="flex:1"></div>
+      </div>
+
+      <div class="rdr-foot">
+        <div class="rdr-nav-row">
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12,3 7,8 12,13"/><polyline points="18,3 13,8 18,13"/></svg></div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg></div>
+          <div class="rdr-nav-centre">
+            <div class="rdr-nav-lbl">Category · 3 of 4</div>
+            <div class="rdr-nav-pos">Tech</div>
+          </div>
+          <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></div>
+          <div class="nav-btn nav-btn-dbl"><svg width="18" height="14" viewBox="0 0 20 16" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,3 7,8 2,13"/><polyline points="8,3 13,8 8,13"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ann" style="align-self:flex-start;margin-top:50px">
+    <div class="ah">Listen mode flow</div>
+    <div class="ab">
+      <strong>Step 1 — Depth picker sheet</strong> (appears when user taps Listen or hits Play from feed):<br>
+      ⚡ Takeaways ~1.5 min<br>
+      📄 Full Summary ~3 min<br>
+      "Start Playing" CTA<br><br>
+      <strong>Step 2 — Player screen:</strong><br>
+      Category strip shows all loaded categories. Header shows feed + "Takeaways" or "Summary". Waveform inside story card. Controls: 1× speed · 🔁 repeat · &lt; prev · ▶/⏸ play · &gt; next. "Next up" preview card below.<br><br>
+      <strong>Footer nav:</strong> same &lt;&lt; &lt; Category &gt; &gt;&gt; and &lt; Story &gt; rows as Read mode.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION E — SETTINGS / MY FEED CONFIG
+════════════════════════════════════════════ -->
+<div class="section-divider"><h2>E — Settings &amp; My Feed Configuration</h2></div>
+<div class="row">
+
+  <!-- DARK SETTINGS -->
+  <div class="sw">
+    <span class="sl">Settings · Dark</span>
+    <div class="phone dark">
+      <div class="sb d"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="hdr">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="hbtn">←</div>
+          <span style="font-size:1.1rem;font-weight:900;color:#f0f0f8">Settings</span>
+        </div>
+      </div>
+
+      <div class="pane" style="padding:0 20px">
+        <!-- My Feed Categories -->
+        <div class="settings-section">
+          <div class="settings-section-lbl">My Feed — Categories</div>
+          <div style="font-size:0.62rem;color:rgba(255,255,255,0.3);margin-bottom:10px">Stories from enabled categories appear in My Feed</div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25)">🌍</div>
+            <div style="flex:1"><div class="settings-lbl">World News</div><div class="settings-sub">International politics & events</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25)">💻</div>
+            <div style="flex:1"><div class="settings-lbl">Tech</div><div class="settings-sub">Technology & AI</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.22)">💼</div>
+            <div style="flex:1"><div class="settings-lbl">Business</div><div class="settings-sub">Markets, economy, companies</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.22)">🏥</div>
+            <div style="flex:1"><div class="settings-lbl">Health</div><div class="settings-sub">Medicine & wellness</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.2)">🎨</div>
+            <div style="flex:1"><div class="settings-lbl">Culture & Arts</div><div class="settings-sub">Film, music, literature</div></div>
+            <div class="tog off"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.22)">⚽</div>
+            <div style="flex:1"><div class="settings-lbl">Sport</div><div class="settings-sub">Football, tennis, Olympics</div></div>
+            <div class="tog off"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.22)">🌱</div>
+            <div style="flex:1"><div class="settings-lbl">Climate</div><div class="settings-sub">Environment & energy</div></div>
+            <div class="tog off"></div>
+          </div>
+        </div>
+
+        <!-- Daily Goal -->
+        <div class="settings-section" style="margin-top:12px">
+          <div class="settings-section-lbl">Daily Reading Goal</div>
+          <div style="display:flex;gap:6px;padding:4px 0 10px">
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:rgba(255,255,255,0.4)">5</div>
+              <div style="font-size:0.52rem;color:rgba(255,255,255,0.25);margin-top:2px">Quick</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:rgba(124,58,237,0.14);border:1px solid rgba(124,58,237,0.4);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:#a78bfa">10</div>
+              <div style="font-size:0.52rem;color:rgba(167,139,250,0.7);margin-top:2px">Default</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:rgba(255,255,255,0.4)">15</div>
+              <div style="font-size:0.52rem;color:rgba(255,255,255,0.25);margin-top:2px">Deep</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:rgba(255,255,255,0.4)">20</div>
+              <div style="font-size:0.52rem;color:rgba(255,255,255,0.25);margin-top:2px">Power</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="settings-section" style="margin-top:4px">
+          <div class="settings-section-lbl">Notifications</div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2)">🔔</div>
+            <div style="flex:1"><div class="settings-lbl">Daily Briefing</div><div class="settings-sub">7:00 AM · Your morning digest is ready</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)">🔥</div>
+            <div style="flex:1"><div class="settings-lbl">Streak reminder</div><div class="settings-sub">8:00 PM · Don't lose your streak</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)">⚡</div>
+            <div style="flex:1"><div class="settings-lbl">Breaking news</div><div class="settings-sub">Major stories only</div></div>
+            <div class="tog off"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bnav">
+        <div class="nt on"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nl">My Feed</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div><div class="nl">All News</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="nl">Popular</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div><div class="nl">Important</div><div class="ni-dot"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHT SETTINGS -->
+  <div class="sw">
+    <span class="sl">Settings · Light</span>
+    <div class="phone light">
+      <div class="sb l"><span>9:41</span><span>●●● 🔋</span></div>
+
+      <div class="hdr">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="hbtn">←</div>
+          <span style="font-size:1.1rem;font-weight:900;color:#0a0a0f">Settings</span>
+        </div>
+      </div>
+
+      <div class="pane" style="padding:0 20px">
+        <div class="settings-section">
+          <div class="settings-section-lbl">My Feed — Categories</div>
+          <div style="font-size:0.62rem;color:#9ca3af;margin-bottom:10px">Stories from enabled categories appear in My Feed</div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)">🌍</div>
+            <div style="flex:1"><div class="settings-lbl">World News</div><div class="settings-sub">International politics & events</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2)">💻</div>
+            <div style="flex:1"><div class="settings-lbl">Tech</div><div class="settings-sub">Technology & AI</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18)">💼</div>
+            <div style="flex:1"><div class="settings-lbl">Business</div><div class="settings-sub">Markets, economy, companies</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.18)">🏥</div>
+            <div style="flex:1"><div class="settings-lbl">Health</div><div class="settings-sub">Medicine & wellness</div></div>
+            <div class="tog off"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.18)">🎨</div>
+            <div style="flex:1"><div class="settings-lbl">Culture & Arts</div><div class="settings-sub">Film, music, literature</div></div>
+            <div class="tog off"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.18)">⚽</div>
+            <div style="flex:1"><div class="settings-lbl">Sport</div><div class="settings-sub">Football, tennis, Olympics</div></div>
+            <div class="tog off"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.18)">🌱</div>
+            <div style="flex:1"><div class="settings-lbl">Climate</div><div class="settings-sub">Environment & energy</div></div>
+            <div class="tog on"></div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="margin-top:12px">
+          <div class="settings-section-lbl">Daily Reading Goal</div>
+          <div style="display:flex;gap:6px;padding:4px 0 10px">
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:#fff;border:1px solid rgba(0,0,0,0.09);box-shadow:0 1px 4px rgba(0,0,0,0.05);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:#9ca3af">5</div>
+              <div style="font-size:0.52rem;color:#c4c4d0;margin-top:2px">Quick</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:rgba(124,58,237,0.08);border:2px solid #7c3aed;cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:#7c3aed">10</div>
+              <div style="font-size:0.52rem;color:rgba(124,58,237,0.7);margin-top:2px">Default</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:#fff;border:1px solid rgba(0,0,0,0.09);box-shadow:0 1px 4px rgba(0,0,0,0.05);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:#9ca3af">15</div>
+              <div style="font-size:0.52rem;color:#c4c4d0;margin-top:2px">Deep</div>
+            </div>
+            <div style="flex:1;padding:10px;border-radius:12px;text-align:center;background:#fff;border:1px solid rgba(0,0,0,0.09);box-shadow:0 1px 4px rgba(0,0,0,0.05);cursor:pointer">
+              <div style="font-size:1rem;font-weight:900;color:#9ca3af">20</div>
+              <div style="font-size:0.52rem;color:#c4c4d0;margin-top:2px">Power</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="margin-top:4px">
+          <div class="settings-section-lbl">Notifications</div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.18)">🔔</div>
+            <div style="flex:1"><div class="settings-lbl">Daily Briefing</div><div class="settings-sub">7:00 AM · Your morning digest is ready</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.18)">🔥</div>
+            <div style="flex:1"><div class="settings-lbl">Streak reminder</div><div class="settings-sub">8:00 PM · Don't lose your streak</div></div>
+            <div class="tog on"></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.18)">⚡</div>
+            <div style="flex:1"><div class="settings-lbl">Breaking news</div><div class="settings-sub">Major stories only</div></div>
+            <div class="tog off"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bnav">
+        <div class="nt on"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nl">My Feed</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div><div class="nl">All News</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="nl">Popular</div><div class="ni-dot"></div></div>
+        <div class="nt"><div class="ni"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div><div class="nl">Important</div><div class="ni-dot"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ann" style="align-self:flex-start;margin-top:50px">
+    <div class="ah">Settings page</div>
+    <div class="ab">
+      <strong>My Feed categories:</strong> toggle on/off per category. Only enabled categories appear in My Feed (other 3 feeds always show all).<br><br>
+      <strong>Daily Goal picker:</strong> 5 / 10 / 15 / 20 — user can lower or raise. Affects progress ring and challenge thresholds.<br><br>
+      <strong>Notifications:</strong> morning briefing · streak reminder · breaking news alerts.<br><br>
+      Access: ⚙️ icon in My Feed header, or navigate Settings from any feed.
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

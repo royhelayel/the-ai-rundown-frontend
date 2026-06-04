@@ -13,6 +13,40 @@ export const colors = {
   accent:        '#6366f1',
 };
 
+// ── Category icons (emoji) ─────────────────────────────────────────────────────
+export const CATEGORY_ICONS = {
+  'World News':    '🌍',
+  'Technology':    '💻',
+  'Business':      '💼',
+  'Politics':      '🏛️',
+  'Sports':        '⚽',
+  'Entertainment': '🎬',
+  'Science':       '🔬',
+  'Health':        '🏥',
+  'UAE':           '🇦🇪',
+  'KSA':           '🇸🇦',
+  'QAT':           '🇶🇦',
+  'LEB':           '🇱🇧',
+  'My Rundown':    '⚡',
+};
+
+// ── Category short labels (for pills) ─────────────────────────────────────────
+export const CATEGORY_SHORT = {
+  'World News':    'World',
+  'Technology':    'Tech',
+  'Business':      'Business',
+  'Politics':      'Politics',
+  'Sports':        'Sports',
+  'Entertainment': 'Culture',
+  'Science':       'Science',
+  'Health':        'Health',
+  'UAE':           'UAE',
+  'KSA':           'KSA',
+  'QAT':           'QAT',
+  'LEB':           'LEB',
+  'My Rundown':    'My Feed',
+};
+
 // ── Category accent colours ────────────────────────────────────────────────────
 export const CATEGORY_COLORS = {
   'World News':    '#6366f1',

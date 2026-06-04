@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play, User } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
 import { CATEGORY_COLORS } from '../theme';
+import ProgressPill from './ProgressPill';
 
 function faviconUrl(url) {
   try {
@@ -12,8 +13,9 @@ function faviconUrl(url) {
 }
 
 const light = {
-  bg:        '#ffffff',
-  bgSub:     '#f5f5f7',
+  bg:        '#f5f5f7',
+  bgSub:     '#ececef',
+  bgCard:    '#ffffff',
   border:    'rgba(0,0,0,0.08)',
   text:      '#0a0a0f',
   textSub:   '#3a3a4a',
@@ -31,6 +33,7 @@ export default function PopularTab({
   onSelectCategory, onPlayCategory,
   isNarrating, playerVisible,
   user, onShowAuth,
+  challengeStats,
 }) {
   const navigate = useNavigate();
 
@@ -65,26 +68,20 @@ export default function PopularTab({
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Header — matches Briefing: brand left, user icon right */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
-          <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={user ? () => navigate('/settings') : onShowAuth}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>Popular</span>
+          <button onClick={user ? () => navigate('/settings') : onShowAuth} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)', flexShrink: 0 }}>
             <User size={16} />
           </button>
         </div>
       </header>
 
-      {/* Content */}
-      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.5rem 1.25rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+        <ProgressPill challengeStats={challengeStats} />
+      </div>
 
-        {/* Title row — matches Briefing hero */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: '900', color: light.text, letterSpacing: '-0.03em', lineHeight: 1.15 }}>Popular</h1>
-        </div>
+      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0.5rem 1.25rem 1.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
         {/* Empty-state banner: no listens yet */}
         {hasAnyData && !hasAnyListens && (
@@ -113,12 +110,12 @@ export default function PopularTab({
                   style={{
                     display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                     padding: '0.85rem 0.9rem',
-                    background: light.bgSub,
+                    background: light.bgCard,
                     borderRadius: '12px', cursor: 'pointer', transition: 'background 0.12s',
                     border: `1px solid ${light.border}`,
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                  onMouseLeave={e => e.currentTarget.style.background = light.bgSub}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = light.bgCard}
                 >
                   {/* Story info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -143,7 +140,7 @@ export default function PopularTab({
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={e => e.stopPropagation()}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.45rem', background: light.bg, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.45rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
                               onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
                               onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
                             >

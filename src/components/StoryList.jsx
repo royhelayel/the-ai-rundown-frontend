@@ -4,72 +4,102 @@ import { Play } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORY_SHORT } from '../theme';
 import { SkeletonCategoryRows } from './SkeletonScreens';
 
-// ── Single story row ──────────────────────────────────────────────────────────
+function faviconUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch { return null; }
+}
+
+// ── Single story card ─────────────────────────────────────────────────────────
 function StoryItem({ story, index, category, isRead, isPlaying, onRead, onPlay }) {
   const color   = CATEGORY_COLORS[category] || '#6366f1';
-  const outlets = (story.storySources || []).filter(s => s.outlet).slice(0, 3);
-  const moreCount = (story.storySources?.filter(s => s.outlet).length || 0) - outlets.length;
+  const sources = (story.storySources || []).filter(s => s.outlet);
+  const topSources = sources.slice(0, 2);
+  const moreCount  = sources.length - topSources.length;
 
-  const preview = story.allBullets?.[0]
+  const excerpt = story.allBullets?.[0]
     || story.tightBullets?.[0]
-    || (story.summary ? story.summary.slice(0, 140) + (story.summary.length > 140 ? '…' : '') : '');
+    || (story.summary ? story.summary.slice(0, 160) + (story.summary.length > 160 ? '…' : '') : '');
 
   return (
     <div style={{
-      display: 'flex', gap: '10px', padding: '10px 20px 12px', alignItems: 'flex-start',
-      borderBottom: '1px solid rgba(0,0,0,0.07)',
-      background: isPlaying ? `${color}06` : 'transparent',
-    }}>
-      {/* Number */}
-      <span style={{ fontSize: '0.68rem', fontWeight: '800', width: '18px', flexShrink: 0, paddingTop: '3px', color: 'rgba(0,0,0,0.22)' }}>
+      display: 'flex', alignItems: 'flex-start', gap: '10px',
+      padding: '12px 14px',
+      background: '#fff',
+      borderRadius: '14px',
+      border: '1px solid rgba(0,0,0,0.07)',
+      cursor: 'pointer',
+    }}
+      onClick={onRead}
+    >
+      {/* Index */}
+      <span style={{ fontSize: '0.65rem', fontWeight: '800', width: '16px', flexShrink: 0, paddingTop: '3px', color: 'rgba(0,0,0,0.2)', lineHeight: 1 }}>
         {index + 1}
       </span>
 
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Headline + badge */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '5px' }}>
-          <span onClick={onRead} style={{ fontSize: '0.86rem', fontWeight: '700', lineHeight: 1.32, flex: 1, color: '#0a0a0f', cursor: 'pointer' }}>
-            {story.headline}
+        {/* Badge row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontSize: '0.58rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            {CATEGORY_ICONS[category] ? `${CATEGORY_ICONS[category]} ` : ''}{CATEGORY_SHORT[category] || category}
           </span>
           {isRead ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, marginTop: '2px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}>
               ✓ Read
             </span>
           ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, marginTop: '2px', background: 'rgba(124,58,237,0.1)', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.22)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'rgba(124,58,237,0.1)', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.22)' }}>
               ● New
             </span>
           )}
         </div>
 
-        {/* Preview */}
-        {preview && (
-          <p style={{ margin: '0 0 8px', fontSize: '0.72rem', lineHeight: 1.48, color: '#6b7280', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {preview}
+        {/* Headline */}
+        <p style={{ margin: '0 0 5px', fontSize: '0.88rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.32 }}>
+          {story.headline}
+        </p>
+
+        {/* Excerpt */}
+        {excerpt && (
+          <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.48, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {excerpt}
           </p>
         )}
 
-        {/* Actions: outlets + buttons */}
+        {/* Sources + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
-            {outlets.map((s, i) => (
-              <span key={i} style={{ fontSize: '0.56rem', fontWeight: '700', padding: '2px 6px', borderRadius: '5px', marginRight: '3px', background: 'rgba(0,0,0,0.06)', color: '#6b7280' }}>
-                {s.outlet}
-              </span>
-            ))}
+          {/* Source pills */}
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap', gap: '4px' }}>
+            {topSources.map((s, i) => {
+              const icon = faviconUrl(s.url);
+              return (
+                <span key={i} onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.6rem', fontWeight: '600', color: '#6b7280' }}>
+                  {icon && <img src={icon} alt="" width={10} height={10} style={{ borderRadius: '2px', opacity: 0.7 }} />}
+                  {s.outlet}
+                </span>
+              );
+            })}
             {moreCount > 0 && (
-              <span style={{ fontSize: '0.56rem', fontWeight: '700', padding: '2px 6px', borderRadius: '5px', background: 'rgba(0,0,0,0.06)', color: '#6b7280' }}>
-                +{moreCount}
-              </span>
+              <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
             )}
           </div>
-          <button onClick={onRead} style={{ padding: '4px 10px', borderRadius: '7px', fontSize: '0.6rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none' }}>
+
+          {/* Read button */}
+          <button
+            onClick={e => { e.stopPropagation(); onRead(); }}
+            style={{ padding: '4px 10px', borderRadius: '7px', fontSize: '0.6rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none', flexShrink: 0 }}
+          >
             Read
           </button>
-          <button onClick={onPlay} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '4px 10px', borderRadius: '7px', fontSize: '0.6rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.3)' }}>
-            <Play size={9} fill="currentColor" style={{ marginLeft: '1px' }} />
-            Play
+
+          {/* Play button */}
+          <button
+            onClick={e => { e.stopPropagation(); onPlay(); }}
+            style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1px solid ${color}40`, background: `${color}15`, color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
           </button>
         </div>
       </div>
@@ -153,7 +183,7 @@ export default function StoryList({
           onClick={() => setCatFilter(null)}
           style={{
             padding: '6px 13px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700',
-            whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+            whiteSpace: 'nowrap', cursor: 'pointer',
             background: catFilter === null ? 'rgba(124,58,237,0.1)' : '#fff',
             border: `1px solid ${catFilter === null ? 'rgba(124,58,237,0.4)' : 'rgba(0,0,0,0.1)'}`,
             color: catFilter === null ? '#7c3aed' : '#6b7280',
@@ -166,7 +196,6 @@ export default function StoryList({
           const active = catFilter === cat;
           const color  = CATEGORY_COLORS[cat] || '#6366f1';
           const icon   = CATEGORY_ICONS[cat] || '';
-          const label  = CATEGORY_SHORT[cat] || cat;
           return (
             <button
               key={cat}
@@ -180,7 +209,7 @@ export default function StoryList({
                 boxShadow: !active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              {icon && `${icon} `}{label}
+              {icon ? `${icon} ${CATEGORY_SHORT[cat] || cat}` : (CATEGORY_SHORT[cat] || cat)}
             </button>
           );
         })}
@@ -192,26 +221,27 @@ export default function StoryList({
           <SkeletonCategoryRows count={4} />
         </div>
       )}
-      <div style={{ paddingBottom: playerVisible ? '9rem' : '5rem', display: loading ? 'none' : undefined }}>
+      <div style={{ display: loading ? 'none' : 'flex', flexDirection: 'column', gap: '8px', padding: '0 16px', paddingBottom: playerVisible ? '9rem' : '5rem' }}>
         {visibleCats.length === 0 && (
-          <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#8a8a9a', fontSize: '0.88rem' }}>
+          <div style={{ padding: '3rem 0', textAlign: 'center', color: '#8a8a9a', fontSize: '0.88rem' }}>
             No stories available for this day.
           </div>
         )}
         {visibleCats.map(cat => {
-          const catData  = briefingData[cat];
-          const stories  = catData?.allStories || [];
-          const color    = CATEGORY_COLORS[cat] || '#6366f1';
+          const catData     = briefingData[cat];
+          const stories     = catData?.allStories || [];
+          const color       = CATEGORY_COLORS[cat] || '#6366f1';
           const listenedSet = gamifiedStats?.todayProgress?.[cat]?.listenedIndices || new Set();
           if (stories.length === 0) return null;
 
           return (
             <div key={cat}>
               {/* Category header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px 6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af' }}>
-                    {CATEGORY_ICONS[cat] ? `${CATEGORY_ICONS[cat]} ` : ''}{cat}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 2px 6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.63rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af' }}>
+                    {cat}
                   </span>
                 </div>
                 <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#c4c4d0' }}>
@@ -219,19 +249,21 @@ export default function StoryList({
                 </span>
               </div>
 
-              {/* Stories */}
-              {stories.map((story, idx) => (
-                <StoryItem
-                  key={idx}
-                  story={story}
-                  index={idx}
-                  category={cat}
-                  isRead={listenedSet.has(idx)}
-                  isPlaying={isNarrating && activeCategory === cat && currentStoryIndex === idx}
-                  onRead={() => handleRead(cat, idx)}
-                  onPlay={() => onPlayStory?.(cat, idx)}
-                />
-              ))}
+              {/* Story cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {stories.map((story, idx) => (
+                  <StoryItem
+                    key={idx}
+                    story={story}
+                    index={idx}
+                    category={cat}
+                    isRead={listenedSet.has(idx)}
+                    isPlaying={isNarrating && activeCategory === cat && currentStoryIndex === idx}
+                    onRead={() => handleRead(cat, idx)}
+                    onPlay={() => onPlayStory?.(cat, idx)}
+                  />
+                ))}
+              </div>
             </div>
           );
         })}

@@ -1,8 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, User, Play, BookmarkCheck } from 'lucide-react';
-import { CATEGORY_COLORS } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORY_SHORT } from '../theme';
 import ProgressPill from './ProgressPill';
+
+function faviconUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch { return null; }
+}
 
 const light = {
   bg:        '#f5f5f7',
@@ -68,56 +75,74 @@ export default function ImportantTab({
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 16px' }}>
             {savedStories.map((item, idx) => {
-              const color = CATEGORY_COLORS[item.category] || '#6366f1';
+              const color   = CATEGORY_COLORS[item.category] || '#6366f1';
+              const icon    = CATEGORY_ICONS[item.category] || '';
+              const short   = CATEGORY_SHORT[item.category] || item.category;
+              const sources = (item.storySources || []).filter(s => s.outlet);
+              const topSrcs = sources.slice(0, 2);
+              const more    = sources.length - topSrcs.length;
+              const goRead  = () => { onSelectCategory?.(item.category); navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, { state: { from: '/important' } }); };
               return (
-                <div key={`${item.category}|${item.storyIndex}`} style={{
-                  padding: '1rem 1.25rem',
-                  borderBottom: `1px solid ${light.border}`,
-                  display: 'flex', flexDirection: 'column', gap: '0.5rem',
-                }}>
-                  {/* Category + remove button row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ padding: '0.18rem 0.55rem', background: `${color}12`, border: `1px solid ${color}28`, borderRadius: '999px', fontSize: '0.65rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {item.category}
-                    </span>
-                    <div style={{ flex: 1 }} />
-                    <button
-                      onClick={() => onRemoveSaved?.(item.category, item.storyIndex)}
-                      title="Remove from Important"
-                      style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#7c3aed', flexShrink: 0 }}>
-                      <BookmarkCheck size={13} />
-                    </button>
-                  </div>
+                <div
+                  key={`${item.category}|${item.storyIndex}`}
+                  onClick={goRead}
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', background: '#fff', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer' }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Category + remove */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.58rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {icon ? `${icon} ` : ''}{short}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); onRemoveSaved?.(item.category, item.storyIndex); }}
+                        title="Remove"
+                        style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#7c3aed', flexShrink: 0 }}>
+                        <BookmarkCheck size={12} />
+                      </button>
+                    </div>
 
-                  {/* Headline */}
-                  <h3
-                    onClick={() => { onSelectCategory?.(item.category); navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, { state: { from: '/important' } }); }}
-                    style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: light.text, lineHeight: 1.35, cursor: 'pointer' }}>
-                    {item.headline}
-                  </h3>
-
-                  {/* Preview */}
-                  {item.preview && (
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: light.textMuted, lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {item.preview}
+                    {/* Headline */}
+                    <p style={{ margin: '0 0 5px', fontSize: '0.88rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.32 }}>
+                      {item.headline}
                     </p>
-                  )}
 
-                  {/* Actions row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => { onSelectCategory?.(item.category); navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, { state: { from: '/important' } }); }}
-                      style={{ padding: '0.38rem 0.9rem', background: `${color}12`, border: `1px solid ${color}28`, borderRadius: '999px', fontSize: '0.78rem', fontWeight: '700', color: color, cursor: 'pointer' }}>
-                      Read
-                    </button>
-                    <button
-                      onClick={() => onPlayStory?.(item.category, item.storyIndex)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.38rem 0.9rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', fontSize: '0.78rem', fontWeight: '700', color: light.textMuted, cursor: 'pointer' }}>
-                      <Play size={11} fill="currentColor" style={{ marginLeft: '1px' }} />
-                      Play
-                    </button>
+                    {/* Preview */}
+                    {item.preview && (
+                      <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.48, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {item.preview}
+                      </p>
+                    )}
+
+                    {/* Sources + actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap', gap: '4px' }}>
+                        {topSrcs.map((s, i) => {
+                          const fav = faviconUrl(s.url);
+                          return (
+                            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.6rem', fontWeight: '600', color: '#6b7280' }}>
+                              {fav && <img src={fav} alt="" width={10} height={10} style={{ borderRadius: '2px', opacity: 0.7 }} />}
+                              {s.outlet}
+                            </span>
+                          );
+                        })}
+                        {more > 0 && <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#9ca3af' }}>+{more}</span>}
+                      </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); goRead(); }}
+                        style={{ padding: '4px 10px', borderRadius: '7px', fontSize: '0.6rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none', flexShrink: 0 }}
+                      >
+                        Read
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); onPlayStory?.(item.category, item.storyIndex); }}
+                        style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1px solid ${color}40`, background: `${color}15`, color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                      >
+                        <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

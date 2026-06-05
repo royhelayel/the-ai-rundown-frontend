@@ -36,7 +36,7 @@ export default function StoryCard({
 
   const excerpt = story.allBullets?.[0]
     || story.tightBullets?.[0]
-    || (story.summary ? story.summary.slice(0, 160) + (story.summary.length > 160 ? '…' : '') : '');
+    || (story.summary ? story.summary.slice(0, 300) + (story.summary.length > 300 ? '…' : '') : '');
 
   // Top-right slot: read badge, or custom removeButton, or nothing
   let badge = null;
@@ -79,7 +79,7 @@ export default function StoryCard({
 
         {/* Excerpt */}
         {excerpt && (
-          <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.48, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.48, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {excerpt}
           </p>
         )}

@@ -129,9 +129,10 @@ export default function StoryCard({
           {/* Play button */}
           <button
             onClick={e => { e.stopPropagation(); onPlay?.(); }}
-            style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1px solid ${color}40`, background: `${color}15`, color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '4px 10px', borderRadius: '7px', fontSize: '0.6rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1px solid ${color}50`, flexShrink: 0 }}
           >
-            <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
+            <Play size={9} fill={color} color={color} style={{ marginLeft: '1px' }} />
+            Play
           </button>
         </div>
       </div>

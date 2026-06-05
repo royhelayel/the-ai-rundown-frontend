@@ -134,14 +134,14 @@ export default function StoryList({
           return (
             <div key={cat}>
               {/* Category header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 2px 6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.63rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <span style={{ fontSize: '1rem', lineHeight: 1 }}>{CATEGORY_ICONS[cat] || '📰'}</span>
+                  <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.01em' }}>
                     {cat}
                   </span>
                 </div>
-                <span style={{ fontSize: '0.58rem', fontWeight: '700', color: '#c4c4d0' }}>
+                <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#9ca3af' }}>
                   {stories.length} {stories.length === 1 ? 'story' : 'stories'}
                 </span>
               </div>

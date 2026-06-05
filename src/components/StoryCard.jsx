@@ -17,12 +17,6 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORY_SHORT } from '../theme';
 
-function faviconUrl(url) {
-  try {
-    const { hostname } = new URL(url);
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-  } catch { return null; }
-}
 
 export default function StoryCard({
   story,
@@ -95,19 +89,15 @@ export default function StoryCard({
 
           {/* Source pills */}
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap', gap: '4px' }}>
-            {topSources.map((s, i) => {
-              const fav = faviconUrl(s.url);
-              return (
-                <span
-                  key={i}
-                  onClick={e => e.stopPropagation()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.6rem', fontWeight: '600', color: '#6b7280' }}
-                >
-                  {fav && <img src={fav} alt="" width={10} height={10} style={{ borderRadius: '2px', opacity: 0.7 }} />}
-                  {s.outlet}
-                </span>
-              );
-            })}
+            {topSources.map((s, i) => (
+              <span
+                key={i}
+                onClick={e => e.stopPropagation()}
+                style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 7px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.6rem', fontWeight: '600', color: '#6b7280' }}
+              >
+                {s.outlet}
+              </span>
+            ))}
             {moreCount > 0 && (
               <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
             )}

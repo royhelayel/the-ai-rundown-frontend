@@ -1,26 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
-import { CATEGORY_COLORS } from '../theme';
 import ProgressPill from './ProgressPill';
+import StoryCard from './StoryCard';
 
-function faviconUrl(url) {
-  try {
-    const { hostname } = new URL(url);
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-  } catch { return null; }
-}
-
-const light = {
-  bg:        '#f5f5f7',
-  bgSub:     '#ececef',
-  bgCard:    '#ffffff',
-  border:    'rgba(0,0,0,0.08)',
-  text:      '#0a0a0f',
-  textSub:   '#3a3a4a',
-  textMuted: '#8a8a9a',
-};
+const bg = '#f5f5f7';
 
 // Normalize a headline to a stable key for listen counting
 export function headlineKey(headline) {
@@ -65,8 +50,8 @@ export default function PopularTab({
   };
 
   return (
-    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <style>{`* { box-sizing: border-box; } body { background: ${light.bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ background: bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`* { box-sizing: border-box; } body { background: ${bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -99,73 +84,15 @@ export default function PopularTab({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sorted.map((story, rank) => {
-              const color = CATEGORY_COLORS[story.category] || '#6366f1';
-              const excerpt = (story.tightBullets?.[0] || story.allBullets?.[0] || '').slice(0, 200);
-              const sources = story.storySources?.filter(s => s.outlet) || [];
-              const topSources = sources.slice(0, 2);
               return (
-                <div
+                <StoryCard
                   key={`${story.category}-${story.storyIndex}`}
-                  onClick={() => handleStoryClick(story.category, story.storyIndex)}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                    padding: '0.85rem 0.9rem',
-                    background: light.bgCard,
-                    borderRadius: '12px', cursor: 'pointer', transition: 'background 0.12s',
-                    border: `1px solid ${light.border}`,
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
-                  onMouseLeave={e => e.currentTarget.style.background = light.bgCard}
-                >
-                  {/* Story info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'inline-block', fontSize: '0.6rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
-                      {story.category}
-                    </span>
-                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: '700', color: light.text, lineHeight: 1.35 }}>
-                      {story.headline}
-                    </p>
-                    {excerpt && (
-                      <p style={{ margin: '0 0 0.3rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {excerpt}{excerpt.length === 200 ? '…' : ''}
-                      </p>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.3rem' }}>
-                      {topSources.map((s, j) => {
-                        const icon = faviconUrl(s.url);
-                        return (
-                          <React.Fragment key={j}>
-                            <a
-                              href={s.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.45rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
-                            >
-                              {icon && <img src={icon} alt="" width={11} height={11} style={{ borderRadius: '2px', opacity: 0.7 }} />}
-                              <span style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>{s.outlet}</span>
-                            </a>
-                            {j < topSources.length - 1 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
-                          </React.Fragment>
-                        );
-                      })}
-                      {(topSources.length > 0 || story.listenCount > 0) && topSources.length > 0 && <span style={{ fontSize: '0.7rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
-                      {story.listenCount > 0 && (
-                        <span style={{ fontSize: '0.72rem', color: light.textMuted }}>
-                          {story.listenCount.toLocaleString()} {story.listenCount === 1 ? 'listen' : 'listens'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={e => { e.stopPropagation(); onSelectCategory(story.category); onPlayCategory(story.category); }}
-                    style={{ width: '30px', height: '30px', borderRadius: '50%', border: `1px solid ${color}40`, background: `${color}15`, color: color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>
-                    <Play size={11} fill={color} color={color} style={{ marginLeft: '1px' }} />
-                  </button>
-                </div>
+                  story={story}
+                  category={story.category}
+                  listenCount={story.listenCount}
+                  onRead={() => handleStoryClick(story.category, story.storyIndex)}
+                  onPlay={() => { onSelectCategory(story.category); onPlayCategory(story.category); }}
+                />
               );
             })}
           </div>

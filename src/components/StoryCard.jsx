@@ -27,7 +27,6 @@ function faviconUrl(url) {
 export default function StoryCard({
   story,
   category,
-  index,
   isRead,
   listenCount,
   onRead,
@@ -68,13 +67,6 @@ export default function StoryCard({
       onClick={onRead}
       style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', background: '#fff', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer' }}
     >
-      {/* Optional index number */}
-      {index != null && (
-        <span style={{ fontSize: '0.65rem', fontWeight: '800', width: '16px', flexShrink: 0, paddingTop: '3px', color: 'rgba(0,0,0,0.2)', lineHeight: 1 }}>
-          {index + 1}
-        </span>
-      )}
-
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
 

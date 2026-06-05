@@ -153,7 +153,6 @@ export default function StoryList({
                     key={idx}
                     story={story}
                     category={cat}
-                    index={idx}
                     isRead={listenedSet.has(idx)}
                     onRead={() => handleRead(cat, idx)}
                     onPlay={() => onPlayStory?.(cat, idx)}

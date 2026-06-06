@@ -192,14 +192,13 @@ export default function StoryReader({
       {/* ── Content ── */}
       <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '10rem' : '6rem' }}>
 
-        {/* Read status + category badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          {/* Read/Unread — same style as StoryCard, always left */}
-          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
-            {isRead ? '✓ Read' : 'Unread'}
-          </span>
+        {/* Category badge (left) + read status (right) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
           <span style={{ padding: '0.2rem 0.65rem', background: `${color}15`, border: `1px solid ${color}30`, borderRadius: '999px', fontSize: '0.7rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {category}
+          </span>
+          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
+            {isRead ? '✓ Read' : 'Unread'}
           </span>
         </div>
 

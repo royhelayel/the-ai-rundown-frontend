@@ -147,70 +147,107 @@ function ChallengeRing({
   );
 }
 
-// ── Confetti burst ────────────────────────────────────────────────────────────
+// ── Cosmic burst ─────────────────────────────────────────────────────────────
+// Glowing orbs that supernova outward — no paper confetti, no emoji shapes.
 
-const CONFETTI_COLORS = [
-  '#f59e0b', '#fbbf24', '#fde68a',   // golds
-  '#cd7f32', '#f97316',               // bronzes
-  '#e2e8f0', '#94a3b8', '#ffffff',    // silvers / white
-  '#a78bfa', '#34d399',               // accent pops
-];
+function Confetti({ award, onDone }) {
+  const base    = award?.color  || '#f59e0b';
+  const glow    = award?.glow   || 'rgba(245,158,11,0.5)';
 
-const SHAPES = ['●', '■', '▲', '✦', '★'];
+  // Per-award palette: award colour + lighter variant + white sparks
+  const palette = React.useMemo(() => {
+    const light = base + 'cc';
+    return [base, base, base, light, '#ffffff', '#ffffff', light, base];
+  }, [base]);
 
-function Confetti({ onDone }) {
-  // Generate particles once on mount
   const particles = React.useMemo(() => {
-    return Array.from({ length: 38 }, (_, i) => {
-      const angle  = (Math.random() * 360);                        // deg
-      const dist   = 28 + Math.random() * 44;                      // vw
-      const tx     = Math.cos((angle * Math.PI) / 180) * dist;
-      const ty     = -(18 + Math.random() * 52);                   // always upward-ish
-      const size   = 5 + Math.random() * 7;
-      const delay  = Math.random() * 0.18;
-      const dur    = 0.55 + Math.random() * 0.35;
-      const color  = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-      const shape  = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      const rot    = -180 + Math.random() * 360;
-      return { i, tx, ty, size, delay, dur, color, shape, rot };
+    // 28 orbs — evenly spread around 360° with slight jitter
+    const orbs = Array.from({ length: 28 }, (_, i) => {
+      const angle = (i / 28) * 360 + (Math.random() - 0.5) * 18;
+      const dist  = 14 + Math.random() * 32;          // vmin, uniform burst
+      const rad   = (angle * Math.PI) / 180;
+      const tx    = Math.cos(rad) * dist;
+      const ty    = Math.sin(rad) * dist;
+      const size  = 3 + Math.random() * 6;            // 3–9 px
+      const dur   = 0.5 + Math.random() * 0.25;
+      const delay = Math.random() * 0.08;
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const glowR = Math.round(size * 2.5);
+      return { id: `o${i}`, tx, ty, size, dur, delay, color, glowR, type: 'orb' };
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // 8 "shooting star" streaks — longer, faster, aimed outward
+    const streaks = Array.from({ length: 8 }, (_, i) => {
+      const angle = (i / 8) * 360 + (Math.random() - 0.5) * 10;
+      const dist  = 20 + Math.random() * 22;
+      const rad   = (angle * Math.PI) / 180;
+      const tx    = Math.cos(rad) * dist;
+      const ty    = Math.sin(rad) * dist;
+      const dur   = 0.4 + Math.random() * 0.15;
+      const delay = Math.random() * 0.05;
+      return { id: `s${i}`, tx, ty, size: 2, dur, delay, color: '#ffffff', glowR: 8, type: 'streak', angle };
+    });
+
+    return [...orbs, ...streaks];
+  }, [palette]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const t = setTimeout(onDone, 1200);
+    const t = setTimeout(onDone, 1100);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const keyframes = particles.map(p => `
-    @keyframes cf-${p.i} {
-      0%   { transform: translate(0,0) rotate(0deg) scale(1);   opacity: 1; }
-      70%  { opacity: 0.9; }
-      100% { transform: translate(${p.tx}vw, ${p.ty}vh) rotate(${p.rot}deg) scale(0.4); opacity: 0; }
-    }
-  `).join('');
+  const keyframes = [
+    // central nova flash
+    `@keyframes nova-flash {
+      0%   { transform: translate(-50%,-50%) scale(0);   opacity: 1; }
+      35%  { transform: translate(-50%,-50%) scale(2.5); opacity: 0.7; }
+      100% { transform: translate(-50%,-50%) scale(5);   opacity: 0; }
+    }`,
+    // orb particles
+    ...particles.map(p => `
+      @keyframes sp-${p.id} {
+        0%   { transform: translate(-50%,-50%) scale(1.6); opacity: 1; }
+        55%  { opacity: 0.85; }
+        100% { transform: translate(calc(-50% + ${p.tx}vmin), calc(-50% + ${p.ty}vmin)) scale(0); opacity: 0; }
+      }
+    `),
+  ].join('');
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 550,
       pointerEvents: 'none', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <style>{keyframes}</style>
+
+      {/* Central nova flash */}
+      <div style={{
+        position: 'absolute', left: '50%', top: '50%',
+        width: '28px', height: '28px', borderRadius: '50%',
+        background: `radial-gradient(circle, #fff 0%, ${base} 45%, transparent 75%)`,
+        boxShadow: `0 0 24px 12px ${glow}`,
+        animation: 'nova-flash 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) forwards',
+      }} />
+
+      {/* Orbs + streaks */}
       {particles.map(p => (
-        <span
-          key={p.i}
+        <div
+          key={p.id}
           style={{
             position: 'absolute',
-            left: '50%', top: '55%',
-            fontSize: `${p.size}px`,
-            color: p.color,
-            lineHeight: 1,
-            animation: `cf-${p.i} ${p.dur}s ${p.delay}s cubic-bezier(0.22,1,0.36,1) forwards`,
-            willChange: 'transform, opacity',
+            left: '50%', top: '50%',
+            width:  p.type === 'streak' ? `${p.size * 7}px` : `${p.size}px`,
+            height: `${p.size}px`,
+            borderRadius: '50%',
+            background: p.color,
+            boxShadow: `0 0 ${p.glowR}px ${Math.round(p.glowR / 2)}px ${p.color}70`,
+            ...(p.type === 'streak' ? {
+              transform: `translate(-50%,-50%) rotate(${p.angle}deg)`,
+              transformOrigin: 'left center',
+            } : {}),
+            animation: `sp-${p.id} ${p.dur}s ${p.delay}s cubic-bezier(0.15, 0.85, 0.25, 1) forwards`,
           }}
-        >
-          {p.shape}
-        </span>
+        />
       ))}
     </div>
   );
@@ -435,8 +472,8 @@ export default function ProgressPill({ challengeStats, style = {} }) {
         )}
       </button>
 
-      {/* ── Confetti burst ────────────────────────────────────────────────── */}
-      {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
+      {/* ── Cosmic burst ──────────────────────────────────────────────────── */}
+      {showConfetti && <Confetti award={toastAward} onDone={() => setShowConfetti(false)} />}
 
       {/* ── Award toast ───────────────────────────────────────────────────── */}
       {toastAward && (

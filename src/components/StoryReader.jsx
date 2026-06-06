@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, User, CheckCircle2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Play, User, CheckCircle2, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { readTime } from '../utils';
 
@@ -135,12 +135,12 @@ export default function StoryReader({
         flexShrink: 0,
       }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {/* Minimize button — mirrors the player's dismiss affordance */}
           <button
             onClick={onClose || goBack}
-            style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ChevronDown size={18} />
           </button>
-          <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
           <div style={{ flex: 1 }} />
           {/* Bookmark */}
           <button

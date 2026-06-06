@@ -1788,6 +1788,15 @@ const TheAIRundown = () => {
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => {
     addToHistory(story, cat, idx, selectedTime || null);
+    // Count reads toward Popular rankings (same key used by audio listen counter)
+    if (story?.headline) {
+      const key = headlineKey(story.headline);
+      setListenCounts(prev => {
+        const next = { ...prev, [key]: (prev[key] || 0) + 1 };
+        try { localStorage.setItem('rundown_listen_counts', JSON.stringify(next)); } catch {}
+        return next;
+      });
+    }
     // Track individual story reads in the backend for read rate analytics (signed-in only)
     if (user) {
       fetch(`${BACKEND_URL}/api/metrics/track`, {

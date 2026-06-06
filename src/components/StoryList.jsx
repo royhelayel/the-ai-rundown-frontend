@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_ICONS, CATEGORY_SHORT } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from '../theme';
 import { formatDuration } from '../utils';
 import { SkeletonCategoryRows } from './SkeletonScreens';
 import StoryCard from './StoryCard';
+import CategoryIcon from './CategoryIcon';
 
 // ── Category image header (175 px tall, full-bleed photo) ────────────────────
 function CategoryImageHeader({ cat, catData, color, image, onPlay, onNavigate }) {
@@ -150,17 +151,17 @@ export default function StoryList({
         </div>
       )}
 
-      {/* Category pills */}
-      <div className="sl-cat-pills" style={{ display: 'flex', gap: '7px', padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      {/* Category pills — Reader style */}
+      <div className="sl-cat-pills" style={{ display: 'flex', gap: '5px', padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
         <button
           onClick={() => setCatFilter(null)}
           style={{
-            padding: '6px 13px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700',
+            display: 'flex', alignItems: 'center', gap: '5px',
+            padding: '5px 11px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: catFilter === null ? '800' : '600',
             whiteSpace: 'nowrap', cursor: 'pointer',
-            background: catFilter === null ? 'rgba(124,58,237,0.1)' : '#fff',
+            background: catFilter === null ? 'rgba(124,58,237,0.1)' : 'transparent',
             border: `1px solid ${catFilter === null ? 'rgba(124,58,237,0.4)' : 'rgba(0,0,0,0.1)'}`,
             color: catFilter === null ? '#7c3aed' : '#6b7280',
-            boxShadow: catFilter !== null ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
           }}
         >
           All
@@ -168,21 +169,21 @@ export default function StoryList({
         {categories.filter(c => briefingData[c]?.storyCount > 0).map(cat => {
           const active = catFilter === cat;
           const color  = CATEGORY_COLORS[cat] || '#6366f1';
-          const icon   = CATEGORY_ICONS[cat] || '';
           return (
             <button
               key={cat}
               onClick={() => setCatFilter(active ? null : cat)}
               style={{
-                padding: '6px 13px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700',
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '5px 11px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: active ? '800' : '600',
                 whiteSpace: 'nowrap', cursor: 'pointer',
-                background: active ? `${color}18` : '#fff',
-                border: `1px solid ${active ? `${color}60` : 'rgba(0,0,0,0.1)'}`,
+                background: active ? `${color}12` : 'transparent',
+                border: `1px solid ${active ? `${color}55` : 'rgba(0,0,0,0.1)'}`,
                 color: active ? color : '#6b7280',
-                boxShadow: !active ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              {icon ? `${icon} ${CATEGORY_SHORT[cat] || cat}` : (CATEGORY_SHORT[cat] || cat)}
+              <CategoryIcon category={cat} size={13} color={active ? color : '#6b7280'} />
+              {CATEGORY_SHORT[cat] || cat}
             </button>
           );
         })}
@@ -233,8 +234,8 @@ export default function StoryList({
               ) : (
                 /* ── Simple text category header ── */
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <span style={{ fontSize: '1rem', lineHeight: 1 }}>{CATEGORY_ICONS[cat] || '📰'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color }}>
+                    <CategoryIcon category={cat} size={16} color={color} />
                     <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.01em' }}>
                       {cat}
                     </span>

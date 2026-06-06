@@ -15,7 +15,8 @@
  */
 import React from 'react';
 import { Play } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORY_SHORT } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
+import CategoryIcon from './CategoryIcon';
 
 
 export default function StoryCard({
@@ -27,9 +28,8 @@ export default function StoryCard({
   onPlay,
   removeButton,
 }) {
-  const color      = CATEGORY_COLORS[category] || '#6366f1';
-  const icon       = CATEGORY_ICONS[category]  || '';
-  const short      = CATEGORY_SHORT[category]  || category;
+  const color = CATEGORY_COLORS[category] || '#6366f1';
+  const short = CATEGORY_SHORT[category]  || category;
   const sources    = (story.storySources || []).filter(s => s.outlet);
   const topSources = sources.slice(0, 2);
   const moreCount  = sources.length - topSources.length;
@@ -66,8 +66,9 @@ export default function StoryCard({
 
         {/* Category label + badge row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px' }}>
-          <span style={{ fontSize: '0.62rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            {icon ? `${icon} ` : ''}{short}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.62rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <CategoryIcon category={category} size={11} color={color} />
+            {short}
           </span>
           {badge}
         </div>

@@ -47,6 +47,7 @@ export default function BriefingFeed({
           categories={allCats}
           onReadStory={onSelectCategory}
           onPlayStory={onPlayStory}
+          onPlayCategory={onPlayCategory}
           gamifiedStats={gamifiedStats}
           isNarrating={isNarrating}
           activeCategory={selectedCategory}
@@ -55,6 +56,7 @@ export default function BriefingFeed({
           challengeStats={challengeStats}
           loading={briefingLoading}
           fromPath="/"
+          showCategoryImages
         />
       </div>
     </div>

@@ -100,6 +100,7 @@ export default function MyFeedTab({
           categories={allFeedCats}
           onReadStory={onSelectCategory}
           onPlayStory={onPlayStory}
+          onPlayCategory={onPlayCategory}
           gamifiedStats={gamifiedStats}
           isNarrating={isNarrating}
           activeCategory={selectedCategory}
@@ -108,6 +109,7 @@ export default function MyFeedTab({
           challengeStats={challengeStats}
           loading={briefingLoading}
           fromPath="/my-feed"
+          showCategoryImages
         />
       </div>
     </div>

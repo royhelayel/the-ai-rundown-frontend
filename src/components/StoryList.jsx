@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, Pencil } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from '../theme';
 import { formatDuration } from '../utils';
 import { SkeletonCategoryRows } from './SkeletonScreens';
@@ -109,6 +109,7 @@ export default function StoryList({
   showCategoryImages = false,
   sectionTitle = '',
   onPlayFeed,
+  onEditFeed,
 }) {
   const [catFilter, setCatFilter] = useState(null);
   const navigate = useNavigate();
@@ -141,6 +142,23 @@ export default function StoryList({
           }}>
             {sectionTitle}
           </h2>
+
+          {/* Edit (My Feed only) */}
+          {onEditFeed && (
+            <button
+              onClick={onEditFeed}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '5px 10px', borderRadius: '8px',
+                background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)',
+                color: '#6b7280', fontSize: '0.72rem', fontWeight: '700',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <Pencil size={12} />
+              Edit
+            </button>
+          )}
 
           {/* Read — white inner */}
           <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>

@@ -110,6 +110,7 @@ export default function MyFeedTab({
           showCategoryImages
           sectionTitle="My Feed"
           onPlayFeed={onPlayMyFeed}
+          onEditFeed={() => navigate('/customize')}
         />
       </div>
     </div>

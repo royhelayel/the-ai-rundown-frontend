@@ -79,7 +79,7 @@ export const CATEGORY_IMAGES = {
   'UAE':           'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=900&q=80&auto=format&fit=crop',
   'KSA':           'https://images.unsplash.com/photo-1586724237569-f3d0c1dee8c6?w=900&q=80&auto=format&fit=crop',
   'QAT':           'https://images.unsplash.com/photo-1584592740039-cddf0671f3d4?w=900&q=80&auto=format&fit=crop',
-  'LEB':           'https://images.unsplash.com/photo-1555169062-013468b47731?w=900&q=80&auto=format&fit=crop',
+  'LEB':           'https://images.unsplash.com/photo-1779874033061-61aa1b2ec3a9?w=900&q=80&auto=format&fit=crop',
   'My Rundown':    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80&auto=format&fit=crop',
 };
 

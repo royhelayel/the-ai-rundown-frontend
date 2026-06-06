@@ -255,14 +255,17 @@ export default function StoryReader({
 
           <div style={{ flex: 1 }} />
 
-          {/* Play — filled, feeds size */}
-          <button
-            onClick={() => onPlayFrom(storyIndex)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: 'none', flexShrink: 0 }}
-          >
-            <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
-            {isNarrating ? 'Playing…' : 'Play'}
-          </button>
+          {/* Play — animated border */}
+          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
+            <button
+              className="ai-btn-inner"
+              style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem' }}
+              onClick={() => onPlayFrom(storyIndex)}
+            >
+              <Play size={10} fill="white" color="white" />
+              {isNarrating ? 'Playing…' : 'Play'}
+            </button>
+          </div>
         </div>
 
         {/* Key Takeaways */}

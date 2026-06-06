@@ -159,10 +159,10 @@ export default function StoryList({
           </div>
 
           {/* Read — white inner */}
-          <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>
+          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
             <button
               className="ai-btn-inner-white"
-              style={{ padding: '0.42rem 1.1rem', borderRadius: '9px', fontSize: '0.78rem' }}
+              style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
               onClick={() => {
                 const firstCat = visibleCats[0];
                 if (firstCat) handleRead(firstCat, 0);
@@ -174,10 +174,10 @@ export default function StoryList({
 
           {/* Play — dark inner */}
           {onPlayFeed && (
-            <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>
+            <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
               <button
                 className="ai-btn-inner"
-                style={{ padding: '0.42rem 1.1rem', borderRadius: '9px', fontSize: '0.78rem' }}
+                style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
                 onClick={onPlayFeed}
               >
                 <Play size={11} fill="white" color="white" />

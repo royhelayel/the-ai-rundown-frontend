@@ -74,21 +74,21 @@ function ChallengeRing({
         }}>
           {icon}
           <span style={{
-            fontSize: '0.52rem', fontWeight: 800,
+            fontSize: '0.6rem', fontWeight: 800,
             textTransform: 'uppercase', letterSpacing: '0.1em',
             color: 'rgba(255,255,255,0.42)', marginTop: 2,
           }}>
             {label}
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1 }}>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>
               {count}
             </span>
-            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>
               /{total}
             </span>
           </div>
-          <span style={{ fontSize: '0.5rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
+          <span style={{ fontSize: '0.55rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
             {unit}
           </span>
         </div>
@@ -175,47 +175,47 @@ export default function ProgressPill({ challengeStats, style = {} }) {
           background: 'linear-gradient(145deg, #0f0f1e, #181830)',
           border: 'none',
           borderRadius: 20,
-          padding: '16px 10px 12px',
+          padding: '14px 10px 10px',
           cursor: 'pointer',
           boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
           ...style,
         }}
       >
         <ChallengeRing
-          size={96} strokeW={7}
+          size={84} strokeW={6}
           pct={todayPct}
           gradId="cr-today" color0="#7c3aed" color1="#3b82f6"
           trackColor="rgba(124,58,237,0.13)"
           label="Today"
           count={todayCount} total={dailyGoal} unit="stories"
           toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
-          icon={<LightbulbIcon size={15} color={iconColor} />}
+          icon={<LightbulbIcon size={13} color={iconColor} />}
         />
 
-        <div style={{ width: 1, height: 68, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
         <ChallengeRing
-          size={96} strokeW={7}
+          size={84} strokeW={6}
           pct={streakPct}
           gradId="cr-streak" color0="#3b82f6" color1="#06b6d4"
           trackColor="rgba(59,130,246,0.13)"
           label="Streak"
           count={streakDays} total={3} unit="days"
           toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
-          icon={<LightningIcon size={13} color={iconColor} />}
+          icon={<LightningIcon size={11} color={iconColor} />}
         />
 
-        <div style={{ width: 1, height: 68, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
         <ChallengeRing
-          size={96} strokeW={7}
+          size={84} strokeW={6}
           pct={weekPct}
           gradId="cr-week" color0="#6366f1" color1="#8b5cf6"
           trackColor="rgba(99,102,241,0.13)"
           label="Week"
           count={weeklyDays} total={7} unit="days"
           toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
-          icon={<StarIcon size={14} color={iconColor} />}
+          icon={<StarIcon size={12} color={iconColor} />}
         />
       </button>
 

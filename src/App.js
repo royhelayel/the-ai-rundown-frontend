@@ -1961,13 +1961,13 @@ const TheAIRundown = () => {
           50%      { background-position: 100% 50%; }
         }
         .ai-btn-wrap {
-          position: relative; border-radius: 14px; padding: 3px; display: inline-block;
+          position: relative; border-radius: 14px; padding: 4px; display: inline-block;
           background: linear-gradient(90deg,#6366f1,#0891b2,#16a34a,#d97706,#e11d48,#9333ea,#db2777,#2563eb,#6366f1);
           background-size: 300% 100%;
-          animation: border-flow 10s ease-in-out infinite;
+          animation: border-flow 6s ease-in-out infinite;
         }
         .ai-btn-inner {
-          width: auto; padding: 0.6rem 1.4rem; border-radius: 11px;
+          width: auto; padding: 0.6rem 1.4rem; border-radius: 10px;
           background: linear-gradient(135deg,#18182a 0%,#1e1b35 100%);
           border: none; color: white; font-size: 0.88rem; font-weight: 800; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
@@ -1975,7 +1975,7 @@ const TheAIRundown = () => {
         }
         .ai-btn-inner:hover { opacity: 0.9; }
         .ai-btn-inner-white {
-          width: auto; padding: 0.6rem 1.4rem; border-radius: 11px;
+          width: auto; padding: 0.6rem 1.4rem; border-radius: 10px;
           background: #ffffff;
           border: none; color: #0a0a0f; font-size: 0.88rem; font-weight: 800; cursor: pointer;
           display: flex; align-items: center; justify-content: center;

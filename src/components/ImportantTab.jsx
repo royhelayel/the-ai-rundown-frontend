@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bookmark, User, BookmarkCheck } from 'lucide-react';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
+import useScrollRestore from '../hooks/useScrollRestore';
 
 const light = {
   bg:        '#f5f5f7',
@@ -26,6 +27,7 @@ export default function ImportantTab({
   challengeStats,
 }) {
   const navigate = useNavigate();
+  useScrollRestore('/important');
 
   return (
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>

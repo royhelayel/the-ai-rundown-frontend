@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import StoryList from './StoryList';
 import ProgressPill from './ProgressPill';
+import useScrollRestore from '../hooks/useScrollRestore';
 
 export default function MyFeedTab({
   briefingData, briefingLoading,
@@ -16,6 +17,7 @@ export default function MyFeedTab({
   onPlayFeed, onPlayMyFeed, onPlayCategory,
 }) {
   const navigate = useNavigate();
+  useScrollRestore('/my-feed');
   const allFeedCats = [...new Set((userFeeds || []).flatMap(f => f.categories))];
 
   if (!user) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import StoryList from './StoryList';
 import ProgressPill from './ProgressPill';
+import useScrollRestore from '../hooks/useScrollRestore';
 
 export default function BriefingFeed({
   briefingData, briefingLoading,
@@ -17,6 +18,7 @@ export default function BriefingFeed({
   isPaused, newsLanguage, todayProgress, onShowSettings,
 }) {
   const navigate = useNavigate();
+  useScrollRestore('/');
   const allCats = [...(defaultCategories || []), ...(customCategories || [])];
 
   return (

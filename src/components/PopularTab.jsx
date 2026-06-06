@@ -4,6 +4,7 @@ import { User } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
+import useScrollRestore from '../hooks/useScrollRestore';
 
 const bg = '#f5f5f7';
 
@@ -21,6 +22,7 @@ export default function PopularTab({
   challengeStats,
 }) {
   const navigate = useNavigate();
+  useScrollRestore('/popular');
 
   // Flatten all stories across all categories
   const allStories = [];

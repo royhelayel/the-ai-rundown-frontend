@@ -73,11 +73,16 @@ export default function StoryReader({
   const [isRead, setIsRead] = useState(false);
   const color = CATEGORY_COLORS[category] || '#6366f1';
 
-  // Mark the story as read whenever the displayed story changes
+  // Mark story as read when the user LEAVES it (navigate away or close).
+  // Capture current values in closure so cleanup always marks the right story.
   useEffect(() => {
-    setIsRead(false); // reset on story change, then mark read
-    if (story && onMarkRead) { onMarkRead(story, category, storyIndex); setIsRead(true); }
-  }, [storyIndex, story]); // eslint-disable-line react-hooks/exhaustive-deps
+    setIsRead(false); // entering a new story — show Unread
+    const s = story, c = category, i = storyIndex, fn = onMarkRead;
+    return () => {
+      // fires when: storyIndex changes (next/prev) OR component unmounts (minimize/close)
+      if (s && fn) fn(s, c, i);
+    };
+  }, [storyIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goBack = () => {
     const from = location.state?.from;

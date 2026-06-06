@@ -13,5 +13,17 @@
       "runtimeArgs": ["serve", "-s", "public", "-l", "4321"],
       "port": 4321
     }
+    ,{
+      "name": "category-mock",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-s", ".", "-l", "4322"],
+      "port": 4322
+    }
+    ,{
+      "name": "wireframes",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "public", "-p", "4500"],
+      "port": 4500
+    }
   ]
 }

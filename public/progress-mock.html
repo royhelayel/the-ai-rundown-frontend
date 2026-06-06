@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading Challenge — Option C Revised</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f4; padding: 32px 24px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+
+  .pane {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    width: 260px;
+    padding: 18px 14px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .pane-label {
+    font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6366f1; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 6px; padding: 2px 7px; display: inline-block; margin-bottom: 14px;
+  }
+
+  .section-label {
+    font-size: 0.6rem; font-weight: 800; color: #8a8a9a;
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+  }
+
+  /* Banners */
+  .banner {
+    display: flex; align-items: flex-start; gap: 8px;
+    border-radius: 9px; padding: 9px 10px; margin-bottom: 12px;
+  }
+  .banner.green { background: rgba(22,163,74,0.08); border: 1px solid rgba(22,163,74,0.22); }
+  .banner.orange { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.22); }
+  .banner.gray   { background: #f5f5f7; border: 1px solid rgba(0,0,0,0.08); }
+  .banner-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+  .banner-title { font-size: 0.68rem; font-weight: 800; line-height: 1.2; margin-bottom: 2px; }
+  .banner.green  .banner-title { color: #15803d; }
+  .banner.orange .banner-title { color: #c2410c; }
+  .banner.gray   .banner-title { color: #3a3a4a; }
+  .banner-sub { font-size: 0.58rem; font-weight: 500; line-height: 1.45; color: #8a8a9a; }
+
+  /* Slot rows */
+  .slot-row-label {
+    font-size: 0.52rem; font-weight: 700; color: #8a8a9a;
+    margin-bottom: 3px; display: flex; align-items: center; gap: 3px;
+  }
+  .week-row { display: flex; gap: 3px; margin-bottom: 8px; }
+  .day-cell {
+    flex: 1; height: 24px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.46rem; font-weight: 700; cursor: pointer;
+  }
+  .day-cell.done    { background: #16a34a; color: #fff; }
+  .day-cell.partial { background: #d97706; color: #fff; }
+  .day-cell.none    { background: #f5f5f7; border: 1px solid rgba(0,0,0,0.08); color: #9ca3af; }
+  .day-cell.today   { outline: 2px solid #6366f1; outline-offset: 1px; }
+
+  /* Legend */
+  .legend { display: flex; gap: 8px; margin-top: 2px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 3px; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 2px; }
+  .legend-text { font-size: 0.48rem; color: #9ca3af; font-weight: 600; }
+
+  /* Category rows */
+  .sub-label { font-size: 0.52rem; color: #9ca3af; font-weight: 600; margin-bottom: 6px; margin-top: 2px; }
+  .cat-row { background: #f5f5f7; border-radius: 8px; padding: 6px 8px; margin-bottom: 4px; }
+  .cat-row-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .cat-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.58rem; font-weight: 800; }
+  .cat-name  { flex: 1; font-size: 0.82rem; font-weight: 600; color: #0a0a0f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-count { font-size: 0.62rem; color: #9ca3af; font-weight: 600; flex-shrink: 0; }
+  .bar-track { height: 3px; border-radius: 99px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 99px; }
+
+  .divider { height: 1px; background: rgba(0,0,0,0.07); margin: 12px 0; }
+
+  svg-check { display: inline-block; }
+</style>
+</head>
+<body>
+
+<!-- ── STATE 1: All caught up today ─────────────────────────────── -->
+<div class="pane">
+  <div class="pane-label">All caught up today</div>
+  <p class="section-label">Reading Challenge</p>
+
+  <div class="banner green">
+    <div class="banner-icon">✅</div>
+    <div>
+      <div class="banner-title">All Caught Up!</div>
+      <div class="banner-sub">You've caught up on all stories!</div>
+    </div>
+  </div>
+
+  <div class="slot-row-label">☀️ Morning</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell done">TU</div>
+    <div class="day-cell done">WE</div>
+    <div class="day-cell done today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="slot-row-label">🌙 Evening</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell done">TU</div>
+    <div class="day-cell partial">WE</div>
+    <div class="day-cell done today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">All done</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div><span class="legend-text">Partial</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1)"></div><span class="legend-text">None</span></div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sub-label">Today · ☀️ Morning</div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(99,102,241,0.15);color:#6366f1">WN</div>
+      <span class="cat-name">World News</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="bar-track" style="background:rgba(99,102,241,0.15)"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+  </div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(14,165,233,0.15);color:#0ea5e9">TE</div>
+      <span class="cat-name">Technology</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="bar-track" style="background:rgba(14,165,233,0.15)"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+  </div>
+</div>
+
+<!-- ── STATE 2: Morning done, evening not started ────────────────── -->
+<div class="pane">
+  <div class="pane-label">Morning done · evening pending</div>
+  <p class="section-label">Reading Challenge</p>
+
+  <div class="banner orange">
+    <div class="banner-icon">🔥</div>
+    <div>
+      <div class="banner-title">Morning Complete!</div>
+      <div class="banner-sub">Catch up on Evening stories.</div>
+    </div>
+  </div>
+
+  <div class="slot-row-label">☀️ Morning</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell done">TU</div>
+    <div class="day-cell done">WE</div>
+    <div class="day-cell done today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="slot-row-label">🌙 Evening</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell partial">TU</div>
+    <div class="day-cell none">WE</div>
+    <div class="day-cell none today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">All done</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div><span class="legend-text">Partial</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1)"></div><span class="legend-text">None</span></div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sub-label">Today · ☀️ Morning</div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(99,102,241,0.15);color:#6366f1">WN</div>
+      <span class="cat-name">World News</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="bar-track" style="background:rgba(99,102,241,0.15)"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+  </div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(14,165,233,0.15);color:#0ea5e9">TE</div>
+      <span class="cat-name">Technology</span>
+      <span class="cat-count">5/8</span>
+    </div>
+    <div class="bar-track" style="background:rgba(14,165,233,0.15)"><div class="bar-fill" style="width:62%;background:#0ea5e9"></div></div>
+  </div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(234,179,8,0.15);color:#ca8a04">BU</div>
+      <span class="cat-name">Business</span>
+      <span class="cat-count">2/6</span>
+    </div>
+    <div class="bar-track" style="background:rgba(234,179,8,0.15)"><div class="bar-fill" style="width:33%;background:#ca8a04"></div></div>
+  </div>
+</div>
+
+<!-- ── STATE 3: Nothing read yet today ──────────────────────────── -->
+<div class="pane">
+  <div class="pane-label">Nothing read yet</div>
+  <p class="section-label">Reading Challenge</p>
+
+  <div class="banner gray">
+    <div class="banner-icon">📖</div>
+    <div>
+      <div class="banner-title">Start Today's Challenge</div>
+      <div class="banner-sub">Catch up on your daily stories.</div>
+    </div>
+  </div>
+
+  <div class="slot-row-label">☀️ Morning</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell done">TU</div>
+    <div class="day-cell done">WE</div>
+    <div class="day-cell none today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="slot-row-label">🌙 Evening</div>
+  <div class="week-row">
+    <div class="day-cell done">MO</div>
+    <div class="day-cell partial">TU</div>
+    <div class="day-cell none">WE</div>
+    <div class="day-cell none today">TH</div>
+    <div class="day-cell none">FR</div>
+    <div class="day-cell none">SA</div>
+    <div class="day-cell none">SU</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div><span class="legend-text">All done</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div><span class="legend-text">Partial</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1)"></div><span class="legend-text">None</span></div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sub-label">Today · ☀️ Morning</div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(99,102,241,0.15);color:#6366f1">WN</div>
+      <span class="cat-name">World News</span>
+      <span class="cat-count">0/8</span>
+    </div>
+    <div class="bar-track" style="background:rgba(99,102,241,0.15)"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+  </div>
+  <div class="cat-row">
+    <div class="cat-row-top">
+      <div class="cat-avatar" style="background:rgba(14,165,233,0.15);color:#0ea5e9">TE</div>
+      <span class="cat-name">Technology</span>
+      <span class="cat-count">0/6</span>
+    </div>
+    <div class="bar-track" style="background:rgba(14,165,233,0.15)"><div class="bar-fill" style="width:0%;background:#0ea5e9"></div></div>
+  </div>
+</div>
+
+</body>
+</html>

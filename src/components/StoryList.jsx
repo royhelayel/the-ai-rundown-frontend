@@ -125,7 +125,7 @@ export default function StoryList({
 
   const handleCatNavigate = (cat) => {
     onReadStory?.(cat);
-    navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath } });
+    navigate(`/category/${encodeURIComponent(cat)}/story/0`, { state: { from: fromPath } });
   };
 
   return (

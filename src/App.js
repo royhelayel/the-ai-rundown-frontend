@@ -4,7 +4,6 @@ import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Se
 import { createClient } from '@supabase/supabase-js';
 import { VerificationPage } from './components/VerificationPage';
 import BriefingFeed from './components/BriefingFeed';
-import CategoryView from './components/CategoryView';
 import StoryReader from './components/StoryReader';
 import FullPlayer from './components/FullPlayer';
 import MiniPlayer from './components/MiniPlayer';
@@ -1873,13 +1872,11 @@ const TheAIRundown = () => {
   const feedIdFromUrl   = feedRouteMatch ? feedRouteMatch[1] : null;
   const isFeedPage      = !!feedRouteMatch;
   const currentFeedPage = feedIdFromUrl ? (userFeeds || []).find(f => f.id === feedIdFromUrl) : null;
-  const catOnlyMatch    = location.pathname.match(/^\/category\/([^/]+)$/);
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
-  const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : (catOnlyMatch ? decodeURIComponent(catOnlyMatch[1]) : null);
+  const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : null;
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
   const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isCustomizePath && !isFeedPage;
   const isHome          = isLatestHome; // kept for backward compat
-  const isCategoryView  = !!catOnlyMatch;
   const isStoryView     = !!storyRouteMatch;
 
   // When the reader sheet is open, which feed sits behind it?
@@ -1893,10 +1890,6 @@ const TheAIRundown = () => {
   // while on /category/... or /category/.../story/... pages.
   const activeFeedId = (() => {
     if (isFeedPage && feedIdFromUrl) return feedIdFromUrl;
-    if (isCategoryView) {
-      const from = location.state?.from;
-      if (typeof from === 'string' && from.startsWith('/feed/')) return from.replace('/feed/', '');
-    }
     if (isStoryView) {
       const feedFrom = location.state?.feedFrom;
       if (typeof feedFrom === 'string' && feedFrom.startsWith('/feed/')) return feedFrom.replace('/feed/', '');
@@ -2203,23 +2196,6 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
-        />
-      )}
-
-      {isCategoryView && (
-        <CategoryView
-          category={catFromUrl}
-          stories={viewStories}
-          isLoading={viewIsLoading}
-          isNarrating={isNarrating}
-          isPaused={isPaused}
-          currentStoryIndex={storyIndex}
-          onPlayFrom={onPlayFrom}
-          miniPlayerVisible={miniPlayerVisible && miniPlayerDock === 'bottom'}
-          onMarkRead={handleMarkRead}
-          user={user}
-          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          categoryProgress={gamifiedStats.todayProgress[catFromUrl]}
         />
       )}
 

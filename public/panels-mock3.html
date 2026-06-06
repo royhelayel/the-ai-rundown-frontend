@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stats Sheet Mock</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #e8e8ec;
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 2rem; padding: 2rem 1.5rem 4rem;
+    flex-wrap: wrap;
+  }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+  .phone-label { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #8a8a9a; align-self: flex-start; }
+
+  .phone {
+    width: 375px;
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+
+  /* Header */
+  .phone-header {
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    padding: 0.75rem 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .phone-brand { font-size: 1rem; font-weight: 900; color: #0a0a0f; letter-spacing: -0.02em; flex: 1; }
+  .phone-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #f5f5f7; border: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: #8a8a9a; flex-shrink: 0;
+  }
+
+  /* Dimmed feed behind sheet */
+  .feed-bg {
+    padding: 1rem 1.25rem 0;
+    flex-shrink: 0;
+  }
+  .sk { background: #e8e8eb; border-radius: 8px; }
+
+  /* Sheet */
+  .sheet {
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 -6px 32px rgba(0,0,0,0.1);
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet-inner { padding: 0.6rem 1.25rem 1rem; }
+  .sheet-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(0,0,0,0.12); margin: 0 auto 1rem;
+  }
+  .sheet-title {
+    font-size: 1.1rem; font-weight: 900; color: #0a0a0f;
+    letter-spacing: -0.025em; margin-bottom: 1rem;
+  }
+
+  /* ── Stats hero card ── */
+  .stats-card {
+    background: linear-gradient(135deg, #18182a 0%, #1e1b35 100%);
+    border-radius: 18px; padding: 1.1rem 1.1rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .stats-card-title {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.1em; color: rgba(255,255,255,0.4);
+    margin-bottom: 0.75rem;
+  }
+  .streak-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: rgba(251,146,60,0.15);
+    border: 1px solid rgba(251,146,60,0.3);
+    border-radius: 12px; padding: 0.55rem 0.8rem;
+    margin-bottom: 0.9rem;
+  }
+  .streak-emoji { font-size: 1.15rem; line-height: 1; }
+  .streak-text { font-size: 0.85rem; font-weight: 800; color: #fb923c; }
+  .streak-sub { font-size: 0.65rem; color: rgba(255,255,255,0.4); font-weight: 500; }
+
+  .stats-numbers {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    gap: 0.5rem; margin-bottom: 1rem;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.07);
+    border-radius: 11px; padding: 0.6rem 0.4rem; text-align: center;
+  }
+  .stat-val { font-size: 1.2rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+  .stat-lbl { font-size: 0.56rem; font-weight: 600; color: rgba(255,255,255,0.4); margin-top: 3px; }
+
+  /* Bar chart */
+  .chart-label { font-size: 0.58rem; color: rgba(255,255,255,0.35); font-weight: 600; margin-bottom: 5px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 48px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; }
+  .bar-day { font-size: 0.55rem; color: rgba(255,255,255,0.3); font-weight: 600; }
+
+  /* Top category */
+  .top-cat-row {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 0.5rem 0.65rem;
+    margin-top: 0.75rem;
+  }
+  .top-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .top-cat-label { font-size: 0.6rem; color: rgba(255,255,255,0.4); font-weight: 600; margin-right: auto; }
+  .top-cat-name { font-size: 0.78rem; font-weight: 800; color: #fff; }
+  .top-cat-pct { font-size: 0.68rem; color: rgba(255,255,255,0.45); }
+
+  /* ── Recently Played ── */
+  .section-title {
+    font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.1em; color: #8a8a9a; margin: 0.25rem 0 0.7rem;
+  }
+  .history-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.72rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .h-dot-wrap {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.75rem; font-weight: 800;
+  }
+  .h-body { flex: 1; min-width: 0; }
+  .h-headline {
+    font-size: 0.83rem; font-weight: 700; color: #0a0a0f; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; margin-bottom: 2px;
+  }
+  .h-meta { font-size: 0.7rem; color: #8a8a9a; }
+  .h-play {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; cursor: pointer; padding-left: 1px;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: flex; border-top: 1px solid rgba(0,0,0,0.07);
+    background: rgba(255,255,255,0.96); padding: 0.5rem 0 0.65rem;
+    flex-shrink: 0;
+  }
+  .bn { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+  .bn-ico { font-size: 17px; line-height: 1.2; }
+  .bn-lbl { font-size: 0.6rem; font-weight: 600; color: #8a8a9a; }
+  .bn.active .bn-lbl { color: #6366f1; }
+</style>
+</head>
+<body>
+
+<!-- ── Screen 1: sheet partially open (peek) ── -->
+<div class="phone-wrap">
+  <div class="phone-label">Stats tab tapped → sheet opens</div>
+  <div class="phone">
+    <div class="phone-header">
+      <div class="phone-brand">The Rundown</div>
+      <div class="phone-avatar">👤</div>
+    </div>
+
+    <!-- dimmed feed behind -->
+    <div class="feed-bg" style="opacity:0.25;padding-bottom:0.75rem;">
+      <div class="sk" style="height:175px;margin-bottom:0.75rem;"></div>
+      <div class="sk" style="height:175px;"></div>
+    </div>
+
+    <!-- Sheet -->
+    <div class="sheet">
+      <div class="sheet-inner">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Stats</div>
+
+        <!-- Stats card -->
+        <div class="stats-card">
+          <div class="stats-card-title">Your Listening Stats</div>
+
+          <div class="streak-row">
+            <div class="streak-emoji">🔥</div>
+            <div>
+              <div class="streak-text">5-day streak</div>
+              <div class="streak-sub">Listen today to keep it going</div>
+            </div>
+          </div>
+
+          <div class="stats-numbers">
+            <div class="stat-box"><div class="stat-val">14</div><div class="stat-lbl">this week</div></div>
+            <div class="stat-box"><div class="stat-val">32m</div><div class="stat-lbl">listened</div></div>
+            <div class="stat-box"><div class="stat-val">47</div><div class="stat-lbl">this month</div></div>
+            <div class="stat-box"><div class="stat-val">6</div><div class="stat-lbl">categories</div></div>
+          </div>
+
+          <div class="chart-label">Listening this week</div>
+          <div class="bar-chart">
+            <div class="bar-col"><div class="bar" style="height:20px;background:rgba(255,255,255,0.2);"></div><div class="bar-day">M</div></div>
+            <div class="bar-col"><div class="bar" style="height:30px;background:rgba(255,255,255,0.3);"></div><div class="bar-day">T</div></div>
+            <div class="bar-col"><div class="bar" style="height:22px;background:rgba(255,255,255,0.22);"></div><div class="bar-day">W</div></div>
+            <div class="bar-col"><div class="bar" style="height:36px;background:rgba(255,255,255,0.42);"></div><div class="bar-day">T</div></div>
+            <div class="bar-col"><div class="bar" style="height:48px;background:rgba(255,255,255,0.88);"></div><div class="bar-day">F</div></div>
+            <div class="bar-col"><div class="bar" style="height:10px;background:rgba(255,255,255,0.12);"></div><div class="bar-day">S</div></div>
+            <div class="bar-col"><div class="bar" style="height:6px;background:rgba(255,255,255,0.08);"></div><div class="bar-day">S</div></div>
+          </div>
+
+          <div class="top-cat-row">
+            <div class="top-cat-label">Top category</div>
+            <div class="top-cat-dot" style="background:#0891b2;"></div>
+            <div class="top-cat-name">Technology</div>
+            <div class="top-cat-pct">38%</div>
+          </div>
+        </div>
+
+        <!-- Recently played -->
+        <div class="section-title">Recently Played</div>
+
+        <div class="history-item">
+          <div class="h-dot-wrap" style="background:rgba(99,102,241,0.1);color:#6366f1;">P</div>
+          <div class="h-body">
+            <div class="h-headline">Gaza ceasefire talks resume in Cairo amid pressure</div>
+            <div class="h-meta">Politics · 1h ago</div>
+          </div>
+          <div class="h-play" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);color:#6366f1;">▶</div>
+        </div>
+
+        <div class="history-item">
+          <div class="h-dot-wrap" style="background:rgba(8,145,178,0.1);color:#0891b2;">T</div>
+          <div class="h-body">
+            <div class="h-headline">Apple unveils M4 chip at WWDC keynote event</div>
+            <div class="h-meta">Technology · 3h ago</div>
+          </div>
+          <div class="h-play" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1);color:#8a8a9a;">▶</div>
+        </div>
+
+        <div class="history-item">
+          <div class="h-dot-wrap" style="background:rgba(22,163,74,0.1);color:#16a34a;">M</div>
+          <div class="h-body">
+            <div class="h-headline">Fed holds rates steady, hints at cuts later this year</div>
+            <div class="h-meta">Markets · 5h ago</div>
+          </div>
+          <div class="h-play" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1);color:#8a8a9a;">▶</div>
+        </div>
+
+        <div class="history-item">
+          <div class="h-dot-wrap" style="background:rgba(147,51,234,0.1);color:#9333ea;">A</div>
+          <div class="h-body">
+            <div class="h-headline">OpenAI launches GPT-5 with advanced reasoning</div>
+            <div class="h-meta">AI · Yesterday</div>
+          </div>
+          <div class="h-play" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1);color:#8a8a9a;">▶</div>
+        </div>
+
+        <div class="history-item">
+          <div class="h-dot-wrap" style="background:rgba(217,119,6,0.1);color:#d97706;">B</div>
+          <div class="h-body">
+            <div class="h-headline">Oil prices surge on OPEC+ production cuts</div>
+            <div class="h-meta">Business · Yesterday</div>
+          </div>
+          <div class="h-play" style="background:#f5f5f7;border:1px solid rgba(0,0,0,0.1);color:#8a8a9a;">▶</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="bottom-nav">
+      <div class="bn"><div class="bn-ico">⭐</div><div class="bn-lbl">My Feed</div></div>
+      <div class="bn"><div class="bn-ico">📰</div><div class="bn-lbl">All Feed</div></div>
+      <div class="bn"><div class="bn-ico">🔥</div><div class="bn-lbl">Popular</div></div>
+      <div class="bn active"><div class="bn-ico">📊</div><div class="bn-lbl" style="color:#6366f1;">Stats</div></div>
+      <div class="bn"><div class="bn-ico">☰</div><div class="bn-lbl">More</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

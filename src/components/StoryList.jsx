@@ -129,8 +129,15 @@ export default function StoryList({
         </div>
       )}
 
-      {/* Category pills — Reader style */}
-      <div className="sl-cat-pills" style={{ display: 'flex', gap: '5px', padding: '0 16px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      {/* Category pills — sticky below header */}
+      <div className="sl-cat-pills" style={{
+        position: 'sticky', top: 54, zIndex: 40,
+        display: 'flex', gap: '5px',
+        padding: '8px 16px 10px', overflowX: 'auto', scrollbarWidth: 'none',
+        background: 'rgba(245,245,247,0.96)',
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        borderBottom: '1px solid rgba(0,0,0,0.05)',
+      }}>
         <button
           onClick={() => setCatFilter(null)}
           style={{

@@ -138,24 +138,22 @@ export default function StoryReader({
         .rdr-cat-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* ── Header ── */}
+      {/* ── Header + category strip (one sticky unit) ── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
         background: `${light.bg}f0`,
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${light.border}`,
-        padding: '0.6rem 1.25rem',
         flexShrink: 0,
       }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          {/* Minimize button — mirrors the player's dismiss affordance */}
+        {/* Top row: minimize + bookmark */}
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem' }}>
           <button
             onClick={onClose || goBack}
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ChevronDown size={18} />
           </button>
           <div style={{ flex: 1 }} />
-          {/* Bookmark */}
           <button
             onClick={() => onToggleSaved?.(story, category, storyIndex)}
             title={isSaved ? 'Remove from Important' : 'Save to Important'}
@@ -163,44 +161,41 @@ export default function StoryReader({
             {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
           </button>
         </div>
-      </header>
 
-      {/* ── Category strip — sticky below header ── */}
-      {contextCategories.length > 0 && (
-        <div className="rdr-cat-strip" style={{
-          position: 'sticky', top: 51, zIndex: 40,
-          overflowX: 'auto', scrollbarWidth: 'none',
-          borderBottom: `1px solid ${light.border}`,
-          background: 'rgba(245,245,247,0.96)',
-          backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-        }}>
-          <div style={{ display: 'flex', gap: '5px', padding: '8px 16px', minWidth: 'max-content' }}>
-            {contextCategories.map(cat => {
-              const c   = CATEGORY_COLORS[cat] || '#6366f1';
-              const act = cat === category;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => !act && goToCat(cat)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '5px 13px', borderRadius: '8px',
-                    border: `1px solid ${act ? `${c}55` : 'rgba(0,0,0,0.1)'}`,
-                    background: act ? `${c}12` : 'transparent',
-                    cursor: act ? 'default' : 'pointer',
-                    whiteSpace: 'nowrap', flexShrink: 0,
-                    fontSize: '0.82rem', fontWeight: act ? '800' : '600',
-                    color: act ? c : '#6b7280',
-                  }}
-                >
-                  <CategoryIcon category={cat} size={15} color={act ? c : '#6b7280'} />
-                  {CATEGORY_SHORT[cat] || cat}
-                </button>
-              );
-            })}
+        {/* Category pills row */}
+        {contextCategories.length > 0 && (
+          <div className="rdr-cat-strip" style={{
+            overflowX: 'auto', scrollbarWidth: 'none',
+            borderTop: `1px solid ${light.border}`,
+          }}>
+            <div style={{ display: 'flex', gap: '5px', padding: '8px 16px', minWidth: 'max-content' }}>
+              {contextCategories.map(cat => {
+                const c   = CATEGORY_COLORS[cat] || '#6366f1';
+                const act = cat === category;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => !act && goToCat(cat)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '5px',
+                      padding: '5px 13px', borderRadius: '8px',
+                      border: `1px solid ${act ? `${c}55` : 'rgba(0,0,0,0.1)'}`,
+                      background: act ? `${c}12` : 'transparent',
+                      cursor: act ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      fontSize: '0.82rem', fontWeight: act ? '800' : '600',
+                      color: act ? c : '#6b7280',
+                    }}
+                  >
+                    <CategoryIcon category={cat} size={15} color={act ? c : '#6b7280'} />
+                    {CATEGORY_SHORT[cat] || cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </header>
 
       {/* ── Content ── */}
       <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '10rem' : '6rem' }}>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, User, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
-import { CATEGORY_COLORS } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { readTime } from '../utils';
+import CategoryIcon from './CategoryIcon';
 
 function faviconUrl(url) {
   try {
@@ -170,8 +171,13 @@ export default function StoryReader({
       </header>
 
       {/* ── Category strip ── */}
-      {contextCategories.length > 1 && (
-        <div className="rdr-cat-strip" style={{ overflowX: 'auto', scrollbarWidth: 'none', borderBottom: `1px solid ${light.border}` }}>
+      {contextCategories.length > 0 && (
+        <div className="rdr-cat-strip" style={{
+          overflowX: 'auto', scrollbarWidth: 'none',
+          borderBottom: `1px solid ${light.border}`,
+          background: 'rgba(245,245,247,0.96)',
+          backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        }}>
           <div style={{ display: 'flex', gap: '5px', padding: '8px 16px', minWidth: 'max-content' }}>
             {contextCategories.map(cat => {
               const c   = CATEGORY_COLORS[cat] || '#6366f1';
@@ -182,16 +188,17 @@ export default function StoryReader({
                   onClick={() => !act && goToCat(cat)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '4px 10px', borderRadius: '8px',
-                    border: act ? `1px solid ${c}55` : `1px solid ${light.border}`,
+                    padding: '5px 13px', borderRadius: '8px',
+                    border: `1px solid ${act ? `${c}55` : 'rgba(0,0,0,0.1)'}`,
                     background: act ? `${c}12` : 'transparent',
                     cursor: act ? 'default' : 'pointer',
                     whiteSpace: 'nowrap', flexShrink: 0,
+                    fontSize: '0.82rem', fontWeight: act ? '800' : '600',
+                    color: act ? c : '#6b7280',
                   }}
                 >
-                  <span style={{ fontSize: '0.72rem', fontWeight: act ? '800' : '600', color: act ? c : light.textMuted }}>
-                    {cat}
-                  </span>
+                  <CategoryIcon category={cat} size={15} color={act ? c : '#6b7280'} />
+                  {CATEGORY_SHORT[cat] || cat}
                 </button>
               );
             })}
@@ -217,42 +224,45 @@ export default function StoryReader({
           {story.headline}
         </h1>
 
-        {/* Sources — same pill style as StoryCard, no favicons */}
-        {story.storySources?.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            {story.storySources.filter(s => s.outlet).slice(0, 2).map((s, i) => (
-              <span
-                key={i}
-                style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280' }}
-              >
-                {s.outlet}
-              </span>
-            ))}
-            {story.storySources.filter(s => s.outlet).length > 2 && (
-              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af' }}>
-                +{story.storySources.filter(s => s.outlet).length - 2}
-              </span>
-            )}
+        {/* Sources — horizontal scroll, all outlets shown */}
+        {story.storySources?.filter(s => s.outlet).length > 0 && (
+          <div style={{ overflowX: 'auto', scrollbarWidth: 'none', marginBottom: '1.25rem' }}>
+            <style>{`.rdr-sources::-webkit-scrollbar { display: none; }`}</style>
+            <div className="rdr-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 'max-content' }}>
+              {story.storySources.filter(s => s.outlet).map((s, i) => (
+                <span
+                  key={i}
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap' }}
+                >
+                  {s.outlet}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Play button + view toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
-          <div className="ai-btn-wrap">
-            <button className="ai-btn-inner" onClick={() => onPlayFrom(storyIndex)}>
-              <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
-              {isNarrating ? 'Playing…' : 'Play Story'}
-            </button>
-          </div>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}`, flexShrink: 0 }}>
+        {/* View toggle (player size) + Play button on the right */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.75rem' }}>
+          {/* Takeaways | Summary toggle — same size as FullPlayer */}
+          <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}` }}>
             {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
               <button key={val} onClick={() => setView(val)}
-                style={{ padding: '0.38rem 1rem', borderRadius: '999px', border: 'none', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted }}>
+                style={{ padding: '0.3rem 0.8rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted, whiteSpace: 'nowrap' }}>
                 {label}
               </button>
             ))}
           </div>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Play — filled, feeds size */}
+          <button
+            onClick={() => onPlayFrom(storyIndex)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: 'none', flexShrink: 0 }}
+          >
+            <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
+            {isNarrating ? 'Playing…' : 'Play'}
+          </button>
         </div>
 
         {/* Key Takeaways */}

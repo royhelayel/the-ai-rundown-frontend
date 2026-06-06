@@ -208,28 +208,22 @@ export default function StoryReader({
           {story.headline}
         </h1>
 
-        {/* Sources */}
+        {/* Sources — same pill style as StoryCard, no favicons */}
         {story.storySources?.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            {story.storySources.slice(0, 3).filter(s => s.outlet).map((s, i, arr) => {
-              const icon = faviconUrl(s.url);
-              return (
-                <React.Fragment key={i}>
-                  <a
-                    href={s.url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.15rem 0.55rem', background: light.bgSub, border: `1px solid ${light.border}`, borderRadius: '999px', textDecoration: 'none', transition: 'border-color 0.12s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = `${color}55`}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = light.border}
-                  >
-                    {icon && <img src={icon} alt="" width={13} height={13} style={{ borderRadius: '2px', opacity: 0.75 }} />}
-                    <span style={{ fontSize: '0.78rem', fontWeight: '500', color: light.textMuted }}>{s.outlet}</span>
-                  </a>
-                  {i < arr.length - 1 && <span style={{ fontSize: '0.78rem', color: light.textMuted, opacity: 0.4 }}>·</span>}
-                </React.Fragment>
-              );
-            })}
-            <span style={{ fontSize: '0.78rem', color: light.textMuted, opacity: 0.4 }}>·</span>
-            <span style={{ fontSize: '0.78rem', color: light.textMuted }}>{readTime(story)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            {story.storySources.filter(s => s.outlet).slice(0, 2).map((s, i) => (
+              <span
+                key={i}
+                style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280' }}
+              >
+                {s.outlet}
+              </span>
+            ))}
+            {story.storySources.filter(s => s.outlet).length > 2 && (
+              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af' }}>
+                +{story.storySources.filter(s => s.outlet).length - 2}
+              </span>
+            )}
           </div>
         )}
 

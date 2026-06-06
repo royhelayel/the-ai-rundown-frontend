@@ -17,6 +17,7 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
+import { readTime } from '../utils';
 
 
 export default function StoryCard({
@@ -85,11 +86,9 @@ export default function StoryCard({
           </p>
         )}
 
-        {/* Sources + actions row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-
-          {/* Source pills */}
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap', gap: '4px' }}>
+        {/* Sources row */}
+        {(topSources.length > 0 || listenCount > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
             {topSources.map((s, i) => (
               <span
                 key={i}
@@ -103,26 +102,35 @@ export default function StoryCard({
               <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
             )}
             {listenCount > 0 && (
-              <span style={{ fontSize: '0.72rem', color: '#9ca3af', marginLeft: '2px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
                 · {listenCount.toLocaleString()} {listenCount === 1 ? 'listen' : 'listens'}
               </span>
             )}
           </div>
+        )}
 
-          {/* Read button */}
+        {/* Duration + actions row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+          {/* Duration */}
+          <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>
+            {readTime(story)}
+          </span>
+
+          {/* Read — outlined */}
           <button
             onClick={e => { e.stopPropagation(); onRead?.(); }}
-            style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none', flexShrink: 0 }}
+            style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1.5px solid ${color}`, flexShrink: 0 }}
           >
             Read
           </button>
 
-          {/* Play button */}
+          {/* Play — filled */}
           <button
             onClick={e => { e.stopPropagation(); onPlay?.(); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1px solid ${color}50`, flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: 'none', flexShrink: 0 }}
           >
-            <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
+            <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
             Play
           </button>
         </div>

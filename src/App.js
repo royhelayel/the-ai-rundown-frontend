@@ -161,6 +161,11 @@ const TheAIRundown = () => {
   const [miniPlayerDock, setMiniPlayerDock] = useState('bottom'); // 'bottom' | 'top'
   const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
   const playerSourcePath = useRef('/');
+
+  // ── Story Reader sheet animation ──────────────────────────────────────────
+  const [readerMounted, setReaderMounted] = useState(false);
+  const [readerDragY, setReaderDragY] = useState(0);
+  const readerDragRef = useRef(null);
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
   const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
@@ -779,6 +784,29 @@ const TheAIRundown = () => {
     } else {
       narrateFnRef.current.narrateDigest(getNarrationContent());
     }
+  };
+
+  // ── Story reader sheet: mount animation ─────────────────────────────────
+  const isStoryViewForEffect = !!location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
+  useEffect(() => {
+    if (isStoryViewForEffect) requestAnimationFrame(() => setReaderMounted(true));
+    else setReaderMounted(false);
+  }, [isStoryViewForEffect]);
+
+  const onReaderTouchStart = (e) => {
+    readerDragRef.current = { startY: e.touches[0].clientY, dragging: true };
+    setReaderDragY(0);
+  };
+  const onReaderTouchMove = (e) => {
+    if (!readerDragRef.current?.dragging) return;
+    const dy = e.touches[0].clientY - readerDragRef.current.startY;
+    if (dy > 0) setReaderDragY(dy);
+  };
+  const onReaderTouchEnd = (goBackFn) => {
+    if (!readerDragRef.current?.dragging) return;
+    readerDragRef.current.dragging = false;
+    if (readerDragY > 80) goBackFn();
+    setReaderDragY(0);
   };
 
   // ── Heartbeat — "on the website right now" counter ───────────────────────
@@ -1853,6 +1881,13 @@ const TheAIRundown = () => {
   const isCategoryView  = !!catOnlyMatch;
   const isStoryView     = !!storyRouteMatch;
 
+  // When the reader sheet is open, which feed sits behind it?
+  const storyFrom       = isStoryView ? (location.state?.from || '/') : null;
+  const showHomeBg      = isStoryView && (!storyFrom || storyFrom === '/');
+  const showMyFeedBg    = isStoryView && storyFrom === '/my-feed';
+  const showPopularBg   = isStoryView && storyFrom === '/popular';
+  const showImportantBg = isStoryView && storyFrom === '/important';
+
   // Which feed did the user navigate from? Used to keep the correct SideNav feed highlighted
   // while on /category/... or /category/.../story/... pages.
   const activeFeedId = (() => {
@@ -2030,7 +2065,7 @@ const TheAIRundown = () => {
       {/* ── Main Content (URL-routed) ── */}
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div className="main-content-offset">
-      {isLatestHome && (
+      {(isLatestHome || showHomeBg) && (
         <BriefingFeed
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -2062,7 +2097,7 @@ const TheAIRundown = () => {
         />
       )}
 
-      {isMyFeedPath && (
+      {(isMyFeedPath || showMyFeedBg) && (
         <MyFeedTab
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -2119,7 +2154,7 @@ const TheAIRundown = () => {
         />
       )}
 
-      {isPopularPath && (
+      {(isPopularPath || showPopularBg) && (
         <PopularTab
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -2135,7 +2170,7 @@ const TheAIRundown = () => {
         />
       )}
 
-      {isImportantPath && (
+      {(isImportantPath || showImportantBg) && (
         <ImportantTab
           savedStories={savedStories}
           briefingData={briefingData}
@@ -2179,32 +2214,7 @@ const TheAIRundown = () => {
         />
       )}
 
-      {isStoryView && (
-        <StoryReader
-          category={catFromUrl}
-          story={viewStories[storyIdxFromUrl] || null}
-          storyIndex={storyIdxFromUrl}
-          stories={viewStories}
-          onPlayFrom={onPlayFrom}
-          isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
-          isPaused={isPaused}
-          miniPlayerVisible={miniPlayerVisible && miniPlayerDock === 'bottom'}
-          user={user}
-          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          onMarkRead={handleMarkRead}
-          savedStories={savedStories}
-          onToggleSaved={handleToggleSaved}
-          contextCategories={(() => {
-            const from = location.state?.from;
-            if (typeof from === 'string' && from.startsWith('/feed/')) {
-              const feedId = from.replace('/feed/', '');
-              return userFeeds.find(f => f.id === feedId)?.categories || allCategories;
-            }
-            if (from === '/my-feed') return feedCategories;
-            return allCategories;
-          })()}
-        />
-      )}
+      {/* StoryReader rendered as bottom sheet — see overlay below */}
 
       {/* ── Settings ── */}
       {isSettingsPath && (
@@ -2472,6 +2482,77 @@ const TheAIRundown = () => {
           <BottomNav />
         </div>
       )}
+
+      {/* ── Story Reader — bottom-up sheet (like FullPlayer) ── */}
+      {isStoryView && (() => {
+        const readerGoBack = () => {
+          const from = location.state?.from;
+          if (!from || from === 'home' || from === '/') navigate('/');
+          else if (from === '/my-feed') navigate('/my-feed');
+          else if (from === '/popular') navigate('/popular');
+          else if (from === '/important') navigate('/important');
+          else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
+          else navigate('/');
+        };
+        const readerTranslateY = readerMounted ? (readerDragY || 0) + 'px' : '100%';
+        const contextCats = (() => {
+          const from = location.state?.from;
+          if (typeof from === 'string' && from.startsWith('/feed/')) {
+            const feedId = from.replace('/feed/', '');
+            return userFeeds.find(f => f.id === feedId)?.categories || allCategories;
+          }
+          if (from === '/my-feed') return feedCategories;
+          return allCategories;
+        })();
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 150, pointerEvents: 'auto' }}>
+            {/* Backdrop */}
+            <div
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+              onClick={readerGoBack}
+            />
+            {/* Sheet */}
+            <div
+              style={{
+                position: 'absolute', left: '50%', bottom: 0,
+                width: '100%', maxWidth: '560px', height: '100dvh',
+                background: '#ffffff', borderRadius: '20px 20px 0 0',
+                transform: `translateX(-50%) translateY(${readerTranslateY})`,
+                transition: readerDragY === 0 ? 'transform 0.38s cubic-bezier(0.32,0.72,0,1)' : 'none',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                willChange: 'transform',
+              }}
+              onTouchStart={onReaderTouchStart}
+              onTouchMove={onReaderTouchMove}
+              onTouchEnd={() => onReaderTouchEnd(readerGoBack)}
+            >
+              {/* Drag handle */}
+              <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0, cursor: 'grab' }}>
+                <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(0,0,0,0.15)' }} />
+              </div>
+              {/* Reader content */}
+              <StoryReader
+                category={catFromUrl}
+                story={viewStories[storyIdxFromUrl] || null}
+                storyIndex={storyIdxFromUrl}
+                stories={viewStories}
+                onPlayFrom={onPlayFrom}
+                isNarrating={isNarrating && storyIndex === storyIdxFromUrl}
+                isPaused={isPaused}
+                miniPlayerVisible={miniPlayerVisible && miniPlayerDock === 'bottom'}
+                user={user}
+                onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+                onMarkRead={handleMarkRead}
+                savedStories={savedStories}
+                onToggleSaved={handleToggleSaved}
+                contextCategories={contextCats}
+                inSheet
+                onClose={readerGoBack}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Category transition overlay ── */}
       <CategoryTransition

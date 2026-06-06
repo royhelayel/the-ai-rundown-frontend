@@ -64,6 +64,8 @@ export default function StoryReader({
   onMarkRead,
   savedStories = [],
   onToggleSaved,
+  inSheet = false,
+  onClose,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,14 +118,10 @@ export default function StoryReader({
   const isSaved = savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
 
   return (
-    <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: light.bg }}>
       <style>{`
         * { box-sizing: border-box; }
-        body { background: ${light.bg}; margin: 0; }
         ::-webkit-scrollbar { display: none; }
-        @media (max-width: 1023px) {
-          .story-nav-bar { bottom: 56px !important; }
-        }
         .rdr-cat-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
@@ -133,11 +131,12 @@ export default function StoryReader({
         background: `${light.bg}f0`,
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${light.border}`,
-        padding: '0.75rem 1.25rem',
+        padding: '0.6rem 1.25rem',
+        flexShrink: 0,
       }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button
-            onClick={goBack}
+            onClick={onClose || goBack}
             style={{ width: '28px', height: '28px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
@@ -292,11 +291,11 @@ export default function StoryReader({
       </article>
 
       {/* ── Navigation footer: << < [Cat · X/N] > >> ── */}
-      <div className="story-nav-bar" style={{
+      <div style={{
         position: 'sticky', bottom: miniPlayerVisible ? '5rem' : '0',
         background: light.bg, borderTop: `1px solid ${light.border}`,
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',
-        maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%',
+        width: '100%', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem 0.25rem' }}>
           {/* << back category */}

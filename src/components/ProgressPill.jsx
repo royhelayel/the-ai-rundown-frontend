@@ -147,6 +147,75 @@ function ChallengeRing({
   );
 }
 
+// ── Confetti burst ────────────────────────────────────────────────────────────
+
+const CONFETTI_COLORS = [
+  '#f59e0b', '#fbbf24', '#fde68a',   // golds
+  '#cd7f32', '#f97316',               // bronzes
+  '#e2e8f0', '#94a3b8', '#ffffff',    // silvers / white
+  '#a78bfa', '#34d399',               // accent pops
+];
+
+const SHAPES = ['●', '■', '▲', '✦', '★'];
+
+function Confetti({ onDone }) {
+  // Generate particles once on mount
+  const particles = React.useMemo(() => {
+    return Array.from({ length: 38 }, (_, i) => {
+      const angle  = (Math.random() * 360);                        // deg
+      const dist   = 28 + Math.random() * 44;                      // vw
+      const tx     = Math.cos((angle * Math.PI) / 180) * dist;
+      const ty     = -(18 + Math.random() * 52);                   // always upward-ish
+      const size   = 5 + Math.random() * 7;
+      const delay  = Math.random() * 0.18;
+      const dur    = 0.55 + Math.random() * 0.35;
+      const color  = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      const shape  = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+      const rot    = -180 + Math.random() * 360;
+      return { i, tx, ty, size, delay, dur, color, shape, rot };
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const t = setTimeout(onDone, 1200);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const keyframes = particles.map(p => `
+    @keyframes cf-${p.i} {
+      0%   { transform: translate(0,0) rotate(0deg) scale(1);   opacity: 1; }
+      70%  { opacity: 0.9; }
+      100% { transform: translate(${p.tx}vw, ${p.ty}vh) rotate(${p.rot}deg) scale(0.4); opacity: 0; }
+    }
+  `).join('');
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 550,
+      pointerEvents: 'none', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <style>{keyframes}</style>
+      {particles.map(p => (
+        <span
+          key={p.i}
+          style={{
+            position: 'absolute',
+            left: '50%', top: '55%',
+            fontSize: `${p.size}px`,
+            color: p.color,
+            lineHeight: 1,
+            animation: `cf-${p.i} ${p.dur}s ${p.delay}s cubic-bezier(0.22,1,0.36,1) forwards`,
+            willChange: 'transform, opacity',
+          }}
+        >
+          {p.shape}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // ── Award toast ───────────────────────────────────────────────────────────────
 
 function AwardToast({ award, onDone }) {
@@ -230,6 +299,7 @@ function WeekRow({ weekGrid }) {
 export default function ProgressPill({ challengeStats, style = {} }) {
   const [open, setOpen] = useState(false);
   const [toastAward, setToastAward] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const prevAwardId = useRef(null);
 
   const {
@@ -255,6 +325,7 @@ export default function ProgressPill({ challengeStats, style = {} }) {
       try { localStorage.setItem(LS_KEY, topAward.id); } catch {}
       if (prevAwardId.current !== topAward.id) {
         setToastAward(topAward);
+        setShowConfetti(true);
       }
     }
     prevAwardId.current = topAward?.id ?? null;
@@ -363,6 +434,9 @@ export default function ProgressPill({ challengeStats, style = {} }) {
           </div>
         )}
       </button>
+
+      {/* ── Confetti burst ────────────────────────────────────────────────── */}
+      {showConfetti && <Confetti onDone={() => setShowConfetti(false)} />}
 
       {/* ── Award toast ───────────────────────────────────────────────────── */}
       {toastAward && (

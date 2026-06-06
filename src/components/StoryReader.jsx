@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, User, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
+import { Play, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { readTime } from '../utils';
 import CategoryIcon from './CategoryIcon';
@@ -162,17 +162,13 @@ export default function StoryReader({
             style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub, border: `1px solid ${isSaved ? 'rgba(124,58,237,0.3)' : light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isSaved ? '#7c3aed' : light.textMuted, flexShrink: 0 }}>
             {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
           </button>
-          <button
-            onClick={() => navigate('/settings')}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: light.textMuted, flexShrink: 0 }}>
-            <User size={16} />
-          </button>
         </div>
       </header>
 
-      {/* ── Category strip ── */}
+      {/* ── Category strip — sticky below header ── */}
       {contextCategories.length > 0 && (
         <div className="rdr-cat-strip" style={{
+          position: 'sticky', top: 51, zIndex: 40,
           overflowX: 'auto', scrollbarWidth: 'none',
           borderBottom: `1px solid ${light.border}`,
           background: 'rgba(245,245,247,0.96)',

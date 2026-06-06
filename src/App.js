@@ -90,6 +90,8 @@ const TheAIRundown = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'stories');
   const [depthLevel, setDepthLevel] = useState(() => { const saved = localStorage.getItem('rundown_depth_level'); return (saved === 'summary' || !saved) ? 'deep' : saved; });
+  const depthLevelRef = useRef(depthLevel);
+  useEffect(() => { depthLevelRef.current = depthLevel; }, [depthLevel]);
   const handleSetDepth = (level) => {
     if (narrationStateRef.current.active) narrateFnRef.current.stop();
     setDepthLevel(level);
@@ -548,8 +550,8 @@ const TheAIRundown = () => {
       if (!isTransition && audio.duration > 0) {
         const pct = (audio.currentTime / audio.duration) * 100;
         if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
-        // Track 50% listen for Popular rankings
-        if (!halfwayFired && pct >= 50) {
+        // Track 50% listen for Popular rankings (skip headlines — too short to be meaningful)
+        if (!halfwayFired && pct >= 50 && depthLevelRef.current !== 'headlines') {
           halfwayFired = true;
           const key = headlineKey(currentNarratingStoryRef.current.headline);
           if (key) {

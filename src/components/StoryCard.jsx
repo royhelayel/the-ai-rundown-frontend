@@ -31,9 +31,7 @@ export default function StoryCard({
 }) {
   const color = CATEGORY_COLORS[category] || '#6366f1';
   const short = CATEGORY_SHORT[category]  || category;
-  const sources    = (story.storySources || []).filter(s => s.outlet);
-  const topSources = sources.slice(0, 2);
-  const moreCount  = sources.length - topSources.length;
+  const sources = (story.storySources || []).filter(s => s.outlet);
 
   const excerpt = story.allBullets?.[0]
     || story.tightBullets?.[0]
@@ -86,31 +84,37 @@ export default function StoryCard({
           </p>
         )}
 
-        {/* Sources row */}
-        {(topSources.length > 0 || listenCount > 0) && (
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
-            {topSources.map((s, i) => (
-              <span
-                key={i}
-                onClick={e => e.stopPropagation()}
-                style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280' }}
-              >
-                {s.outlet}
-              </span>
-            ))}
-            {moreCount > 0 && (
-              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
-            )}
-            {listenCount > 0 && (
-              <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                · {listenCount.toLocaleString()} {listenCount === 1 ? 'listen' : 'listens'}
-              </span>
-            )}
+        {/* Sources row — horizontally scrollable, all sources shown */}
+        {(sources.length > 0 || listenCount > 0) && (
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              overflowX: 'auto', scrollbarWidth: 'none',
+              marginBottom: '14px',
+            }}
+          >
+            <style>{`.sc-sources::-webkit-scrollbar { display: none; }`}</style>
+            <div className="sc-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1, minWidth: 0 }}>
+              {sources.map((s, i) => (
+                <span
+                  key={i}
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                  {s.outlet}
+                </span>
+              ))}
+              {listenCount > 0 && (
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  · {listenCount.toLocaleString()} {listenCount === 1 ? 'listen' : 'listens'}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
         {/* Duration + actions row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
 
           {/* Duration */}
           <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>

@@ -31,7 +31,7 @@ export default function BriefingFeed({
         onSelectDay={onSelectDay}
       />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} />
       </div>
 
@@ -54,6 +54,7 @@ export default function BriefingFeed({
           loading={briefingLoading}
           fromPath="/"
           showCategoryImages
+          sectionTitle="All News"
         />
       </div>
     </div>

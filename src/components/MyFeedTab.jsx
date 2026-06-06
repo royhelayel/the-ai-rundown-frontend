@@ -85,7 +85,7 @@ export default function MyFeedTab({
         onSelectDay={onSelectDay}
       />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} />
       </div>
 
@@ -108,6 +108,7 @@ export default function MyFeedTab({
           loading={briefingLoading}
           fromPath="/my-feed"
           showCategoryImages
+          sectionTitle="My Feed"
         />
       </div>
     </div>

@@ -93,6 +93,7 @@ export default function StoryList({
   loading = false,
   fromPath = '/',
   showCategoryImages = false,
+  sectionTitle = '',
 }) {
   const [catFilter, setCatFilter] = useState(null);
   const navigate = useNavigate();
@@ -115,8 +116,21 @@ export default function StoryList({
     <div>
       <style>{`.sl-cat-pills::-webkit-scrollbar { display: none; }`}</style>
 
+      {/* Section title */}
+      {sectionTitle && (
+        <div style={{ padding: '20px 20px 16px' }}>
+          <h2 style={{
+            margin: 0,
+            fontSize: '1.55rem', fontWeight: '900',
+            color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1,
+          }}>
+            {sectionTitle}
+          </h2>
+        </div>
+      )}
+
       {/* Category pills — Reader style */}
-      <div className="sl-cat-pills" style={{ display: 'flex', gap: '5px', padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div className="sl-cat-pills" style={{ display: 'flex', gap: '5px', padding: '0 16px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
         <button
           onClick={() => setCatFilter(null)}
           style={{
@@ -163,8 +177,8 @@ export default function StoryList({
       <div style={{
         display: loading ? 'none' : 'flex',
         flexDirection: 'column',
-        gap: showCategoryImages ? '20px' : '8px',
-        padding: showCategoryImages ? '0 16px' : '0 16px',
+        gap: showCategoryImages ? '24px' : '8px',
+        padding: showCategoryImages ? '8px 16px 0' : '0 16px',
         paddingBottom: playerVisible ? '9rem' : '5rem',
       }}>
         {visibleCats.length === 0 && (

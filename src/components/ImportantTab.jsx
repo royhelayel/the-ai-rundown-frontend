@@ -40,8 +40,14 @@ export default function ImportantTab({
 
       <FeedHeader user={user} onShowAuth={onShowAuth} />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} />
+      </div>
+
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '20px 20px 16px' }}>
+        <h2 style={{ margin: 0, fontSize: '1.55rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1 }}>
+          Important
+        </h2>
       </div>
 
       {/* List */}

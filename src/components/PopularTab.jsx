@@ -57,11 +57,17 @@ export default function PopularTab({
 
       <FeedHeader user={user} onShowAuth={onShowAuth} />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} />
       </div>
 
-      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0.5rem 1.25rem 1.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '20px 20px 16px' }}>
+        <h2 style={{ margin: 0, fontSize: '1.55rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1 }}>
+          Popular
+        </h2>
+      </div>
+
+      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 1.25rem 1.5rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
         {/* Empty-state banner: no listens yet */}
         {hasAnyData && !hasAnyListens && (

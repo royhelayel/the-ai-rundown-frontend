@@ -5,15 +5,8 @@
  * The date button opens a day-picker popover when availableDays is provided.
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { User, ChevronDown } from 'lucide-react';
-
-const TABS = [
-  { label: 'My Feed',   path: '/my-feed'   },
-  { label: 'All News',  path: '/'          },
-  { label: 'Popular',   path: '/popular'   },
-  { label: 'Important', path: '/important' },
-];
 
 function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
@@ -35,12 +28,7 @@ export default function FeedHeader({
   availableDays = [],
   onSelectDay,
 }) {
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const activePath = location.pathname === '/' ? '/' : location.pathname;
-  const activeTab  = TABS.find(t =>
-    t.path === '/' ? activePath === '/' : activePath.startsWith(t.path)
-  );
+  const navigate = useNavigate();
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
 
@@ -79,16 +67,6 @@ export default function FeedHeader({
         <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em', flexShrink: 0 }}>
           The Rundown
         </span>
-
-        {/* Separator + active feed label */}
-        {activeTab && (
-          <>
-            <span style={{ color: 'rgba(0,0,0,0.2)', fontSize: '1rem', fontWeight: '300', flexShrink: 0 }}>›</span>
-            <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#6b7280', flexShrink: 0 }}>
-              {activeTab.label}
-            </span>
-          </>
-        )}
 
         {/* Date button + picker — always shown */}
         <div style={{ position: 'relative' }} ref={pickerRef}>

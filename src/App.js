@@ -1948,16 +1948,29 @@ const TheAIRundown = () => {
         .right-pane-wrap { display: none; }
         .bottom-nav-wrap { display: block; }
         .main-content-offset { margin-left: 0; }
-        /* ── Animated gradient Play button (shared) ── */
+        /* ── Animated gradient buttons ── */
         @keyframes border-flow {
           0%,100% { background-position: 0% 50%; }
           50%      { background-position: 100% 50%; }
         }
-        .ai-btn-wrap {
+        /* Read — cool blues / purples / cyans */
+        .ai-btn-wrap-read {
           position: relative; border-radius: 14px; padding: 3px; display: inline-block;
-          background: linear-gradient(90deg,#6366f1,#0891b2,#16a34a,#d97706,#e11d48,#9333ea,#db2777,#2563eb,#6366f1);
+          background: linear-gradient(90deg,#6366f1,#3b82f6,#0891b2,#06b6d4,#8b5cf6,#6366f1,#0ea5e9,#6366f1);
           background-size: 300% 100%;
           animation: border-flow 6s ease-in-out infinite;
+        }
+        /* Play — warm ambers / oranges / reds / pinks */
+        .ai-btn-wrap-play {
+          position: relative; border-radius: 14px; padding: 3px; display: inline-block;
+          background: linear-gradient(90deg,#f59e0b,#f97316,#ef4444,#e11d48,#ec4899,#d97706,#f59e0b,#f97316);
+          background-size: 300% 100%;
+          animation: border-flow 6s ease-in-out infinite;
+        }
+        /* keep old name as alias for play (backward compat) */
+        .ai-btn-wrap { position: relative; border-radius: 14px; padding: 3px; display: inline-block;
+          background: linear-gradient(90deg,#f59e0b,#f97316,#ef4444,#e11d48,#ec4899,#d97706,#f59e0b,#f97316);
+          background-size: 300% 100%; animation: border-flow 6s ease-in-out infinite;
         }
         .ai-btn-inner {
           width: auto; padding: 0.6rem 1.4rem; border-radius: 11px;
@@ -1978,7 +1991,7 @@ const TheAIRundown = () => {
         /* ── Hero row responsive layout ── */
         .hero-row { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem; }
         .hero-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: nowrap; justify-content: space-between; }
-        .hero-play-row .ai-btn-wrap { display: block; width: 100%; }
+        .hero-play-row .ai-btn-wrap, .hero-play-row .ai-btn-wrap-play, .hero-play-row .ai-btn-wrap-read { display: block; width: 100%; }
         .hero-play-row .ai-btn-inner { width: 100%; justify-content: center; border-radius: 14px; }
         @media (min-width: 1024px) {
           :root { --body-max: 780px; }

@@ -247,7 +247,7 @@ export default function StoryReader({
           <div style={{ flex: 1 }} />
 
           {/* Play — animated border */}
-          <div className="ai-btn-wrap" style={{ flexShrink: 0 }}>
+          <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
             <button
               className="ai-btn-inner"
               style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem' }}

@@ -76,7 +76,7 @@ export default function FeedPage({
             />
           </div>
           <div className="hero-play-row">
-            <div className="ai-btn-wrap">
+            <div className="ai-btn-wrap-play">
               <button className="ai-btn-inner" onClick={() => onPlayFeed(feed.categories)}>
                 <Play size={14} fill="white" style={{ marginLeft: '1px', flexShrink: 0 }} />
                 {isNarrating ? 'Now Playing…' : `Play ${feed.name}`}

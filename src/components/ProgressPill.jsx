@@ -1,5 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+
+// ── Award definitions ─────────────────────────────────────────────────────────
+// Ordered lowest → highest rank. Social profiles will use these colours.
+export const AWARDS = [
+  {
+    id:       'informed',
+    title:    'Informed',
+    subtitle: "Today's challenge achieved",
+    color:    '#cd7f32',                                        // Bronze
+    glow:     'rgba(205,127,50,0.35)',
+    check:    (s) => s.todayCount >= s.dailyGoal,
+  },
+  {
+    id:       'sharp',
+    title:    'Sharp',
+    subtitle: '3-day streak achieved',
+    color:    '#94a3b8',                                        // Silver
+    glow:     'rgba(148,163,184,0.35)',
+    check:    (s) => s.streakDays >= 3,
+  },
+  {
+    id:       'savvy',
+    title:    'Savvy',
+    subtitle: 'Weekly challenge achieved',
+    color:    '#f59e0b',                                        // Gold
+    glow:     'rgba(245,158,11,0.40)',
+    check:    (s) => s.weeklyDays >= (s.weeklyGoal || 6),
+  },
+];
+
+/** Returns the highest earned AWARD, or null. */
+function getHighestAward(s) {
+  for (let i = AWARDS.length - 1; i >= 0; i--) {
+    if (AWARDS[i].check(s)) return AWARDS[i];
+  }
+  return null;
+}
+
+const LS_KEY = 'rundown_shown_award';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -32,10 +71,16 @@ function StarIcon({ size = 15, color = 'rgba(255,255,255,0.7)' }) {
   );
 }
 
+function AwardIcon({ awardId, size, color }) {
+  if (awardId === 'informed') return <LightbulbIcon size={size} color={color} />;
+  if (awardId === 'sharp')    return <LightningIcon size={size} color={color} />;
+  return <StarIcon size={size} color={color} />;
+}
+
 // ── Single ring component ─────────────────────────────────────────────────────
 
 function ChallengeRing({
-  size = 96, strokeW = 7,
+  size = 84, strokeW = 6,
   pct = 0,
   gradId, color0, color1, trackColor,
   label, count, total, unit, toGo,
@@ -81,13 +126,9 @@ function ChallengeRing({
             {label}
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, gap: 1 }}>
-            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>
-              {count}
-            </span>
+            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>{count}</span>
             <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>/</span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
-              {total}
-            </span>
+            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>{total}</span>
           </div>
           <span style={{ fontSize: '0.55rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
             {unit}
@@ -106,7 +147,56 @@ function ChallengeRing({
   );
 }
 
-// ── Sheet content (unchanged detail view) ─────────────────────────────────────
+// ── Award toast ───────────────────────────────────────────────────────────────
+
+function AwardToast({ award, onDone }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const tIn  = setTimeout(() => setVisible(true),  50);
+    const tOut = setTimeout(() => { setVisible(false); }, 3800);
+    const tDone = setTimeout(onDone, 4300);
+    return () => { clearTimeout(tIn); clearTimeout(tOut); clearTimeout(tDone); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '6rem', left: '50%',
+      transform: `translateX(-50%) translateY(${visible ? '0' : '20px'})`,
+      opacity: visible ? 1 : 0,
+      transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease',
+      zIndex: 500, pointerEvents: 'none',
+      maxWidth: '340px', width: 'calc(100% - 32px)',
+    }}>
+      <div style={{
+        background: 'linear-gradient(145deg, #0f0f1e, #181830)',
+        borderRadius: '16px',
+        border: `1.5px solid ${award.color}55`,
+        boxShadow: `0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px ${award.color}22, 0 4px 20px ${award.glow}`,
+        padding: '14px 18px',
+        display: 'flex', flexDirection: 'column', gap: '4px',
+      }}>
+        {/* Line 1: Congrats! you are now ranked */}
+        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>
+          Congrats! you are now ranked
+        </span>
+        {/* Line 2: Icon + Title (in award colour) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <AwardIcon awardId={award.id} size={16} color={award.color} />
+          <span style={{ fontSize: '1.1rem', fontWeight: '900', color: award.color, letterSpacing: '-0.02em' }}>
+            {award.title}
+          </span>
+        </div>
+        {/* Line 3: subtitle */}
+        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>
+          {award.subtitle}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── WeekRow (detail sheet) ────────────────────────────────────────────────────
 
 function WeekRow({ weekGrid }) {
   return (
@@ -139,6 +229,8 @@ function WeekRow({ weekGrid }) {
 
 export default function ProgressPill({ challengeStats, style = {} }) {
   const [open, setOpen] = useState(false);
+  const [toastAward, setToastAward] = useState(null);
+  const prevAwardId = useRef(null);
 
   const {
     todayCount = 0,
@@ -149,6 +241,25 @@ export default function ProgressPill({ challengeStats, style = {} }) {
     weekGrid   = [],
   } = challengeStats || {};
 
+  const stats = { todayCount, dailyGoal, streakDays, weeklyDays, weeklyGoal };
+  const topAward = getHighestAward(stats);
+
+  // Detect when a new (higher) award is earned and fire the toast once per session
+  useEffect(() => {
+    if (!topAward) return;
+    const stored = (() => { try { return localStorage.getItem(LS_KEY); } catch { return null; } })();
+    const storedIdx = AWARDS.findIndex(a => a.id === stored);
+    const curIdx    = AWARDS.findIndex(a => a.id === topAward.id);
+    if (curIdx > storedIdx) {
+      // New higher rank earned — show toast and persist
+      try { localStorage.setItem(LS_KEY, topAward.id); } catch {}
+      if (prevAwardId.current !== topAward.id) {
+        setToastAward(topAward);
+      }
+    }
+    prevAwardId.current = topAward?.id ?? null;
+  }, [topAward?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const todayPct  = todayCount / Math.max(1, dailyGoal);
   const streakPct = Math.min(streakDays, 3) / 3;
   const weekPct   = weeklyDays / 7;
@@ -157,9 +268,16 @@ export default function ProgressPill({ challengeStats, style = {} }) {
   const streakLeft = Math.max(0, 3 - Math.min(3, streakDays));
   const weekLeft   = Math.max(0, 7 - weeklyDays);
 
-  const iconColor = 'rgba(255,255,255,0.72)';
+  // Award-coloured icon when the ring's challenge is complete
+  const todayDone  = todayCount >= dailyGoal;
+  const streakDone = streakDays >= 3;
+  const weekDone   = weeklyDays >= weeklyGoal;
 
-  // detail sheet daily
+  const todayIconColor  = todayDone  ? AWARDS[0].color : 'rgba(255,255,255,0.72)';
+  const streakIconColor = streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.72)';
+  const weekIconColor   = weekDone   ? AWARDS[2].color : 'rgba(255,255,255,0.72)';
+
+  // detail sheet
   const pct  = todayPct;
   const done = todayCount >= dailyGoal;
   const overGoal = todayCount > dailyGoal ? todayCount - dailyGoal : 0;
@@ -170,55 +288,86 @@ export default function ProgressPill({ challengeStats, style = {} }) {
       <button
         onClick={() => setOpen(true)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 0,
           margin: '0 16px 12px',
           width: 'calc(100% - 32px)',
           background: 'linear-gradient(145deg, #0f0f1e, #181830)',
-          border: 'none',
+          border: topAward ? `1px solid ${topAward.color}30` : 'none',
           borderRadius: 20,
           padding: '14px 10px 10px',
           cursor: 'pointer',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+          boxShadow: topAward
+            ? `0 4px 24px rgba(0,0,0,0.18), 0 0 0 1px ${topAward.color}15`
+            : '0 4px 24px rgba(0,0,0,0.18)',
           ...style,
         }}
       >
-        <ChallengeRing
-          size={84} strokeW={6}
-          pct={todayPct}
-          gradId="cr-today" color0="#7c3aed" color1="#3b82f6"
-          trackColor="rgba(124,58,237,0.13)"
-          label="Today"
-          count={todayCount} total={dailyGoal} unit="stories"
-          toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
-          icon={<LightbulbIcon size={13} color={iconColor} />}
-        />
+        {/* Rings row */}
+        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <ChallengeRing
+            size={84} strokeW={6}
+            pct={todayPct}
+            gradId="cr-today" color0="#7c3aed" color1="#3b82f6"
+            trackColor="rgba(124,58,237,0.13)"
+            label="Today"
+            count={todayCount} total={dailyGoal} unit="stories"
+            toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
+            icon={<LightbulbIcon size={13} color={todayIconColor} />}
+          />
 
-        <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
-        <ChallengeRing
-          size={84} strokeW={6}
-          pct={streakPct}
-          gradId="cr-streak" color0="#3b82f6" color1="#06b6d4"
-          trackColor="rgba(59,130,246,0.13)"
-          label="Streak"
-          count={streakDays} total={3} unit="days"
-          toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
-          icon={<LightningIcon size={11} color={iconColor} />}
-        />
+          <ChallengeRing
+            size={84} strokeW={6}
+            pct={streakPct}
+            gradId="cr-streak" color0="#3b82f6" color1="#06b6d4"
+            trackColor="rgba(59,130,246,0.13)"
+            label="Streak"
+            count={streakDays} total={3} unit="days"
+            toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
+            icon={<LightningIcon size={11} color={streakIconColor} />}
+          />
 
-        <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
-        <ChallengeRing
-          size={84} strokeW={6}
-          pct={weekPct}
-          gradId="cr-week" color0="#6366f1" color1="#8b5cf6"
-          trackColor="rgba(99,102,241,0.13)"
-          label="Week"
-          count={weeklyDays} total={7} unit="days"
-          toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
-          icon={<StarIcon size={12} color={iconColor} />}
-        />
+          <ChallengeRing
+            size={84} strokeW={6}
+            pct={weekPct}
+            gradId="cr-week" color0="#6366f1" color1="#8b5cf6"
+            trackColor="rgba(99,102,241,0.13)"
+            label="Week"
+            count={weeklyDays} total={7} unit="days"
+            toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
+            icon={<StarIcon size={12} color={weekIconColor} />}
+          />
+        </div>
+
+        {/* ── Persistent award badge ── */}
+        {topAward && (
+          <div style={{
+            marginTop: '10px',
+            paddingTop: '10px',
+            borderTop: `1px solid ${topAward.color}22`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          }}>
+            <AwardIcon awardId={topAward.id} size={13} color={topAward.color} />
+            <span style={{
+              fontSize: '0.7rem', fontWeight: '800',
+              color: topAward.color, letterSpacing: '0.02em',
+            }}>
+              {topAward.title}
+            </span>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>
+              · {topAward.subtitle}
+            </span>
+          </div>
+        )}
       </button>
+
+      {/* ── Award toast ───────────────────────────────────────────────────── */}
+      {toastAward && (
+        <AwardToast award={toastAward} onDone={() => setToastAward(null)} />
+      )}
 
       {/* ── Detail bottom sheet ───────────────────────────────────────────── */}
       {open && (

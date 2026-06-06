@@ -86,6 +86,7 @@ const TheAIRundown = () => {
   const dayScrollRef = useRef(null);
   const timeScrollRef = useRef(null);
   const pollTimerRef = useRef(null);
+  const briefingCacheRef = useRef({}); // keyed by "day|timeSlot|language" — avoids re-fetching already-loaded days
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'stories');
@@ -865,8 +866,9 @@ const TheAIRundown = () => {
     return h === 24 ? 0 : h;
   };
 
-  function getDaysOfWeek() {
-    // Anchor on the most recent day that has news; fall back to today before slots load
+  // Memoized: only recomputes when completedSlots or slotsLoaded actually changes,
+  // preventing a new array reference (and downstream re-renders) on every render.
+  const daysOfWeek = useMemo(() => {
     let anchorStr = toUAEDate();
     if (slotsLoaded && completedSlots.size > 0) {
       const dates = [...completedSlots].map(s => s.split('|')[0]);
@@ -874,7 +876,7 @@ const TheAIRundown = () => {
       anchorStr = dates[dates.length - 1];
     }
     const [y, m, d] = anchorStr.split('-').map(Number);
-    const anchor = new Date(y, m - 1, d, 12, 0, 0); // local noon avoids DST edge cases
+    const anchor = new Date(y, m - 1, d, 12, 0, 0);
     const days = [];
     for (let i = -6; i <= 0; i++) {
       const date = new Date(anchor);
@@ -885,9 +887,7 @@ const TheAIRundown = () => {
       days.push({ label: dayName, date: dateNum, fullDate });
     }
     return days;
-  }
-
-  const daysOfWeek = getDaysOfWeek();
+  }, [slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
   const allCategories = [...defaultCategories, ...customCategories];
 
   const getCurrentTimeSlot = () => getUAEHour() >= 18 ? 'Evening' : 'Morning';
@@ -931,7 +931,7 @@ const TheAIRundown = () => {
   };
 
   useEffect(() => {
-    setSelectedDay(getDaysOfWeek()[6].fullDate);
+    setSelectedDay(toUAEDate()); // default to today; slots-loaded effect will correct to latest news day
     setSelectedTime(lastCompletedTimeSlot);
     try {
       const savedUser = localStorage.getItem('newsdigest_user');
@@ -1107,7 +1107,7 @@ const TheAIRundown = () => {
       try {
         const results = await Promise.all(
           feedCategories.map(cat =>
-            supabase.from('news_summaries').select('*')
+            supabase.from('news_summaries').select('content, stories_content, source_articles')
               .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
               .eq('language', newsLanguage)
               .is('user_id', null).is('shared_key', null).maybeSingle()
@@ -1163,10 +1163,10 @@ const TheAIRundown = () => {
       let q;
       if (isCustom) {
         const sharedKey = (customCategoryDescriptions[selectedCategory] || selectedCategory).toLowerCase().trim();
-        q = supabase.from('news_summaries').select('*')
+        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at')
           .eq('shared_key', sharedKey).is('user_id', null).eq('day', selectedDay).eq('time_slot', 'Daily');
       } else {
-        q = supabase.from('news_summaries').select('*')
+        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at')
           .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime)
           .eq('language', newsLanguage)
           .is('user_id', null).is('shared_key', null);
@@ -1575,6 +1575,12 @@ const TheAIRundown = () => {
   // ── Briefing feed: fetch metadata for all categories ────────────────────────
   useEffect(() => {
     if (!selectedDay || !selectedTime || !slotsLoaded) return;
+    const cacheKey = `${selectedDay}|${selectedTime}|${newsLanguage}`;
+    // Serve from cache — avoids re-fetching when user switches back to an already-loaded day
+    if (briefingCacheRef.current[cacheKey]) {
+      setBriefingData(briefingCacheRef.current[cacheKey]);
+      return;
+    }
     setBriefingLoading(true);
     const cats = defaultCategories;
     Promise.allSettled(cats.map(async (cat) => {
@@ -1602,6 +1608,7 @@ const TheAIRundown = () => {
     })).then(results => {
       const out = {};
       results.forEach((r, i) => { if (r.status === 'fulfilled' && r.value[1]) out[cats[i]] = r.value[1]; });
+      briefingCacheRef.current[cacheKey] = out; // store in cache for this session
       setBriefingData(out);
       setBriefingLoading(false);
     });

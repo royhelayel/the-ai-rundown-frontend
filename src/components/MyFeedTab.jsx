@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import StoryList from './StoryList';
 import ProgressPill from './ProgressPill';
+import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
 
 export default function MyFeedTab({
@@ -24,14 +25,13 @@ export default function MyFeedTab({
     return (
       <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
-          <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>My Feed</span>
-            <button onClick={onShowAuth} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)' }}>
-              <User size={16} />
-            </button>
-          </div>
-        </header>
+        <FeedHeader
+          user={user}
+          onShowAuth={onShowAuth}
+          selectedDay={selectedDay}
+          availableDays={availableDays}
+          onSelectDay={onSelectDay}
+        />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', textAlign: 'center' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fff', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} color="#8a8a9a" />
@@ -52,14 +52,13 @@ export default function MyFeedTab({
     return (
       <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
-        <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
-          <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>My Feed</span>
-            <button onClick={() => navigate('/settings')} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)' }}>
-              <User size={16} />
-            </button>
-          </div>
-        </header>
+        <FeedHeader
+          user={user}
+          onShowAuth={onShowAuth}
+          selectedDay={selectedDay}
+          availableDays={availableDays}
+          onSelectDay={onSelectDay}
+        />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', textAlign: 'center' }}>
           <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>⭐</div>
           <div>
@@ -78,14 +77,13 @@ export default function MyFeedTab({
     <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
 
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>My Feed</span>
-          <button onClick={() => navigate('/settings')} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)' }}>
-            <User size={16} />
-          </button>
-        </div>
-      </header>
+      <FeedHeader
+        user={user}
+        onShowAuth={onShowAuth}
+        selectedDay={selectedDay}
+        availableDays={availableDays}
+        onSelectDay={onSelectDay}
+      />
 
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <ProgressPill challengeStats={challengeStats} />

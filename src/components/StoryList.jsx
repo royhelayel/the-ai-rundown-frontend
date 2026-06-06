@@ -113,43 +113,7 @@ export default function StoryList({
 
   return (
     <div>
-      <style>{`
-        .sl-day-strip::-webkit-scrollbar { display: none; }
-        .sl-cat-pills::-webkit-scrollbar  { display: none; }
-      `}</style>
-
-      {/* Day selector */}
-      {availableDays.length > 0 && (
-        <div className="sl-day-strip" style={{ display: 'flex', gap: '4px', padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {availableDays.map(day => {
-            const active   = day.fullDate === selectedDay;
-            const count    = challengeStats?.dailyCountMap?.[day.fullDate] || 0;
-            const goal     = challengeStats?.dailyGoal || 10;
-            const dotColor = count >= goal ? '#22c55e' : count > 0 ? '#f97316' : 'rgba(0,0,0,0.12)';
-            return (
-              <button
-                key={day.fullDate}
-                onClick={() => onSelectDay?.(day.fullDate)}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
-                  padding: '7px 10px', borderRadius: '12px', cursor: 'pointer', flexShrink: 0, minWidth: '42px',
-                  background: active ? 'rgba(124,58,237,0.12)' : '#fff',
-                  border: `1px solid ${active ? '#7c3aed' : 'rgba(0,0,0,0.07)'}`,
-                  outline: 'none',
-                }}
-              >
-                <span style={{ fontSize: '0.52rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: active ? '#7c3aed' : '#8a8a9a', lineHeight: 1 }}>
-                  {day.label}
-                </span>
-                <span style={{ fontSize: '0.82rem', fontWeight: '800', color: active ? '#0a0a0f' : '#374151', lineHeight: 1 }}>
-                  {day.date}
-                </span>
-                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: dotColor }} />
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <style>{`.sl-cat-pills::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Category pills — Reader style */}
       <div className="sl-cat-pills" style={{ display: 'flex', gap: '5px', padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>

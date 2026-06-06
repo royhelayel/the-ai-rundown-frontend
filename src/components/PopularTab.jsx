@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
+import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
 
 const bg = '#f5f5f7';
@@ -21,7 +21,7 @@ export default function PopularTab({
   user, onShowAuth,
   challengeStats,
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // still needed for story navigation
   useScrollRestore('/popular');
 
   // Flatten all stories across all categories
@@ -55,14 +55,7 @@ export default function PopularTab({
     <div style={{ background: bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${bg}; margin: 0; } ::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '12px 20px 10px' }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>Popular</span>
-          <button onClick={user ? () => navigate('/settings') : onShowAuth} style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)', flexShrink: 0 }}>
-            <User size={16} />
-          </button>
-        </div>
-      </header>
+      <FeedHeader user={user} onShowAuth={onShowAuth} />
 
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <ProgressPill challengeStats={challengeStats} />

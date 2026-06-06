@@ -65,22 +65,22 @@ export default function StoryCard({
       <div style={{ flex: 1, minWidth: 0 }}>
 
         {/* Category label + badge row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '9px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.62rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            <CategoryIcon category={category} size={11} color={color} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <CategoryIcon category={category} size={12} color={color} />
             {short}
           </span>
           {badge}
         </div>
 
         {/* Headline */}
-        <p style={{ margin: '0 0 10px', fontSize: '0.97rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.35 }}>
+        <p style={{ margin: '0 0 10px', fontSize: '1.05rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.3 }}>
           {story.headline}
         </p>
 
         {/* Excerpt */}
         {excerpt && (
-          <p style={{ margin: '0 0 14px', fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ margin: '0 0 14px', fontSize: '0.92rem', color: '#6b7280', lineHeight: 1.65, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {excerpt}
           </p>
         )}
@@ -94,16 +94,16 @@ export default function StoryCard({
               <span
                 key={i}
                 onClick={e => e.stopPropagation()}
-                style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '600', color: '#6b7280' }}
+                style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280' }}
               >
                 {s.outlet}
               </span>
             ))}
             {moreCount > 0 && (
-              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#9ca3af' }}>+{moreCount}</span>
             )}
             {listenCount > 0 && (
-              <span style={{ fontSize: '0.65rem', color: '#9ca3af', marginLeft: '2px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#9ca3af', marginLeft: '2px' }}>
                 · {listenCount.toLocaleString()} {listenCount === 1 ? 'listen' : 'listens'}
               </span>
             )}
@@ -112,7 +112,7 @@ export default function StoryCard({
           {/* Read button */}
           <button
             onClick={e => { e.stopPropagation(); onRead?.(); }}
-            style={{ padding: '5px 12px', borderRadius: '7px', fontSize: '0.65rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none', flexShrink: 0 }}
+            style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: '#7c3aed', color: '#fff', border: 'none', flexShrink: 0 }}
           >
             Read
           </button>
@@ -120,9 +120,9 @@ export default function StoryCard({
           {/* Play button */}
           <button
             onClick={e => { e.stopPropagation(); onPlay?.(); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '5px 12px', borderRadius: '7px', fontSize: '0.65rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1px solid ${color}50`, flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1px solid ${color}50`, flexShrink: 0 }}
           >
-            <Play size={9} fill={color} color={color} style={{ marginLeft: '1px' }} />
+            <Play size={10} fill={color} color={color} style={{ marginLeft: '1px' }} />
             Play
           </button>
         </div>

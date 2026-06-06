@@ -26,6 +26,7 @@ export default function ImportantTab({
   onShowAuth,
   playerVisible,
   challengeStats,
+  gamifiedStats = {},
 }) {
   const navigate = useNavigate();
   useScrollRestore('/important');
@@ -71,11 +72,14 @@ export default function ImportantTab({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 16px' }}>
-            {savedStories.map((item) => (
+            {savedStories.map((item) => {
+              const isRead = !!(gamifiedStats.todayProgress?.[item.category]?.listenedIndices?.has(item.storyIndex));
+              return (
               <StoryCard
                 key={`${item.category}|${item.storyIndex}`}
                 story={item}
                 category={item.category}
+                isRead={isRead}
                 onRead={() => { onSelectCategory?.(item.category); navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, { state: { from: '/important' } }); }}
                 onPlay={() => onPlayStory?.(item.category, item.storyIndex)}
                 removeButton={
@@ -88,7 +92,8 @@ export default function ImportantTab({
                   </button>
                 }
               />
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

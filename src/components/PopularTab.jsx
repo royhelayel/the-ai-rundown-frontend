@@ -19,7 +19,7 @@ export default function PopularTab({
   onSelectCategory, onPlayCategory,
   isNarrating, playerVisible,
   user, onShowAuth,
-  challengeStats,
+  challengeStats, gamifiedStats = {},
 }) {
   const navigate = useNavigate(); // still needed for story navigation
   useScrollRestore('/popular');
@@ -43,8 +43,10 @@ export default function PopularTab({
   const hasAnyData    = allStories.length > 0;
   const hasAnyListens = allStories.some(s => s.listenCount > 0);
 
-  // Sort by listenCount desc; ties keep original order (stable)
-  const sorted = [...allStories].sort((a, b) => b.listenCount - a.listenCount);
+  // Sort by listenCount desc; show only stories with at least 1 listen
+  const sorted = [...allStories]
+    .filter(s => s.listenCount > 0)
+    .sort((a, b) => b.listenCount - a.listenCount);
 
   const handleStoryClick = (cat, storyIndex) => {
     onSelectCategory(cat);
@@ -84,13 +86,15 @@ export default function PopularTab({
           <SkeletonPopularList count={7} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {sorted.map((story, rank) => {
+            {sorted.map((story) => {
+              const isRead = !!(gamifiedStats.todayProgress?.[story.category]?.listenedIndices?.has(story.storyIndex));
               return (
                 <StoryCard
                   key={`${story.category}-${story.storyIndex}`}
                   story={story}
                   category={story.category}
                   listenCount={story.listenCount}
+                  isRead={isRead}
                   onRead={() => handleStoryClick(story.category, story.storyIndex)}
                   onPlay={() => { onSelectCategory(story.category); onPlayCategory(story.category); }}
                 />

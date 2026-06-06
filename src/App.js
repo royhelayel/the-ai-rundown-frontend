@@ -2182,6 +2182,7 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           challengeStats={challengeStats}
+          gamifiedStats={gamifiedStats}
         />
       )}
 
@@ -2196,6 +2197,7 @@ const TheAIRundown = () => {
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
           challengeStats={challengeStats}
+          gamifiedStats={gamifiedStats}
         />
       )}
 

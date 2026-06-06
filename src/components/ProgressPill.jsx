@@ -84,8 +84,8 @@ function ChallengeRing({
             <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>
               {count}
             </span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'rgba(255,255,255,0.25)' }}>/</span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>/</span>
+            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
               {total}
             </span>
           </div>

@@ -2546,6 +2546,7 @@ const TheAIRundown = () => {
                 category={catFromUrl}
                 story={viewStories[storyIdxFromUrl] || null}
                 storyIndex={storyIdxFromUrl}
+                isAlreadyRead={!!(gamifiedStats.todayProgress[catFromUrl]?.listenedIndices?.has(storyIdxFromUrl))}
                 stories={viewStories}
                 onPlayFrom={onPlayFrom}
                 isNarrating={isNarrating && storyIndex === storyIdxFromUrl}

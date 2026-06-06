@@ -66,17 +66,22 @@ export default function StoryReader({
   onToggleSaved,
   inSheet = false,
   onClose,
+  isAlreadyRead = false,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [view, setView] = useState('takeaways'); // 'takeaways' | 'summary'
-  const [isRead, setIsRead] = useState(false);
+  const [isRead, setIsRead] = useState(isAlreadyRead);
   const color = CATEGORY_COLORS[category] || '#6366f1';
+
+  // Sync isRead when navigating to a different story (isAlreadyRead comes from App)
+  useEffect(() => {
+    setIsRead(isAlreadyRead);
+  }, [isAlreadyRead, storyIndex]);
 
   // Mark story as read when the user LEAVES it (navigate away or close).
   // Capture current values in closure so cleanup always marks the right story.
   useEffect(() => {
-    setIsRead(false); // entering a new story — show Unread
     const s = story, c = category, i = storyIndex, fn = onMarkRead;
     return () => {
       // fires when: storyIndex changes (next/prev) OR component unmounts (minimize/close)

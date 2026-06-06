@@ -1974,6 +1974,14 @@ const TheAIRundown = () => {
           gap: 0.5rem; letter-spacing: -0.01em; transition: opacity 0.15s; font-family: inherit;
         }
         .ai-btn-inner:hover { opacity: 0.9; }
+        .ai-btn-inner-white {
+          width: auto; padding: 0.6rem 1.4rem; border-radius: 11px;
+          background: #ffffff;
+          border: none; color: #0a0a0f; font-size: 0.88rem; font-weight: 800; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          gap: 0.5rem; letter-spacing: -0.01em; transition: opacity 0.15s; font-family: inherit;
+        }
+        .ai-btn-inner-white:hover { opacity: 0.9; }
         /* ── Hero row responsive layout ── */
         .hero-row { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem; }
         .hero-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: nowrap; justify-content: space-between; }

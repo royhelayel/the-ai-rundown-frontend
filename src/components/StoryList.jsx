@@ -108,6 +108,7 @@ export default function StoryList({
   fromPath = '/',
   showCategoryImages = false,
   sectionTitle = '',
+  onPlayFeed,
 }) {
   const [catFilter, setCatFilter] = useState(null);
   const navigate = useNavigate();
@@ -130,16 +131,44 @@ export default function StoryList({
     <div>
       <style>{`.sl-cat-pills::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Section title */}
+      {/* Section title + feed-level actions */}
       {sectionTitle && (
-        <div style={{ padding: '20px 20px 16px' }}>
+        <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h2 style={{
-            margin: 0,
+            margin: 0, flex: 1,
             fontSize: '1.55rem', fontWeight: '900',
             color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1,
           }}>
             {sectionTitle}
           </h2>
+
+          {/* Read — white inner */}
+          <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>
+            <button
+              className="ai-btn-inner-white"
+              style={{ padding: '0.42rem 1.1rem', borderRadius: '9px', fontSize: '0.78rem' }}
+              onClick={() => {
+                const firstCat = visibleCats[0];
+                if (firstCat) handleRead(firstCat, 0);
+              }}
+            >
+              Read
+            </button>
+          </div>
+
+          {/* Play — dark inner */}
+          {onPlayFeed && (
+            <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>
+              <button
+                className="ai-btn-inner"
+                style={{ padding: '0.42rem 1.1rem', borderRadius: '9px', fontSize: '0.78rem' }}
+                onClick={onPlayFeed}
+              >
+                <Play size={11} fill="white" color="white" />
+                Play
+              </button>
+            </div>
+          )}
         </div>
       )}
 

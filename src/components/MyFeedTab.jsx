@@ -109,6 +109,7 @@ export default function MyFeedTab({
           fromPath="/my-feed"
           showCategoryImages
           sectionTitle="My Feed"
+          onPlayFeed={onPlayMyFeed}
         />
       </div>
     </div>

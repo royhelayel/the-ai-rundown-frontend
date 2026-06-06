@@ -121,7 +121,7 @@ export default function StoryList({
           onClick={() => setCatFilter(null)}
           style={{
             display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '5px 11px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: catFilter === null ? '800' : '600',
+            padding: '5px 13px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: catFilter === null ? '800' : '600',
             whiteSpace: 'nowrap', cursor: 'pointer',
             background: catFilter === null ? 'rgba(124,58,237,0.1)' : 'transparent',
             border: `1px solid ${catFilter === null ? 'rgba(124,58,237,0.4)' : 'rgba(0,0,0,0.1)'}`,
@@ -139,14 +139,14 @@ export default function StoryList({
               onClick={() => setCatFilter(active ? null : cat)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 11px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: active ? '800' : '600',
+                padding: '5px 13px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: active ? '800' : '600',
                 whiteSpace: 'nowrap', cursor: 'pointer',
                 background: active ? `${color}12` : 'transparent',
                 border: `1px solid ${active ? `${color}55` : 'rgba(0,0,0,0.1)'}`,
                 color: active ? color : '#6b7280',
               }}
             >
-              <CategoryIcon category={cat} size={13} color={active ? color : '#6b7280'} />
+              <CategoryIcon category={cat} size={15} color={active ? color : '#6b7280'} />
               {CATEGORY_SHORT[cat] || cat}
             </button>
           );

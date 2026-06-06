@@ -164,8 +164,8 @@ export default function FeedHeader({
               key={tab.path}
               onClick={() => navigate(tab.path)}
               style={{
-                padding: '5px 13px', borderRadius: '8px',
-                fontSize: '0.72rem', fontWeight: isActive ? '800' : '600',
+                padding: '5px 14px', borderRadius: '8px',
+                fontSize: '0.82rem', fontWeight: isActive ? '800' : '600',
                 whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer',
                 background: isActive ? 'rgba(124,58,237,0.1)' : 'transparent',
                 border: isActive ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',

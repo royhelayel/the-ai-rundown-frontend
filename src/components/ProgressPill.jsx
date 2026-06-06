@@ -74,21 +74,21 @@ function ChallengeRing({
         }}>
           {icon}
           <span style={{
-            fontSize: '0.38rem', fontWeight: 800,
+            fontSize: '0.52rem', fontWeight: 800,
             textTransform: 'uppercase', letterSpacing: '0.1em',
             color: 'rgba(255,255,255,0.42)', marginTop: 2,
           }}>
             {label}
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1 }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff' }}>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>
               {count}
             </span>
-            <span style={{ fontSize: '0.52rem', fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>
+            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>
               /{total}
             </span>
           </div>
-          <span style={{ fontSize: '0.35rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
+          <span style={{ fontSize: '0.5rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
             {unit}
           </span>
         </div>
@@ -96,7 +96,7 @@ function ChallengeRing({
 
       {/* Below ring */}
       <span style={{
-        fontSize: '0.44rem', fontWeight: 600,
+        fontSize: '0.6rem', fontWeight: 600,
         color: 'rgba(255,255,255,0.32)', textAlign: 'center', lineHeight: 1.3,
       }}>
         {toGo}

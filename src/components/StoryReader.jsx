@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, User, CheckCircle2, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
+import { Play, User, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
 import { readTime } from '../utils';
 
@@ -70,11 +70,13 @@ export default function StoryReader({
   const navigate = useNavigate();
   const location = useLocation();
   const [view, setView] = useState('takeaways'); // 'takeaways' | 'summary'
+  const [isRead, setIsRead] = useState(false);
   const color = CATEGORY_COLORS[category] || '#6366f1';
 
   // Mark the story as read whenever the displayed story changes
   useEffect(() => {
-    if (story && onMarkRead) onMarkRead(story, category, storyIndex);
+    setIsRead(false); // reset on story change, then mark read
+    if (story && onMarkRead) { onMarkRead(story, category, storyIndex); setIsRead(true); }
   }, [storyIndex, story]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goBack = () => {
@@ -190,14 +192,14 @@ export default function StoryReader({
       {/* ── Content ── */}
       <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '10rem' : '6rem' }}>
 
-        {/* Category badge + read status */}
+        {/* Read status + category badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          {/* Read/Unread — same style as StoryCard, always left */}
+          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
+            {isRead ? '✓ Read' : 'Unread'}
+          </span>
           <span style={{ padding: '0.2rem 0.65rem', background: `${color}15`, border: `1px solid ${color}30`, borderRadius: '999px', fontSize: '0.7rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {category}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.55rem', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '700', color: '#15803d' }}>
-            <CheckCircle2 size={11} strokeWidth={2.5} />
-            Read
           </span>
         </div>
 

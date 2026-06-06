@@ -135,30 +135,28 @@ export default function StoryList({
       {/* Section title + feed-level actions */}
       {sectionTitle && (
         <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h2 style={{
-            margin: 0, flex: 1,
-            fontSize: '1.55rem', fontWeight: '900',
-            color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1,
-          }}>
-            {sectionTitle}
-          </h2>
-
-          {/* Edit (My Feed only) */}
-          {onEditFeed && (
-            <button
-              onClick={onEditFeed}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '4px',
-                padding: '5px 10px', borderRadius: '8px',
-                background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)',
-                color: '#6b7280', fontSize: '0.72rem', fontWeight: '700',
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              <Pencil size={12} />
-              Edit
-            </button>
-          )}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: '1.55rem', fontWeight: '900',
+              color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1,
+            }}>
+              {sectionTitle}
+            </h2>
+            {onEditFeed && (
+              <button
+                onClick={onEditFeed}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  padding: '4px', borderRadius: '6px',
+                  background: 'none', border: 'none',
+                  color: '#9ca3af', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+          </div>
 
           {/* Read — white inner */}
           <div className="ai-btn-wrap" style={{ borderRadius: '11px', padding: '2px', flexShrink: 0 }}>

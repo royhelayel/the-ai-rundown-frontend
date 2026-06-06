@@ -11,10 +11,8 @@ import CategoryIcon from './CategoryIcon';
 function CategoryImageHeader({ cat, catData, color, image, onPlay, onNavigate }) {
   return (
     <div
-      onClick={onNavigate}
       style={{
         height: '175px', position: 'relative', overflow: 'hidden',
-        cursor: 'pointer', userSelect: 'none',
         borderRadius: '14px',
       }}
     >
@@ -39,9 +37,10 @@ function CategoryImageHeader({ cat, catData, color, image, onPlay, onNavigate })
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         padding: '0.75rem 1rem',
-        display: 'flex', alignItems: 'center', gap: '0.75rem',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.75rem',
       }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Category name + meta */}
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
             {cat}
           </div>
@@ -52,23 +51,38 @@ function CategoryImageHeader({ cat, catData, color, image, onPlay, onNavigate })
             </div>
           )}
         </div>
-        {onPlay && (
+
+        {/* Read + Play buttons */}
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          {/* Read — outlined white */}
           <button
-            onClick={e => { e.stopPropagation(); onPlay(cat); }}
+            onClick={e => { e.stopPropagation(); onNavigate?.(); }}
             style={{
-              display: 'flex', alignItems: 'center', gap: '0.3rem',
-              padding: '0.35rem 0.85rem', borderRadius: '999px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-              color: 'white', fontSize: '0.72rem', fontWeight: '700',
-              cursor: 'pointer', flexShrink: 0,
+              padding: '6px 14px', borderRadius: '8px',
+              fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer',
+              background: 'transparent', color: 'white',
+              border: '1.5px solid rgba(255,255,255,0.7)',
             }}
           >
-            <Play size={9} fill="white" color="white" style={{ marginLeft: '1px' }} />
-            Play
+            Read
           </button>
-        )}
+
+          {/* Play — filled white */}
+          {onPlay && (
+            <button
+              onClick={e => { e.stopPropagation(); onPlay(cat); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '6px 14px', borderRadius: '8px',
+                fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer',
+                background: 'white', color: color, border: 'none',
+              }}
+            >
+              <Play size={9} fill={color} color={color} style={{ marginLeft: '1px' }} />
+              Play
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

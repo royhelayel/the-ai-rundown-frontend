@@ -307,8 +307,8 @@ export default function ProgressPill({ challengeStats, style = {} }) {
           <ChallengeRing
             size={84} strokeW={6}
             pct={todayPct}
-            gradId="cr-today" color0="#7c3aed" color1="#3b82f6"
-            trackColor="rgba(124,58,237,0.13)"
+            gradId="cr-today" color0="#92400e" color1="#f59e0b"
+            trackColor="rgba(146,64,14,0.18)"
             label="Today"
             count={todayCount} total={dailyGoal} unit="stories"
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
@@ -320,8 +320,8 @@ export default function ProgressPill({ challengeStats, style = {} }) {
           <ChallengeRing
             size={84} strokeW={6}
             pct={streakPct}
-            gradId="cr-streak" color0="#3b82f6" color1="#06b6d4"
-            trackColor="rgba(59,130,246,0.13)"
+            gradId="cr-streak" color0="#2563eb" color1="#e2e8f0"
+            trackColor="rgba(37,99,235,0.15)"
             label="Streak"
             count={streakDays} total={3} unit="days"
             toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
@@ -333,8 +333,8 @@ export default function ProgressPill({ challengeStats, style = {} }) {
           <ChallengeRing
             size={84} strokeW={6}
             pct={weekPct}
-            gradId="cr-week" color0="#6366f1" color1="#8b5cf6"
-            trackColor="rgba(99,102,241,0.13)"
+            gradId="cr-week" color0="#b45309" color1="#fbbf24"
+            trackColor="rgba(180,83,9,0.18)"
             label="Week"
             count={weeklyDays} total={7} unit="days"
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}

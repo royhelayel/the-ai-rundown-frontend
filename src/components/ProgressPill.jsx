@@ -126,9 +126,9 @@ function ChallengeRing({
             {label}
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, gap: 1 }}>
-            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>{count}</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>/</span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>{total}</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff' }}>{count}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>/</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>{total}</span>
           </div>
           <span style={{ fontSize: '0.55rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
             {unit}

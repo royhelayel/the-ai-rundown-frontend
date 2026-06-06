@@ -59,13 +59,13 @@ export default function StoryCard({
   return (
     <div
       onClick={onRead}
-      style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '16px 16px', background: '#fff', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer' }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '20px 16px', background: '#fff', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer' }}
     >
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
 
         {/* Category label + badge row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '9px' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.62rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <CategoryIcon category={category} size={11} color={color} />
             {short}
@@ -74,13 +74,13 @@ export default function StoryCard({
         </div>
 
         {/* Headline */}
-        <p style={{ margin: '0 0 8px', fontSize: '0.97rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.35 }}>
+        <p style={{ margin: '0 0 10px', fontSize: '0.97rem', fontWeight: '700', color: '#0a0a0f', lineHeight: 1.35 }}>
           {story.headline}
         </p>
 
         {/* Excerpt */}
         {excerpt && (
-          <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.52, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ margin: '0 0 14px', fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {excerpt}
           </p>
         )}

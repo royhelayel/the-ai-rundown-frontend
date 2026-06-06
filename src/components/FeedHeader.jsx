@@ -1,12 +1,8 @@
 /**
  * FeedHeader — shared header for all four feed tabs.
  *
- * Shows:
- *   Row 1: "The Rundown" · [date button] · avatar
- *   Row 2: tab strip (My Feed | All News | Popular | Important)
- *
- * The date button opens a simple day-picker popover.
- * availableDays is optional; if absent the date button is hidden.
+ * Shows a single row: "The Rundown  ›  <Current Feed>"  [date]  [avatar]
+ * The date button opens a day-picker popover when availableDays is provided.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -39,9 +35,12 @@ export default function FeedHeader({
   availableDays = [],
   onSelectDay,
 }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate   = useNavigate();
+  const location   = useLocation();
   const activePath = location.pathname === '/' ? '/' : location.pathname;
+  const activeTab  = TABS.find(t =>
+    t.path === '/' ? activePath === '/' : activePath.startsWith(t.path)
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
 
@@ -71,15 +70,25 @@ export default function FeedHeader({
       position: 'sticky', top: 0, zIndex: 50,
       background: 'rgba(245,245,247,0.95)',
       backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      padding: '10px 20px 0',
+      padding: '10px 20px 10px',
     }}>
-      {/* ── Row 1: brand + date + avatar ── */}
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
+      {/* ── Single row: brand · active feed · date · avatar ── */}
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
 
         {/* Brand */}
         <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em', flexShrink: 0 }}>
           The Rundown
         </span>
+
+        {/* Separator + active feed label */}
+        {activeTab && (
+          <>
+            <span style={{ color: 'rgba(0,0,0,0.2)', fontSize: '1rem', fontWeight: '300', flexShrink: 0 }}>›</span>
+            <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#6b7280', flexShrink: 0 }}>
+              {activeTab.label}
+            </span>
+          </>
+        )}
 
         {/* Date button + picker — always shown */}
         <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -144,38 +153,6 @@ export default function FeedHeader({
         >
           <User size={16} />
         </button>
-      </div>
-
-      {/* ── Row 2: feed tab strip ── */}
-      <div style={{
-        maxWidth: 'var(--body-max)', margin: '0 auto',
-        display: 'flex', gap: '2px',
-        overflowX: 'auto', scrollbarWidth: 'none',
-        borderTop: '1px solid rgba(0,0,0,0.06)',
-        paddingTop: '6px', paddingBottom: '6px',
-      }}>
-        <style>{`.feed-tab-strip::-webkit-scrollbar{display:none}`}</style>
-        {TABS.map(tab => {
-          const isActive = tab.path === '/'
-            ? activePath === '/'
-            : activePath.startsWith(tab.path);
-          return (
-            <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              style={{
-                padding: '5px 14px', borderRadius: '8px',
-                fontSize: '0.82rem', fontWeight: isActive ? '800' : '600',
-                whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer',
-                background: isActive ? 'rgba(124,58,237,0.1)' : 'transparent',
-                border: isActive ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
-                color: isActive ? '#7c3aed' : '#6b7280',
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
       </div>
     </header>
   );

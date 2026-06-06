@@ -550,8 +550,10 @@ const TheAIRundown = () => {
       if (!isTransition && audio.duration > 0) {
         const pct = (audio.currentTime / audio.duration) * 100;
         if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
-        // Track 50% listen for Popular rankings (skip headlines — too short to be meaningful)
-        if (!halfwayFired && pct >= 50 && depthLevelRef.current !== 'headlines') {
+        // Track listen for Popular rankings:
+        // full stories → 50% threshold; headlines → 100% (they're too short for 50% to be meaningful)
+        const threshold = depthLevelRef.current === 'headlines' ? 99 : 50;
+        if (!halfwayFired && pct >= threshold) {
           halfwayFired = true;
           const key = headlineKey(currentNarratingStoryRef.current.headline);
           if (key) {

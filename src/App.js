@@ -801,12 +801,13 @@ const TheAIRundown = () => {
     if (!readerDragRef.current?.dragging) return;
     const dy = e.touches[0].clientY - readerDragRef.current.startY;
     if (dy > 0) setReaderDragY(dy);
+    else setReaderDragY(0);
   };
   const onReaderTouchEnd = (goBackFn) => {
     if (!readerDragRef.current?.dragging) return;
     readerDragRef.current.dragging = false;
     if (readerDragY > 80) goBackFn();
-    setReaderDragY(0);
+    else setReaderDragY(0);
   };
 
   // ── Heartbeat — "on the website right now" counter ───────────────────────
@@ -2505,8 +2506,8 @@ const TheAIRundown = () => {
           return allCategories;
         })();
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 150, pointerEvents: 'auto' }}>
-            {/* Backdrop */}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>
+            {/* Backdrop — blocks touches to mini player / nav below */}
             <div
               style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
               onClick={readerGoBack}
@@ -2522,13 +2523,26 @@ const TheAIRundown = () => {
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
                 willChange: 'transform',
               }}
-              onTouchStart={onReaderTouchStart}
-              onTouchMove={onReaderTouchMove}
-              onTouchEnd={() => onReaderTouchEnd(readerGoBack)}
             >
-              {/* Drag handle */}
-              <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0, cursor: 'grab' }}>
+              {/* Drag handle — touch-to-dismiss starts here only */}
+              <div
+                onTouchStart={onReaderTouchStart}
+                onTouchMove={onReaderTouchMove}
+                onTouchEnd={() => onReaderTouchEnd(readerGoBack)}
+                style={{ padding: '10px 16px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, cursor: 'grab', userSelect: 'none' }}
+              >
+                {/* left spacer */}
+                <div style={{ width: 28 }} />
+                {/* handle pill */}
                 <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(0,0,0,0.15)' }} />
+                {/* chevron-down close button */}
+                <button
+                  onTouchStart={e => e.stopPropagation()}
+                  onClick={readerGoBack}
+                  style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  <ChevronDown size={16} color="rgba(0,0,0,0.4)" />
+                </button>
               </div>
               {/* Reader content */}
               <StoryReader

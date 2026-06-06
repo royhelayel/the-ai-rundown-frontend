@@ -79,7 +79,7 @@ export default function StoryCard({
 
         {/* Excerpt */}
         {excerpt && (
-          <p style={{ margin: '0 0 14px', fontSize: '0.92rem', color: '#6b7280', lineHeight: 1.65, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#6b7280', lineHeight: 1.65, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {excerpt}
           </p>
         )}
@@ -91,7 +91,7 @@ export default function StoryCard({
             style={{
               display: 'flex', alignItems: 'center', gap: '4px',
               overflowX: 'auto', scrollbarWidth: 'none',
-              marginBottom: '14px',
+              marginBottom: '10px',
             }}
           >
             <style>{`.sc-sources::-webkit-scrollbar { display: none; }`}</style>
@@ -114,7 +114,7 @@ export default function StoryCard({
         )}
 
         {/* Duration + actions row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
 
           {/* Duration */}
           <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>

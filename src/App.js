@@ -2316,6 +2316,9 @@ const TheAIRundown = () => {
           challengeStats={challengeStats}
           gamifiedStats={gamifiedStats}
           circlePopular={circlePopular}
+          selectedDay={selectedDay}
+          availableDays={availableDays}
+          onSelectDay={selectDay}
         />
       )}
 
@@ -2334,6 +2337,9 @@ const TheAIRundown = () => {
           gamifiedStats={gamifiedStats}
           circleSaves={circleSaves}
           following={following}
+          selectedDay={selectedDay}
+          availableDays={availableDays}
+          onSelectDay={selectDay}
         />
       )}
 

@@ -66,6 +66,7 @@ export default function ImportantTab({
   gamifiedStats = {},
   circleSaves = [],
   following = [],
+  selectedDay, availableDays = [], onSelectDay,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/important');
@@ -132,7 +133,7 @@ export default function ImportantTab({
         .imp-cat-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <FeedHeader user={user} onShowAuth={onShowAuth} />
+      <FeedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} />
 
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />

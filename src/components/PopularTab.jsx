@@ -30,6 +30,7 @@ export default function PopularTab({
   user, onShowAuth,
   challengeStats, gamifiedStats = {},
   circlePopular = [],
+  selectedDay, availableDays = [], onSelectDay,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/popular');
@@ -86,7 +87,7 @@ export default function PopularTab({
     <div style={{ background: bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${bg}; margin: 0; } ::-webkit-scrollbar { display: none; } .pop-cat-strip::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <FeedHeader user={user} onShowAuth={onShowAuth} />
+      <FeedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} />
 
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
         <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />

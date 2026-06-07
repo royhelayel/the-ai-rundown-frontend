@@ -843,12 +843,17 @@ const TheAIRundown = () => {
     }
   };
 
-  // ── Story reader sheet: mount animation ─────────────────────────────────
+  // ── Story reader sheet: mount / exit animations ──────────────────────────
   const isStoryViewForEffect = !!location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
+  const [readerExiting, setReaderExiting] = useState(false);
   useEffect(() => {
-    if (isStoryViewForEffect) requestAnimationFrame(() => setReaderMounted(true));
-    else setReaderMounted(false);
-  }, [isStoryViewForEffect]);
+    if (isStoryViewForEffect) {
+      setReaderExiting(false);
+      requestAnimationFrame(() => setReaderMounted(true));
+    } else {
+      setReaderMounted(false);
+    }
+  }, [isStoryViewForEffect]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // ── Heartbeat — "on the website right now" counter ───────────────────────
@@ -2009,6 +2014,24 @@ const TheAIRundown = () => {
   // Show bottom nav everywhere except settings and when full player is open
   const showBottomNav   = !isSettingsPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
 
+  // ── Reader close: animate sheet down, then navigate away ─────────────────
+  const readerGoBack = () => {
+    const from = location.state?.from;
+    if (!from || from === 'home' || from === '/') navigate('/');
+    else if (from === '/my-feed') navigate('/my-feed');
+    else if (from === '/popular') navigate('/popular');
+    else if (from === '/important') navigate('/important');
+    else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
+    else navigate('/');
+  };
+  const readerClose = () => {
+    setReaderExiting(true);
+    setTimeout(() => {
+      setReaderExiting(false);
+      readerGoBack();
+    }, 400);
+  };
+
   const handleMinimizePlayer = () => {
     setFullPlayerExiting(true);
     // Navigate back to source screen as the player slides down
@@ -2611,17 +2634,8 @@ const TheAIRundown = () => {
       )}
 
       {/* ── Story Reader — bottom-up sheet (like FullPlayer) ── */}
-      {isStoryView && (() => {
-        const readerGoBack = () => {
-          const from = location.state?.from;
-          if (!from || from === 'home' || from === '/') navigate('/');
-          else if (from === '/my-feed') navigate('/my-feed');
-          else if (from === '/popular') navigate('/popular');
-          else if (from === '/important') navigate('/important');
-          else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
-          else navigate('/');
-        };
-        const readerTranslateY = readerMounted ? '0px' : '100%';
+      {(isStoryView || readerExiting) && (() => {
+        const readerTranslateY = (readerMounted && !readerExiting) ? '0px' : '100%';
         const contextCats = (() => {
           const from     = location.state?.from;
           const playlist = location.state?.playlist;
@@ -2639,10 +2653,10 @@ const TheAIRundown = () => {
         })();
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>
-            {/* Backdrop — blocks touches to mini player / nav below */}
+            {/* Backdrop — dims behind sheet; fades out on exit */}
             <div
-              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-              onClick={readerGoBack}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', transition: 'opacity 0.38s', opacity: readerExiting ? 0 : 1 }}
+              onClick={readerClose}
             />
             {/* Sheet */}
             <div
@@ -2675,7 +2689,7 @@ const TheAIRundown = () => {
                 contextCategories={contextCats}
                 playlist={location.state?.playlist || null}
                 inSheet
-                onClose={readerGoBack}
+                onClose={readerClose}
               />
             </div>
           </div>

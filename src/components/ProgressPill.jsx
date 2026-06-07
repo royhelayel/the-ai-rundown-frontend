@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { dayKey } from '../hooks/useListenHistory';
 
 // ── Award definitions ─────────────────────────────────────────────────────────
 // Ordered lowest → highest rank. Social profiles will use these colours.
@@ -148,27 +149,24 @@ function ChallengeRing({
 }
 
 // ── Cosmic burst ─────────────────────────────────────────────────────────────
-// Glowing orbs that supernova outward — no paper confetti, no emoji shapes.
 
 function Confetti({ award, onDone }) {
   const base    = award?.color  || '#f59e0b';
   const glow    = award?.glow   || 'rgba(245,158,11,0.5)';
 
-  // Per-award palette: award colour + lighter variant + white sparks
   const palette = React.useMemo(() => {
     const light = base + 'cc';
     return [base, base, base, light, '#ffffff', '#ffffff', light, base];
   }, [base]);
 
   const particles = React.useMemo(() => {
-    // 28 orbs — evenly spread around 360° with slight jitter
     const orbs = Array.from({ length: 28 }, (_, i) => {
       const angle = (i / 28) * 360 + (Math.random() - 0.5) * 18;
-      const dist  = 14 + Math.random() * 32;          // vmin, uniform burst
+      const dist  = 14 + Math.random() * 32;
       const rad   = (angle * Math.PI) / 180;
       const tx    = Math.cos(rad) * dist;
       const ty    = Math.sin(rad) * dist;
-      const size  = 3 + Math.random() * 6;            // 3–9 px
+      const size  = 3 + Math.random() * 6;
       const dur   = 0.5 + Math.random() * 0.25;
       const delay = Math.random() * 0.08;
       const color = palette[Math.floor(Math.random() * palette.length)];
@@ -176,7 +174,6 @@ function Confetti({ award, onDone }) {
       return { id: `o${i}`, tx, ty, size, dur, delay, color, glowR, type: 'orb' };
     });
 
-    // 8 "shooting star" streaks — longer, faster, aimed outward
     const streaks = Array.from({ length: 8 }, (_, i) => {
       const angle = (i / 8) * 360 + (Math.random() - 0.5) * 10;
       const dist  = 20 + Math.random() * 22;
@@ -197,13 +194,11 @@ function Confetti({ award, onDone }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const keyframes = [
-    // central nova flash
     `@keyframes nova-flash {
       0%   { transform: translate(-50%,-50%) scale(0);   opacity: 1; }
       35%  { transform: translate(-50%,-50%) scale(2.5); opacity: 0.7; }
       100% { transform: translate(-50%,-50%) scale(5);   opacity: 0; }
     }`,
-    // orb particles
     ...particles.map(p => `
       @keyframes sp-${p.id} {
         0%   { transform: translate(-50%,-50%) scale(1.6); opacity: 1; }
@@ -220,7 +215,6 @@ function Confetti({ award, onDone }) {
     }}>
       <style>{keyframes}</style>
 
-      {/* Central nova flash */}
       <div style={{
         position: 'absolute', left: '50%', top: '50%',
         width: '28px', height: '28px', borderRadius: '50%',
@@ -229,7 +223,6 @@ function Confetti({ award, onDone }) {
         animation: 'nova-flash 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) forwards',
       }} />
 
-      {/* Orbs + streaks */}
       {particles.map(p => (
         <div
           key={p.id}
@@ -282,51 +275,19 @@ function AwardToast({ award, onDone }) {
         padding: '14px 18px',
         display: 'flex', flexDirection: 'column', gap: '4px',
       }}>
-        {/* Line 1: Congrats! you are now ranked */}
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>
           Congrats! you are now ranked
         </span>
-        {/* Line 2: Icon + Title (in award colour) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <AwardIcon awardId={award.id} size={16} color={award.color} />
           <span style={{ fontSize: '1.1rem', fontWeight: '900', color: award.color, letterSpacing: '-0.02em' }}>
             {award.title}
           </span>
         </div>
-        {/* Line 3: subtitle */}
         <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>
           {award.subtitle}
         </span>
       </div>
-    </div>
-  );
-}
-
-// ── WeekRow (detail sheet) ────────────────────────────────────────────────────
-
-function WeekRow({ weekGrid }) {
-  return (
-    <div style={{ display: 'flex', gap: '5px' }}>
-      {weekGrid.map(day => {
-        const bg = day.met ? '#16a34a' : day.count > 0 ? '#d97706' : 'rgba(0,0,0,0.06)';
-        return (
-          <div key={day.key} title={`${day.key}: ${day.count}`} style={{
-            flex: 1, height: '38px', borderRadius: '8px', background: bg,
-            border: day.isToday ? '2px solid #7c3aed' : '1px solid transparent',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: '1px',
-          }}>
-            <span style={{ fontSize: '0.52rem', fontWeight: '700', color: day.count > 0 ? '#fff' : 'rgba(0,0,0,0.3)' }}>
-              {day.day}
-            </span>
-            {day.count > 0 && (
-              <span style={{ fontSize: '0.48rem', fontWeight: '700', color: 'rgba(255,255,255,0.7)' }}>
-                {day.count}
-              </span>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -346,7 +307,6 @@ function GuestPromo({ onShowAuth }) {
         boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
       }}
     >
-      {/* Icon */}
       <div style={{
         width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
         background: 'rgba(255,255,255,0.06)',
@@ -362,7 +322,6 @@ function GuestPromo({ onShowAuth }) {
         </svg>
       </div>
 
-      {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#fff', marginBottom: '4px', letterSpacing: '-0.01em' }}>
           Sign In to Track Progress
@@ -372,7 +331,6 @@ function GuestPromo({ onShowAuth }) {
         </div>
       </div>
 
-      {/* CTA chip */}
       <div style={{
         padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
         background: 'linear-gradient(135deg, #6366f1, #ec4899)',
@@ -381,6 +339,529 @@ function GuestPromo({ onShowAuth }) {
         Sign In
       </div>
     </button>
+  );
+}
+
+// ── Challenge Detail Sheet ────────────────────────────────────────────────────
+
+function StatusBadge({ done, onTrack }) {
+  if (done) return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '3px 10px', borderRadius: '20px',
+      background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.3)',
+      fontSize: '0.65rem', fontWeight: '800', color: '#4ade80', letterSpacing: '0.03em',
+    }}>
+      ✓ Complete
+    </span>
+  );
+  if (onTrack) return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '3px 10px', borderRadius: '20px',
+      background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)',
+      fontSize: '0.65rem', fontWeight: '800', color: '#fbbf24', letterSpacing: '0.03em',
+    }}>
+      ⚡ On Track
+    </span>
+  );
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '3px 10px', borderRadius: '20px',
+      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+      fontSize: '0.65rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.03em',
+    }}>
+      · Not started
+    </span>
+  );
+}
+
+function SheetSectionLabel({ children }) {
+  return (
+    <p style={{
+      margin: '0 0 0.55rem',
+      fontSize: '0.58rem', fontWeight: '800',
+      textTransform: 'uppercase', letterSpacing: '0.12em',
+      color: 'rgba(255,255,255,0.28)',
+    }}>
+      {children}
+    </p>
+  );
+}
+
+function ChallengeSheet({ open, onClose, challengeStats }) {
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  // Open: mount → next frame → slide in
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const t = setTimeout(() => setVisible(true), 16);
+      return () => clearTimeout(t);
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => setMounted(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  if (!mounted) return null;
+
+  const {
+    todayCount = 0,
+    dailyGoal  = 10,
+    streakDays = 0,
+    weeklyDays = 0,
+    weeklyGoal = 6,
+    weekGrid   = [],
+    dailyCountMap = {},
+  } = challengeStats || {};
+
+  const todayPct = Math.min(1, todayCount / Math.max(1, dailyGoal));
+  const todayDone = todayCount >= dailyGoal;
+  const todayOnTrack = !todayDone && todayCount >= Math.ceil(dailyGoal / 2);
+  const streakDone = streakDays >= 3;
+  const weekDone = weeklyDays >= weeklyGoal;
+
+  // 3 cells: day-before-yesterday, yesterday, today
+  const DAY_FULL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const threeDays = [2, 1, 0].map(daysAgo => {
+    const ts  = Date.now() - daysAgo * 86400000;
+    const k   = dayKey(ts);
+    const d   = new Date(ts);
+    const cnt = dailyCountMap?.[k] || 0;
+    const met = cnt >= dailyGoal;
+    return {
+      key: k,
+      label: daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : DAY_FULL[d.getDay()],
+      dayLetter: DAY_FULL[d.getDay()].slice(0, 1),
+      cnt,
+      met,
+      isToday: daysAgo === 0,
+    };
+  });
+
+  // Motivational message
+  const getMotivation = () => {
+    if (weekDone) return { emoji: '🏆', text: 'You nailed the weekly challenge. You\'re a Savvy reader!' };
+    if (streakDone && todayDone) return { emoji: '🔥', text: 'On fire! Keep the streak alive tomorrow.' };
+    if (todayDone) return { emoji: '✅', text: `Goal done! Read ${weeklyGoal - weeklyDays} more day${weeklyGoal - weeklyDays !== 1 ? 's' : ''} this week to earn Savvy.` };
+    if (streakDays > 0) return { emoji: '⚡', text: `${streakDays}-day streak! Read ${dailyGoal - todayCount} more ${dailyGoal - todayCount === 1 ? 'story' : 'stories'} today to extend it.` };
+    if (todayCount > 0) return { emoji: '📖', text: `${dailyGoal - todayCount} more stories to hit today's goal. You're getting there!` };
+    return { emoji: '🌅', text: `Start with ${dailyGoal} stories today to kick off your streak.` };
+  };
+  const motivation = getMotivation();
+
+  // Arc SVG for the daily ring (in the sheet)
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * todayPct;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          zIndex: 400,
+          opacity: visible ? 1 : 0,
+          transition: 'opacity 0.32s ease',
+        }}
+      />
+
+      {/* Sheet */}
+      <div
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0,
+          zIndex: 401,
+          background: 'linear-gradient(180deg, #111127 0%, #0a0a15 100%)',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -8px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 1.5rem)',
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
+        }}
+      >
+        {/* Sticky header */}
+        <div style={{
+          padding: '0.65rem 1.25rem 0',
+          position: 'sticky', top: 0,
+          background: 'linear-gradient(180deg, #111127 0%, #111127cc 100%)',
+          backdropFilter: 'blur(12px)',
+          zIndex: 1,
+        }}>
+          {/* Drag handle */}
+          <div style={{
+            width: '36px', height: '4px', borderRadius: '2px',
+            background: 'rgba(255,255,255,0.14)', margin: '0 auto 0.85rem',
+          }} />
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', marginBottom: '1rem',
+          }}>
+            <div>
+              <span style={{
+                fontSize: '1.05rem', fontWeight: '900', color: '#fff',
+                letterSpacing: '-0.025em',
+              }}>
+                Your Challenges
+              </span>
+              <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', fontWeight: '500' }}>
+                Build a daily reading habit
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                border: 'none', borderRadius: '50%', cursor: 'pointer',
+                width: 32, height: 32,
+                background: 'rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(255,255,255,0.5)',
+                flexShrink: 0,
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '0 1rem 0.5rem' }}>
+
+          {/* ── Card 1: Daily Goal ─────────────────────────────────────────── */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '20px',
+            padding: '1.1rem',
+            marginBottom: '0.75rem',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Subtle purple glow */}
+            <div style={{
+              position: 'absolute', top: -30, right: -30,
+              width: 120, height: 120, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
+              <div>
+                <SheetSectionLabel>Challenge 1</SheetSectionLabel>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+                  <LightbulbIcon size={14} color={todayDone ? AWARDS[0].color : 'rgba(255,255,255,0.7)'} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
+                    Daily Goal
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+                  Read {dailyGoal} stories today to earn the{' '}
+                  <span style={{ color: AWARDS[0].color, fontWeight: '700' }}>Informed</span> badge
+                </p>
+              </div>
+              <StatusBadge done={todayDone} onTrack={todayOnTrack} />
+            </div>
+
+            {/* Ring + count */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
+              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+                <svg width={96} height={96} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
+                  <defs>
+                    <linearGradient id="sheet-daily-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#ec4899" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx={48} cy={48} r={r} fill="none" stroke="rgba(99,102,241,0.14)" strokeWidth={7} />
+                  {dash > 0 && (
+                    <circle cx={48} cy={48} r={r} fill="none" stroke="url(#sheet-daily-grad)" strokeWidth={7}
+                      strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+                  )}
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                    {todayCount}
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>of {dailyGoal}</span>
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', marginBottom: '0.6rem' }}>
+                  {todayDone
+                    ? `All ${todayCount} stories read today! ${todayCount > dailyGoal ? `+${todayCount - dailyGoal} bonus` : ''}`
+                    : `${dailyGoal - todayCount} more ${dailyGoal - todayCount === 1 ? 'story' : 'stories'} to go`}
+                </div>
+                {/* Story dots progress */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                  {Array.from({ length: dailyGoal }, (_, i) => (
+                    <div key={i} style={{
+                      width: '10px', height: '10px', borderRadius: '3px',
+                      background: i < todayCount
+                        ? `linear-gradient(135deg, #6366f1, #ec4899)`
+                        : 'rgba(255,255,255,0.1)',
+                      transition: 'background 0.2s',
+                    }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Card 2: 3-Day Streak ───────────────────────────────────────── */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '20px',
+            padding: '1.1rem',
+            marginBottom: '0.75rem',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', top: -30, left: -30,
+              width: 120, height: 120, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
+              <div>
+                <SheetSectionLabel>Challenge 2</SheetSectionLabel>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+                  <LightningIcon size={13} color={streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.7)'} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
+                    3-Day Streak
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+                  Hit your daily goal 3 days running to earn the{' '}
+                  <span style={{ color: AWARDS[1].color, fontWeight: '700' }}>Sharp</span> badge
+                </p>
+              </div>
+              {streakDone
+                ? <StatusBadge done={true} onTrack={false} />
+                : streakDays > 0
+                  ? <StatusBadge done={false} onTrack={true} />
+                  : <StatusBadge done={false} onTrack={false} />
+              }
+            </div>
+
+            {/* 3 day cells */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.8rem' }}>
+              {threeDays.map(day => {
+                const cellDone = day.met;
+                const cellActive = day.isToday && !cellDone && day.cnt > 0;
+                const borderColor = cellDone
+                  ? 'rgba(148,163,184,0.4)'
+                  : day.isToday
+                    ? 'rgba(99,102,241,0.4)'
+                    : 'rgba(255,255,255,0.08)';
+                const bg = cellDone
+                  ? 'linear-gradient(145deg, #1e3a5f, #1e293b)'
+                  : day.isToday
+                    ? 'rgba(99,102,241,0.1)'
+                    : 'rgba(255,255,255,0.03)';
+
+                return (
+                  <div key={day.key} style={{
+                    flex: 1,
+                    background: bg,
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '14px',
+                    padding: '0.8rem 0.5rem',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: '5px',
+                  }}>
+                    <span style={{
+                      fontSize: '0.6rem', fontWeight: '800',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      color: day.isToday ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
+                    }}>
+                      {day.label}
+                    </span>
+
+                    {/* Check or count */}
+                    {cellDone ? (
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: 'rgba(148,163,184,0.2)',
+                        border: `1.5px solid ${AWARDS[1].color}60`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                          <path d="M3 8l4 4 6-7" stroke={AWARDS[1].color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        background: day.isToday ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: day.isToday ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px dashed rgba(255,255,255,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {day.cnt > 0 ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: '900', color: '#a5b4fc' }}>{day.cnt}</span>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.18)' }}>—</span>
+                        )}
+                      </div>
+                    )}
+
+                    <span style={{
+                      fontSize: '0.58rem', fontWeight: '700',
+                      color: cellDone ? AWARDS[1].color : day.cnt > 0 ? '#a5b4fc' : 'rgba(255,255,255,0.2)',
+                    }}>
+                      {cellDone ? `${day.cnt} ✓` : day.cnt > 0 ? `${day.cnt}/${dailyGoal}` : 'No reads'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Current streak indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: '2px',
+                  width: `${Math.min(100, (streakDays / 3) * 100)}%`,
+                  background: streakDone ? `linear-gradient(90deg, #2563eb, ${AWARDS[1].color})` : 'rgba(99,102,241,0.6)',
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+              <span style={{ fontSize: '0.65rem', fontWeight: '800', color: streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                {streakDays} / 3 days
+              </span>
+            </div>
+          </div>
+
+          {/* ── Card 3: Weekly Challenge ───────────────────────────────────── */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '20px',
+            padding: '1.1rem',
+            marginBottom: '0.75rem',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', top: -30, right: -10,
+              width: 120, height: 120, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
+              <div>
+                <SheetSectionLabel>Challenge 3</SheetSectionLabel>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+                  <StarIcon size={14} color={weekDone ? AWARDS[2].color : 'rgba(255,255,255,0.7)'} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
+                    Weekly Goal
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+                  Reach your daily goal on {weeklyGoal} of 7 days to earn the{' '}
+                  <span style={{ color: AWARDS[2].color, fontWeight: '700' }}>Savvy</span> badge
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: '900', color: weekDone ? AWARDS[2].color : '#fff', letterSpacing: '-0.04em' }}>
+                  {weeklyDays}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>/ {weeklyGoal}</span>
+              </div>
+            </div>
+
+            {/* 7-day grid */}
+            <div style={{ display: 'flex', gap: '5px', marginBottom: '0.75rem' }}>
+              {weekGrid.map(day => {
+                const bg = day.met
+                  ? 'linear-gradient(145deg, #78350f, #d97706)'
+                  : day.count > 0
+                    ? 'rgba(245,158,11,0.15)'
+                    : 'rgba(255,255,255,0.05)';
+                const border = day.isToday
+                  ? '1.5px solid rgba(99,102,241,0.6)'
+                  : day.met
+                    ? '1px solid rgba(245,158,11,0.35)'
+                    : '1px solid rgba(255,255,255,0.07)';
+
+                return (
+                  <div key={day.key} style={{
+                    flex: 1, height: 52, borderRadius: '10px',
+                    background: bg, border,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '3px',
+                  }}>
+                    <span style={{
+                      fontSize: '0.55rem', fontWeight: '800',
+                      letterSpacing: '0.05em',
+                      color: day.met ? '#fef3c7' : day.isToday ? '#a5b4fc' : 'rgba(255,255,255,0.3)',
+                    }}>
+                      {day.day}
+                    </span>
+                    {day.met ? (
+                      <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="#fef3c7" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : day.count > 0 ? (
+                      <span style={{ fontSize: '0.55rem', fontWeight: '900', color: '#fbbf24' }}>{day.count}</span>
+                    ) : (
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {[
+                { color: '#d97706', label: 'Goal met' },
+                { color: 'rgba(245,158,11,0.3)', label: 'Partial', border: '1px solid rgba(245,158,11,0.4)' },
+                { color: 'rgba(255,255,255,0.06)', label: 'No reads', border: '1px solid rgba(255,255,255,0.1)' },
+              ].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '3px', background: l.color, border: l.border }} />
+                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Motivation / Tip card ──────────────────────────────────────── */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(236,72,153,0.07) 100%)',
+            border: '1px solid rgba(99,102,241,0.2)',
+            borderRadius: '16px',
+            padding: '1rem 1.1rem',
+            display: 'flex', alignItems: 'flex-start', gap: '10px',
+          }}>
+            <span style={{ fontSize: '1.3rem', lineHeight: 1.2, flexShrink: 0 }}>{motivation.emoji}</span>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '700', color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
+                {motivation.text}
+              </p>
+              <p style={{ margin: '5px 0 0', fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
+                Tip: Reading stories in different categories builds broader awareness.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -406,14 +887,12 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const topAward = getHighestAward(stats);
 
   // Detect when a new (higher) award is earned and fire the toast once per session
-  // (runs only for signed-in users since topAward will be null for guests but hook still runs)
   useEffect(() => {
     if (!user || !topAward) return;
     const stored = (() => { try { return localStorage.getItem(LS_KEY); } catch { return null; } })();
     const storedIdx = AWARDS.findIndex(a => a.id === stored);
     const curIdx    = AWARDS.findIndex(a => a.id === topAward.id);
     if (curIdx > storedIdx) {
-      // New higher rank earned — show toast and persist
       try { localStorage.setItem(LS_KEY, topAward.id); } catch {}
       if (prevAwardId.current !== topAward.id) {
         setToastAward(topAward);
@@ -423,7 +902,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
     prevAwardId.current = topAward?.id ?? null;
   }, [topAward?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Guest: render promo card (hooks are all declared above)
+  // Guest: render promo card
   if (!user) return <GuestPromo onShowAuth={onShowAuth} />;
 
   const todayPct  = todayCount / Math.max(1, dailyGoal);
@@ -434,7 +913,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const streakLeft = Math.max(0, 3 - Math.min(3, streakDays));
   const weekLeft   = Math.max(0, weeklyGoal - weeklyDays);
 
-  // Award-coloured icon when the ring's challenge is complete
   const todayDone  = todayCount >= dailyGoal;
   const streakDone = streakDays >= 3;
   const weekDone   = weeklyDays >= weeklyGoal;
@@ -442,11 +920,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const todayIconColor  = todayDone  ? AWARDS[0].color : 'rgba(255,255,255,0.72)';
   const streakIconColor = streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.72)';
   const weekIconColor   = weekDone   ? AWARDS[2].color : 'rgba(255,255,255,0.72)';
-
-  // detail sheet
-  const pct  = todayPct;
-  const done = todayCount >= dailyGoal;
-  const overGoal = todayCount > dailyGoal ? todayCount - dailyGoal : 0;
 
   return (
     <>
@@ -539,119 +1012,11 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
       )}
 
       {/* ── Detail bottom sheet ───────────────────────────────────────────── */}
-      {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300 }}
-          />
-          <div style={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 301,
-            background: '#fff', borderRadius: '24px 24px 0 0',
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-            paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 1.5rem)',
-            maxHeight: '82vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
-          }}>
-            {/* Handle + header */}
-            <div style={{ padding: '0.65rem 1.25rem 0', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
-              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(0,0,0,0.1)', margin: '0 auto 0.9rem' }} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>
-                  Daily Challenge
-                </span>
-                <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#8a8a9a', padding: '2px' }}>
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: '0 1.25rem 0.5rem' }}>
-
-              {/* Daily Goal card */}
-              <div style={{ background: 'linear-gradient(135deg, #18182a, #1e1b35)', borderRadius: '18px', padding: '1.1rem', marginBottom: '1rem' }}>
-                <p style={{ margin: '0 0 0.9rem', fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)' }}>
-                  Daily Goal
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                  <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
-                    <svg width={64} height={64} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
-                      <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(124,58,237,0.2)" strokeWidth={5} />
-                      <circle cx={32} cy={32} r={26} fill="none" stroke="#7c3aed" strokeWidth={5}
-                        strokeDasharray={`${2 * Math.PI * 26 * pct} ${2 * Math.PI * 26}`} strokeLinecap="round" />
-                    </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.03em' }}>
-                        {Math.round(pct * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                      {todayCount}
-                      <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.35)', fontWeight: '600' }}> / {dailyGoal}</span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
-                      {done ? (overGoal > 0 ? `+${overGoal} bonus` : 'Goal reached!') : `${dailyGoal - todayCount} to go`}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '3px' }}>
-                  {Array.from({ length: Math.min(dailyGoal, 20) }, (_, i) => (
-                    <div key={i} style={{ flex: 1, height: '8px', borderRadius: '3px', background: i < todayCount ? '#7c3aed' : 'rgba(255,255,255,0.12)' }} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Streak card */}
-              <div style={{
-                background: streakDays >= 3 ? 'linear-gradient(135deg,#431407,#7c2d12)' : '#f5f5f7',
-                borderRadius: '16px', padding: '1rem', marginBottom: '1rem',
-                border: streakDays >= 3 ? 'none' : '1px solid rgba(0,0,0,0.08)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
-                  <LightningIcon size={18} color={streakDays >= 3 ? '#fb923c' : '#d97706'} />
-                  <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: streakDays >= 3 ? '#fed7aa' : '#0a0a0f' }}>
-                      {streakDays}-day streak
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: streakDays >= 3 ? 'rgba(253,186,116,0.6)' : '#8a8a9a' }}>
-                      {streakDays >= 3 ? 'On fire — keep it going!' : streakDays > 0 ? 'Building momentum…' : 'Hit your goal today to start!'}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{ flex: 1, height: '6px', borderRadius: '3px', background: i < streakDays ? '#f97316' : streakDays >= 3 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Weekly goal card */}
-              <div style={{ background: '#f5f5f7', borderRadius: '16px', padding: '1rem', border: '1px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0a0a0f' }}>Weekly Goal</div>
-                    <div style={{ fontSize: '0.68rem', color: '#8a8a9a' }}>{weeklyGoal} of 7 days</div>
-                  </div>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '900', color: weeklyDays >= weeklyGoal ? '#16a34a' : '#7c3aed', letterSpacing: '-0.03em' }}>
-                    {weeklyDays} <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8a8a9a' }}>/ {weeklyGoal}</span>
-                  </span>
-                </div>
-                {weekGrid.length > 0 && <WeekRow weekGrid={weekGrid} />}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                  {[{ color: '#16a34a', label: 'Goal met' }, { color: '#d97706', label: 'Partial' }, { color: 'rgba(0,0,0,0.08)', label: 'None' }].map(l => (
-                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: l.color }} />
-                      <span style={{ fontSize: '0.58rem', color: '#8a8a9a', fontWeight: '600' }}>{l.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </>
-      )}
+      <ChallengeSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        challengeStats={challengeStats}
+      />
     </>
   );
 }

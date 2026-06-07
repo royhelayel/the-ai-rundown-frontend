@@ -187,8 +187,8 @@ const TheAIRundown = () => {
     localStorage.setItem('rundown_daily_goal', String(g));
   };
   const challengeStats = useMemo(
-    () => computeChallengeStats(listenHistory, dailyGoal),
-    [listenHistory, dailyGoal]
+    () => computeChallengeStats(listenHistory, dailyGoal, selectedDay || null),
+    [listenHistory, dailyGoal, selectedDay]
   );
 
   // ── Saved / Important stories ─────────────────────────────────────────────

@@ -166,8 +166,10 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
 
 // ── Challenge stats (daily goal, streak, weekly) ─────────────────────────────
 
-export function computeChallengeStats(history, dailyGoal = 10) {
-  const today = dayKey(Date.now());
+export function computeChallengeStats(history, dailyGoal = 10, referenceDate = null) {
+  // referenceDate = the content date currently being viewed (selectedDay).
+  // Reads are stored under the content date, so we count against that same date.
+  const today = referenceDate || dayKey(Date.now());
 
   // Count unique (category, storyIndex) pairs per content-day.
   // Use h.date (content date) when present; fall back to dayKey(h.timestamp) for old entries.

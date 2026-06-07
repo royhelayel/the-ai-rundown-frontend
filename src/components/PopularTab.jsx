@@ -36,14 +36,21 @@ export default function PopularTab({
   const [selectedCat, setSelectedCat] = useState(null);
   const [scope, setScope] = useState('everyone'); // 'everyone' | 'circle'
 
-  // Flatten all stories across all categories
+  // Flatten all stories across all categories.
+  // listenCount = stored count OR 1 if the current user has read the story today
+  // (gamifiedStats fallback ensures reads always surface even if listenCounts
+  //  was not populated — e.g. reads that predate this feature).
   const allStories = [];
   defaultCategories.forEach(cat => {
     const d = briefingData[cat];
     if (!d?.allStories?.length) return;
+    const readToday = gamifiedStats?.todayProgress?.[cat]?.listenedIndices;
     d.allStories.forEach((story, idx) => {
       const key = headlineKey(story.headline);
-      allStories.push({ ...story, category: cat, storyIndex: idx, listenCount: listenCounts[key] || 0 });
+      const stored = listenCounts[key] || 0;
+      const userRead = readToday?.has(idx) ? 1 : 0;
+      const listenCount = Math.max(stored, userRead);
+      allStories.push({ ...story, category: cat, storyIndex: idx, listenCount });
     });
   });
 

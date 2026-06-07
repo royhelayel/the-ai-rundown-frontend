@@ -169,8 +169,8 @@ export default function ImportantTab({
         )}
       </div>
 
-      {/* My Saves | Circle | Per Person — only shown for signed-in users following someone */}
-      {user && hasCircleData && (
+      {/* My Saves | Circle | Per Person — shown to all signed-in users */}
+      {user && (
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 12px' }}>
           <div style={{ display: 'inline-flex', background: light.bgSub, borderRadius: '10px', padding: '3px', gap: '2px' }}>
             {tabs.map(tab => (
@@ -306,13 +306,30 @@ export default function ImportantTab({
 
         {/* Circle / Per Person empty state */}
         {(scope === 'circle' || scope === 'person') && filtered.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4rem 2rem', gap: '1rem', textAlign: 'center' }}>
-            <Users size={36} color={light.textMuted} />
-            <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
-              {scope === 'person' && selectedPerson
-                ? `${selectedPerson.display_name || selectedPerson.username} hasn't saved anything yet.`
-                : 'No one in your circle has saved anything yet.'}
-            </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3.5rem 2rem', gap: '1rem', textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={24} color={light.textMuted} />
+            </div>
+            <div>
+              {!hasCircleData ? (
+                <>
+                  <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem', fontWeight: '800', color: light.text }}>
+                    Build your circle
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.55, maxWidth: 260 }}>
+                    Follow other readers to see the stories they're saving here.
+                  </p>
+                </>
+              ) : scope === 'person' && selectedPerson ? (
+                <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
+                  {selectedPerson.display_name || selectedPerson.username} hasn't saved anything yet.
+                </p>
+              ) : (
+                <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
+                  No one in your circle has saved anything yet.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

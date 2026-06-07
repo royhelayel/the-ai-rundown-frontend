@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Play, Users, UserCircle, Search, X, UserPlus, Check } from 'lucide-react';
+import { Bookmark, Play, Users, Search, X, UserPlus, Check } from 'lucide-react';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
@@ -301,15 +301,15 @@ export default function ImportantTab({
     return { ...base, savers: item.savers || [] };
   });
 
-  // === Per Person ===
-  // Group circle saves by saver, then filter if a person is selected
+  // === Following view ===
+  // When a person is selected, filter circle saves to that person's saves only
   const peopleInCircle = following; // [{ id, username, display_name, avatar_color }]
-  const perPersonStories = selectedPerson
+  const followingList = selectedPerson
     ? circleEnriched.filter(s => s.savers.some(sv => sv.id === selectedPerson.id))
     : circleEnriched;
 
   // Determine active list for category filter
-  const activeList = scope === 'mine' ? enriched : scope === 'circle' ? circleEnriched : perPersonStories;
+  const activeList = scope === 'mine' ? enriched : followingList;
   const cats = [...new Set(activeList.map(s => s.category))];
   const filtered = selectedCat ? activeList.filter(s => s.category === selectedCat) : activeList;
 
@@ -325,10 +325,10 @@ export default function ImportantTab({
     });
   };
 
+  // Two main tabs — Following first, My Interest second
   const tabs = [
-    { id: 'mine',   label: 'My Saves',   icon: <Bookmark size={12} /> },
-    { id: 'circle', label: 'Circle',     icon: <Users size={12} /> },
-    { id: 'person', label: 'Per Person', icon: <UserCircle size={12} /> },
+    { id: 'circle', label: 'Following',   icon: <Users size={12} /> },
+    { id: 'mine',   label: 'My Interest', icon: <Bookmark size={12} /> },
   ];
 
   return (
@@ -376,17 +376,18 @@ export default function ImportantTab({
         )}
       </div>
 
-      {/* My Saves | Circle | Per Person — shown to all signed-in users */}
+      {/* Following | My Interest tabs + detached Follow button */}
       {user && (
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 12px' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Main tab pill */}
           <div style={{ display: 'inline-flex', background: light.bgSub, borderRadius: '10px', padding: '3px', gap: '2px' }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setScope(tab.id); setSelectedCat(null); }}
+                onClick={() => { setScope(tab.id); setSelectedCat(null); setSelectedPerson(null); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 11px', borderRadius: '8px', border: 'none',
+                  padding: '5px 13px', borderRadius: '8px', border: 'none',
                   background: scope === tab.id ? '#fff' : 'transparent',
                   color: scope === tab.id ? light.text : light.textMuted,
                   fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer',
@@ -398,25 +399,38 @@ export default function ImportantTab({
               </button>
             ))}
           </div>
+
+          {/* Detached Follow button */}
+          <button
+            onClick={() => setShowSearch(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '5px 13px', borderRadius: '8px', border: 'none',
+              background: 'linear-gradient(135deg,#6366f1,#ec4899)',
+              color: '#fff', fontSize: '0.75rem', fontWeight: '800',
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            <UserPlus size={12} /> Follow
+          </button>
         </div>
       )}
 
-      {/* Per Person: people picker row */}
-      {scope === 'person' && (
+      {/* Following: per-person avatar filter row */}
+      {scope === 'circle' && peopleInCircle.length > 0 && (
         <div style={{ overflowX: 'auto', scrollbarWidth: 'none', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px', minWidth: 'max-content', alignItems: 'flex-start' }}>
-            {/* All button — only if there are people to show */}
-            {peopleInCircle.length > 0 && (
-              <button
-                onClick={() => setSelectedPerson(null)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: selectedPerson === null ? light.text : light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${selectedPerson === null ? light.text : light.border}` }}>
-                  <Users size={18} color={selectedPerson === null ? '#fff' : light.textMuted} />
-                </div>
-                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: selectedPerson === null ? light.text : light.textMuted }}>All</span>
-              </button>
-            )}
+            {/* All */}
+            <button
+              onClick={() => setSelectedPerson(null)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: selectedPerson === null ? light.text : light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${selectedPerson === null ? light.text : light.border}` }}>
+                <Users size={16} color={selectedPerson === null ? '#fff' : light.textMuted} />
+              </div>
+              <span style={{ fontSize: '0.6rem', fontWeight: '700', color: selectedPerson === null ? light.text : light.textMuted }}>All</span>
+            </button>
+            {/* Each person */}
             {peopleInCircle.map(person => {
               const isActive = selectedPerson?.id === person.id;
               const initials = (person.display_name || person.username || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -427,31 +441,22 @@ export default function ImportantTab({
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
                 >
                   <div style={{
-                    width: 44, height: 44, borderRadius: '50%',
+                    width: 40, height: 40, borderRadius: '50%',
                     background: person.avatar_color || '#6366f1',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1rem', fontWeight: '800', color: '#fff',
-                    border: `2px solid ${isActive ? (person.avatar_color || '#6366f1') : 'transparent'}`,
-                    opacity: isActive ? 1 : 0.7, transition: 'all 0.15s',
+                    fontSize: '0.9rem', fontWeight: '800', color: '#fff',
+                    border: `2.5px solid ${isActive ? (person.avatar_color || '#6366f1') : 'transparent'}`,
+                    boxShadow: isActive ? `0 0 0 2px ${light.bg}, 0 0 0 4px ${person.avatar_color || '#6366f1'}` : 'none',
+                    opacity: isActive ? 1 : 0.65, transition: 'all 0.15s',
                   }}>
                     {initials}
                   </div>
-                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: isActive ? light.text : light.textMuted, maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: '700', color: isActive ? light.text : light.textMuted, maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {person.display_name || person.username}
                   </span>
                 </button>
               );
             })}
-            {/* Add more people button */}
-            <button
-              onClick={() => setShowSearch(true)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', flexShrink: 0 }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px dashed ${light.border}` }}>
-                <Search size={18} color={light.textMuted} />
-              </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: light.textMuted }}>Find</span>
-            </button>
           </div>
         </div>
       )}
@@ -500,7 +505,7 @@ export default function ImportantTab({
       {/* List */}
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: playerVisible ? '8rem' : '5rem' }}>
 
-        {/* My Saves empty state */}
+        {/* My Interest empty state */}
         {scope === 'mine' && savedStories.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', gap: '1rem', textAlign: 'center' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -520,8 +525,8 @@ export default function ImportantTab({
           </div>
         )}
 
-        {/* Circle / Per Person empty state */}
-        {(scope === 'circle' || scope === 'person') && filtered.length === 0 && (
+        {/* Following empty state */}
+        {scope === 'circle' && filtered.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3.5rem 2rem', gap: '1rem', textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={24} color={light.textMuted} />
@@ -530,30 +535,19 @@ export default function ImportantTab({
               {!hasCircleData ? (
                 <>
                   <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem', fontWeight: '800', color: light.text }}>
-                    Build your circle
+                    Start following readers
                   </h3>
                   <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.55, maxWidth: 260 }}>
-                    Follow other readers to see the stories they're saving here.
+                    See the stories people you follow are saving — tap Follow above to find them.
                   </p>
-                  <button
-                    onClick={() => setShowSearch(true)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      padding: '9px 20px', borderRadius: 999, border: 'none',
-                      background: 'linear-gradient(135deg,#6366f1,#ec4899)',
-                      color: '#fff', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer',
-                    }}
-                  >
-                    <Search size={14} /> Find People
-                  </button>
                 </>
-              ) : scope === 'person' && selectedPerson ? (
+              ) : selectedPerson ? (
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
                   {selectedPerson.display_name || selectedPerson.username} hasn't saved anything yet.
                 </p>
               ) : (
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
-                  No one in your circle has saved anything yet.
+                  No one you follow has saved anything yet.
                 </p>
               )}
             </div>
@@ -567,8 +561,8 @@ export default function ImportantTab({
               const isRead = !!(gamifiedStats.todayProgress?.[item.category]?.listenedIndices?.has(item.storyIndex));
               return (
                 <div key={`${item.category}|${item.storyIndex}`}>
-                  {/* Avatar stack for circle/per-person views */}
-                  {(scope === 'circle' || scope === 'person') && item.savers?.length > 0 && (
+                  {/* Avatar stack for Following view */}
+                  {scope === 'circle' && item.savers?.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px 6px' }}>
                       <AvatarStack savers={item.savers} />
                       <span style={{ fontSize: '0.72rem', color: light.textMuted, fontWeight: '600' }}>
@@ -584,9 +578,7 @@ export default function ImportantTab({
                     isRead={user ? isRead : undefined}
                     savedCount={
                       scope === 'mine'
-                        // My Saves: use saved headline (at save time) for the count key
                         ? (savedCounts[headlineKey(item._savedHeadline || item.headline || '')] || 0)
-                        // Circle / Per Person: savers.length is the circle count
                         : (item.savers?.length || 0)
                     }
                     onRead={() => openStory(item)}

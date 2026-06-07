@@ -94,12 +94,25 @@ export default function StoryCard({
             <style>{`.sc-sources::-webkit-scrollbar { display: none; }`}</style>
             <div className="sc-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 'max-content' }}>
               {sources.map((s, i) => (
-                <span
-                  key={i}
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0 }}
-                >
-                  {s.outlet}
-                </span>
+                s.url ? (
+                  <a
+                    key={i}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}
+                  >
+                    {s.outlet}
+                  </a>
+                ) : (
+                  <span
+                    key={i}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  >
+                    {s.outlet}
+                  </span>
+                )
               ))}
             </div>
           </div>

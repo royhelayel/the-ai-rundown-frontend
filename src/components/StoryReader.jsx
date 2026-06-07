@@ -210,12 +210,14 @@ export default function StoryReader({
             <ChevronDown size={18} />
           </button>
           <div style={{ flex: 1 }} />
-          <button
-            onClick={() => onToggleSaved?.(story, category, storyIndex)}
-            title={isSaved ? 'Remove from Important' : 'Save to Important'}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub, border: `1px solid ${isSaved ? 'rgba(124,58,237,0.3)' : light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isSaved ? '#7c3aed' : light.textMuted, flexShrink: 0 }}>
-            {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-          </button>
+          {user && (
+            <button
+              onClick={() => onToggleSaved?.(story, category, storyIndex)}
+              title={isSaved ? 'Remove from Interesting' : 'Save to Interesting'}
+              style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub, border: `1px solid ${isSaved ? 'rgba(124,58,237,0.3)' : light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isSaved ? '#7c3aed' : light.textMuted, flexShrink: 0 }}>
+              {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+            </button>
+          )}
         </div>
 
         {/* Story progress dots */}
@@ -282,9 +284,11 @@ export default function StoryReader({
           <span style={{ padding: '0.2rem 0.65rem', background: `${color}15`, border: `1px solid ${color}30`, borderRadius: '999px', fontSize: '0.7rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {category}
           </span>
-          <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
-            {isRead ? '✓ Read' : 'Unread'}
-          </span>
+          {user && (
+            <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
+              {isRead ? '✓ Read' : 'Unread'}
+            </span>
+          )}
         </div>
 
         {/* Headline */}
@@ -298,12 +302,25 @@ export default function StoryReader({
             <style>{`.rdr-sources::-webkit-scrollbar { display: none; }`}</style>
             <div className="rdr-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 'max-content' }}>
               {story.storySources.filter(s => s.outlet).map((s, i) => (
-                <span
-                  key={i}
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap' }}
-                >
-                  {s.outlet}
-                </span>
+                s.url ? (
+                  <a
+                    key={i}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap', textDecoration: 'none' }}
+                  >
+                    {s.outlet}
+                  </a>
+                ) : (
+                  <span
+                    key={i}
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', background: 'rgba(0,0,0,0.05)', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap' }}
+                  >
+                    {s.outlet}
+                  </span>
+                )
               ))}
             </div>
           </div>

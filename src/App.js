@@ -16,6 +16,7 @@ import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import ImportantTab from './components/ImportantTab';
 import CustomizeTab from './components/CustomizeTab';
+import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
 import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
@@ -217,6 +218,18 @@ const TheAIRundown = () => {
         ? prev.filter(s => !(s.category === category && s.storyIndex === storyIndex))
         : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }, ...prev];
       try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+      // Sync to Supabase (fire-and-forget)
+      if (exists) {
+        fetch(`${BACKEND_URL}/api/saves/remove`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, headline: story.headline }),
+        }).catch(() => {});
+      } else {
+        fetch(`${BACKEND_URL}/api/saves/sync`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }),
+        }).catch(() => {});
+      }
       // Update distinct saved count (binary: 1 when saved, 0 when removed)
       if (key) setSavedCounts(prevC => {
         const nextC = { ...prevC, [key]: exists ? Math.max(0, (prevC[key] || 0) - 1) : Math.min(1, (prevC[key] || 0) + 1) };
@@ -242,6 +255,11 @@ const TheAIRundown = () => {
       return next;
     });
   };
+
+  // ── Social / Following ──────────────────────────────────────────────────────
+  const [following, setFollowing] = useState([]); // [{ id, username, display_name, avatar_color }]
+  const [circleSaves, setCircleSaves] = useState([]); // saves by people I follow
+  const [circlePopular, setCirclePopular] = useState([]); // popular among circle
 
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
@@ -1031,9 +1049,11 @@ const TheAIRundown = () => {
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
         });
+        // Load social data for returning signed-in user
+        loadSocialData(userData.id);
       }
     } catch (error) { console.error('Init error:', error); }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Once slots have loaded (or change), fix selectedDay/selectedTime if they point at an empty slot.
   useEffect(() => {
@@ -1343,9 +1363,17 @@ const TheAIRundown = () => {
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
         const feed = userProfile.feed_categories || [];
         const dbFeeds = userProfile.user_feeds || null;
+        // Ensure the user has a username (sets one from email if absent)
+        const socialProfile = await fetch(`${BACKEND_URL}/api/social/setup-username`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: authData.user.id, email: authData.user.email }),
+        }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
         const userData = {
           id: authData.user.id,
           email: authData.user.email,
+          username: socialProfile.username || userProfile.username || null,
+          display_name: socialProfile.display_name || userProfile.display_name || null,
+          avatar_color: socialProfile.avatar_color || userProfile.avatar_color || '#6366f1',
           categories,
           emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
           feedCategories: feed,
@@ -1353,6 +1381,8 @@ const TheAIRundown = () => {
         };
         localStorage.setItem('newsdigest_user', JSON.stringify(userData));
         setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
+        // Load social data
+        loadSocialData(authData.user.id);
         setFeedCategories(feed);
         if (dbFeeds) {
           setUserFeeds(dbFeeds);
@@ -1823,6 +1853,25 @@ const TheAIRundown = () => {
     }
   };
 
+  // ── Social helpers ────────────────────────────────────────────────────────────
+  const loadSocialData = (userId) => {
+    if (!userId) return;
+    // Load who I follow
+    fetch(`${BACKEND_URL}/api/social/following?userId=${userId}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        setFollowing(data || []);
+        if (data?.length) {
+          // Load circle saves + circle popular
+          fetch(`${BACKEND_URL}/api/social/circle/saves?userId=${userId}`)
+            .then(r => r.ok ? r.json() : []).then(d => setCircleSaves(d || [])).catch(() => {});
+          fetch(`${BACKEND_URL}/api/social/circle/popular?userId=${userId}`)
+            .then(r => r.ok ? r.json() : []).then(d => setCirclePopular(d || [])).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  };
+
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => {
     if (!user) return; // guests: no history, no popular contribution
@@ -1837,7 +1886,7 @@ const TheAIRundown = () => {
         return next;
       });
     }
-    // Track individual story reads in the backend for read rate analytics (signed-in only)
+    // Track in backend: metrics + social reads table (fire-and-forget)
     if (user) {
       fetch(`${BACKEND_URL}/api/metrics/track`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1847,6 +1896,12 @@ const TheAIRundown = () => {
           metadata: { story_index: idx },
         }),
       }).catch(() => {});
+      if (story?.headline) {
+        fetch(`${BACKEND_URL}/api/reads/sync`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, category: cat, story_index: idx, headline: story.headline }),
+        }).catch(() => {});
+      }
     }
   };
 
@@ -1919,6 +1974,8 @@ const TheAIRundown = () => {
   const isPopularPath   = location.pathname === '/popular';
   const isImportantPath = location.pathname === '/important';
   const isCustomizePath = location.pathname === '/customize';
+  const profileRouteMatch = location.pathname.match(/^\/profile\/([^/]+)$/);
+  const isProfilePath   = !!profileRouteMatch;
   const feedRouteMatch  = location.pathname.match(/^\/feed\/([^/]+)$/);
   const feedIdFromUrl   = feedRouteMatch ? feedRouteMatch[1] : null;
   const isFeedPage      = !!feedRouteMatch;
@@ -1926,7 +1983,7 @@ const TheAIRundown = () => {
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
   const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : null;
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isCustomizePath && !isFeedPage;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isCustomizePath && !isFeedPage && !isProfilePath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
 
@@ -2234,6 +2291,7 @@ const TheAIRundown = () => {
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           challengeStats={challengeStats}
           gamifiedStats={gamifiedStats}
+          circlePopular={circlePopular}
         />
       )}
 
@@ -2250,6 +2308,8 @@ const TheAIRundown = () => {
           playerVisible={playerVisible}
           challengeStats={challengeStats}
           gamifiedStats={gamifiedStats}
+          circleSaves={circleSaves}
+          following={following}
         />
       )}
 
@@ -2263,6 +2323,19 @@ const TheAIRundown = () => {
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
+        />
+      )}
+
+      {isProfilePath && (
+        <ProfilePage
+          username={profileRouteMatch ? profileRouteMatch[1] : ''}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          briefingData={briefingData}
+          onSelectCategory={handleSelectCategory}
+          onPlayStory={handlePlayStory}
+          playerVisible={playerVisible}
+          gamifiedStats={gamifiedStats}
         />
       )}
 
@@ -2286,22 +2359,32 @@ const TheAIRundown = () => {
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Account</h3>
               </div>
               {user ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#0a0a0f' }}>{user.email}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#8a8a9a', marginTop: '0.15rem' }}>Signed in</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {/* Avatar + email row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: user.avatar_color || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: '800', color: '#fff', flexShrink: 0 }}>
+                      {(user.display_name || user.email || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0a0a0f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.display_name || user.email}</div>
+                      {user.username && <div style={{ fontSize: '0.75rem', color: '#8a8a9a', marginTop: '1px' }}>@{user.username}</div>}
+                    </div>
                   </div>
+                  {/* View profile link */}
+                  {user.username && (
+                    <button onClick={() => navigate(`/profile/${user.username}`)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0.5rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
+                      View My Profile
+                    </button>
+                  )}
+                  {/* Sign out */}
                   <button onClick={async () => {
                     await supabase.auth.signOut();
-                    setUser(null);
-                    setUserFeeds([]);
-                    setFeedCategories([]);
-                    setCustomCategories([]);
-                    setCustomCategoryDescriptions({});
-                    localStorage.removeItem('newsdigest_user');
-                    navigate('/');
+                    setUser(null); setUserFeeds([]); setFeedCategories([]); setCustomCategories([]);
+                    setCustomCategoryDescriptions({}); setFollowing([]); setCircleSaves([]); setCirclePopular([]);
+                    localStorage.removeItem('newsdigest_user'); navigate('/');
                   }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#dc2626', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#dc2626', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
                     <LogOut size={14} /> Sign Out
                   </button>
                 </div>

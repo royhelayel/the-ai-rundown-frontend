@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, Users, Globe } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
@@ -29,10 +29,12 @@ export default function PopularTab({
   isNarrating, playerVisible,
   user, onShowAuth,
   challengeStats, gamifiedStats = {},
+  circlePopular = [],
 }) {
   const navigate = useNavigate();
   useScrollRestore('/popular');
   const [selectedCat, setSelectedCat] = useState(null);
+  const [scope, setScope] = useState('everyone'); // 'everyone' | 'circle'
 
   // Flatten all stories across all categories
   const allStories = [];
@@ -48,19 +50,29 @@ export default function PopularTab({
   const hasAnyData    = allStories.length > 0;
   const hasAnyListens = allStories.some(s => s.listenCount > 0);
 
-  // Sort by listenCount desc; show only stories with at least 1 listen
+  // === Everyone view ===
   const sorted = [...allStories]
     .filter(s => s.listenCount > 0)
     .sort((a, b) => b.listenCount - a.listenCount);
 
-  // Unique categories in the popular list
-  const cats = [...new Set(sorted.map(s => s.category))];
-  const filtered = selectedCat ? sorted.filter(s => s.category === selectedCat) : sorted;
+  // === Circle view ===
+  // circlePopular is [{ story_key, category, story_index, circleCount }]
+  const circleStories = circlePopular.map(cp => {
+    const story = briefingData[cp.category]?.allStories?.[cp.story_index];
+    if (!story) return null;
+    return { ...story, category: cp.category, storyIndex: cp.story_index, listenCount: cp.circleCount };
+  }).filter(Boolean);
+
+  const activeList = scope === 'circle' ? circleStories : sorted;
+  const cats = [...new Set(activeList.map(s => s.category))];
+  const filtered = selectedCat ? activeList.filter(s => s.category === selectedCat) : activeList;
 
   const handleStoryClick = (cat, storyIndex) => {
     onSelectCategory(cat);
     navigate(`/category/${encodeURIComponent(cat)}/story/${storyIndex}`, { state: { from: 'popular' } });
   };
+
+  const hasCircle = circlePopular.length > 0;
 
   return (
     <div style={{ background: bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -72,17 +84,18 @@ export default function PopularTab({
         <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
       </div>
 
+      {/* Title row */}
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: '1.55rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1 }}>
           Popular
         </h2>
-        {sorted.length > 0 && (
+        {activeList.length > 0 && (
           <>
             <div className="ai-btn-wrap-read" style={{ flexShrink: 0 }}>
               <button
                 className="ai-btn-inner-white"
                 style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
-                onClick={() => handleStoryClick(sorted[0].category, sorted[0].storyIndex)}
+                onClick={() => handleStoryClick(activeList[0].category, activeList[0].storyIndex)}
               >
                 Read
               </button>
@@ -91,7 +104,7 @@ export default function PopularTab({
               <button
                 className="ai-btn-inner"
                 style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
-                onClick={() => { onSelectCategory(sorted[0].category); onPlayCategory(sorted[0].category); }}
+                onClick={() => { onSelectCategory(activeList[0].category); onPlayCategory(activeList[0].category); }}
               >
                 <Play size={11} fill="white" color="white" />
                 Play
@@ -100,6 +113,34 @@ export default function PopularTab({
           </>
         )}
       </div>
+
+      {/* Everyone | Circle toggle — only shown when the user follows someone */}
+      {user && hasCircle && (
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 12px' }}>
+          <div style={{ display: 'inline-flex', background: light.bgSub, borderRadius: '10px', padding: '3px', gap: '2px' }}>
+            {[
+              { id: 'everyone', label: 'Everyone', icon: <Globe size={13} /> },
+              { id: 'circle',   label: 'Circle',   icon: <Users size={13} /> },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { setScope(tab.id); setSelectedCat(null); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 14px', borderRadius: '8px', border: 'none',
+                  background: scope === tab.id ? '#fff' : 'transparent',
+                  color: scope === tab.id ? light.text : light.textMuted,
+                  fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer',
+                  boxShadow: scope === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {tab.icon}{tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Category filter pills */}
       {cats.length > 1 && !briefingLoading && (
@@ -144,8 +185,18 @@ export default function PopularTab({
 
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 1rem', paddingBottom: playerVisible ? '8rem' : '3.5rem' }}>
 
-        {/* Empty-state banner: no listens yet */}
-        {hasAnyData && !hasAnyListens && (
+        {/* Circle empty state */}
+        {scope === 'circle' && circleStories.length === 0 && (
+          <div style={{ padding: '0.9rem 1.1rem', background: 'rgba(99,102,241,0.06)', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Users size={18} color="#6366f1" />
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#6366f1', fontWeight: '600', lineHeight: 1.45 }}>
+              No one in your circle has read anything yet. Check back later!
+            </p>
+          </div>
+        )}
+
+        {/* Empty-state banner: no listens yet (everyone view) */}
+        {scope === 'everyone' && hasAnyData && !hasAnyListens && (
           <div style={{ padding: '0.9rem 1.1rem', background: `rgba(99,102,241,0.06)`, borderRadius: '12px', border: `1px solid rgba(99,102,241,0.15)`, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{ fontSize: '1.1rem', lineHeight: 1, flexShrink: 0 }}>⏳</span>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#6366f1', fontWeight: '600', lineHeight: 1.45 }}>
@@ -154,7 +205,7 @@ export default function PopularTab({
           </div>
         )}
 
-        {briefingLoading ? (
+        {briefingLoading && scope === 'everyone' ? (
           <SkeletonPopularList count={7} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

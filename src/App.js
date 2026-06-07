@@ -1875,7 +1875,7 @@ const TheAIRundown = () => {
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => {
     if (!user) return; // guests: no history, no popular contribution
-    addToHistory(story, cat, idx, selectedTime || null);
+    addToHistory(story, cat, idx, selectedTime || null, selectedDay || null);
     // Count reads toward Popular rankings (same key used by audio listen counter)
     if (story?.headline) {
       const key = headlineKey(story.headline);

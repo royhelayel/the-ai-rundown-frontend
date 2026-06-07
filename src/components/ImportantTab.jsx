@@ -74,9 +74,13 @@ export default function ImportantTab({
   const [selectedPerson, setSelectedPerson] = useState(null); // { id, username, display_name, avatar_color }
 
   // === My Saves ===
+  // Preserve _savedHeadline (the headline at save time) so the savedCounts key lookup
+  // always matches — briefingData enrichment can replace headline with today's version.
   const enriched = savedStories.map(item => {
     const full = briefingData[item.category]?.allStories?.[item.storyIndex];
-    return full ? { ...full, category: item.category, storyIndex: item.storyIndex } : item;
+    return full
+      ? { ...full, category: item.category, storyIndex: item.storyIndex, _savedHeadline: item.headline }
+      : { ...item, _savedHeadline: item.headline };
   });
 
   // === Circle Saves ===
@@ -333,7 +337,13 @@ export default function ImportantTab({
                     story={item}
                     category={item.category}
                     isRead={user ? isRead : undefined}
-                    savedCount={savedCounts[headlineKey(item.headline || '')] || 0}
+                    savedCount={
+                      scope === 'mine'
+                        // My Saves: use saved headline (at save time) for the count key
+                        ? (savedCounts[headlineKey(item._savedHeadline || item.headline || '')] || 0)
+                        // Circle / Per Person: savers.length is the circle count
+                        : (item.savers?.length || 0)
+                    }
                     onRead={() => openStory(item)}
                     onPlay={() => onPlayStory?.(item.category, item.storyIndex)}
                   />

@@ -44,9 +44,11 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   const perfectSet = new Set(perfectDays || []);
 
   // ── Listened per category for the active day (optionally filtered by time slot) ─
+  // Use h.date (content date) when available; fall back to dayKey(h.timestamp) for old entries.
+  const hDate = (h) => h.date || dayKey(h.timestamp);
   const todayListened = {}; // {[cat]: Set<storyIndex>}
   history.forEach(h => {
-    if (dayKey(h.timestamp) !== activeDay) return;
+    if (hDate(h) !== activeDay) return;
     if (selectedTimeSlot && h.timeSlot && h.timeSlot !== selectedTimeSlot) return;
     if (!todayListened[h.category]) todayListened[h.category] = new Set();
     todayListened[h.category].add(h.storyIndex);
@@ -76,7 +78,7 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
   // Entries with no timeSlot are treated as Morning (backward compat with old data).
   const slotListened = { Morning: {}, Evening: {} };
   history.forEach(h => {
-    if (dayKey(h.timestamp) !== today) return;
+    if (hDate(h) !== today) return;
     if (!feedCategories.includes(h.category)) return;
     const slot = h.timeSlot === 'Evening' ? 'Evening' : 'Morning';
     if (!slotListened[slot][h.category]) slotListened[slot][h.category] = new Set();
@@ -104,7 +106,7 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
 
     const slotStatus = (slot) => {
       const slotEntries = history.filter(h =>
-        dayKey(h.timestamp) === k &&
+        hDate(h) === k &&
         feedCategories.includes(h.category) &&
         (slot === 'Morning' ? (!h.timeSlot || h.timeSlot === 'Morning') : h.timeSlot === 'Evening')
       );
@@ -148,7 +150,7 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
     d.setDate(d.getDate() - 1); // start from yesterday
     for (let i = 0; i < 365; i++) {
       const k = dayKey(d.getTime());
-      if (history.some(h => dayKey(h.timestamp) === k && h.category === cat)) {
+      if (history.some(h => hDate(h) === k && h.category === cat)) {
         streak++;
         d.setDate(d.getDate() - 1);
       } else break;
@@ -167,10 +169,12 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
 export function computeChallengeStats(history, dailyGoal = 10) {
   const today = dayKey(Date.now());
 
-  // Count unique (category, storyIndex) pairs per day
+  // Count unique (category, storyIndex) pairs per content-day.
+  // Use h.date (content date) when present; fall back to dayKey(h.timestamp) for old entries.
+  const hDate2 = (h) => h.date || dayKey(h.timestamp);
   const dailyCounts = {};
   history.forEach(h => {
-    const k = dayKey(h.timestamp);
+    const k = hDate2(h);
     if (!dailyCounts[k]) dailyCounts[k] = new Set();
     dailyCounts[k].add(`${h.category}|${h.storyIndex}`);
   });
@@ -242,7 +246,10 @@ export default function useListenHistory(userId = null) {
     try { setPerfectDays(JSON.parse(localStorage.getItem(perfectKey(userId)) || '[]')); } catch { setPerfectDays([]); }
   }, [userId]);
 
-  const addToHistory = useCallback((story, category, storyIndex, timeSlot = null) => {
+  // contentDate: the calendar date of the content being read (e.g. selectedDay = "2026-06-06").
+  // Reads are attributed to this date so that reading yesterday's briefing today still
+  // counts toward yesterday's streak goal.
+  const addToHistory = useCallback((story, category, storyIndex, timeSlot = null, contentDate = null) => {
     if (!story?.headline || !category) return;
     setHistory(prev => {
       if (prev[0]?.headline === story.headline && prev[0]?.category === category
@@ -254,6 +261,8 @@ export default function useListenHistory(userId = null) {
         storyIndex: storyIndex ?? 0,
         timeSlot: timeSlot || null,
         timestamp: Date.now(),
+        // date = content date; fall back to device date for old callers without contentDate
+        date: contentDate || dayKey(Date.now()),
       };
       const next = [entry, ...prev].slice(0, MAX_HISTORY);
       try { localStorage.setItem(historyKey(userId), JSON.stringify(next)); } catch {}

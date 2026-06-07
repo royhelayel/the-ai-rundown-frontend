@@ -331,9 +331,63 @@ function WeekRow({ weekGrid }) {
   );
 }
 
+// ── Guest sign-in promo card ──────────────────────────────────────────────────
+
+function GuestPromo({ onShowAuth }) {
+  return (
+    <button
+      onClick={onShowAuth}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '14px',
+        margin: '0 16px 12px', width: 'calc(100% - 32px)',
+        background: 'linear-gradient(145deg, #0f0f1e, #181830)',
+        border: 'none', borderRadius: 20,
+        padding: '16px 18px', cursor: 'pointer', textAlign: 'left',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+      }}
+    >
+      {/* Icon */}
+      <div style={{
+        width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="rgba(255,255,255,0.55)" strokeWidth="1.8"
+          strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          <path d="M17 11a4 4 0 0 0 0 8"/>
+        </svg>
+      </div>
+
+      {/* Text */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#fff', marginBottom: '4px', letterSpacing: '-0.01em' }}>
+          Sign In to Track Progress
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+          Customise your feed, complete reading challenges and access popular &amp; interesting stories in your circle.
+        </div>
+      </div>
+
+      {/* CTA chip */}
+      <div style={{
+        padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
+        background: 'linear-gradient(135deg, #6366f1, #ec4899)',
+        color: '#fff', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap',
+      }}>
+        Sign In
+      </div>
+    </button>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export default function ProgressPill({ challengeStats, style = {} }) {
+export default function ProgressPill({ challengeStats, user, onShowAuth, style = {} }) {
+  // All hooks must be called unconditionally before any early return
   const [open, setOpen] = useState(false);
   const [toastAward, setToastAward] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -352,8 +406,9 @@ export default function ProgressPill({ challengeStats, style = {} }) {
   const topAward = getHighestAward(stats);
 
   // Detect when a new (higher) award is earned and fire the toast once per session
+  // (runs only for signed-in users since topAward will be null for guests but hook still runs)
   useEffect(() => {
-    if (!topAward) return;
+    if (!user || !topAward) return;
     const stored = (() => { try { return localStorage.getItem(LS_KEY); } catch { return null; } })();
     const storedIdx = AWARDS.findIndex(a => a.id === stored);
     const curIdx    = AWARDS.findIndex(a => a.id === topAward.id);
@@ -368,13 +423,16 @@ export default function ProgressPill({ challengeStats, style = {} }) {
     prevAwardId.current = topAward?.id ?? null;
   }, [topAward?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Guest: render promo card (hooks are all declared above)
+  if (!user) return <GuestPromo onShowAuth={onShowAuth} />;
+
   const todayPct  = todayCount / Math.max(1, dailyGoal);
   const streakPct = Math.min(streakDays, 3) / 3;
-  const weekPct   = weeklyDays / 7;
+  const weekPct   = weeklyDays / Math.max(1, weeklyGoal);
 
   const todayLeft  = Math.max(0, dailyGoal - todayCount);
   const streakLeft = Math.max(0, 3 - Math.min(3, streakDays));
-  const weekLeft   = Math.max(0, 7 - weeklyDays);
+  const weekLeft   = Math.max(0, weeklyGoal - weeklyDays);
 
   // Award-coloured icon when the ring's challenge is complete
   const todayDone  = todayCount >= dailyGoal;
@@ -444,7 +502,7 @@ export default function ProgressPill({ challengeStats, style = {} }) {
             gradId="cr-week" color0="#b45309" color1="#fbbf24"
             trackColor="rgba(180,83,9,0.18)"
             label="Week"
-            count={weeklyDays} total={7} unit="days"
+            count={weeklyDays} total={weeklyGoal} unit="days"
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
             icon={<StarIcon size={12} color={weekIconColor} />}
           />

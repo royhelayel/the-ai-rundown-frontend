@@ -159,14 +159,13 @@ const TheAIRundown = () => {
   // ── New UI state ──────────────────────────────────────────────────────────────
   const [playerVisible, setPlayerVisible] = useState(false);
   const [playerMinimized, setPlayerMinimized] = useState(false);
+  const [playerContextCategories, setPlayerContextCategories] = useState([]);
   const [miniPlayerDock, setMiniPlayerDock] = useState('bottom'); // 'bottom' | 'top'
   const [fullPlayerExiting, setFullPlayerExiting] = useState(false);
   const playerSourcePath = useRef('/');
 
   // ── Story Reader sheet animation ──────────────────────────────────────────
   const [readerMounted, setReaderMounted] = useState(false);
-  const [readerDragY, setReaderDragY] = useState(0);
-  const readerDragRef = useRef(null);
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
   const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
@@ -194,20 +193,52 @@ const TheAIRundown = () => {
   const [savedStories, setSavedStories] = useState(() => {
     try { return JSON.parse(localStorage.getItem('rundown_saved_stories') || '[]'); } catch { return []; }
   });
+  const [savedCounts, setSavedCounts] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('rundown_saved_counts') || '{}');
+      // Backfill: if counts are missing, seed from saved stories list
+      const savedList = JSON.parse(localStorage.getItem('rundown_saved_stories') || '[]');
+      const merged = { ...stored };
+      savedList.forEach(s => {
+        if (s.headline) {
+          const k = (s.headline || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().slice(0, 50);
+          if (!merged[k]) merged[k] = 1;
+        }
+      });
+      return merged;
+    } catch { return {}; }
+  });
   const handleToggleSaved = (story, category, storyIndex) => {
+    if (!user) { setShowAuth(true); setAuthMode('signin'); return; }
+    const key = headlineKey(story.headline || '');
     setSavedStories(prev => {
       const exists = prev.some(s => s.category === category && s.storyIndex === storyIndex);
       const next = exists
         ? prev.filter(s => !(s.category === category && s.storyIndex === storyIndex))
         : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }, ...prev];
       try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+      // Update distinct saved count (binary: 1 when saved, 0 when removed)
+      if (key) setSavedCounts(prevC => {
+        const nextC = { ...prevC, [key]: exists ? Math.max(0, (prevC[key] || 0) - 1) : Math.min(1, (prevC[key] || 0) + 1) };
+        try { localStorage.setItem('rundown_saved_counts', JSON.stringify(nextC)); } catch {}
+        return nextC;
+      });
       return next;
     });
   };
   const handleRemoveSaved = (category, storyIndex) => {
     setSavedStories(prev => {
+      const item = prev.find(s => s.category === category && s.storyIndex === storyIndex);
       const next = prev.filter(s => !(s.category === category && s.storyIndex === storyIndex));
       try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+      if (item?.headline) {
+        const key = headlineKey(item.headline);
+        setSavedCounts(prevC => {
+          const nextC = { ...prevC, [key]: Math.max(0, (prevC[key] || 0) - 1) };
+          try { localStorage.setItem('rundown_saved_counts', JSON.stringify(nextC)); } catch {}
+          return nextC;
+        });
+      }
       return next;
     });
   };
@@ -558,7 +589,8 @@ const TheAIRundown = () => {
           const key = headlineKey(currentNarratingStoryRef.current.headline);
           if (key) {
             setListenCounts(prev => {
-              const next = { ...prev, [key]: (prev[key] || 0) + 1 };
+              if (prev[key]) return prev; // already counted this user
+              const next = { ...prev, [key]: 1 };
               localStorage.setItem('rundown_listen_counts', JSON.stringify(next));
               return next;
             });
@@ -771,6 +803,10 @@ const TheAIRundown = () => {
 
   const startNarration = () => {
     if (isNarrating) { narrateFnRef.current.stop(); return; }
+    const ctxCats = location.pathname === '/my-feed'
+      ? feedCategories
+      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+    setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true;
     st.pendingLoad = false;
@@ -796,22 +832,6 @@ const TheAIRundown = () => {
     else setReaderMounted(false);
   }, [isStoryViewForEffect]);
 
-  const onReaderTouchStart = (e) => {
-    readerDragRef.current = { startY: e.touches[0].clientY, dragging: true };
-    setReaderDragY(0);
-  };
-  const onReaderTouchMove = (e) => {
-    if (!readerDragRef.current?.dragging) return;
-    const dy = e.touches[0].clientY - readerDragRef.current.startY;
-    if (dy > 0) setReaderDragY(dy);
-    else setReaderDragY(0);
-  };
-  const onReaderTouchEnd = (goBackFn) => {
-    if (!readerDragRef.current?.dragging) return;
-    readerDragRef.current.dragging = false;
-    if (readerDragY > 80) goBackFn();
-    else setReaderDragY(0);
-  };
 
   // ── Heartbeat — "on the website right now" counter ───────────────────────
   // Fires immediately on every page load (guest or signed-in) and every 60s.
@@ -1706,6 +1726,10 @@ const TheAIRundown = () => {
   const onPlayFrom = (idx) => {
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
+    const ctxCats = location.pathname === '/my-feed'
+      ? feedCategories
+      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+    setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.pendingLoad = false; st.audio = null; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1734,6 +1758,7 @@ const TheAIRundown = () => {
     const startIdx = getResumeIndex(firstCat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
+    setPlayerContextCategories(defaultCategories);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1754,6 +1779,11 @@ const TheAIRundown = () => {
     const startIdx = getResumeIndex(cat);
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
+    // Use the feed/context categories matching where the user played from
+    const ctxCats = location.pathname === '/my-feed'
+      ? feedCategories
+      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+    setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1773,6 +1803,10 @@ const TheAIRundown = () => {
   const handlePlayStory = (cat, idx) => {
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
+    const ctxCats = location.pathname === '/my-feed'
+      ? feedCategories
+      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+    setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1791,12 +1825,14 @@ const TheAIRundown = () => {
 
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => {
+    if (!user) return; // guests: no history, no popular contribution
     addToHistory(story, cat, idx, selectedTime || null);
     // Count reads toward Popular rankings (same key used by audio listen counter)
     if (story?.headline) {
       const key = headlineKey(story.headline);
       setListenCounts(prev => {
-        const next = { ...prev, [key]: (prev[key] || 0) + 1 };
+        if (prev[key]) return prev; // already counted this user
+        const next = { ...prev, [key]: 1 };
         try { localStorage.setItem('rundown_listen_counts', JSON.stringify(next)); } catch {}
         return next;
       });
@@ -1836,6 +1872,7 @@ const TheAIRundown = () => {
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable;
+    setPlayerContextCategories(playable);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -1860,6 +1897,7 @@ const TheAIRundown = () => {
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable; // restrict narration to feed categories only
+    setPlayerContextCategories(playable);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
@@ -2202,6 +2240,7 @@ const TheAIRundown = () => {
       {(isImportantPath || showImportantBg) && (
         <ImportantTab
           savedStories={savedStories}
+          savedCounts={savedCounts}
           briefingData={briefingData}
           onRemoveSaved={handleRemoveSaved}
           onSelectCategory={handleSelectCategory}
@@ -2288,6 +2327,7 @@ const TheAIRundown = () => {
                 </div>
               </div>
             </div>
+            {user && (
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -2306,6 +2346,7 @@ const TheAIRundown = () => {
                 </div>
               </div>
             </div>
+            )}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -2321,80 +2362,62 @@ const TheAIRundown = () => {
                 </div>
               </div>
             </div>
+            {user && (
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My Rundown</h3>
-                </div>
-                {!user ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', padding: '0.75rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px' }}>
-                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
-                    <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0a0a0f', marginBottom: '2px' }}>Sign in to personalise your feed</div>
-                      <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Tap to add or remove. Numbers show story order.</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {defaultCategories.map(cat => {
-                        const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
-                        const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
-                        return (
-                          <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : '#0a0a0f', border: `1.5px solid ${isSel ? color : 'rgba(0,0,0,0.08)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
-                            {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
-                            {cat}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My Rundown</h3>
               </div>
+              <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Tap to add or remove. Numbers show story order.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {defaultCategories.map(cat => {
+                  const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
+                  const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
+                  return (
+                    <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : '#0a0a0f', border: `1.5px solid ${isSel ? color : 'rgba(0,0,0,0.08)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+                      {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            )}
+            {user && (
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                  <Mail size={18} color="#8a8a9a" />
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Email Digest</h3>
-                </div>
-                {!user ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px' }}>
-                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔒</span>
-                    <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0a0a0f', marginBottom: '2px' }}>Sign in to set up email digests</div>
-                      <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Sign in →</button>
-                    </div>
-                  </div>
-                ) : (<>
-                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
-                  {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
-                    const active = (emailPreferences.categories || []).includes(cat);
-                    return (
-                      <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : '#0a0a0f', border: `1.5px solid ${active ? color : 'rgba(0,0,0,0.08)'}`, borderRadius: '999px', cursor: 'pointer' }}>
-                        {cat === 'My Rundown' ? '★ My Rundown' : cat}
-                      </button>
-                    );
-                  })}
-                </div>
-                <hr style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0 0 1rem' }} />
-                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
-                  {timesOfDay.map(time => {
-                    const slotKey = time.value.toLowerCase(); const isEnabled = !!emailPreferences[slotKey];
-                    return (
-                      <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.06)' : '#f5f5f7', border: `1.5px solid ${isEnabled ? '#6366f1' : 'rgba(0,0,0,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0a0a0f' }}>{time.label}</div>
-                          <div style={{ fontSize: '0.73rem', color: '#8a8a9a' }}>{time.time}</div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                </>)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
+                <Mail size={18} color="#8a8a9a" />
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Email Digest</h3>
               </div>
+              <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
+                {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
+                  const active = (emailPreferences.categories || []).includes(cat);
+                  return (
+                    <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : '#0a0a0f', border: `1.5px solid ${active ? color : 'rgba(0,0,0,0.08)'}`, borderRadius: '999px', cursor: 'pointer' }}>
+                      {cat === 'My Rundown' ? '★ My Rundown' : cat}
+                    </button>
+                  );
+                })}
+              </div>
+              <hr style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0 0 1rem' }} />
+              <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
+                {timesOfDay.map(time => {
+                  const slotKey = time.value.toLowerCase(); const isEnabled = !!emailPreferences[slotKey];
+                  return (
+                    <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.06)' : '#f5f5f7', border: `1.5px solid ${isEnabled ? '#6366f1' : 'rgba(0,0,0,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0a0a0f' }}>{time.label}</div>
+                        <div style={{ fontSize: '0.73rem', color: '#8a8a9a' }}>{time.time}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            )}
             </div>
         </main>
       )}
@@ -2430,6 +2453,14 @@ const TheAIRundown = () => {
             if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(idx); }
             else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
           }}
+          contextCategories={playerContextCategories}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            setStoryIndex(0);
+            setNarrationProgress(0);
+            narrationDurationRef.current = 0;
+            if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(0); }
+          }}
         />
       )}
       </div>{/* end .main-content-offset */}
@@ -2450,7 +2481,7 @@ const TheAIRundown = () => {
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
           dockPosition={miniPlayerDock}
           onDockChange={setMiniPlayerDock}
-          bottomOffset={showBottomNav && typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 0}
+          bottomOffset={isStoryView ? 56 : (showBottomNav && typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 0)}
           topOffset={0}
         />
       )}
@@ -2507,7 +2538,7 @@ const TheAIRundown = () => {
           else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
           else navigate('/');
         };
-        const readerTranslateY = readerMounted ? (readerDragY || 0) + 'px' : '100%';
+        const readerTranslateY = readerMounted ? '0px' : '100%';
         const contextCats = (() => {
           const from = location.state?.from;
           if (typeof from === 'string' && from.startsWith('/feed/')) {
@@ -2531,20 +2562,11 @@ const TheAIRundown = () => {
                 width: '100%', maxWidth: '560px', height: '100dvh',
                 background: '#ffffff', borderRadius: '20px 20px 0 0',
                 transform: `translateX(-50%) translateY(${readerTranslateY})`,
-                transition: readerDragY === 0 ? 'transform 0.38s cubic-bezier(0.32,0.72,0,1)' : 'none',
+                transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
                 willChange: 'transform',
               }}
             >
-              {/* Drag handle — pill only, touch-to-dismiss */}
-              <div
-                onTouchStart={onReaderTouchStart}
-                onTouchMove={onReaderTouchMove}
-                onTouchEnd={() => onReaderTouchEnd(readerGoBack)}
-                style={{ padding: '10px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'grab', userSelect: 'none' }}
-              >
-                <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(0,0,0,0.15)' }} />
-              </div>
               {/* Reader content */}
               <StoryReader
                 category={catFromUrl}

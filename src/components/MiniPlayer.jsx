@@ -118,7 +118,7 @@ export default function MiniPlayer({
       style={{
         position: 'fixed',
         left: 0, right: 0,
-        zIndex: 100,
+        zIndex: 200,
         padding,
         touchAction: 'none',
         userSelect: 'none',

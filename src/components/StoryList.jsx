@@ -99,6 +99,7 @@ export default function StoryList({
   onPlayStory,
   onPlayCategory,
   gamifiedStats = {},
+  user,
   isNarrating = false,
   activeCategory = '',
   currentStoryIndex = 0,
@@ -203,9 +204,9 @@ export default function StoryList({
             display: 'flex', alignItems: 'center', gap: '5px',
             padding: '5px 13px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: catFilter === null ? '800' : '600',
             whiteSpace: 'nowrap', cursor: 'pointer',
-            background: catFilter === null ? 'rgba(124,58,237,0.1)' : 'transparent',
-            border: `1px solid ${catFilter === null ? 'rgba(124,58,237,0.4)' : 'rgba(0,0,0,0.1)'}`,
-            color: catFilter === null ? '#7c3aed' : '#6b7280',
+            background: catFilter === null ? '#0a0a0f' : 'transparent',
+            border: `1px solid ${catFilter === null ? '#0a0a0f' : 'rgba(0,0,0,0.1)'}`,
+            color: catFilter === null ? '#ffffff' : '#6b7280',
           }}
         >
           All
@@ -297,7 +298,7 @@ export default function StoryList({
                     key={idx}
                     story={story}
                     category={cat}
-                    isRead={listenedSet.has(idx)}
+                    isRead={user ? listenedSet.has(idx) : undefined}
                     onRead={() => handleRead(cat, idx)}
                     onPlay={() => onPlayStory?.(cat, idx)}
                   />

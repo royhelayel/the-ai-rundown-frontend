@@ -72,7 +72,7 @@ const TABS = [
   },
   {
     path:    '/important',
-    label:   'Important',
+    label:   'Interesting',
     matchFn: p => p === '/important',
     Icon:    IconImportant,
   },

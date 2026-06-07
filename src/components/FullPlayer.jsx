@@ -1,9 +1,64 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Repeat, Play, Pause, SkipBack, SkipForward, Loader } from 'lucide-react';
-import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, categoryGlow } from '../theme';
+import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
+import CategoryIcon from './CategoryIcon';
 
 // ── Speed cycle helper ─────────────────────────────────────────────────────────
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+
+// ── Category strip (auto-scrolls active pill into view) ───────────────────────
+function CatStrip({ contextCategories, category, onSelectCategory }) {
+  const stripRef = useRef(null);
+  const activeRef = useRef(null);
+
+  useEffect(() => {
+    if (activeRef.current && stripRef.current) {
+      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [category]);
+
+  return (
+    <div
+      ref={stripRef}
+      style={{
+        position: 'relative', zIndex: 10,
+        overflowX: 'auto', scrollbarWidth: 'none',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
+      <div className="fp-cat-strip" style={{ display: 'flex', gap: '6px', padding: '8px 16px', minWidth: 'max-content' }}>
+        {contextCategories.map(cat => {
+          const c   = CATEGORY_COLORS[cat] || '#6366f1';
+          const act = cat === category;
+          return (
+            <button
+              key={cat}
+              ref={act ? activeRef : null}
+              onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                padding: '5px 13px', borderRadius: '8px',
+                border: `1px solid ${act ? c : 'rgba(255,255,255,0.22)'}`,
+                background: act ? c : 'rgba(0,0,0,0.38)',
+                backdropFilter: act ? 'none' : 'blur(6px)',
+                WebkitBackdropFilter: act ? 'none' : 'blur(6px)',
+                cursor: act ? 'default' : 'pointer',
+                whiteSpace: 'nowrap', flexShrink: 0,
+                fontSize: '0.82rem', fontWeight: act ? '800' : '600',
+                color: act ? 'white' : 'rgba(255,255,255,0.8)',
+              }}
+            >
+              <CategoryIcon category={cat} size={15} color={act ? 'white' : 'rgba(255,255,255,0.8)'} />
+              {CATEGORY_SHORT[cat] || cat}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── FullPlayer ────────────────────────────────────────────────────────────────
 export default function FullPlayer({
@@ -37,6 +92,9 @@ export default function FullPlayer({
   onSetDepth,
   // Story navigation (tapping a dot)
   onGoToStory,
+  // Category strip
+  contextCategories = [],
+  onSelectCategory,
 }) {
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
@@ -61,28 +119,8 @@ export default function FullPlayer({
     return () => { meta.content = '#ffffff'; };
   }, [visible]);
 
-  // Swipe-down-to-minimize gesture
   const sheetRef = useRef(null);
-  const dragRef  = useRef(null);
-  const [dragY, setDragY] = useState(0);
-
-  const onTouchStart = (e) => {
-    dragRef.current = { startY: e.touches[0].clientY, dragging: true };
-    setDragY(0);
-  };
-  const onTouchMove = (e) => {
-    if (!dragRef.current?.dragging) return;
-    const dy = e.touches[0].clientY - dragRef.current.startY;
-    if (dy > 0) setDragY(dy);
-  };
-  const onTouchEnd = () => {
-    if (!dragRef.current?.dragging) return;
-    dragRef.current.dragging = false;
-    if (dragY > 80) onMinimize();
-    setDragY(0);
-  };
-
-  const translateY = mounted ? dragY : '100%';
+  const translateY = mounted ? 0 : '100%';
 
   const headline = story?.headline || '';
   const bullets  = depthLevel === 'deep' ? (story?.allBullets || story?.tightBullets || []) : (story?.tightBullets || story?.allBullets || []);
@@ -110,14 +148,11 @@ export default function FullPlayer({
           background: bgColor,
           borderRadius: '20px 20px 0 0',
           transform: `translateX(-50%) translateY(${typeof translateY === 'number' ? translateY + 'px' : translateY})`,
-          transition: dragY === 0 ? 'transform 0.38s cubic-bezier(0.32,0.72,0,1)' : 'none',
+          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
           willChange: 'transform',
         }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       >
         {/* ── Full-bleed immersive image ── */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '58%', zIndex: 0 }}>
@@ -165,6 +200,15 @@ export default function FullPlayer({
             />
           ))}
         </div>
+
+        {/* ── Category pills strip ── */}
+        {contextCategories.length > 0 && (
+          <CatStrip
+            contextCategories={contextCategories}
+            category={category}
+            onSelectCategory={onSelectCategory}
+          />
+        )}
 
         {/* ── Spacer — pushes headline down into the gradient zone ── */}
         <div style={{ flex: 1, position: 'relative', zIndex: 10 }} />

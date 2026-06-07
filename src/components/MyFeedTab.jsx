@@ -86,7 +86,7 @@ export default function MyFeedTab({
       />
 
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
-        <ProgressPill challengeStats={challengeStats} />
+        <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
       </div>
 
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
@@ -100,6 +100,7 @@ export default function MyFeedTab({
           onPlayStory={onPlayStory}
           onPlayCategory={onPlayCategory}
           gamifiedStats={gamifiedStats}
+          user={user}
           isNarrating={isNarrating}
           activeCategory={selectedCategory}
           currentStoryIndex={currentStoryIndex}

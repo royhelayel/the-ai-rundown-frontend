@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
@@ -80,15 +80,24 @@ export default function StoryReader({
     setIsRead(isAlreadyRead);
   }, [isAlreadyRead, storyIndex]);
 
-  // Mark story as read when the user LEAVES it (navigate away or close).
-  // Capture current values in closure so cleanup always marks the right story.
+  // Always-fresh ref so the cleanup below reads the LATEST story/category/index,
+  // not a stale closure. Updated on every render (no deps = runs every render).
+  const markReadRef = useRef({ story, category, storyIndex, onMarkRead });
   useEffect(() => {
-    const s = story, c = category, i = storyIndex, fn = onMarkRead;
+    markReadRef.current = { story, category, storyIndex, onMarkRead };
+  });
+
+  // Mark story as read when the user LEAVES it (navigate away or close).
+  // Depends on BOTH storyIndex and category so it fires when either changes
+  // (e.g. tapping a category pill while staying at story 0).
+  useEffect(() => {
     return () => {
-      // fires when: storyIndex changes (next/prev) OR component unmounts (minimize/close)
+      // Runs before re-render with new storyIndex/category, and on unmount.
+      // At this point markReadRef.current still holds the OLD (just-left) values.
+      const { story: s, category: c, storyIndex: i, onMarkRead: fn } = markReadRef.current;
       if (s && fn) fn(s, c, i);
     };
-  }, [storyIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [storyIndex, category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goBack = () => {
     const from = location.state?.from;
@@ -101,9 +110,36 @@ export default function StoryReader({
     else navigate('/');
   };
 
+  // Auto-scroll active category pill into view (must be before early return)
+  const catStripRef = useRef(null);
+  const activeCatRef = useRef(null);
+  useEffect(() => {
+    if (activeCatRef.current && catStripRef.current) {
+      activeCatRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [category]);
+
+  // Dock toggle+play into header when scrolled past (must be before early return)
+  const scrollContainerRef = useRef(null);
+  const toggleRowRef = useRef(null);
+  const [toggleDocked, setToggleDocked] = useState(false);
+  useEffect(() => { setToggleDocked(false); }, [storyIndex]);
+  useEffect(() => {
+    const el = toggleRowRef.current;
+    const root = scrollContainerRef.current;
+    if (!el || !root) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setToggleDocked(!entry.isIntersecting),
+      { root, threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [storyIndex]);
+
   if (!story) return null;
 
-  const bullets  = story.allBullets || story.tightBullets || [];
+  const takeawayBullets = story.tightBullets?.length ? story.tightBullets : (story.allBullets || []).slice(0, 3);
+  const summaryBullets  = story.allBullets?.length ? story.allBullets : (story.tightBullets || []);
   const hasPrev  = storyIndex > 0;
   const hasNext  = storyIndex < stories.length - 1;
 
@@ -130,8 +166,29 @@ export default function StoryReader({
   // Bookmark state
   const isSaved = savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
 
+  // Shared toggle+play JSX (used in both header docked and article positions)
+  const TogglePills = ({ compact = false }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', ...(compact ? { padding: '6px 16px 8px' } : { marginBottom: '1.75rem' }) }}>
+      <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}` }}>
+        {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
+          <button key={val} onClick={() => setView(val)}
+            style={{ padding: '0.3rem 0.8rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted, whiteSpace: 'nowrap' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div style={{ flex: 1 }} />
+      <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
+        <button className="ai-btn-inner" style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem' }} onClick={() => onPlayFrom(storyIndex)}>
+          <Play size={10} fill="white" color="white" />
+          {isNarrating ? 'Playing…' : 'Play'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: light.bg }}>
+    <div ref={scrollContainerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: light.bg }}>
       <style>{`
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { display: none; }
@@ -143,7 +200,6 @@ export default function StoryReader({
         position: 'sticky', top: 0, zIndex: 50,
         background: `${light.bg}f0`,
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: `1px solid ${light.border}`,
         flexShrink: 0,
       }}>
         {/* Top row: minimize + bookmark */}
@@ -162,11 +218,28 @@ export default function StoryReader({
           </button>
         </div>
 
+        {/* Story progress dots */}
+        {stories.length > 1 && (
+          <div style={{ display: 'flex', gap: '4px', padding: '0 1.25rem 0.5rem' }}>
+            {stories.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: location.state, replace: true })}
+                style={{
+                  flex: 1, height: '3px', border: 'none', borderRadius: '99px',
+                  cursor: 'pointer', padding: 0,
+                  background: i === storyIndex ? color : i < storyIndex ? `${color}66` : 'rgba(0,0,0,0.12)',
+                  transition: 'all 0.2s',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Category pills row */}
         {contextCategories.length > 0 && (
-          <div className="rdr-cat-strip" style={{
+          <div ref={catStripRef} className="rdr-cat-strip" style={{
             overflowX: 'auto', scrollbarWidth: 'none',
-            borderTop: `1px solid ${light.border}`,
           }}>
             <div style={{ display: 'flex', gap: '5px', padding: '8px 16px', minWidth: 'max-content' }}>
               {contextCategories.map(cat => {
@@ -175,19 +248,20 @@ export default function StoryReader({
                 return (
                   <button
                     key={cat}
+                    ref={act ? activeCatRef : null}
                     onClick={() => !act && goToCat(cat)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '5px',
                       padding: '5px 13px', borderRadius: '8px',
-                      border: `1px solid ${act ? `${c}55` : 'rgba(0,0,0,0.1)'}`,
-                      background: act ? `${c}12` : 'transparent',
+                      border: `1px solid ${act ? c : 'rgba(0,0,0,0.1)'}`,
+                      background: act ? c : 'transparent',
                       cursor: act ? 'default' : 'pointer',
                       whiteSpace: 'nowrap', flexShrink: 0,
                       fontSize: '0.82rem', fontWeight: act ? '800' : '600',
-                      color: act ? c : '#6b7280',
+                      color: act ? 'white' : '#6b7280',
                     }}
                   >
-                    <CategoryIcon category={cat} size={15} color={act ? c : '#6b7280'} />
+                    <CategoryIcon category={cat} size={15} color={act ? 'white' : '#6b7280'} />
                     {CATEGORY_SHORT[cat] || cat}
                   </button>
                 );
@@ -195,10 +269,13 @@ export default function StoryReader({
             </div>
           </div>
         )}
+
+        {/* Docked toggle+play — only when scrolled past original position */}
+        {toggleDocked && <TogglePills compact />}
       </header>
 
       {/* ── Content ── */}
-      <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: miniPlayerVisible ? '10rem' : '6rem' }}>
+      <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: '6rem' }}>
 
         {/* Category badge (left) + read status (right) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -232,37 +309,15 @@ export default function StoryReader({
           </div>
         )}
 
-        {/* View toggle (player size) + Play button on the right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.75rem' }}>
-          {/* Takeaways | Summary toggle — same size as FullPlayer */}
-          <div style={{ display: 'flex', background: light.bgSub, borderRadius: '999px', padding: '3px', gap: '2px', border: `1px solid ${light.border}` }}>
-            {[['takeaways', 'Key Takeaways'], ['summary', 'Summary']].map(([val, label]) => (
-              <button key={val} onClick={() => setView(val)}
-                style={{ padding: '0.3rem 0.8rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: view === val ? color : 'transparent', color: view === val ? 'white' : light.textMuted, whiteSpace: 'nowrap' }}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          {/* Play — animated border */}
-          <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
-            <button
-              className="ai-btn-inner"
-              style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem' }}
-              onClick={() => onPlayFrom(storyIndex)}
-            >
-              <Play size={10} fill="white" color="white" />
-              {isNarrating ? 'Playing…' : 'Play'}
-            </button>
-          </div>
+        {/* Toggle + Play — original position, becomes docked on scroll */}
+        <div ref={toggleRowRef}>
+          <TogglePills />
         </div>
 
-        {/* Key Takeaways */}
+        {/* Key Takeaways — crisp bullets */}
         {view === 'takeaways' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-            {bullets.map((bullet, i) => (
+            {takeawayBullets.map((bullet, i) => (
               <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '0.1rem' }}>
                   <span style={{ fontSize: '0.65rem', fontWeight: '800', color }}>{i + 1}</span>
@@ -273,22 +328,35 @@ export default function StoryReader({
           </div>
         )}
 
-        {/* Summary */}
+        {/* Summary — elaborate full read */}
         {view === 'summary' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {story.summary ? (
+            {/* Narrative paragraph for newly generated stories */}
+            {story.summary && (
               <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.8 }}>{story.summary}</p>
-            ) : (
-              <p style={{ margin: 0, fontSize: '0.88rem', color: light.textMuted, lineHeight: 1.7, fontStyle: 'italic' }}>
-                Full summary available for newly generated stories.
-              </p>
             )}
+
+            {/* All bullets — the elaborate detailed breakdown (always shown) */}
+            {!story.summary && summaryBullets.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {summaryBullets.map((bullet, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0, marginTop: '0.58rem' }} />
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.7 }}>{bullet}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Perspectives */}
             {story.perspectives && (
               <div style={{ padding: '0.9rem 1rem', background: `${color}08`, borderRadius: '12px', borderLeft: `3px solid ${color}` }}>
                 <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perspectives</p>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textSub, lineHeight: 1.65 }}>{story.perspectives}</p>
               </div>
             )}
+
+            {/* Why This Matters */}
             {story.why && (
               <div style={{ padding: '0.9rem 1rem', background: light.bgSub, borderRadius: '12px', borderLeft: `3px solid ${light.border}` }}>
                 <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Why This Matters</p>
@@ -301,7 +369,7 @@ export default function StoryReader({
 
       {/* ── Navigation footer: << < [Cat · X/N] > >> ── */}
       <div style={{
-        position: 'sticky', bottom: miniPlayerVisible ? '5rem' : '0',
+        position: 'sticky', bottom: 0,
         background: light.bg, borderTop: `1px solid ${light.border}`,
         paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 0.5rem)',
         width: '100%', flexShrink: 0,

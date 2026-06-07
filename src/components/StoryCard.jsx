@@ -25,6 +25,7 @@ export default function StoryCard({
   category,
   isRead,
   listenCount,
+  savedCount,
   onRead,
   onPlay,
   removeButton,
@@ -85,17 +86,13 @@ export default function StoryCard({
         )}
 
         {/* Sources row — horizontally scrollable, all sources shown */}
-        {(sources.length > 0 || listenCount > 0) && (
+        {sources.length > 0 && (
           <div
             onClick={e => e.stopPropagation()}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              overflowX: 'auto', scrollbarWidth: 'none',
-              marginBottom: '10px',
-            }}
+            style={{ overflowX: 'auto', scrollbarWidth: 'none', marginBottom: '10px' }}
           >
             <style>{`.sc-sources::-webkit-scrollbar { display: none; }`}</style>
-            <div className="sc-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1, minWidth: 0 }}>
+            <div className="sc-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 'max-content' }}>
               {sources.map((s, i) => (
                 <span
                   key={i}
@@ -104,11 +101,6 @@ export default function StoryCard({
                   {s.outlet}
                 </span>
               ))}
-              {listenCount > 0 && (
-                <span style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  · {listenCount.toLocaleString()} {listenCount === 1 ? 'listen' : 'listens'}
-                </span>
-              )}
             </div>
           </div>
         )}
@@ -116,9 +108,11 @@ export default function StoryCard({
         {/* Duration + actions row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
 
-          {/* Duration */}
+          {/* Duration + audience count */}
           <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>
             {readTime(story)}
+            {listenCount > 0 && ` · ${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
+            {savedCount > 0 && ` · ${savedCount.toLocaleString()} ${savedCount === 1 ? 'interested' : 'interested'}`}
           </span>
 
           {/* Read — outlined */}

@@ -178,8 +178,8 @@ export default function StoryReader({
         ))}
       </div>
       <div style={{ flex: 1 }} />
-      <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
-        <button className="ai-btn-inner" style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem' }} onClick={() => onPlayFrom(storyIndex)}>
+      <div className="ai-btn-wrap-play" style={{ flexShrink: 0, borderRadius: '11px' }}>
+        <button className="ai-btn-inner" style={{ padding: '0.28rem 0.9rem', fontSize: '0.72rem', borderRadius: '8px' }} onClick={() => onPlayFrom(storyIndex)}>
           <Play size={10} fill="white" color="white" />
           {isNarrating ? 'Playing…' : 'Play'}
         </button>

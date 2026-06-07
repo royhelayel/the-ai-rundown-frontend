@@ -68,6 +68,7 @@ export default function StoryReader({
   inSheet = false,
   onClose,
   isAlreadyRead = false,
+  playlist = null, // [{ category, storyIndex }] — cross-category ordered list from Popular/Interesting
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -140,26 +141,62 @@ export default function StoryReader({
 
   const takeawayBullets = story.tightBullets?.length ? story.tightBullets : (story.allBullets || []).slice(0, 3);
   const summaryBullets  = story.allBullets?.length ? story.allBullets : (story.tightBullets || []);
-  const hasPrev  = storyIndex > 0;
-  const hasNext  = storyIndex < stories.length - 1;
 
-  // Category navigation
-  const catIdx  = contextCategories.indexOf(category);
-  const prevCat = catIdx > 0 ? contextCategories[catIdx - 1] : null;
-  const nextCat = catIdx < contextCategories.length - 1 ? contextCategories[catIdx + 1] : null;
+  // ── Playlist mode (launched from Popular or Interesting) ──────────────────
+  const playlistPos = playlist
+    ? playlist.findIndex(p => p.category === category && p.storyIndex === storyIndex)
+    : -1;
+  const inPlaylist  = !!playlist && playlistPos !== -1;
 
-  const goToCat = (cat, idx = 0) => navigate(
-    `/category/${encodeURIComponent(cat)}/story/${idx}`,
-    { state: location.state, replace: true }
-  );
+  // Story count / position — playlist overrides single-category
+  const totalCount = inPlaylist ? playlist.length : stories.length;
+  const currentPos = inPlaylist ? playlistPos    : storyIndex;
+
+  const hasPrev = inPlaylist ? playlistPos > 0 : storyIndex > 0;
+  const hasNext = inPlaylist ? playlistPos < playlist.length - 1 : storyIndex < stories.length - 1;
+
+  // Navigate to a specific URL carrying the current state (keeps playlist in location)
+  const navTo = (cat, idx) =>
+    navigate(`/category/${encodeURIComponent(cat)}/story/${idx}`, { state: location.state, replace: true });
+
+  // Go to a category — in playlist mode, jump to that category's first playlist entry
+  const goToCat = (cat) => {
+    if (inPlaylist) {
+      const entry = playlist.find(p => p.category === cat);
+      if (entry) { navTo(entry.category, entry.storyIndex); return; }
+    }
+    navTo(cat, 0);
+  };
 
   // Story nav handlers
   const goPrevStory = () => {
-    if (hasPrev) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex - 1}`, { state: location.state, replace: true });
+    if (!hasPrev) return;
+    if (inPlaylist) {
+      const p = playlist[playlistPos - 1];
+      navTo(p.category, p.storyIndex);
+    } else {
+      navTo(category, storyIndex - 1);
+    }
   };
   const goNextStory = () => {
-    if (hasNext) navigate(`/category/${encodeURIComponent(category)}/story/${storyIndex + 1}`, { state: location.state, replace: true });
+    if (!hasNext) return;
+    if (inPlaylist) {
+      const p = playlist[playlistPos + 1];
+      navTo(p.category, p.storyIndex);
+    } else {
+      navTo(category, storyIndex + 1);
+    }
   };
+
+  // Category skip (<</>>) — jump to prev/next category within playlist or contextCategories
+  const catIdx  = contextCategories.indexOf(category);
+  const prevCat = inPlaylist
+    ? (() => { const cats = playlist.slice(0, playlistPos).reverse(); return (cats.find(p => p.category !== category) || {}).category || null; })()
+    : (catIdx > 0 ? contextCategories[catIdx - 1] : null);
+  const nextCat = inPlaylist
+    ? (() => { const cats = playlist.slice(playlistPos + 1); return (cats.find(p => p.category !== category) || {}).category || null; })()
+    : (catIdx < contextCategories.length - 1 ? contextCategories[catIdx + 1] : null);
+
   const goBackCat  = () => { if (prevCat) goToCat(prevCat); };
   const goNextCat  = () => { if (nextCat) goToCat(nextCat); };
 
@@ -220,13 +257,13 @@ export default function StoryReader({
           )}
         </div>
 
-        {/* Story progress dots */}
-        {stories.length > 1 && (
+        {/* Story progress dots — single-category mode only (too many for playlists) */}
+        {!inPlaylist && stories.length > 1 && (
           <div style={{ display: 'flex', gap: '4px', padding: '0 1.25rem 0.5rem' }}>
             {stories.map((_, i) => (
               <button
                 key={i}
-                onClick={() => navigate(`/category/${encodeURIComponent(category)}/story/${i}`, { state: location.state, replace: true })}
+                onClick={() => navTo(category, i)}
                 style={{
                   flex: 1, height: '3px', border: 'none', borderRadius: '99px',
                   cursor: 'pointer', padding: 0,
@@ -235,6 +272,14 @@ export default function StoryReader({
                 }}
               />
             ))}
+          </div>
+        )}
+        {/* Playlist progress bar — compact single bar showing fraction */}
+        {inPlaylist && (
+          <div style={{ padding: '0 1.25rem 0.5rem' }}>
+            <div style={{ height: '3px', borderRadius: '99px', background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: '99px', background: color, width: `${((playlistPos + 1) / playlist.length) * 100}%`, transition: 'width 0.3s' }} />
+            </div>
           </div>
         )}
 
@@ -405,10 +450,12 @@ export default function StoryReader({
           {/* Centre label */}
           <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
             <div style={{ fontSize: '0.68rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {category}
+              {inPlaylist
+                ? (location.state?.from === '/popular' ? 'Popular' : location.state?.from === '/important' ? 'Interesting' : category)
+                : category}
             </div>
             <div style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>
-              {storyIndex + 1} / {stories.length}
+              {currentPos + 1} / {totalCount}
             </div>
           </div>
 

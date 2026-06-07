@@ -104,6 +104,15 @@ export default function ImportantTab({
   const hasCircleData = following.length > 0;
   const firstStory = filtered[0] || activeList[0];
 
+  // Build playlist for reader: use the filtered list so nav matches what's visible
+  const buildPlaylist = (list) => list.map(s => ({ category: s.category, storyIndex: s.storyIndex }));
+  const openStory = (item, list = filtered) => {
+    onSelectCategory?.(item.category);
+    navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, {
+      state: { from: '/important', playlist: buildPlaylist(list) },
+    });
+  };
+
   const tabs = [
     { id: 'mine',   label: 'My Saves',   icon: <Bookmark size={12} /> },
     { id: 'circle', label: 'Circle',     icon: <Users size={12} /> },
@@ -136,7 +145,7 @@ export default function ImportantTab({
               <button
                 className="ai-btn-inner-white"
                 style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
-                onClick={() => { onSelectCategory?.(firstStory.category); navigate(`/category/${encodeURIComponent(firstStory.category)}/story/${firstStory.storyIndex}`, { state: { from: '/important' } }); }}
+                onClick={() => openStory(firstStory, activeList)}
               >
                 Read
               </button>
@@ -325,7 +334,7 @@ export default function ImportantTab({
                     category={item.category}
                     isRead={user ? isRead : undefined}
                     savedCount={savedCounts[headlineKey(item.headline || '')] || 0}
-                    onRead={() => { onSelectCategory?.(item.category); navigate(`/category/${encodeURIComponent(item.category)}/story/${item.storyIndex}`, { state: { from: '/important' } }); }}
+                    onRead={() => openStory(item)}
                     onPlay={() => onPlayStory?.(item.category, item.storyIndex)}
                   />
                 </div>

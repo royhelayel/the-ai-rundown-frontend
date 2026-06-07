@@ -74,9 +74,10 @@ export default function PopularTab({
   const cats = [...new Set(activeList.map(s => s.category))];
   const filtered = selectedCat ? activeList.filter(s => s.category === selectedCat) : activeList;
 
-  const handleStoryClick = (cat, storyIndex) => {
+  const handleStoryClick = (cat, storyIndex, list = activeList) => {
     onSelectCategory(cat);
-    navigate(`/category/${encodeURIComponent(cat)}/story/${storyIndex}`, { state: { from: 'popular' } });
+    const playlist = list.map(s => ({ category: s.category, storyIndex: s.storyIndex }));
+    navigate(`/category/${encodeURIComponent(cat)}/story/${storyIndex}`, { state: { from: '/popular', playlist } });
   };
 
   const hasCircle = circlePopular.length > 0;
@@ -225,7 +226,7 @@ export default function PopularTab({
                   category={story.category}
                   listenCount={story.listenCount}
                   isRead={user ? isRead : undefined}
-                  onRead={() => handleStoryClick(story.category, story.storyIndex)}
+                  onRead={() => handleStoryClick(story.category, story.storyIndex, filtered)}
                   onPlay={() => { onSelectCategory(story.category); onPlayCategory(story.category); }}
                 />
               );

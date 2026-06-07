@@ -2623,7 +2623,13 @@ const TheAIRundown = () => {
         };
         const readerTranslateY = readerMounted ? '0px' : '100%';
         const contextCats = (() => {
-          const from = location.state?.from;
+          const from     = location.state?.from;
+          const playlist = location.state?.playlist;
+          // Playlist mode (Popular / Interesting): pills show only categories in that list, in order
+          if (playlist?.length) {
+            const seen = new Set();
+            return playlist.map(p => p.category).filter(c => !seen.has(c) && seen.add(c));
+          }
           if (typeof from === 'string' && from.startsWith('/feed/')) {
             const feedId = from.replace('/feed/', '');
             return userFeeds.find(f => f.id === feedId)?.categories || allCategories;
@@ -2667,6 +2673,7 @@ const TheAIRundown = () => {
                 savedStories={savedStories}
                 onToggleSaved={handleToggleSaved}
                 contextCategories={contextCats}
+                playlist={location.state?.playlist || null}
                 inSheet
                 onClose={readerGoBack}
               />

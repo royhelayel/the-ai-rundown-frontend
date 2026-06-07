@@ -503,7 +503,9 @@ const TheAIRundown = () => {
     st.pendingLoad = false;
     st.paused = false;
     setIsPaused(false);
-    setTimeout(() => {
+    clearTimeout(st.pendingNarrateTimer);
+    st.pendingNarrateTimer = setTimeout(() => {
+      st.pendingNarrateTimer = null;
       if (viewMode === 'stories') {
         narrateFnRef.current.narrateStory?.(storyIndex);
       } else {
@@ -1604,14 +1606,25 @@ const TheAIRundown = () => {
     if (viewMode === 'stories' && stories.length === 0) return;
     if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
+    const st = narrationStateRef.current;
+    clearTimeout(st.pendingNarrateTimer);
     if (viewMode === 'stories') {
-      const startIdx = narrationStateRef.current.pendingStartIndex || 0;
-      narrationStateRef.current.pendingStartIndex = 0;
+      const startIdx = st.pendingStartIndex || 0;
+      st.pendingStartIndex = 0;
       setStoryIndex(startIdx);
-      setTimeout(() => narrateFnRef.current.narrateStory?.(startIdx), 200);
+      // Store in pendingNarrateTimer so stop() can cancel it if the user triggers
+      // a new play action before the delay fires — prevents two narrations running
+      // simultaneously with the same generation counter.
+      st.pendingNarrateTimer = setTimeout(() => {
+        st.pendingNarrateTimer = null;
+        narrateFnRef.current.narrateStory?.(startIdx);
+      }, 200);
     } else {
       const content = narrateFnRef.current.getNarrationContent?.() || newsSummary?.content;
-      setTimeout(() => narrateFnRef.current.narrateDigest?.(content), 200);
+      st.pendingNarrateTimer = setTimeout(() => {
+        st.pendingNarrateTimer = null;
+        narrateFnRef.current.narrateDigest?.(content);
+      }, 200);
     }
   }, [stories, newsSummary]);
 

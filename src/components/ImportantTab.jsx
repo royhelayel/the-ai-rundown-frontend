@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Play, Users, UserCircle } from 'lucide-react';
+import { Bookmark, Play, Users, UserCircle, Search, X, UserPlus, Check } from 'lucide-react';
 import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
@@ -8,6 +8,8 @@ import CategoryIcon from './CategoryIcon';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { headlineKey } from './PopularTab';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 const light = {
   bg:        '#f5f5f7',
@@ -52,6 +54,209 @@ function AvatarStack({ savers = [], size = 22 }) {
   );
 }
 
+// ── UserSearchSheet ───────────────────────────────────────────────────────────
+
+function UserAvatar({ person, size = 40 }) {
+  const initials = (person.display_name || person.username || '?')
+    .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: person.avatar_color || '#6366f1',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.38, fontWeight: '800', color: '#fff',
+    }}>
+      {initials}
+    </div>
+  );
+}
+
+function UserSearchSheet({ open, onClose, user, following, onFollowChange }) {
+  const [mounted, setMounted]   = useState(false);
+  const [visible, setVisible]   = useState(false);
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [followingIds, setFollowingIds] = useState(() => new Set((following || []).map(f => f.id)));
+  const [inFlight, setInFlight] = useState(new Set()); // ids currently being toggled
+  const inputRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  // Sync followingIds when parent following changes
+  useEffect(() => {
+    setFollowingIds(new Set((following || []).map(f => f.id)));
+  }, [following]);
+
+  // Animate open/close
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const t = setTimeout(() => { setVisible(true); inputRef.current?.focus(); }, 16);
+      return () => clearTimeout(t);
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => { setMounted(false); setQuery(''); setResults([]); }, 380);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  // Debounced search
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    if (!query.trim()) { setResults([]); setLoading(false); return; }
+    setLoading(true);
+    debounceRef.current = setTimeout(() => {
+      fetch(`${BACKEND_URL}/api/social/search?q=${encodeURIComponent(query.trim())}&userId=${user?.id || ''}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => { setResults(data || []); setLoading(false); })
+        .catch(() => setLoading(false));
+    }, 350);
+    return () => clearTimeout(debounceRef.current);
+  }, [query, user?.id]);
+
+  const toggleFollow = async (person) => {
+    if (inFlight.has(person.id)) return;
+    setInFlight(prev => new Set([...prev, person.id]));
+    const isFollowing = followingIds.has(person.id);
+    try {
+      if (isFollowing) {
+        await fetch(`${BACKEND_URL}/api/social/follow/${person.id}`, {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ followerId: user.id }),
+        });
+        setFollowingIds(prev => { const n = new Set(prev); n.delete(person.id); return n; });
+      } else {
+        await fetch(`${BACKEND_URL}/api/social/follow`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ followerId: user.id, followingId: person.id }),
+        });
+        setFollowingIds(prev => new Set([...prev, person.id]));
+      }
+      onFollowChange?.(); // ask App.js to reload social data
+    } catch {}
+    setInFlight(prev => { const n = new Set(prev); n.delete(person.id); return n; });
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 400,
+        opacity: visible ? 1 : 0, transition: 'opacity 0.32s ease',
+      }} />
+
+      {/* Sheet */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 401,
+        background: '#fff', borderRadius: '24px 24px 0 0',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.14)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 1rem)',
+        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
+      }}>
+        {/* Handle + header */}
+        <div style={{ padding: '0.65rem 1.1rem 0', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.1)', margin: '0 auto 0.85rem' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+            <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.02em' }}>
+              Find People
+            </span>
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={15} color="#6b7280" />
+            </button>
+          </div>
+
+          {/* Search input */}
+          <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+            <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search by name or @username…"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '10px 12px 10px 34px',
+                borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)',
+                background: '#f5f5f7', fontSize: '0.88rem', fontWeight: '500',
+                color: '#0a0a0f', outline: 'none',
+                WebkitAppearance: 'none',
+              }}
+            />
+            {query.length > 0 && (
+              <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                <X size={14} color="#9ca3af" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '0 1.1rem' }}>
+          {loading && (
+            <div style={{ padding: '1.5rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.82rem' }}>
+              Searching…
+            </div>
+          )}
+
+          {!loading && query.trim() && results.length === 0 && (
+            <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem' }}>
+              No users found for "{query}"
+            </div>
+          )}
+
+          {!loading && !query.trim() && (
+            <div style={{ padding: '1.5rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.82rem' }}>
+              Type a name or username to search
+            </div>
+          )}
+
+          {results.map(person => {
+            const isFollowing = followingIds.has(person.id);
+            const busy = inFlight.has(person.id);
+            return (
+              <div key={person.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.06)',
+              }}>
+                <UserAvatar person={person} size={44} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0a0a0f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {person.display_name || person.username}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#8a8a9a', fontWeight: '500' }}>
+                    @{person.username}
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleFollow(person)}
+                  disabled={busy}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '7px 14px', borderRadius: 999, border: 'none',
+                    background: isFollowing ? 'rgba(0,0,0,0.06)' : 'linear-gradient(135deg,#6366f1,#ec4899)',
+                    color: isFollowing ? '#374151' : '#fff',
+                    fontSize: '0.78rem', fontWeight: '800', cursor: busy ? 'default' : 'pointer',
+                    opacity: busy ? 0.6 : 1, transition: 'all 0.15s', flexShrink: 0,
+                  }}
+                >
+                  {isFollowing ? <><Check size={12} /> Following</> : <><UserPlus size={12} /> Follow</>}
+                </button>
+              </div>
+            );
+          })}
+          <div style={{ height: '0.5rem' }} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function ImportantTab({
   savedStories = [],
   savedCounts = {},
@@ -67,12 +272,14 @@ export default function ImportantTab({
   circleSaves = [],
   following = [],
   selectedDay, availableDays = [], onSelectDay,
+  onRefreshSocial,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/important');
   const [selectedCat, setSelectedCat] = useState(null);
   const [scope, setScope] = useState('mine'); // 'mine' | 'circle' | 'person'
   const [selectedPerson, setSelectedPerson] = useState(null); // { id, username, display_name, avatar_color }
+  const [showSearch, setShowSearch] = useState(false);
 
   // === My Saves ===
   // Preserve _savedHeadline (the headline at save time) so the savedCounts key lookup
@@ -197,19 +404,19 @@ export default function ImportantTab({
       {/* Per Person: people picker row */}
       {scope === 'person' && (
         <div style={{ overflowX: 'auto', scrollbarWidth: 'none', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px', minWidth: 'max-content' }}>
-            <button
-              onClick={() => setSelectedPerson(null)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
-              }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: selectedPerson === null ? light.text : light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${selectedPerson === null ? light.text : light.border}` }}>
-                <Users size={18} color={selectedPerson === null ? '#fff' : light.textMuted} />
-              </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: selectedPerson === null ? light.text : light.textMuted }}>All</span>
-            </button>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 12px', minWidth: 'max-content', alignItems: 'flex-start' }}>
+            {/* All button — only if there are people to show */}
+            {peopleInCircle.length > 0 && (
+              <button
+                onClick={() => setSelectedPerson(null)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: selectedPerson === null ? light.text : light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${selectedPerson === null ? light.text : light.border}` }}>
+                  <Users size={18} color={selectedPerson === null ? '#fff' : light.textMuted} />
+                </div>
+                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: selectedPerson === null ? light.text : light.textMuted }}>All</span>
+              </button>
+            )}
             {peopleInCircle.map(person => {
               const isActive = selectedPerson?.id === person.id;
               const initials = (person.display_name || person.username || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -225,8 +432,7 @@ export default function ImportantTab({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '1rem', fontWeight: '800', color: '#fff',
                     border: `2px solid ${isActive ? (person.avatar_color || '#6366f1') : 'transparent'}`,
-                    opacity: isActive ? 1 : 0.7,
-                    transition: 'all 0.15s',
+                    opacity: isActive ? 1 : 0.7, transition: 'all 0.15s',
                   }}>
                     {initials}
                   </div>
@@ -236,6 +442,16 @@ export default function ImportantTab({
                 </button>
               );
             })}
+            {/* Add more people button */}
+            <button
+              onClick={() => setShowSearch(true)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', flexShrink: 0 }}
+            >
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px dashed ${light.border}` }}>
+                <Search size={18} color={light.textMuted} />
+              </div>
+              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: light.textMuted }}>Find</span>
+            </button>
           </div>
         </div>
       )}
@@ -316,9 +532,20 @@ export default function ImportantTab({
                   <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem', fontWeight: '800', color: light.text }}>
                     Build your circle
                   </h3>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.55, maxWidth: 260 }}>
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: light.textMuted, lineHeight: 1.55, maxWidth: 260 }}>
                     Follow other readers to see the stories they're saving here.
                   </p>
+                  <button
+                    onClick={() => setShowSearch(true)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      padding: '9px 20px', borderRadius: 999, border: 'none',
+                      background: 'linear-gradient(135deg,#6366f1,#ec4899)',
+                      color: '#fff', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer',
+                    }}
+                  >
+                    <Search size={14} /> Find People
+                  </button>
                 </>
               ) : scope === 'person' && selectedPerson ? (
                 <p style={{ margin: 0, fontSize: '0.9rem', color: light.textMuted, lineHeight: 1.55 }}>
@@ -371,6 +598,15 @@ export default function ImportantTab({
           </div>
         )}
       </div>
+
+      {/* User search sheet */}
+      <UserSearchSheet
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        user={user}
+        following={following}
+        onFollowChange={onRefreshSocial}
+      />
     </div>
   );
 }

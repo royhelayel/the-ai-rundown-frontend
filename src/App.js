@@ -2340,6 +2340,7 @@ const TheAIRundown = () => {
           selectedDay={selectedDay}
           availableDays={availableDays}
           onSelectDay={selectDay}
+          onRefreshSocial={() => user && loadSocialData(user.id)}
         />
       )}
 

@@ -172,8 +172,9 @@ const TheAIRundown = () => {
   const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
   const [selectedProgressDay, setSelectedProgressDay] = useState(null); // null = today
   const gamifiedStats = useMemo(
-    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay),
-    [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay]
+    // viewDay priority: explicit progress-day picker > content date being viewed > today
+    () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay || selectedDay || null),
+    [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay, selectedDay]
   );
 
   // ── Daily goal + challenge stats ──────────────────────────────────────────

@@ -599,8 +599,8 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
               pointerEvents: 'none',
             }} />
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
-              <div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <SheetSectionLabel>Challenge 1</SheetSectionLabel>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
                   <LightbulbIcon size={14} color={todayDone ? AWARDS[0].color : 'rgba(255,255,255,0.7)'} />
@@ -681,8 +681,8 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
               pointerEvents: 'none',
             }} />
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
-              <div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <SheetSectionLabel>Challenge 2</SheetSectionLabel>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
                   <LightningIcon size={13} color={streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.7)'} />
@@ -810,8 +810,8 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
               pointerEvents: 'none',
             }} />
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.9rem' }}>
-              <div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <SheetSectionLabel>Challenge 3</SheetSectionLabel>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
                   <StarIcon size={14} color={weekDone ? AWARDS[2].color : 'rgba(255,255,255,0.7)'} />

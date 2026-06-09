@@ -88,20 +88,26 @@ function ChallengeRing({
   label, count, total, unit, toGo,
   icon,
   awardTitle, awardColor, awardId,
+  earned = false,
 }) {
   const r    = (size - strokeW) / 2;
   const circ = 2 * Math.PI * r;
   const dash = circ * Math.min(1, Math.max(0, pct));
 
+  // Arc and label colours depend on whether the challenge is earned
+  const arcColor0   = earned ? color0 : 'rgba(255,255,255,0.08)';
+  const arcColor1   = earned ? color1 : 'rgba(255,255,255,0.20)';
+  const titleColor  = earned ? awardColor : 'rgba(255,255,255,0.22)';
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       {/* Award title + icon above ring */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-        <AwardIcon awardId={awardId} size={10} color={awardColor} />
+        <AwardIcon awardId={awardId} size={10} color={titleColor} />
         <span style={{
           fontSize: '0.65rem', fontWeight: 800,
           textTransform: 'uppercase', letterSpacing: '0.08em',
-          color: awardColor,
+          color: titleColor,
         }}>
           {awardTitle}
         </span>
@@ -112,8 +118,8 @@ function ChallengeRing({
           style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%"   stopColor={color0} />
-              <stop offset="100%" stopColor={color1} />
+              <stop offset="0%"   stopColor={arcColor0} />
+              <stop offset="100%" stopColor={arcColor1} />
             </linearGradient>
           </defs>
           <circle cx={size / 2} cy={size / 2} r={r}
@@ -1004,6 +1010,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
             icon={<LightbulbIcon size={13} color={todayIconColor} />}
             awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed"
+            earned={todayDone}
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -1018,6 +1025,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
             icon={<LightningIcon size={11} color={streakIconColor} />}
             awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp"
+            earned={streakDone}
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -1032,29 +1040,9 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
             icon={<StarIcon size={12} color={weekIconColor} />}
             awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy"
+            earned={weekDone}
           />
         </div>
-
-        {/* ── Persistent award badge ── */}
-        {topAward && (
-          <div style={{
-            marginTop: '10px',
-            paddingTop: '10px',
-            borderTop: `1px solid ${topAward.color}22`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          }}>
-            <AwardIcon awardId={topAward.id} size={13} color={topAward.color} />
-            <span style={{
-              fontSize: '0.7rem', fontWeight: '800',
-              color: topAward.color, letterSpacing: '0.02em',
-            }}>
-              {topAward.title}
-            </span>
-            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>
-              · {topAward.subtitle}
-            </span>
-          </div>
-        )}
       </button>
 
       {/* ── Cosmic burst ──────────────────────────────────────────────────── */}

@@ -53,6 +53,8 @@ const TheAIRundown = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authMessage, setAuthMessage] = useState(null); // { type: 'info'|'error'|'success', text: string }
+  const [authLoading, setAuthLoading] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('World News');
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState('');
@@ -1341,6 +1343,7 @@ const TheAIRundown = () => {
   const handleAuth = async () => {
     if (!email || !password) return;
     setAuthMessage(null);
+    setAuthLoading(true);
     if (authMode === 'signup') {
       try {
         const res = await fetch(`${BACKEND_URL}/api/auth/send-verification`, {
@@ -1355,7 +1358,7 @@ const TheAIRundown = () => {
           } else {
             setAuthMessage({ type: 'error', text: msg || 'Something went wrong. Please try again.' });
           }
-          return;
+          setAuthLoading(false); return;
         }
         const data = await res.json();
         if (data.resent) {
@@ -1364,17 +1367,19 @@ const TheAIRundown = () => {
           setAuthMessage({ type: 'success', text: `Almost there! We've sent a verification link to ${email}. Check your inbox and click the link to activate your account.` });
         }
         setPassword('');
+        setAuthLoading(false);
       } catch (error) {
         setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' });
+        setAuthLoading(false);
       }
     } else {
       try {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-        if (authError) { setAuthMessage({ type: 'error', text: authError.message }); return; }
-        if (!authData.user) { setAuthMessage({ type: 'error', text: 'Sign-in failed. Please try again.' }); return; }
+        if (authError) { setAuthMessage({ type: 'error', text: authError.message }); setAuthLoading(false); return; }
+        if (!authData.user) { setAuthMessage({ type: 'error', text: 'Sign-in failed. Please try again.' }); setAuthLoading(false); return; }
         const { data: userProfile, error: profileError } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
-        if (profileError) { setAuthMessage({ type: 'error', text: 'Failed to load user profile.' }); return; }
-        if (userProfile.verification_status !== 'verified') { setAuthMessage({ type: 'info', text: 'Please verify your email first. Check your inbox for the verification link.' }); return; }
+        if (profileError) { setAuthMessage({ type: 'error', text: 'Failed to load user profile.' }); setAuthLoading(false); return; }
+        if (userProfile.verification_status !== 'verified') { setAuthMessage({ type: 'info', text: 'Please verify your email first. Check your inbox for the verification link.' }); setAuthLoading(false); return; }
         const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id).is('deleted_at', null);
         const categories = categoriesData?.map(c => c.category_name) || [];
         const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
@@ -1408,7 +1413,8 @@ const TheAIRundown = () => {
         }
         if (feed.length > 0) setSelectedCategory('My Rundown');
         setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword(''); setAuthMessage(null);
-      } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); }
+        setAuthLoading(false);
+      } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); setAuthLoading(false); }
     }
   };
 
@@ -2197,9 +2203,11 @@ const TheAIRundown = () => {
               style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
             <input type="password" placeholder="Password" value={password} onChange={e => { setPassword(e.target.value); setAuthMessage(null); }}
               style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
-            <button onClick={handleAuth}
-              style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem' }}>
-              {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+            <button onClick={handleAuth} disabled={authLoading}
+              style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: authLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', opacity: authLoading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              {authLoading
+                ? <><Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> {authMode === 'signin' ? 'Signing In…' : 'Creating Account…'}</>
+                : authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
             <button onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthMessage(null); }}
               style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
@@ -2447,13 +2455,18 @@ const TheAIRundown = () => {
                   )}
                   {/* Sign out */}
                   <button onClick={async () => {
+                    setSignOutLoading(true);
                     await supabase.auth.signOut();
                     setUser(null); setUserFeeds([]); setFeedCategories([]); setCustomCategories([]);
                     setCustomCategoryDescriptions({}); setFollowing([]); setCircleSaves([]); setCirclePopular([]);
-                    localStorage.removeItem('newsdigest_user'); navigate('/');
-                  }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#dc2626', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
-                    <LogOut size={14} /> Sign Out
+                    localStorage.removeItem('newsdigest_user');
+                    setSignOutLoading(false);
+                    navigate('/');
+                  }} disabled={signOutLoading}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '999px', color: '#dc2626', cursor: signOutLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%', opacity: signOutLoading ? 0.7 : 1 }}>
+                    {signOutLoading
+                      ? <><Loader size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Signing Out…</>
+                      : <><LogOut size={14} /> Sign Out</>}
                   </button>
                 </div>
               ) : (

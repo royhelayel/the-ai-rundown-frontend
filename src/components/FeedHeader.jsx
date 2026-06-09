@@ -124,12 +124,23 @@ export default function FeedHeader({
 
         <div style={{ flex: 1 }} />
 
-        {/* Avatar */}
+        {/* Avatar — always goes to Settings; guests see sign-in options there */}
         <button
-          onClick={user ? () => navigate('/settings') : onShowAuth}
-          style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(0,0,0,0.45)', flexShrink: 0 }}
+          onClick={() => navigate('/settings')}
+          style={{
+            width: '34px', height: '34px', borderRadius: '50%', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0, overflow: 'hidden',
+            background: user?.avatar_color || 'rgba(0,0,0,0.06)',
+            color: user ? '#fff' : 'rgba(0,0,0,0.45)',
+          }}
         >
-          <User size={16} />
+          {user
+            ? <span style={{ fontSize: '0.75rem', fontWeight: '800', lineHeight: 1 }}>
+                {(user.display_name || user.email || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
+            : <User size={16} />
+          }
         </button>
       </div>
     </header>

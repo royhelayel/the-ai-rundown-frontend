@@ -291,9 +291,9 @@ export default function StoryList({
                 </div>
               )}
 
-              {/* Story cards */}
+              {/* Story cards — capped at 6 in the all-categories view */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {stories.map((story, idx) => (
+                {(catFilter ? stories : stories.slice(0, 6)).map((story, idx) => (
                   <StoryCard
                     key={idx}
                     story={story}
@@ -304,6 +304,25 @@ export default function StoryList({
                   />
                 ))}
               </div>
+
+              {/* View all — only when more than 6 stories and no pill is active */}
+              {!catFilter && stories.length > 6 && (
+                <button
+                  onClick={() => { setCatFilter(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                    width: '100%', marginTop: '6px', marginBottom: '6px',
+                    padding: '10px', border: '1px solid rgba(0,0,0,0.07)',
+                    borderRadius: '12px', background: 'rgba(0,0,0,0.02)',
+                    cursor: 'pointer', color: '#6b7280', fontSize: '0.78rem', fontWeight: '700',
+                  }}
+                >
+                  View all {stories.length} stories
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
+              )}
             </div>
           );
         })}

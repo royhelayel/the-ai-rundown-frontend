@@ -425,7 +425,7 @@ const TheAIRundown = () => {
     narrationGenRef.current++;
     const st = narrationStateRef.current;
     if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
-    if (st.audio) { st.audio.pause(); st.audio = null; }
+    if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     st.active = false;
     st.pendingLoad = false;
@@ -490,7 +490,7 @@ const TheAIRundown = () => {
     const st = narrationStateRef.current;
     if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     st.canceling = true;
-    if (st.audio) { st.audio.pause(); st.audio = null; }
+    if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     // Clear the flag after a tick so onerror callbacks can see it, then reset
     setTimeout(() => { st.canceling = false; }, 100);
@@ -583,6 +583,10 @@ const TheAIRundown = () => {
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
   const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;
+    // Capture generation so stale onended callbacks from prior sessions can't fire.
+    // stop() / cancelAudioKeepActive() both increment narrationGenRef, so any audio
+    // element left over from a previous session will bail when its onended fires.
+    const capturedGen = narrationGenRef.current;
     // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
     const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
     narrationStateRef.current.audio = audio;
@@ -622,7 +626,12 @@ const TheAIRundown = () => {
     audio.onended = () => {
       narrationStateRef.current.audio = null;
       if (!isTransition) { setNarrationProgress(0); narrationDurationRef.current = 0; }
-      if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
+      // Gen check: if stop() or cancelAudioKeepActive() was called since this audio
+      // was set up, the generation will have changed — bail to prevent a stale
+      // onDone from advancing to the wrong story (the root cause of the skip-to-story-3 bug).
+      if (narrationStateRef.current.active
+          && !narrationStateRef.current.canceling
+          && narrationGenRef.current === capturedGen) onDone();
     };
     audio.onerror = () => {
       if (narrationStateRef.current.canceling) return;
@@ -1674,9 +1683,17 @@ const TheAIRundown = () => {
   }, [newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Briefing feed: fetch metadata for all categories ────────────────────────
+  // Fetches all completed slots for selectedDay (Morning + Evening) and merges them:
+  // Evening stories appear first (newest on top), Morning stories below.
+  // Each story is tagged with generatedSlot ('Morning'|'Evening') for display/tracking.
+  // Cache key includes which slots are present so it self-invalidates when Evening arrives.
   useEffect(() => {
-    if (!selectedDay || !selectedTime || !slotsLoaded) return;
-    const cacheKey = `${selectedDay}|${selectedTime}|${newsLanguage}`;
+    if (!selectedDay || !slotsLoaded) return;
+    // Determine which slots have completed for this day
+    const slotOrder = ['Evening', 'Daily', 'Morning'];
+    const presentSlots = slotOrder.filter(t => completedSlots.has(`${selectedDay}|${t}`));
+    if (presentSlots.length === 0) return;
+    const cacheKey = `${selectedDay}|${presentSlots.join(',')}|${newsLanguage}`;
     // Serve from cache — avoids re-fetching when user switches back to an already-loaded day
     if (briefingCacheRef.current[cacheKey]) {
       setBriefingData(briefingCacheRef.current[cacheKey]);
@@ -1688,12 +1705,19 @@ const TheAIRundown = () => {
       try {
         const { data } = await supabase
           .from('news_summaries')
-          .select('content, stories_content')
-          .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
-          .eq('language', newsLanguage).is('user_id', null).is('shared_key', null)
-          .maybeSingle();
-        if (!data) return [cat, null];
-        const { stories: s } = buildStories(data.content, data.stories_content);
+          .select('content, stories_content, time_slot')
+          .eq('category', cat).eq('day', selectedDay)
+          .in('time_slot', presentSlots)
+          .eq('language', newsLanguage).is('user_id', null).is('shared_key', null);
+        if (!data || data.length === 0) return [cat, null];
+        // Sort Evening first so incremental stories appear on top
+        const sorted = [...data].sort((a, b) => slotOrder.indexOf(a.time_slot) - slotOrder.indexOf(b.time_slot));
+        // Merge stories across slots, tagging each with its source slot
+        const s = sorted.flatMap(row => {
+          const { stories } = buildStories(row.content, row.stories_content);
+          return stories.map(story => ({ ...story, generatedSlot: row.time_slot }));
+        });
+        if (s.length === 0) return [cat, null];
         const totalWords = s.reduce((acc, story) => {
           const fields = [
             ...(story.allBullets || story.tightBullets || []),
@@ -1713,7 +1737,7 @@ const TheAIRundown = () => {
       setBriefingData(out);
       setBriefingLoading(false);
     });
-  }, [selectedDay, selectedTime, newsLanguage, slotsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedDay, newsLanguage, slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sync URL → selectedCategory for /category/:name routes ──────────────────
   useEffect(() => {

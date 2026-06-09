@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { dayKey } from '../hooks/useListenHistory';
 
 // ── Award definitions ─────────────────────────────────────────────────────────
@@ -86,13 +87,22 @@ function ChallengeRing({
   gradId, color0, color1, trackColor,
   label, count, total, unit, toGo,
   icon,
+  awardTitle, awardColor,
 }) {
   const r    = (size - strokeW) / 2;
   const circ = 2 * Math.PI * r;
   const dash = circ * Math.min(1, Math.max(0, pct));
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      {/* Award title above ring */}
+      <span style={{
+        fontSize: '0.58rem', fontWeight: 800,
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+        color: awardColor || 'rgba(255,255,255,0.35)',
+      }}>
+        {awardTitle}
+      </span>
       {/* Ring */}
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size}
@@ -294,10 +304,11 @@ function AwardToast({ award, onDone }) {
 
 // ── Guest sign-in promo card ──────────────────────────────────────────────────
 
-function GuestPromo({ onShowAuth }) {
+function GuestPromo() {
+  const navigate = useNavigate();
   return (
     <button
-      onClick={onShowAuth}
+      onClick={() => navigate('/settings')}
       style={{
         display: 'flex', alignItems: 'center', gap: '14px',
         margin: '0 16px 12px', width: 'calc(100% - 32px)',
@@ -345,33 +356,24 @@ function GuestPromo({ onShowAuth }) {
 // ── Challenge Detail Sheet ────────────────────────────────────────────────────
 
 function StatusBadge({ done, onTrack }) {
+  const base = {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    padding: '3px 10px', borderRadius: '20px',
+    fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.03em',
+    whiteSpace: 'nowrap', flexShrink: 0,
+  };
   if (done) return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px',
-      background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.3)',
-      fontSize: '0.65rem', fontWeight: '800', color: '#4ade80', letterSpacing: '0.03em',
-    }}>
+    <span style={{ ...base, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}>
       ✓ Complete
     </span>
   );
   if (onTrack) return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px',
-      background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)',
-      fontSize: '0.65rem', fontWeight: '800', color: '#fbbf24', letterSpacing: '0.03em',
-    }}>
+    <span style={{ ...base, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
       ⚡ On Track
     </span>
   );
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px',
-      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-      fontSize: '0.65rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.03em',
-    }}>
+    <span style={{ ...base, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }}>
       · Not started
     </span>
   );
@@ -393,6 +395,10 @@ function SheetSectionLabel({ children }) {
 function ChallengeSheet({ open, onClose, challengeStats }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const sheetRef    = useRef(null);
+  const dragStartY  = useRef(0);
+  const dragActive  = useRef(false);
 
   // Open: mount → next frame → slide in
   useEffect(() => {
@@ -402,10 +408,40 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
       return () => clearTimeout(t);
     } else {
       setVisible(false);
+      setDragOffset(0);
       const t = setTimeout(() => setMounted(false), 400);
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  const handleTouchStart = (e) => {
+    dragStartY.current = e.touches[0].clientY;
+    dragActive.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    const delta     = e.touches[0].clientY - dragStartY.current;
+    const scrollTop = sheetRef.current?.scrollTop ?? 0;
+    // Only take over when at the very top of scroll and moving downward
+    if (!dragActive.current && delta > 6 && scrollTop === 0) {
+      dragActive.current = true;
+    }
+    if (dragActive.current && delta > 0) {
+      setDragOffset(delta);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragActive.current) {
+      if (dragOffset > 80) {
+        onClose();
+      } else {
+        setDragOffset(0);
+      }
+      dragActive.current = false;
+    }
+    dragStartY.current = 0;
+  };
 
   if (!mounted) return null;
 
@@ -475,6 +511,10 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
 
       {/* Sheet */}
       <div
+        ref={sheetRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={{
           position: 'fixed', left: 0, right: 0, bottom: 0,
           zIndex: 401,
@@ -485,8 +525,10 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
           maxHeight: '88vh',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          transform: visible ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
+          transform: dragOffset > 0
+            ? `translateY(${dragOffset}px)`
+            : visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: dragOffset > 0 ? 'none' : 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
         }}
       >
         {/* Sticky header */}
@@ -903,7 +945,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   }, [topAward?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Guest: render promo card
-  if (!user) return <GuestPromo onShowAuth={onShowAuth} />;
+  if (!user) return <GuestPromo />;
 
   const todayPct  = todayCount / Math.max(1, dailyGoal);
   const streakPct = Math.min(streakDays, 3) / 3;
@@ -952,6 +994,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={todayCount} total={dailyGoal} unit="stories"
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
             icon={<LightbulbIcon size={13} color={todayIconColor} />}
+            awardTitle="Informed" awardColor={todayIconColor}
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -965,6 +1008,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={streakDays} total={3} unit="days"
             toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
             icon={<LightningIcon size={11} color={streakIconColor} />}
+            awardTitle="Sharp" awardColor={streakIconColor}
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -978,6 +1022,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={weeklyDays} total={weeklyGoal} unit="days"
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
             icon={<StarIcon size={12} color={weekIconColor} />}
+            awardTitle="Savvy" awardColor={weekIconColor}
           />
         </div>
 

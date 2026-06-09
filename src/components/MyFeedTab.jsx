@@ -40,7 +40,7 @@ export default function MyFeedTab({
             <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.02em' }}>Your Personalised Feed</h2>
             <p style={{ margin: 0, fontSize: '0.88rem', color: '#8a8a9a', lineHeight: 1.55 }}>Sign in to create your own feed with only the categories you care about.</p>
           </div>
-          <button onClick={onShowAuth} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/settings')} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
             Sign In
           </button>
         </div>

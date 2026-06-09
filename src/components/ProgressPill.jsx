@@ -97,9 +97,9 @@ function ChallengeRing({
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       {/* Award title above ring */}
       <span style={{
-        fontSize: '0.58rem', fontWeight: 800,
+        fontSize: '0.65rem', fontWeight: 800,
         textTransform: 'uppercase', letterSpacing: '0.08em',
-        color: awardColor || 'rgba(255,255,255,0.35)',
+        color: awardColor,
       }}>
         {awardTitle}
       </span>
@@ -959,9 +959,9 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const streakDone = streakDays >= 3;
   const weekDone   = weeklyDays >= weeklyGoal;
 
-  const todayIconColor  = todayDone  ? AWARDS[0].color : 'rgba(255,255,255,0.72)';
-  const streakIconColor = streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.72)';
-  const weekIconColor   = weekDone   ? AWARDS[2].color : 'rgba(255,255,255,0.72)';
+  const todayIconColor  = todayDone  ? AWARDS[0].color : 'rgba(205,127,50,0.45)';  // bronze dimmed
+  const streakIconColor = streakDone ? AWARDS[1].color : 'rgba(148,163,184,0.45)'; // silver dimmed
+  const weekIconColor   = weekDone   ? AWARDS[2].color : 'rgba(245,158,11,0.45)';  // gold dimmed
 
   return (
     <>
@@ -988,8 +988,8 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
           <ChallengeRing
             size={84} strokeW={6}
             pct={todayPct}
-            gradId="cr-today" color0="#92400e" color1="#f59e0b"
-            trackColor="rgba(146,64,14,0.18)"
+            gradId="cr-today" color0="#7c3a1e" color1="#cd7f32"
+            trackColor="rgba(124,58,30,0.18)"
             label="Today"
             count={todayCount} total={dailyGoal} unit="stories"
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
@@ -1016,7 +1016,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
           <ChallengeRing
             size={84} strokeW={6}
             pct={weekPct}
-            gradId="cr-week" color0="#b45309" color1="#fbbf24"
+            gradId="cr-week" color0="#92400e" color1="#ffd700"
             trackColor="rgba(180,83,9,0.18)"
             label="Week"
             count={weeklyDays} total={weeklyGoal} unit="days"

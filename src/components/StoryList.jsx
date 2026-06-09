@@ -308,7 +308,7 @@ export default function StoryList({
               {/* View all — only when more than 6 stories and no pill is active */}
               {!catFilter && stories.length > 6 && (
                 <button
-                  onClick={() => { setCatFilter(cat); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => setCatFilter(cat)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                     width: '100%', marginTop: '6px', marginBottom: '6px',

@@ -87,7 +87,7 @@ function ChallengeRing({
   gradId, color0, color1, trackColor,
   label, count, total, unit, toGo,
   icon,
-  awardTitle, awardColor,
+  awardTitle, awardColor, awardId,
 }) {
   const r    = (size - strokeW) / 2;
   const circ = 2 * Math.PI * r;
@@ -95,14 +95,17 @@ function ChallengeRing({
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      {/* Award title above ring */}
-      <span style={{
-        fontSize: '0.65rem', fontWeight: 800,
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        color: awardColor,
-      }}>
-        {awardTitle}
-      </span>
+      {/* Award title + icon above ring */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+        <AwardIcon awardId={awardId} size={10} color={awardColor} />
+        <span style={{
+          fontSize: '0.65rem', fontWeight: 800,
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          color: awardColor,
+        }}>
+          {awardTitle}
+        </span>
+      </div>
       {/* Ring */}
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size}
@@ -607,7 +610,9 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
                 </div>
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
                   Read {dailyGoal} stories today to earn the{' '}
-                  <span style={{ color: AWARDS[0].color, fontWeight: '700' }}>Informed</span> badge
+                  <span style={{ color: AWARDS[0].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
+                    <LightbulbIcon size={11} color={AWARDS[0].color} /> Informed
+                  </span> badge
                 </p>
               </div>
               <StatusBadge done={todayDone} onTrack={todayOnTrack} />
@@ -687,7 +692,9 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
                 </div>
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
                   Hit your daily goal 3 days running to earn the{' '}
-                  <span style={{ color: AWARDS[1].color, fontWeight: '700' }}>Sharp</span> badge
+                  <span style={{ color: AWARDS[1].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
+                    <LightningIcon size={11} color={AWARDS[1].color} /> Sharp
+                  </span> badge
                 </p>
               </div>
               {streakDone
@@ -814,7 +821,9 @@ function ChallengeSheet({ open, onClose, challengeStats }) {
                 </div>
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
                   Reach your daily goal on {weeklyGoal} of 7 days to earn the{' '}
-                  <span style={{ color: AWARDS[2].color, fontWeight: '700' }}>Savvy</span> badge
+                  <span style={{ color: AWARDS[2].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
+                    <StarIcon size={11} color={AWARDS[2].color} /> Savvy
+                  </span> badge
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
@@ -994,7 +1003,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={todayCount} total={dailyGoal} unit="stories"
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
             icon={<LightbulbIcon size={13} color={todayIconColor} />}
-            awardTitle="Informed" awardColor={todayIconColor}
+            awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed"
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -1008,7 +1017,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={streakDays} total={3} unit="days"
             toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
             icon={<LightningIcon size={11} color={streakIconColor} />}
-            awardTitle="Sharp" awardColor={streakIconColor}
+            awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp"
           />
 
           <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
@@ -1022,7 +1031,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             count={weeklyDays} total={weeklyGoal} unit="days"
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
             icon={<StarIcon size={12} color={weekIconColor} />}
-            awardTitle="Savvy" awardColor={weekIconColor}
+            awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy"
           />
         </div>
 

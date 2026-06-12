@@ -986,12 +986,6 @@ const TheAIRundown = () => {
     return buildSnapshotBriefing(items);
   }, [mySaves, selectedDay]);
 
-  // Distinct days that have saves — drives the My Saves day picker (newest first).
-  const savesAvailableDays = useMemo(() => {
-    const days = [...new Set((mySaves || []).filter(s => s.content_snapshot && s.day).map(s => s.day))];
-    return days.sort((a, b) => (a < b ? 1 : -1));
-  }, [mySaves]);
-
   // ── Interesting feed: most-saved stories for the selected day across all users,
   // ranked by global save count within each category. ───────────────────────────
   const interestingBriefingData = useMemo(() => {
@@ -1005,12 +999,6 @@ const TheAIRundown = () => {
     });
     return map;
   }, [interestingStories, selectedDay]);
-
-  // Distinct days that have interesting stories — drives the Interesting day picker.
-  const interestingAvailableDays = useMemo(() => {
-    const days = [...new Set((interestingStories || []).filter(it => it.content_snapshot && it.day).map(it => it.day))];
-    return days.sort((a, b) => (a < b ? 1 : -1));
-  }, [interestingStories]);
 
   // Pre-fetch TTS audio for the current + next story as soon as the card is visible.
   // By the time the user presses play the audio is already buffered → instant playback.
@@ -2544,7 +2532,7 @@ const TheAIRundown = () => {
           challengeStats={challengeStats}
           gamifiedStats={gamifiedStats}
           selectedDay={selectedDay}
-          availableDays={interestingAvailableDays}
+          availableDays={availableDays}
           onSelectDay={selectDay}
         />
       )}
@@ -2553,7 +2541,7 @@ const TheAIRundown = () => {
         <MySavesTab
           briefingData={savesBriefingData}
           selectedDay={selectedDay}
-          availableDays={savesAvailableDays}
+          availableDays={availableDays}
           onSelectDay={selectDay}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}

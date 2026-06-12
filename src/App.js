@@ -15,6 +15,7 @@ import RightPane from './components/RightPane';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import ImportantTab from './components/ImportantTab';
+import MySavesTab from './components/MySavesTab';
 import CustomizeTab from './components/CustomizeTab';
 import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
@@ -22,6 +23,28 @@ import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
 import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+
+// Build a briefingData-shaped map ({ [cat]: { storyCount, estimatedSec, allStories,
+// previewStories } }) from a flat list of { category, story } items. Used to render
+// snapshot-based feeds (My Saves, Interesting) through the same machinery as live news.
+function buildSnapshotBriefing(items) {
+  const byCat = {};
+  items.forEach(({ category, story }) => {
+    if (!category || !story) return;
+    (byCat[category] = byCat[category] || []).push(story);
+  });
+  const out = {};
+  Object.keys(byCat).forEach(cat => {
+    const all = byCat[cat];
+    const totalWords = all.reduce((acc, st) => {
+      const fields = [...(st.allBullets || st.tightBullets || []), st.perspectives, st.why, st.headline].filter(Boolean);
+      return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
+    }, 0);
+    const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
+    out[cat] = { storyCount: all.length, estimatedSec, previewStories: all.slice(0, 3), allStories: all };
+  });
+  return out;
+}
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
@@ -137,6 +160,9 @@ const TheAIRundown = () => {
   // Shared URL-fetch promises: text → Promise<string|null> — deduplicates concurrent fetches
   const ttsUrlPromisesRef = useRef(new Map());
   const handleSelectCategoryRef = useRef(null);
+  // When playing a snapshot feed (My Saves / Interesting), holds { category, stories }
+  // so narration uses snapshot text and the live news fetch is suppressed.
+  const snapshotPlayRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
   const [userFeeds, setUserFeeds] = useState([]); // [{ id, name, categories }]
@@ -217,9 +243,11 @@ const TheAIRundown = () => {
     const key = headlineKey(story.headline || '');
     setSavedStories(prev => {
       const exists = prev.some(s => s.category === category && s.storyIndex === storyIndex);
+      // Day the story belongs to: snapshot stories carry _day; otherwise it's the day being viewed.
+      const storyDay = story._day || selectedDay || null;
       const next = exists
         ? prev.filter(s => !(s.category === category && s.storyIndex === storyIndex))
-        : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }, ...prev];
+        : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay }, ...prev];
       try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
       // Sync to Supabase (fire-and-forget)
       if (exists) {
@@ -230,8 +258,21 @@ const TheAIRundown = () => {
       } else {
         fetch(`${BACKEND_URL}/api/saves/sync`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '' }),
+          body: JSON.stringify({
+            user_id: user.id, category, story_index: storyIndex,
+            headline: story.headline, preview: story.allBullets?.[0] || '',
+            day: storyDay, content_snapshot: story,
+          }),
         }).catch(() => {});
+        // Optimistically add to the My Saves feed so it appears without a refetch
+        setMySaves(prevSaves => {
+          if (prevSaves.some(s => headlineKey(s.headline || '') === key)) return prevSaves;
+          return [{ category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay, content_snapshot: story, story_key: key }, ...prevSaves];
+        });
+      }
+      // Keep My Saves feed in sync on removal too
+      if (exists) {
+        setMySaves(prevSaves => prevSaves.filter(s => headlineKey(s.headline || '') !== key));
       }
       // Update distinct saved count (binary: 1 when saved, 0 when removed)
       if (key) setSavedCounts(prevC => {
@@ -263,6 +304,12 @@ const TheAIRundown = () => {
   const [following, setFollowing] = useState([]); // [{ id, username, display_name, avatar_color }]
   const [circleSaves, setCircleSaves] = useState([]); // saves by people I follow
   const [circlePopular, setCirclePopular] = useState([]); // popular among circle
+
+  // ── Saves feeds ──────────────────────────────────────────────────────────────
+  // mySaves: this user's saves with content_snapshot + day → powers the My Saves feed.
+  // interestingStories: global most-saved stories across all users → powers Interesting.
+  const [mySaves, setMySaves] = useState([]);
+  const [interestingStories, setInterestingStories] = useState([]);
 
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
@@ -433,6 +480,7 @@ const TheAIRundown = () => {
     st.pendingLoad = false;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
+    snapshotPlayRef.current = null; // resume live news fetching after snapshot playback
     setIsNarrating(false);
     setIsPaused(false);
     setIsAudioLoading(false);
@@ -703,6 +751,30 @@ const TheAIRundown = () => {
   narrateFnRef.current.speakText = speakText;
 
   const goNextCategoryNarration = () => {
+    // Snapshot feeds (My Saves / Interesting): advance within the snapshot map so
+    // we don't drop into live news between categories.
+    const snap = snapshotPlayRef.current;
+    if (snap?.map) {
+      const cats = Object.keys(snap.map);
+      const catIdx = cats.indexOf(snap.category);
+      const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
+      if (nextCat && narrationStateRef.current.active) {
+        const nextStories = snap.map[nextCat].allStories;
+        snapshotPlayRef.current = { category: nextCat, stories: nextStories, map: snap.map };
+        const transition = pickRandom(CAT_TRANSITION_TEMPLATES)(nextCat);
+        narrationStateRef.current.pendingCategoryName = transition;
+        narrateFnRef.current.prefetchTTS?.(transition);
+        setSelectedCategory(nextCat);
+        setStories(nextStories);
+        setStoryIndex(0);
+        storyNavRef.current = { idx: 0, stories: nextStories, cats, cat: nextCat };
+        setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+      } else {
+        narrateFnRef.current.stop();
+      }
+      return;
+    }
+
     const { cats, cat } = storyNavRef.current;
     const catIdx = cats.indexOf(cat);
     const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
@@ -889,6 +961,57 @@ const TheAIRundown = () => {
     return () => clearInterval(t);
   }, [user?.id]); // re-fires when auth state changes so userId is always current
 
+  // ── My Saves: fetch this user's saved stories (with snapshots) for the feed ──
+  useEffect(() => {
+    if (!user?.id) { setMySaves([]); return; }
+    fetch(`${BACKEND_URL}/api/saves?userId=${user.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setMySaves(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [user?.id]);
+
+  // ── Interesting: fetch global most-saved stories across all users ────────────
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/saves/interesting`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setInterestingStories(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  // ── My Saves feed: snapshots for the selected day, shaped like briefingData ──
+  const savesBriefingData = useMemo(() => {
+    const items = (mySaves || [])
+      .filter(s => s.content_snapshot && (!selectedDay || s.day === selectedDay))
+      .map(s => ({ category: s.category, story: { ...s.content_snapshot, _day: s.day } }));
+    return buildSnapshotBriefing(items);
+  }, [mySaves, selectedDay]);
+
+  // Distinct days that have saves — drives the My Saves day picker (newest first).
+  const savesAvailableDays = useMemo(() => {
+    const days = [...new Set((mySaves || []).filter(s => s.content_snapshot && s.day).map(s => s.day))];
+    return days.sort((a, b) => (a < b ? 1 : -1));
+  }, [mySaves]);
+
+  // ── Interesting feed: most-saved stories for the selected day across all users,
+  // ranked by global save count within each category. ───────────────────────────
+  const interestingBriefingData = useMemo(() => {
+    const items = (interestingStories || [])
+      .filter(it => it.content_snapshot && (!selectedDay || it.day === selectedDay))
+      .map(it => ({ category: it.category, story: { ...it.content_snapshot, _day: it.day, _interestCount: it.count } }));
+    const map = buildSnapshotBriefing(items);
+    Object.keys(map).forEach(cat => {
+      map[cat].allStories.sort((a, b) => (b._interestCount || 0) - (a._interestCount || 0));
+      map[cat].previewStories = map[cat].allStories.slice(0, 3);
+    });
+    return map;
+  }, [interestingStories, selectedDay]);
+
+  // Distinct days that have interesting stories — drives the Interesting day picker.
+  const interestingAvailableDays = useMemo(() => {
+    const days = [...new Set((interestingStories || []).filter(it => it.content_snapshot && it.day).map(it => it.day))];
+    return days.sort((a, b) => (a < b ? 1 : -1));
+  }, [interestingStories]);
+
   // Pre-fetch TTS audio for the current + next story as soon as the card is visible.
   // By the time the user presses play the audio is already buffered → instant playback.
   useEffect(() => {
@@ -1010,6 +1133,7 @@ const TheAIRundown = () => {
   };
 
   const handleSelectCategory = (category) => {
+    snapshotPlayRef.current = null; // returning to live news — resume normal fetching
     setSelectedCategory(category);
     // Custom categories only support today — reset day and time for them.
     // Default/regional categories preserve whatever day AND time the user has selected.
@@ -1171,6 +1295,8 @@ const TheAIRundown = () => {
   }, [customCategories, daysOfWeek]);
 
   const handleFetchNews = async () => {
+    // While a snapshot feed is playing, keep the snapshot stories — don't fetch live news.
+    if (snapshotPlayRef.current) return;
     if (!selectedCategory || !selectedDay || !selectedTime) return;
 
     // ── Slot-status gate: never fetch until we know which slots are complete ──
@@ -1882,6 +2008,31 @@ const TheAIRundown = () => {
   const handlePlayStory = (cat, idx) => {
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
+    const fromPath = location.pathname;
+
+    // ── Snapshot feeds (My Saves / Interesting): narrate from snapshot text ──
+    const snapMap = fromPath === '/saved' ? savesBriefingData
+                  : fromPath === '/important' ? interestingBriefingData
+                  : null;
+    if (snapMap && snapMap[cat]?.allStories?.length) {
+      const snapStories = snapMap[cat].allStories;
+      snapshotPlayRef.current = { category: cat, stories: snapStories, map: snapMap };
+      setPlayerContextCategories(Object.keys(snapMap));
+      const st = narrationStateRef.current;
+      st.active = true; st.paused = false; st.pendingLoad = false;
+      setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+      setPlayerVisible(true); setPlayerMinimized(false);
+      setSelectedCategory(cat);
+      setStories(snapStories);
+      setStoryIndex(idx);
+      navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath } });
+      // storyNavRef is rebuilt from `stories` on the next render; set it now so the
+      // immediate narrateStory call reads the snapshot list rather than stale stories.
+      storyNavRef.current = { idx, stories: snapStories, cats: Object.keys(snapMap), cat };
+      setTimeout(() => narrateFnRef.current.narrateStory(idx), 0);
+      return;
+    }
+
     const ctxCats = location.pathname === '/my-feed'
       ? feedCategories
       : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
@@ -1891,7 +2042,6 @@ const TheAIRundown = () => {
     setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
     setPlayerVisible(true); setPlayerMinimized(false);
     setStoryIndex(idx);
-    const fromPath = location.pathname;
     navigate(`/category/${encodeURIComponent(cat)}`, { state: { from: fromPath } });
     if (selectedCategory === cat && stories.length > 0) {
       narrateFnRef.current.narrateStory(idx);
@@ -2022,6 +2172,7 @@ const TheAIRundown = () => {
   const isMyFeedPath    = location.pathname === '/my-feed';
   const isPopularPath   = location.pathname === '/popular';
   const isImportantPath = location.pathname === '/important';
+  const isSavedPath     = location.pathname === '/saved';
   const isCustomizePath = location.pathname === '/customize';
   const profileRouteMatch = location.pathname.match(/^\/profile\/([^/]+)$/);
   const isProfilePath   = !!profileRouteMatch;
@@ -2032,7 +2183,7 @@ const TheAIRundown = () => {
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
   const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : null;
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isCustomizePath && !isFeedPage && !isProfilePath;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isCustomizePath && !isFeedPage && !isProfilePath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
 
@@ -2042,6 +2193,7 @@ const TheAIRundown = () => {
   const showMyFeedBg    = isStoryView && storyFrom === '/my-feed';
   const showPopularBg   = isStoryView && storyFrom === '/popular';
   const showImportantBg = isStoryView && storyFrom === '/important';
+  const showSavedBg     = isStoryView && storyFrom === '/saved';
 
   // Which feed did the user navigate from? Used to keep the correct SideNav feed highlighted
   // while on /category/... or /category/.../story/... pages.
@@ -2101,13 +2253,25 @@ const TheAIRundown = () => {
   // ── View-stories: use briefingData for default categories so CategoryView / StoryReader
   // are never contaminated by the My Rundown merged-stories state.
   // Custom categories have no briefingData entry, so they still rely on the stories state.
+  // Snapshot feeds (My Saves / Interesting) render from their own snapshot maps, chosen
+  // by where the reader was opened from (location.state.from).
+  const readerFrom = location.state?.from;
+  const snapshotBriefing = readerFrom === '/saved'
+    ? savesBriefingData
+    : readerFrom === '/important'
+      ? interestingBriefingData
+      : null;
   const isViewingCustomCat = catFromUrl && customCategories.includes(catFromUrl);
-  const viewStories = (!isViewingCustomCat && catFromUrl && briefingData[catFromUrl]?.allStories?.length > 0)
-    ? briefingData[catFromUrl].allStories
-    : stories;
-  const viewIsLoading = !isViewingCustomCat && catFromUrl
-    ? (briefingLoading && !briefingData[catFromUrl])
-    : newsLoading;
+  const viewStories = (snapshotBriefing && catFromUrl && snapshotBriefing[catFromUrl]?.allStories?.length > 0)
+    ? snapshotBriefing[catFromUrl].allStories
+    : (!isViewingCustomCat && catFromUrl && briefingData[catFromUrl]?.allStories?.length > 0)
+      ? briefingData[catFromUrl].allStories
+      : stories;
+  const viewIsLoading = snapshotBriefing
+    ? false
+    : !isViewingCustomCat && catFromUrl
+      ? (briefingLoading && !briefingData[catFromUrl])
+      : newsLoading;
 
   return (
     <div style={{ background: '#09090f', minHeight: '100dvh' }}>
@@ -2369,23 +2533,39 @@ const TheAIRundown = () => {
 
       {(isImportantPath || showImportantBg) && (
         <ImportantTab
-          savedStories={savedStories}
-          savedCounts={savedCounts}
-          briefingData={briefingData}
-          onRemoveSaved={handleRemoveSaved}
+          briefingData={interestingBriefingData}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
+          onPlayCategory={handlePlayCategory}
+          onOpenSaves={() => navigate('/saved')}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
           challengeStats={challengeStats}
           gamifiedStats={gamifiedStats}
-          circleSaves={circleSaves}
-          following={following}
           selectedDay={selectedDay}
-          availableDays={availableDays}
+          availableDays={interestingAvailableDays}
           onSelectDay={selectDay}
-          onRefreshSocial={() => user && loadSocialData(user.id)}
+        />
+      )}
+
+      {(isSavedPath || showSavedBg) && (
+        <MySavesTab
+          briefingData={savesBriefingData}
+          selectedDay={selectedDay}
+          availableDays={savesAvailableDays}
+          onSelectDay={selectDay}
+          onSelectCategory={handleSelectCategory}
+          onPlayStory={handlePlayStory}
+          onPlayCategory={handlePlayCategory}
+          gamifiedStats={gamifiedStats}
+          user={user}
+          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+          isNarrating={isNarrating}
+          selectedCategory={selectedCategory}
+          currentStoryIndex={storyIndex}
+          playerVisible={playerVisible}
+          challengeStats={challengeStats}
         />
       )}
 

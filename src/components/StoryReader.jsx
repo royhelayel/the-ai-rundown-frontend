@@ -4,6 +4,7 @@ import { Play, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { readTime } from '../utils';
 import CategoryIcon from './CategoryIcon';
+import { headlineKey } from './PopularTab';
 
 function faviconUrl(url) {
   try {
@@ -200,8 +201,11 @@ export default function StoryReader({
   const goBackCat  = () => { if (prevCat) goToCat(prevCat); };
   const goNextCat  = () => { if (nextCat) goToCat(nextCat); };
 
-  // Bookmark state
-  const isSaved = savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
+  // Bookmark state — match by stable headline identity first (snapshot feeds use
+  // per-category indices that differ from the original save's index), then by index.
+  const savedKey = headlineKey(story?.headline || '');
+  const isSaved = (savedKey && savedStories.some(s => headlineKey(s.headline || '') === savedKey))
+    || savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
 
   // Shared toggle+play JSX (used in both header docked and article positions)
   const TogglePills = ({ compact = false }) => (

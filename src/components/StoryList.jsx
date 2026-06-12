@@ -113,7 +113,14 @@ export default function StoryList({
   onEditFeed,
 }) {
   const [catFilter, setCatFilter] = useState(null);
+  const [expandedCats, setExpandedCats] = useState(() => new Set());
   const navigate = useNavigate();
+
+  const toggleExpanded = (cat) => setExpandedCats(prev => {
+    const next = new Set(prev);
+    if (next.has(cat)) next.delete(cat); else next.add(cat);
+    return next;
+  });
 
   const visibleCats = catFilter
     ? categories.filter(c => c === catFilter && briefingData[c]?.storyCount > 0)
@@ -262,6 +269,10 @@ export default function StoryList({
           const listenedSet = gamifiedStats?.todayProgress?.[cat]?.listenedIndices || new Set();
           if (stories.length === 0) return null;
 
+          const isExpanded  = expandedCats.has(cat);
+          // In the All view, cap at 6 unless this category is expanded.
+          const shownStories = catFilter || isExpanded ? stories : stories.slice(0, 6);
+
           return (
             <div key={cat}>
               {showCategoryImages ? (
@@ -291,9 +302,9 @@ export default function StoryList({
                 </div>
               )}
 
-              {/* Story cards — capped at 6 in the all-categories view */}
+              {/* Story cards — capped at 6 in the all-categories view (expandable inline) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {(catFilter ? stories : stories.slice(0, 6)).map((story, idx) => (
+                {shownStories.map((story, idx) => (
                   <StoryCard
                     key={idx}
                     story={story}
@@ -305,10 +316,10 @@ export default function StoryList({
                 ))}
               </div>
 
-              {/* View all — only when more than 6 stories and no pill is active */}
+              {/* View all / Show less — expands inline, no category-filter change */}
               {!catFilter && stories.length > 6 && (
                 <button
-                  onClick={() => setCatFilter(cat)}
+                  onClick={() => toggleExpanded(cat)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                     width: '100%', marginTop: '6px', marginBottom: '6px',
@@ -317,8 +328,12 @@ export default function StoryList({
                     cursor: 'pointer', color: '#6b7280', fontSize: '0.78rem', fontWeight: '700',
                   }}
                 >
-                  View all {stories.length} stories
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {isExpanded ? 'Show less' : `View all ${stories.length} stories`}
+                  <svg
+                    width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)' }}
+                  >
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </button>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, User, CheckCircle2 } from 'lucide-react';
 import CategoryRow from './CategoryRow';
 import DateTimePill from './DateTimePill';
+import Logo from './Logo';
 import { SkeletonCategoryRows } from './SkeletonScreens';
 import { CATEGORY_COLORS } from '../theme';
 import { formatDuration } from '../utils';
@@ -52,7 +53,9 @@ export default function FeedPage({
       {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.75rem 1.25rem' }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
-          <span className="header-brand" style={{ fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
+          <span className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1.1rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>
+            <Logo size={20} color={light.text} /> RadioNews
+          </span>
           <div style={{ flex: 1 }} />
           <button
             onClick={() => navigate('/settings')}

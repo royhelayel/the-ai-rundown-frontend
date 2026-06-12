@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, User, ChevronRight, Pencil, Check, X } from 'lucide-react';
 import { CATEGORY_COLORS } from '../theme';
+import Logo from './Logo';
 
 const light = {
   bg:        '#ffffff',
@@ -86,7 +87,9 @@ export default function CustomizeTab({
       {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: `${light.bg}f0`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: `1px solid ${light.border}`, padding: '0.9rem 1.25rem' }}>
         <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
-          <span className="header-brand" style={{ fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>The Rundown</span>
+          <span className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1.15rem', fontWeight: '900', color: light.text, letterSpacing: '-0.02em' }}>
+            <Logo size={20} color={light.text} /> RadioNews
+          </span>
         </div>
       </header>
 

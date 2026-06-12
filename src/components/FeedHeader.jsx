@@ -1,12 +1,13 @@
 /**
  * FeedHeader — shared header for all four feed tabs.
  *
- * Shows a single row: "The Rundown  ›  <Current Feed>"  [date]  [avatar]
+ * Shows a single row: "[logo] RadioNews  ›  <Current Feed>"  [date]  [avatar]
  * The date button opens a day-picker popover when availableDays is provided.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, ChevronDown } from 'lucide-react';
+import Logo from './Logo';
 
 function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
@@ -64,9 +65,18 @@ export default function FeedHeader({
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
 
         {/* Brand */}
-        <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em', flexShrink: 0 }}>
-          The Rundown
-        </span>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <Logo size={22} color="#0a0a0f" />
+          <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.025em' }}>
+            RadioNews
+          </span>
+        </button>
 
         {/* Date button + picker — always shown */}
         <div style={{ position: 'relative' }} ref={pickerRef}>

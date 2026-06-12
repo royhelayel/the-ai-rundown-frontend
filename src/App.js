@@ -1883,6 +1883,26 @@ const TheAIRundown = () => {
     st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory?.(idx); }, delay);
   };
 
+  // Switch the player to another category WITHIN the active snapshot feed (My Saves /
+  // Interesting), keeping snapshot mode so it never falls back into live news.
+  const goToSnapshotCategory = (cat, idx) => {
+    const map = snapshotPlayRef.current?.map;
+    const snapStories = map?.[cat]?.allStories;
+    if (!snapStories?.length) return false;
+    const cats = Object.keys(map);
+    snapshotPlayRef.current = { category: cat, stories: snapStories, map };
+    playlistCatsRef.current = cats;
+    setPlayerContextCategories(cats);
+    setSelectedCategory(cat);
+    setStories(snapStories);
+    setStoryIndex(idx);
+    setNarrationProgress(0);
+    narrationDurationRef.current = 0;
+    storyNavRef.current = { idx, stories: snapStories, cats, cat };
+    if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); setTimeout(() => narrateFnRef.current.narrateStory(idx), 0); }
+    return true;
+  };
+
   const goNext = () => {
     const isLast = storyIndex === stories.length - 1;
     if (!isLast) {
@@ -1894,6 +1914,12 @@ const TheAIRundown = () => {
       setStoryIndex(0);
       if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(0); }
       else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+    } else if (snapshotPlayRef.current) {
+      // Advance to the next category within the snapshot feed (stays in My Saves / Interesting)
+      const cats = Object.keys(snapshotPlayRef.current.map);
+      const i = cats.indexOf(selectedCategory);
+      const next = i >= 0 && i < cats.length - 1 ? cats[i + 1] : null;
+      if (next) goToSnapshotCategory(next, 0);
     } else if (nextCatNav) {
       handleSelectCategory(nextCatNav); setStoryIndex(0);
       if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); narrationStateRef.current.pendingLoad = !isPaused; }
@@ -1907,6 +1933,12 @@ const TheAIRundown = () => {
       setStoryIndex(newIdx);
       if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(newIdx); }
       else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
+    } else if (snapshotPlayRef.current) {
+      // Retreat to the previous category within the snapshot feed (its last story)
+      const cats = Object.keys(snapshotPlayRef.current.map);
+      const i = cats.indexOf(selectedCategory);
+      const prev = i > 0 ? cats[i - 1] : null;
+      if (prev) goToSnapshotCategory(prev, Math.max(0, (snapshotPlayRef.current.map[prev].allStories.length - 1)));
     } else if (prevCatNav) {
       if (isNarrating) { narrateFnRef.current.cancelAudioKeepActive?.(); narrationStateRef.current.pendingLoad = !isPaused; }
       else { goToLastStoryRef.current = true; }
@@ -2005,6 +2037,7 @@ const TheAIRundown = () => {
     if (snapMap && snapMap[cat]?.allStories?.length) {
       const snapStories = snapMap[cat].allStories;
       snapshotPlayRef.current = { category: cat, stories: snapStories, map: snapMap };
+      playlistCatsRef.current = Object.keys(snapMap); // keep storyNavRef.cats stable across renders
       setPlayerContextCategories(Object.keys(snapMap));
       const st = narrationStateRef.current;
       st.active = true; st.paused = false; st.pendingLoad = false;
@@ -2546,6 +2579,7 @@ const TheAIRundown = () => {
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
           onPlayCategory={handlePlayCategory}
+          onPlayFeed={() => { const cats = Object.keys(savesBriefingData); if (cats[0]) handlePlayStory(cats[0], 0); }}
           gamifiedStats={gamifiedStats}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
@@ -2787,6 +2821,8 @@ const TheAIRundown = () => {
           }}
           contextCategories={playerContextCategories}
           onSelectCategory={(cat) => {
+            // Snapshot feeds: switch category within the snapshot, don't drop to live news
+            if (snapshotPlayRef.current) { goToSnapshotCategory(cat, 0); return; }
             setSelectedCategory(cat);
             setStoryIndex(0);
             setNarrationProgress(0);

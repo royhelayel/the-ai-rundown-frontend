@@ -11,7 +11,7 @@ import useScrollRestore from '../hooks/useScrollRestore';
 export default function MySavesTab({
   briefingData = {},
   selectedDay, availableDays = [], onSelectDay,
-  onSelectCategory, onPlayStory, onPlayCategory,
+  onSelectCategory, onPlayStory, onPlayCategory, onPlayFeed,
   gamifiedStats = {}, user, onShowAuth,
   isNarrating, selectedCategory, currentStoryIndex,
   playerVisible, challengeStats,
@@ -86,6 +86,7 @@ export default function MySavesTab({
             loading={false}
             fromPath="/saved"
             sectionTitle="My Saves"
+            onPlayFeed={onPlayFeed}
           />
         </div>
       )}

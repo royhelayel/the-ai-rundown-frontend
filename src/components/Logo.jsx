@@ -1,36 +1,56 @@
 import React from 'react';
 
 /**
- * RadioNews logo — a newspaper with a headset arcing around it.
- * Monochrome; inherits `color`. Use `size` to scale (square viewBox).
+ * RadioNews logo — centered newspaper/paragraph lines flanked by a headset.
+ * Each side: a slim, detached rounded-capsule ear cushion nestled inside the
+ * headband, whose leg runs outside the cushion and hooks inward at the bottom
+ * (mirrored left/right).
+ *
+ * Props:
+ *   size      — width in px (height scales to the 38×28 viewBox)
+ *   color     — used when `gradient` is false (monochrome)
+ *   gradient  — when true, strokes use the brand purple→blue gradient
  */
-export default function Logo({ size = 24, color = '#0a0a0f' }) {
+export default function Logo({ size = 24, color = '#0a0a0f', gradient = false }) {
+  const idRef = React.useRef(`rn-grad-${Math.random().toString(36).slice(2, 9)}`);
+  const gradId = idRef.current;
+  const stroke = gradient ? `url(#${gradId})` : color;
+
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 32 32"
+      height={size * (28 / 38)}
+      viewBox="0 0 38 28"
       fill="none"
       aria-label="RadioNews"
       role="img"
     >
-      {/* Newspaper / paper, centered */}
-      <rect x="9" y="11" width="14" height="15.5" rx="1.6" stroke={color} strokeWidth="1.6" />
-      <line x1="11.6" y1="15"   x2="20.4" y2="15"   stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="11.6" y1="18.2" x2="20.4" y2="18.2" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="11.6" y1="21.4" x2="17.4" y2="21.4" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      {gradient && (
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="38" y2="28" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+        </defs>
+      )}
 
-      {/* Headset band arcing over the top, from ear cup to ear cup */}
+      {/* Headband — arcs over the top; legs run outside each cushion and hook inward */}
       <path
-        d="M5 18.5 V15 a11 11 0 0 1 22 0 V18.5"
-        stroke={color}
-        strokeWidth="1.9"
+        d="M10.5 24.5 C8.4 24.5 7.5 22.8 7.5 20.5 V14.5 a11.5 11.5 0 0 1 23 0 V20.5 C30.5 22.8 29.6 24.5 27.5 24.5"
+        stroke={stroke}
+        strokeWidth="2"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
 
-      {/* Ear cups hugging the paper's sides */}
-      <rect x="3.1"  y="17" width="3.8" height="6.4" rx="1.9" fill={color} />
-      <rect x="25.1" y="17" width="3.8" height="6.4" rx="1.9" fill={color} />
+      {/* Ear cushions — slim, detached rounded capsules */}
+      <rect x="11" y="12" width="3" height="11" rx="1.5" stroke={stroke} strokeWidth="2" />
+      <rect x="24" y="12" width="3" height="11" rx="1.5" stroke={stroke} strokeWidth="2" />
+
+      {/* Newspaper / paragraph lines, centered between the ear cushions */}
+      <line x1="16" y1="11"   x2="22"   y2="11"   stroke={stroke} strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="16" y1="14.5" x2="22"   y2="14.5" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="16" y1="18"   x2="20.5" y2="18"   stroke={stroke} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

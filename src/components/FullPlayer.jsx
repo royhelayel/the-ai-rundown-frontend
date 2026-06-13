@@ -228,8 +228,8 @@ export default function FullPlayer({
               {excerpt}
             </p>
           )}
-          {/* Headlines / Summary depth toggle — moved here, under the story */}
-          <div style={{ display: 'inline-flex', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem' }}>
+          {/* Headlines / Summary depth toggle — centered, under the story */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
             {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
               <button
                 key={level}

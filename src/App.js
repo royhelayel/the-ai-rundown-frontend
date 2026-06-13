@@ -1991,7 +1991,7 @@ const TheAIRundown = () => {
 
   const handlePlayBriefing = () => {
     const firstCat = defaultCategories.find(c => briefingData[c]?.storyCount > 0) || defaultCategories[0];
-    const startIdx = getResumeIndex(firstCat);
+    const startIdx = 0;
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     setPlayerContextCategories(defaultCategories);
@@ -2012,7 +2012,7 @@ const TheAIRundown = () => {
   };
 
   const handlePlayCategory = (cat) => {
-    const startIdx = getResumeIndex(cat);
+    const startIdx = 0;
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     // Use the feed/context categories matching where the user played from
@@ -2136,25 +2136,12 @@ const TheAIRundown = () => {
     }
   };
 
-  // Resume index: first unread today for a category, bounded by where we left off (whichever is earlier)
-  const getResumeIndex = (cat) => {
-    const total = briefingData[cat]?.storyCount || 0;
-    if (total === 0) return 0;
-    const listenedSet = gamifiedStats.todayProgress[cat]?.listenedIndices || new Set();
-    for (let i = 0; i < total; i++) {
-      if (!listenedSet.has(i)) {
-        return (selectedCategory === cat && stories.length > 0) ? Math.min(storyIndex, i) : i;
-      }
-    }
-    // All stories read — resume from where we left off or start over
-    return (selectedCategory === cat && stories.length > 0) ? storyIndex : 0;
-  };
 
   const handlePlayFeed = (cats) => {
     const playable = cats.filter(c => briefingData[c]?.storyCount > 0);
     if (playable.length === 0) return;
     const firstCat = playable[0];
-    const startIdx = getResumeIndex(firstCat);
+    const startIdx = 0;
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable;
@@ -2179,7 +2166,7 @@ const TheAIRundown = () => {
     const playable = feedCategories.filter(c => briefingData[c]?.storyCount > 0);
     if (playable.length === 0) return;
     const firstCat = playable[0];
-    const startIdx = getResumeIndex(firstCat);
+    const startIdx = 0;
     if (isNarrating) narrateFnRef.current.stop();
     playerSourcePath.current = location.pathname;
     playlistCatsRef.current = playable; // restrict narration to feed categories only

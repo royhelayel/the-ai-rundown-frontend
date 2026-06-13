@@ -112,6 +112,7 @@ export default function MyFeedTab({
           sectionTitle="My Feed"
           onPlayFeed={onPlayMyFeed}
           onEditFeed={() => navigate('/customize')}
+          markNew
         />
       </div>
     </div>

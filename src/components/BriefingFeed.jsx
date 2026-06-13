@@ -57,6 +57,7 @@ export default function BriefingFeed({
           showCategoryImages
           sectionTitle="All News"
           onPlayFeed={onPlayBriefing}
+          markNew
         />
       </div>
     </div>

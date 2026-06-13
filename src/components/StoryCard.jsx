@@ -24,6 +24,7 @@ export default function StoryCard({
   story,
   category,
   isRead,
+  isNew,        // story added in the evening incremental load — shows "NEW" until read
   listenCount,
   savedCount,
   onRead,
@@ -38,7 +39,8 @@ export default function StoryCard({
     || story.tightBullets?.[0]
     || (story.summary ? story.summary.slice(0, 300) + (story.summary.length > 300 ? '…' : '') : '');
 
-  // Top-right slot: read badge, or custom removeButton, or nothing
+  // Top-right slot: read badge, or custom removeButton, or nothing.
+  // A read story always shows "Read" (so a NEW evening story flips to Read once read).
   let badge = null;
   if (removeButton) {
     badge = removeButton;
@@ -46,6 +48,12 @@ export default function StoryCard({
     badge = (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'none', color: '#22c55e' }}>
         ✓ Read
+      </span>
+    );
+  } else if (isNew) {
+    badge = (
+      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '800', letterSpacing: '0.06em', flexShrink: 0, background: '#7c3aed', color: '#fff', textTransform: 'uppercase' }}>
+        New
       </span>
     );
   } else if (isRead === false) {

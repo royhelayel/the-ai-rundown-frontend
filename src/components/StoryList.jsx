@@ -111,6 +111,7 @@ export default function StoryList({
   sectionTitle = '',
   onPlayFeed,
   onEditFeed,
+  markNew = false, // show a "NEW" badge on evening-incremental stories (live feeds only)
 }) {
   const [catFilter, setCatFilter] = useState(null);
   const [expandedCats, setExpandedCats] = useState(() => new Set());
@@ -310,6 +311,7 @@ export default function StoryList({
                     story={story}
                     category={cat}
                     isRead={user ? listenedSet.has(idx) : undefined}
+                    isNew={markNew && story.generatedSlot === 'Evening'}
                     onRead={() => handleRead(cat, idx)}
                     onPlay={() => onPlayStory?.(cat, idx)}
                   />

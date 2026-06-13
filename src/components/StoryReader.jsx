@@ -70,6 +70,7 @@ export default function StoryReader({
   onClose,
   isAlreadyRead = false,
   playlist = null, // [{ category, storyIndex }] — cross-category ordered list from Popular/Interesting
+  feedName, // source feed name (e.g. "Popular") shown at the top, matching the player
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -243,13 +244,22 @@ export default function StoryReader({
         backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         flexShrink: 0,
       }}>
-        {/* Top row: minimize + bookmark */}
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem' }}>
+        {/* Top row: minimize + feed/position breadcrumb (centered) + bookmark */}
+        <div style={{ position: 'relative', maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem' }}>
           <button
             onClick={onClose || goBack}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            style={{ width: '32px', height: '32px', borderRadius: '50%', background: light.bgSub, border: `1px solid ${light.border}`, color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', zIndex: 1 }}>
             <ChevronDown size={18} />
           </button>
+          {/* Absolutely centered breadcrumb — feed name + category · pos of total */}
+          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+            <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: '800', color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {feedName || 'Reading'}
+            </p>
+            <p style={{ margin: '1px 0 0', fontSize: '0.74rem', fontWeight: '700', color: light.text }}>
+              {category} · {currentPos + 1} of {totalCount}
+            </p>
+          </div>
           <div style={{ flex: 1 }} />
           {user && (
             <button
@@ -328,17 +338,14 @@ export default function StoryReader({
       {/* ── Content ── */}
       <article style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '1.75rem 1.25rem', paddingBottom: '6rem' }}>
 
-        {/* Category badge (left) + read status (right) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
-          <span style={{ padding: '0.2rem 0.65rem', background: `${color}15`, border: `1px solid ${color}30`, borderRadius: '999px', fontSize: '0.7rem', fontWeight: '800', color: color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            {category}
-          </span>
-          {user && (
+        {/* Read status (right) — category now lives in the top breadcrumb */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '1rem' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: '700', color: isRead ? '#22c55e' : '#9ca3af' }}>
               {isRead ? '✓ Read' : 'Unread'}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Headline */}
         <h1 style={{ margin: '0 0 1.25rem', fontSize: '1.55rem', fontWeight: '800', color: light.text, lineHeight: 1.22, letterSpacing: '-0.025em' }}>
@@ -451,17 +458,8 @@ export default function StoryReader({
             <ChevL />
           </NavBtn>
 
-          {/* Centre label */}
-          <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: '800', color, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {inPlaylist
-                ? (location.state?.from === '/popular' ? 'Popular' : location.state?.from === '/important' ? 'Interesting' : category)
-                : category}
-            </div>
-            <div style={{ fontSize: '0.7rem', color: light.textMuted, fontWeight: '500' }}>
-              {currentPos + 1} / {totalCount}
-            </div>
-          </div>
+          {/* Centre spacer — feed name + position now live in the top breadcrumb */}
+          <div style={{ flex: 1, minWidth: 0 }} />
 
           {/* > next story */}
           <NavBtn onClick={goNextStory} disabled={!hasNext} title="Next story">

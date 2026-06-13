@@ -2238,6 +2238,17 @@ const TheAIRundown = () => {
     return null;
   })();
   const currentStory    = stories[storyIdxFromUrl ?? storyIndex] || null;
+  // Map a source path (handles both '/popular' and 'popular' style values) to the feed's display name.
+  const feedNameForPath = (p) => {
+    if (!p || p === '/' || p === 'home' || p === 'category') return 'All News';
+    if (p === '/my-feed')                      return 'My Feed';
+    if (p === '/popular'   || p === 'popular')  return 'Popular';
+    if (p === '/important' || p === 'important') return 'Interesting';
+    if (p === '/saved')                        return 'My Saves';
+    const m = typeof p === 'string' && p.match(/^\/feed\/(.+)/);
+    if (m) return (userFeeds.find(f => f.id === m[1])?.name) || 'Feed';
+    return 'All News';
+  };
   const miniPlayerVisible = playerVisible && playerMinimized;
   // Show bottom nav everywhere except settings and when full player is open
   const showBottomNav   = !isSettingsPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
@@ -2810,6 +2821,7 @@ const TheAIRundown = () => {
           storyIndex={storyIndex}
           storyCount={stories.length}
           stories={stories}
+          feedName={feedNameForPath(playerSourcePath.current)}
           isNarrating={isNarrating}
           isPaused={isPaused}
           isLoading={isAudioLoading}
@@ -2961,6 +2973,7 @@ const TheAIRundown = () => {
                 onToggleSaved={handleToggleSaved}
                 contextCategories={contextCats}
                 playlist={location.state?.playlist || null}
+                feedName={feedNameForPath(location.state?.from)}
                 inSheet
                 onClose={readerClose}
               />

@@ -23,8 +23,6 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
       style={{
         position: 'relative', zIndex: 10,
         overflowX: 'auto', scrollbarWidth: 'none',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}
     >
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
@@ -95,6 +93,8 @@ export default function FullPlayer({
   // Category strip
   contextCategories = [],
   onSelectCategory,
+  // Source feed name (e.g. "Popular", "My Feed")
+  feedName,
 }) {
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
@@ -183,7 +183,7 @@ export default function FullPlayer({
           </button>
           {/* Absolutely centered breadcrumb — unaffected by button widths */}
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-            <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Playing Now</p>
+            <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
               {category} · {storyIndex + 1} of {storyCount}
             </p>
@@ -213,14 +213,8 @@ export default function FullPlayer({
         {/* ── Spacer — pushes headline down into the gradient zone ── */}
         <div style={{ flex: 1, position: 'relative', zIndex: 10 }} />
 
-        {/* ── Category badge + Headline + Excerpt (overlaid on image gradient) ── */}
+        {/* ── Headline + Excerpt (overlaid on image gradient) ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: '0 1.5rem 0.75rem' }}>
-          {/* Category badge */}
-          <div style={{ marginBottom: '0.6rem' }}>
-            <span style={{ padding: '0.22rem 0.65rem', background: color, borderRadius: '999px', fontSize: '0.62rem', fontWeight: '800', color: 'white', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-              {category}
-            </span>
-          </div>
           {/* Headline */}
           <h2 style={{ margin: '0 0 0.55rem', fontSize: '1.35rem', fontWeight: '900', color: '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
             {headline}

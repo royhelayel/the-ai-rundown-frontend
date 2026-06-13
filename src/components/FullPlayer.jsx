@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Repeat, Play, Pause, SkipBack, SkipForward, Loader } from 'lucide-react';
+import { ChevronDown, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
 
@@ -95,6 +95,9 @@ export default function FullPlayer({
   onSelectCategory,
   // Source feed name (e.g. "Popular", "My Feed")
   feedName,
+  // Interesting toggle
+  isInteresting,
+  onToggleInteresting,
 }) {
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
@@ -225,6 +228,17 @@ export default function FullPlayer({
               {excerpt}
             </p>
           )}
+          {/* Headlines / Summary depth toggle — moved here, under the story */}
+          <div style={{ display: 'inline-flex', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem' }}>
+            {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
+              <button
+                key={level}
+                onClick={() => onSetDepth(level)}
+                style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? color : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.7)' }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Progress bar ── */}
@@ -271,16 +285,20 @@ export default function FullPlayer({
               {playbackSpeed}×
             </button>
 
-            <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', padding: '3px' }}>
-              {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
-                <button
-                  key={level}
-                  onClick={() => onSetDepth(level)}
-                  style={{ padding: '0.3rem 0.8rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? color : 'transparent', color: depthLevel === level ? 'white' : colors.textMuted }}>
-                  {label}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={onToggleInteresting}
+              title={isInteresting ? 'Remove from Interesting' : 'Mark as Interesting'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '0.45rem 1rem', borderRadius: '999px', cursor: 'pointer',
+                background: isInteresting ? `${color}33` : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${isInteresting ? color : 'transparent'}`,
+                color: isInteresting ? color : colors.textSub,
+                fontSize: '0.76rem', fontWeight: '800',
+              }}>
+              <Sparkles size={15} fill={isInteresting ? color : 'none'} />
+              Interesting
+            </button>
 
             <button
               onClick={onRepeatToggle}

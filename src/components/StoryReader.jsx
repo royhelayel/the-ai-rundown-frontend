@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Bookmark, BookmarkCheck, ChevronDown } from 'lucide-react';
+import { Play, Sparkles, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { readTime } from '../utils';
 import CategoryIcon from './CategoryIcon';
@@ -261,14 +261,8 @@ export default function StoryReader({
             </p>
           </div>
           <div style={{ flex: 1 }} />
-          {user && (
-            <button
-              onClick={() => onToggleSaved?.(story, category, storyIndex)}
-              title={isSaved ? 'Remove from Interesting' : 'Save to Interesting'}
-              style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub, border: `1px solid ${isSaved ? 'rgba(124,58,237,0.3)' : light.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isSaved ? '#7c3aed' : light.textMuted, flexShrink: 0 }}>
-              {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-            </button>
-          )}
+          {/* Spacer to balance the minimize button (Interesting moved to the navigator) */}
+          <div style={{ width: '32px', flexShrink: 0 }} />
         </div>
 
         {/* Story progress dots — single-category mode only (too many for playlists) */}
@@ -458,8 +452,24 @@ export default function StoryReader({
             <ChevL />
           </NavBtn>
 
-          {/* Centre spacer — feed name + position now live in the top breadcrumb */}
-          <div style={{ flex: 1, minWidth: 0 }} />
+          {/* Centre — Interesting toggle */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={() => onToggleSaved?.(story, category, storyIndex)}
+              title={isSaved ? 'Remove from Interesting' : 'Mark as Interesting'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '7px 16px', borderRadius: '999px', cursor: 'pointer',
+                background: isSaved ? 'rgba(124,58,237,0.1)' : light.bgSub,
+                border: `1px solid ${isSaved ? 'rgba(124,58,237,0.35)' : light.border}`,
+                color: isSaved ? '#7c3aed' : light.textMuted,
+                fontSize: '0.76rem', fontWeight: '800', whiteSpace: 'nowrap',
+              }}
+            >
+              <Sparkles size={14} fill={isSaved ? '#7c3aed' : 'none'} />
+              Interesting
+            </button>
+          </div>
 
           {/* > next story */}
           <NavBtn onClick={goNextStory} disabled={!hasNext} title="Next story">

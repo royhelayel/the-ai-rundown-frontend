@@ -2809,6 +2809,9 @@ const TheAIRundown = () => {
           storyCount={stories.length}
           stories={stories}
           feedName={feedNameForPath(playerSourcePath.current)}
+          user={user}
+          isInteresting={!!(currentStory && savedStories.some(s => headlineKey(s.headline || '') === headlineKey(currentStory.headline || '')))}
+          onToggleInteresting={() => currentStory && handleToggleSaved(currentStory, selectedCategory, storyIndex)}
           isNarrating={isNarrating}
           isPaused={isPaused}
           isLoading={isAudioLoading}

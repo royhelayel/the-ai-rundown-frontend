@@ -154,6 +154,7 @@ const TheAIRundown = () => {
   const playbackSpeedRef = useRef(1);
   const narrationStateRef = useRef({ active: false, pendingLoad: false, pendingStartIndex: 0, paused: false, canceling: false, pendingCategoryName: null, pendingNarrateTimer: null });
   const narrationGenRef = useRef(0); // incremented on every cancel/stop; stale callbacks bail out
+  const storiesCategoryRef = useRef(null); // which category the current `stories` state belongs to
   const narrateFnRef = useRef({});
   // TTS pre-load cache: text → HTMLAudioElement (pre-buffered, ready to play instantly)
   const ttsAudioCacheRef = useRef(new Map());
@@ -1230,7 +1231,7 @@ const TheAIRundown = () => {
 
   useEffect(() => {
     if (selectedCategory === 'My Rundown') return;
-    if (!newsSummary) { setStories([]); setHasPunchyBullets(false); return; }
+    if (!newsSummary) { setStories([]); setHasPunchyBullets(false); storiesCategoryRef.current = null; return; }
 
     const { stories: built, hasPunchyBullets: punchy } = buildStories(
       newsSummary.content,
@@ -1238,6 +1239,7 @@ const TheAIRundown = () => {
     );
     setStories(built);
     setHasPunchyBullets(punchy);
+    storiesCategoryRef.current = newsSummary.category; // tag which category these stories are
 
     if (goToLastStoryRef.current && built.length > 0) {
       setStoryIndex(built.length - 1);
@@ -1331,6 +1333,7 @@ const TheAIRundown = () => {
         });
         if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
         setStories(merged);
+        storiesCategoryRef.current = 'My Rundown';
         setHasPunchyBullets(anyPunchy);
         setNewsSummary({ category: 'My Rundown', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
         setNewsNotAvailable(false);
@@ -1731,8 +1734,14 @@ const TheAIRundown = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!narrationStateRef.current.pendingLoad || !narrationStateRef.current.active) return;
-    // Don't consume pendingLoad until content is actually ready (avoids premature clear on null)
+    // Don't consume pendingLoad until content is actually ready (avoids premature clear on null).
     if (viewMode === 'stories' && stories.length === 0) return;
+    // Critical: only fire once `stories` actually belongs to the category we're loading.
+    // The [newsSummary] effect runs setStories() but its commit lags one render; without
+    // this guard the consumer fired on the newsSummary change with the PREVIOUS category's
+    // stories, consumed pendingLoad, and narration silently never started (worked on retry).
+    if (viewMode === 'stories' && selectedCategory !== 'My Rundown'
+        && storiesCategoryRef.current !== selectedCategory) return;
     if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
     const st = narrationStateRef.current;
@@ -1755,7 +1764,9 @@ const TheAIRundown = () => {
         narrateFnRef.current.narrateDigest?.(content);
       }, 200);
     }
-  }, [stories, newsSummary]);
+    // Depend on `stories` ONLY: this effect must run after setStories() actually
+    // commits (not on the earlier newsSummary change, when stories is still stale).
+  }, [stories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);

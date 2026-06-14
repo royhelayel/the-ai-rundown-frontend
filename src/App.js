@@ -19,6 +19,7 @@ import MySavesTab from './components/MySavesTab';
 import CustomizeTab from './components/CustomizeTab';
 import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
+import OnboardingTour, { ONBOARDING_KEY } from './components/OnboardingTour';
 import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
 import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
 
@@ -71,6 +72,10 @@ const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 const TheAIRundown = () => {
   const [user, setUser] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
+  const [onboardingKey, setOnboardingKey] = useState(0);
+  const openOnboarding = () => { setOnboardingKey(k => k + 1); setShowOnboarding(true); };
+  const dismissOnboarding = () => { localStorage.setItem(ONBOARDING_KEY, '1'); setShowOnboarding(false); };
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -2377,6 +2382,9 @@ const TheAIRundown = () => {
         }
       `}</style>
 
+      {/* ── Onboarding Tour ── */}
+      {showOnboarding && <OnboardingTour key={onboardingKey} onClose={dismissOnboarding} />}
+
       {/* ── Auth Modal ── */}
       {showAuth && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -2735,6 +2743,20 @@ const TheAIRundown = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>✨</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Intro Tour</h3>
+                    <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: '#8a8a9a' }}>Replay the walkthrough of the app's features</p>
+                  </div>
+                </div>
+                <button onClick={openOnboarding} style={{ flexShrink: 0, padding: '0.45rem 1.1rem', borderRadius: '999px', border: '1px solid rgba(0,0,0,0.08)', background: '#f5f5f7', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem' }}>
+                  Replay
+                </button>
               </div>
             </div>
             {user && (

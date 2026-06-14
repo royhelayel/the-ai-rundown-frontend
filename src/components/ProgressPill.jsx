@@ -86,7 +86,6 @@ function ChallengeRing({
   pct = 0,
   gradId, color0, color1, trackColor,
   label, count, total, unit, toGo,
-  icon,
   awardTitle, awardColor, awardId,
   earned = false,
 }) {
@@ -137,7 +136,6 @@ function ChallengeRing({
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 1,
         }}>
-          {icon}
           <span style={{
             fontSize: '0.6rem', fontWeight: 800,
             textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -974,10 +972,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const streakDone = streakDays >= 3;
   const weekDone   = weeklyDays >= weeklyGoal;
 
-  const todayIconColor  = todayDone  ? AWARDS[0].color : 'rgba(205,127,50,0.45)';  // bronze dimmed
-  const streakIconColor = streakDone ? AWARDS[1].color : 'rgba(148,163,184,0.45)'; // silver dimmed
-  const weekIconColor   = weekDone   ? AWARDS[2].color : 'rgba(245,158,11,0.45)';  // gold dimmed
-
   return (
     <>
       {/* ── Three-ring card ───────────────────────────────────────────────── */}
@@ -1008,7 +1002,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             label="Today"
             count={todayCount} total={dailyGoal} unit="stories"
             toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
-            icon={<LightbulbIcon size={13} color={todayIconColor} />}
             awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed"
             earned={todayDone}
           />
@@ -1023,7 +1016,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             label="Streak"
             count={streakDays} total={3} unit="days"
             toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
-            icon={<LightningIcon size={11} color={streakIconColor} />}
             awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp"
             earned={streakDone}
           />
@@ -1038,7 +1030,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
             label="Week"
             count={weeklyDays} total={weeklyGoal} unit="days"
             toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
-            icon={<StarIcon size={12} color={weekIconColor} />}
             awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy"
             earned={weekDone}
           />

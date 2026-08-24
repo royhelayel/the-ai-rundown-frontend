@@ -17,7 +17,7 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
-import { readTime } from '../utils';
+import InterestingButton from './InterestingButton';
 
 
 export default function StoryCard({
@@ -27,17 +27,34 @@ export default function StoryCard({
   isNew,        // story added in the evening incremental load — shows "NEW" until read
   listenCount,
   savedCount,
+  isSaved,       // whether this story is in the user's Interesting list
+  onToggleSaved, // toggles it
   onRead,
   onPlay,
+  onSeen,        // called when the reader opens the story's takeaways or summary
   removeButton,
 }) {
   const color = CATEGORY_COLORS[category] || '#6366f1';
   const short = CATEGORY_SHORT[category]  || category;
   const sources = (story.storySources || []).filter(s => s.outlet);
 
-  const excerpt = story.allBullets?.[0]
-    || story.tightBullets?.[0]
-    || (story.summary ? story.summary.slice(0, 300) + (story.summary.length > 300 ? '…' : '') : '');
+  // The card used to show a single bullet as a blind excerpt. The takeaways are what the
+  // story actually says, and they're already the summary elsewhere — same set here, so the
+  // card, the sheet and Swipe mode all lead with the same three lines.
+  const takeaways = story.tightBullets?.length
+    ? story.tightBullets
+    : (story.allBullets || []).slice(0, 3);
+  const excerpt = takeaways.length
+    ? takeaways.join(' ')
+    : (story.summary || '');
+
+  const [expanded, setExpanded] = React.useState(false);
+
+  // Opening the takeaways or the summary is the moment the story was actually read — both
+  // routes record it, so the count reflects what you chose to read rather than what
+  // happened to scroll past.
+  const openSummary = () => { onSeen?.(); onRead?.(); };
+  const openTakeaways = () => { onSeen?.(); setExpanded(true); };
 
   // Top-right slot: read badge, or custom removeButton, or nothing.
   // A read story always shows "Read" (so a NEW evening story flips to Read once read).
@@ -52,7 +69,7 @@ export default function StoryCard({
     );
   } else if (isNew) {
     badge = (
-      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '800', letterSpacing: '0.06em', flexShrink: 0, background: '#7c3aed', color: '#fff', textTransform: 'uppercase' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'none', color: '#9ca3af' }}>
         New
       </span>
     );
@@ -66,7 +83,7 @@ export default function StoryCard({
 
   return (
     <div
-      onClick={onRead}
+      onClick={openSummary}
       style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '20px 16px', background: '#fff', borderRadius: '14px', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer' }}
     >
       {/* Body */}
@@ -86,11 +103,46 @@ export default function StoryCard({
           {story.headline}
         </p>
 
-        {/* Excerpt */}
+        {/* Takeaways — three lines, expanding in place.
+            The affordance is floated rather than parked on its own row, so the text wraps
+            around it and it lands at the end of the last visible line. That keeps it read
+            as the continuation of the sentence it interrupts, and costs no extra height. */}
         {excerpt && (
-          <p style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#6b7280', lineHeight: 1.65, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {excerpt}
-          </p>
+          <div style={{ margin: '0 0 10px', fontSize: '0.92rem', color: '#6b7280', lineHeight: 1.65 }}>
+            {expanded ? (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                  {takeaways.map((b, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0, marginTop: '0.6rem' }} />
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); setExpanded(false); }}
+                  style={{ marginTop: 8, padding: 0, background: 'none', border: 'none', cursor: 'pointer', color, fontSize: '0.8rem', fontWeight: 800 }}
+                >
+                  View less
+                </button>
+              </>
+            ) : (
+              <div style={{ maxHeight: '4.95em', overflow: 'hidden' }}>
+                {/* Zero-width float spanning the first two lines. Floating the button alone
+                    would reserve the right edge of every line, wrapping lines 1–2 short for
+                    no reason; this occupies those lines without taking any width, and the
+                    button clears it so it lands on line 3 only. */}
+                <div style={{ float: 'right', width: 0, height: '3.3em' }} />
+                <button
+                  onClick={e => { e.stopPropagation(); openTakeaways(); }}
+                  style={{ float: 'right', clear: 'right', padding: '0 0 0 6px', background: 'none', border: 'none', cursor: 'pointer', color, fontSize: '0.8rem', fontWeight: 800, lineHeight: 1.65 }}
+                >
+                  <span style={{ color: '#9ca3af', fontWeight: 400 }}>… </span>Takeaways
+                </button>
+                {excerpt}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Sources row — horizontally scrollable, all sources shown */}
@@ -126,22 +178,27 @@ export default function StoryCard({
           </div>
         )}
 
-        {/* Duration + actions row */}
+        {/* Actions row — Interesting anchors the bottom-left corner, the same slot it
+            occupies on the Swipe-mode card, so the two line up. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
 
-          {/* Duration + audience count */}
+          {onToggleSaved && (
+            <InterestingButton active={!!isSaved} onClick={e => { e.stopPropagation(); onToggleSaved(); }} />
+          )}
+
+          {/* Audience counts only — the read time was noise on every card */}
           <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>
-            {readTime(story)}
-            {listenCount > 0 && ` · ${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
-            {savedCount > 0 && ` · ${savedCount.toLocaleString()} ${savedCount === 1 ? 'interested' : 'interested'}`}
+            {listenCount > 0 && `${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
+            {listenCount > 0 && savedCount > 0 && ' · '}
+            {savedCount > 0 && `${savedCount.toLocaleString()} interested`}
           </span>
 
-          {/* Read — outlined */}
+          {/* Summary — outlined */}
           <button
-            onClick={e => { e.stopPropagation(); onRead?.(); }}
+            onClick={e => { e.stopPropagation(); openSummary(); }}
             style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1.5px solid ${color}`, flexShrink: 0 }}
           >
-            Read
+            Summary
           </button>
 
           {/* Play — filled */}
@@ -150,7 +207,7 @@ export default function StoryCard({
             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: 'none', flexShrink: 0 }}
           >
             <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
-            Play
+            Listen to story
           </button>
         </div>
       </div>

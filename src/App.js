@@ -2,21 +2,20 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-import { VerificationPage } from './components/VerificationPage';
+import { rankStories } from './utils';
 import BriefingFeed from './components/BriefingFeed';
 import StoryReader from './components/StoryReader';
+import StorySummarySheet from './components/StorySummarySheet';
+import CategoryBriefing from './components/CategoryBriefing';
 import FullPlayer from './components/FullPlayer';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
-import SideNav from './components/SideNav';
-import FeedPage from './components/FeedPage';
-import RightPane from './components/RightPane';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import ImportantTab from './components/ImportantTab';
 import MySavesTab from './components/MySavesTab';
-import CustomizeTab from './components/CustomizeTab';
+import FeedCategoryEditor from './components/FeedCategoryEditor';
 import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
 import OnboardingTour, { ONBOARDING_KEY } from './components/OnboardingTour';
@@ -82,6 +81,8 @@ const TheAIRundown = () => {
   const [password, setPassword] = useState('');
   const [authMessage, setAuthMessage] = useState(null); // { type: 'info'|'error'|'success', text: string }
   const [authLoading, setAuthLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState('email');     // 'email' | 'code' (passwordless OTP)
+  const [otpCode, setOtpCode] = useState('');
   const [signOutLoading, setSignOutLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('World News');
   const [weekOffset, setWeekOffset] = useState(0);
@@ -120,7 +121,15 @@ const TheAIRundown = () => {
   const progressIntervalRef = useRef(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('rundown_view_mode') || 'stories');
-  const [depthLevel, setDepthLevel] = useState(() => { const saved = localStorage.getItem('rundown_depth_level'); return (saved === 'summary' || !saved) ? 'deep' : saved; });
+  // 'headlines' was removed from the player's toggle, but it persists in localStorage for
+  // anyone who last used it — migrate on read, or they'd load into a depth the UI no longer
+  // offers and couldn't tell why the narration was so short.
+  const [depthLevel, setDepthLevel] = useState(() => {
+    const saved = localStorage.getItem('rundown_depth_level');
+    if (!saved || saved === 'summary') return 'deep';
+    if (saved === 'headlines') return 'takeaways';
+    return saved;
+  });
   const depthLevelRef = useRef(depthLevel);
   useEffect(() => { depthLevelRef.current = depthLevel; }, [depthLevel]);
   const handleSetDepth = (level) => {
@@ -171,11 +180,23 @@ const TheAIRundown = () => {
   const snapshotPlayRef = useRef(null);
 
   const [feedCategories, setFeedCategories] = useState([]);
-  const [userFeeds, setUserFeeds] = useState([]); // [{ id, name, categories }]
   const [completedSlots, setCompletedSlots] = useState(new Set()); // Set of "YYYY-MM-DD|Morning" etc.
   const [slotsLoaded, setSlotsLoaded] = useState(false); // true after first completedSlots fetch
   const [newsLanguage, setNewsLanguage] = useState(() => localStorage.getItem('rundown_news_language') || 'en');
   const [showFeedPicker, setShowFeedPicker] = useState(false);
+  const [authReady, setAuthReady] = useState(false); // stored user applied — per-user prefs readable
+  // Where the reader is, shared across modes so Scroll and Swipe continue from each other.
+  const focusRef = useRef(null); // { category, index }
+  // Stories seen this session in either mode — read badges stay consistent for guests too.
+  const sessionSeenRef = useRef(new Set());
+  const markSeen = (cat, idx) => { sessionSeenRef.current.add(`${cat}|${idx}`); };
+  const setFocus = (category, index) => { focusRef.current = { category, index }; };
+  // A one-shot handoff, set only when leaving Swipe mode. focusRef itself is rewritten
+  // continuously by whichever feed you happen to be scrolling, so handing it to every list
+  // meant opening any tab yanked you to a story belonging to the feed you were in before.
+  // Switching tabs should just restore where you left that tab — which useScrollRestore
+  // already does — and nothing more.
+  const [pendingFocus, setPendingFocus] = useState(null);
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
   // ── Listen tracking (for Popular tab) ────────────────────────────────────────
@@ -210,6 +231,20 @@ const TheAIRundown = () => {
     () => computeGamifiedStats(listenHistory, perfectDays, briefingData, feedCategories, selectedTime || null, selectedProgressDay || selectedDay || null),
     [listenHistory, perfectDays, briefingData, feedCategories, selectedTime, selectedProgressDay, selectedDay]
   );
+
+  // Whether a story has been read must not depend on which categories are in My Feed.
+  // gamifiedStats above is scoped to feedCategories, so asking it about a story outside that
+  // set silently answers "not read" — which is why a story read in All News came back as New
+  // in Swipe mode after a reload. History knows nothing about scoping, so ask history.
+  const readTodaySet = useMemo(() => {
+    const day = selectedProgressDay || selectedDay || null;
+    const s = new Set();
+    (listenHistory || []).forEach(h => {
+      if (day && h.date && h.date !== day) return;
+      s.add(`${h.category}|${h.storyIndex ?? 0}`);
+    });
+    return s;
+  }, [listenHistory, selectedDay, selectedProgressDay]);
 
   // ── Daily goal + challenge stats ──────────────────────────────────────────
   const [dailyGoal, setDailyGoal] = useState(() => {
@@ -321,10 +356,30 @@ const TheAIRundown = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Reset the passwordless flow each time the auth modal opens.
+  useEffect(() => {
+    if (showAuth) { setOtpStep('email'); setOtpCode(''); setAuthMessage(null); }
+  }, [showAuth]);
+
+  // When navigated to Settings asking to edit My Feed, scroll that section into view.
+  useEffect(() => {
+    if (location.pathname === '/settings' && location.state?.scrollTo === 'myfeed') {
+      const t = setTimeout(() => {
+        document.getElementById('settings-myfeed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [location.pathname, location.state]);
+
   const CUSTOM_CATEGORIES_ENABLED = false;
 
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
   const REGIONAL_CATEGORIES = ['UAE','KSA','QAT','LEB'];
+  // My News picker only — All News (defaultCategories above) stays parent-level so every
+  // visitor's discovery feed doesn't grow just because these exist. Subcategories are an
+  // opt-in personalization layer, not a new top-level section. Parent immediately followed
+  // by its children — FeedCategoryEditor relies on that order to nest their chips visually.
+  const myNewsCategories = ['World News','Technology','AI','Crypto','Business','Politics','Sports','Football','Basketball','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
 
   const CATEGORY_COLORS = {
     'World News':    '#6366f1',
@@ -339,6 +394,10 @@ const TheAIRundown = () => {
     'KSA':           '#166534',
     'QAT':           '#86198f',
     'LEB':           '#c2410c',
+    'AI':            '#7c3aed',
+    'Crypto':        '#b45309',
+    'Football':      '#15803d',
+    'Basketball':    '#ea580c',
   };
   const MY_FEED_COLOR = '#7c3aed';
   const catColor = selectedCategory === 'My Rundown'
@@ -424,7 +483,10 @@ const TheAIRundown = () => {
     if (cur) chunks.push(cur);
 
     // ── Parse storiesContent for punchy bullets keyed by headline ─────────────
+    // Also kept as an ordered list so a story's summary still attaches by position when
+    // the digest/stories headlines don't match exactly (older data, or model rephrasing).
     const punchyMap = {};
+    const punchyList = [];
     if (storiesContent) {
       const sSrc = storiesContent;
       const sSrcEnd = sSrc.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
@@ -438,20 +500,25 @@ const TheAIRundown = () => {
         // Stop capture at the next **Field:** boundary so adjacent fields aren't included
         const summaryMatch = bodyText.match(/\*\*Summary:\*\*\s*([\s\S]+?)(?=\n\*\*[A-Z]|\n#{1,3} |$)/);
         const summary = summaryMatch ? summaryMatch[1].trim() : null;
-        if (h && bullets.length > 0) punchyMap[normalizeHeadline(h)] = { bullets, summary };
+        if (h && bullets.length > 0) {
+          punchyMap[normalizeHeadline(h)] = { bullets, summary };
+          punchyList.push({ bullets, summary });
+        }
       });
     }
 
     // ── Build final story objects ─────────────────────────────────────────────
     let anyPunchy = false;
-    const builtStories = chunks.map(chunk => {
+    // Index fallback is only safe when the two lists line up 1:1 (same story count).
+    const canIndexMatch = punchyList.length === chunks.length;
+    const builtStories = chunks.map((chunk, ci) => {
       const rest = chunk.bodyLines.join('\n');
       const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
       const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
       const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
       const storySources = chunk.coverageLinks.filter((s, i, a) => a.findIndex(x => x.url === s.url) === i);
       const key = normalizeHeadline(chunk.headline);
-      const punchy = punchyMap[key];
+      const punchy = punchyMap[key] || (canIndexMatch ? punchyList[ci] : undefined);
       if (punchy) anyPunchy = true;
       const tightBullets = punchy?.bullets || allBullets.slice(0, 3);
       if (!chunk.headline || allBullets.length === 0) return null;
@@ -525,6 +592,36 @@ const TheAIRundown = () => {
   };
   narrateFnRef.current.resume = resumeNarration;
 
+  // ── Day cache ──────────────────────────────────────────────────────────────
+  // A generated day+slot never changes once written, so it is safe to cache forever
+  // and serve without hitting the database. This is the client half of publishing the
+  // feed statically: repeat opens cost nothing, and it degrades gracefully offline —
+  // which is what the native app will need. Keyed so language and slot can't collide.
+  // `kind` namespaces the two shapes we cache: 'list' holds an array of slot rows for the
+  // feed, 'one' holds a single row for the selected category. They previously shared a key
+  // whenever a day had one slot, and the feed then read an object where it expected an
+  // array — silently dropping that category from the feed.
+  const dayCacheKey = (kind, cat, day, slot, lang) => `rundown_feed:${kind}:${lang}:${day}:${slot}:${cat}`;
+  const readDayCache = (kind, cat, day, slot, lang) => {
+    try {
+      const raw = localStorage.getItem(dayCacheKey(kind, cat, day, slot, lang));
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+  const writeDayCache = (kind, cat, day, slot, lang, data) => {
+    try {
+      localStorage.setItem(dayCacheKey(kind, cat, day, slot, lang), JSON.stringify(data));
+    } catch {
+      // Quota reached — drop older days rather than silently failing every write.
+      try {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('rundown_feed:') && !k.includes(`:${day}:`))
+          .forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(dayCacheKey(kind, cat, day, slot, lang), JSON.stringify(data));
+      } catch {}
+    }
+  };
+
   // Returns the content to narrate based on the currently selected depth level
   const getNarrationContent = () => {
     if (depthLevel === 'headlines') {
@@ -535,7 +632,7 @@ const TheAIRundown = () => {
         .filter(Boolean)
         .join('. ');
     }
-    if (depthLevel === 'summary') return newsSummary?.stories_content || newsSummary?.content;
+    if (depthLevel === 'summary' || depthLevel === 'takeaways') return newsSummary?.stories_content || newsSummary?.content;
     return newsSummary?.content; // deep
   };
   narrateFnRef.current.getNarrationContent = getNarrationContent;
@@ -810,12 +907,17 @@ const TheAIRundown = () => {
     addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
+    // Takeaways = headline + the short bullets, nothing else. The spoken twin of the
+    // Takeaways panel in Swipe mode; Summary adds perspectives and why-it-matters.
+    const isTakeaways = depthLevel === 'takeaways';
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
     if (!isHeadlines) {
       (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-      if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
-      if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+      if (!isTakeaways) {
+        if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
+        if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+      }
     }
     const script = parts.filter(Boolean).join(' ');
 
@@ -915,7 +1017,7 @@ const TheAIRundown = () => {
     if (isNarrating) { narrateFnRef.current.stop(); return; }
     const ctxCats = location.pathname === '/my-feed'
       ? feedCategories
-      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+      : defaultCategories;
     setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true;
@@ -1117,6 +1219,14 @@ const TheAIRundown = () => {
     ? daysOfWeek.filter(d => d.fullDate === today)
     : daysOfWeek;
 
+  // Days a briefing was actually generated for. The challenge chart shows a day only once
+  // its news exists — an empty column for a day that was never generated reads as "you read
+  // nothing that day", which isn't true, it just hadn't happened yet.
+  const challengeStatsFull = useMemo(() => ({
+    ...challengeStats,
+    contentDays: new Set([...completedSlots].map(s => s.split('|')[0])),
+  }), [challengeStats, completedSlots]);
+
   // Selects a day and auto-corrects selectedTime to the first available slot for that day.
   const selectDay = (fullDate) => {
     setSelectedDay(fullDate);
@@ -1148,17 +1258,11 @@ const TheAIRundown = () => {
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         const savedFeed = userData.feedCategories || [];
         setFeedCategories(savedFeed);
-        // Hydrate named feeds; migrate legacy flat array if needed
-        if (userData.userFeeds) {
-          setUserFeeds(userData.userFeeds);
-        } else if (savedFeed.length > 0) {
-          setUserFeeds([{ id: 'default', name: 'My Feed', categories: savedFeed }]);
-        }
         if (savedFeed.length > 0) setSelectedCategory('My Rundown');
         // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
-          supabase.from('users').select('email_preferences, feed_categories, news_language, user_feeds').eq('id', userData.id).single()
+          supabase.from('users').select('email_preferences, feed_categories, news_language').eq('id', userData.id).single()
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
           const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
@@ -1172,17 +1276,10 @@ const TheAIRundown = () => {
           setCustomCategoryDescriptions(descs);
           setEmailPreferences(prefs);
           setFeedCategories(feed);
-          // Hydrate named feeds from DB; migrate legacy flat array if needed
-          const dbFeeds = prefRes.data?.user_feeds || userData.userFeeds || null;
-          if (dbFeeds) {
-            setUserFeeds(dbFeeds);
-          } else if (feed.length > 0) {
-            setUserFeeds([{ id: 'default', name: 'My Feed', categories: feed }]);
-          }
           setNewsLanguage(lang);
           localStorage.setItem('rundown_news_language', lang);
           if (feed.length > 0) setSelectedCategory('My Rundown');
-          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed, userFeeds: dbFeeds || userData.userFeeds };
+          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
         });
@@ -1190,6 +1287,7 @@ const TheAIRundown = () => {
         loadSocialData(userData.id);
       }
     } catch (error) { console.error('Init error:', error); }
+    setAuthReady(true); // the stored user (if any) is now applied — safe to read per-user prefs
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Once slots have loaded (or change), fix selectedDay/selectedTime if they point at an empty slot.
@@ -1319,7 +1417,11 @@ const TheAIRundown = () => {
       try {
         const results = await Promise.all(
           feedCategories.map(cat =>
-            supabase.from('news_summaries').select('content, stories_content, source_articles')
+            // Deliberately NOT selecting source_articles: it's a JSONB blob of 150-200 KB
+            // per row (embedded base64 thumbnails), and we only ever read one image URL
+            // out of it. Falling back to the category image costs nothing and saves
+            // megabytes per feed load. See lead_image_url proposal to the backend.
+            supabase.from('news_summaries').select('content, stories_content')
               .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
               .eq('language', newsLanguage)
               .is('user_id', null).is('shared_key', null).maybeSingle()
@@ -1331,7 +1433,7 @@ const TheAIRundown = () => {
           if (!data) return;
           const cat = feedCategories[idx];
           const color = CATEGORY_COLORS[cat] || '#6366f1';
-          const storyImage = ((data.source_articles || []).find(a => a.imageUrl) || {}).imageUrl || '';
+          const storyImage = CATEGORY_IMAGES[cat] || '';
           const { stories: catStories, hasPunchyBullets: catPunchy } = buildStories(data.content, data.stories_content);
           if (catPunchy) anyPunchy = true;
           catStories.forEach(s => merged.push({ ...s, feedCategory: cat, feedCatColor: color, storyImage }));
@@ -1370,16 +1472,21 @@ const TheAIRundown = () => {
       narrationStateRef.current.paused = false;
       setIsPaused(false);
     }
+    // Serve an already-downloaded day straight from cache — no request, no spinner.
+    if (!isCustom) {
+      const hit = readDayCache('one', selectedCategory, selectedDay, selectedTime, newsLanguage);
+      if (hit) { setNewsSummary(hit); setNewsNotAvailable(false); setShowAllSources(false); setNewsLoading(false); return; }
+    }
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
       let q;
       if (isCustom) {
         const sharedKey = (customCategoryDescriptions[selectedCategory] || selectedCategory).toLowerCase().trim();
-        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at')
+        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
           .eq('shared_key', sharedKey).is('user_id', null).eq('day', selectedDay).eq('time_slot', 'Daily');
       } else {
-        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at')
+        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
           .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime)
           .eq('language', newsLanguage)
           .is('user_id', null).is('shared_key', null);
@@ -1387,6 +1494,7 @@ const TheAIRundown = () => {
       const { data, error } = await q.maybeSingle();
       if (error) throw error;
       if (!data) { setNewsNotAvailable(true); setNewsSummary(null); return; }
+      if (!isCustom) writeDayCache('one', selectedCategory, selectedDay, selectedTime, newsLanguage, data);
       setNewsSummary(data); setNewsNotAvailable(false); setShowAllSources(false);
       if (user) {
         fetch(`${BACKEND_URL}/api/metrics/track`, {
@@ -1439,7 +1547,10 @@ const TheAIRundown = () => {
       let attempts = 0;
       const poll = async () => {
         attempts++;
-        const { data } = await supabase.from('news_summaries').select('*')
+        // Named columns, not '*' — '*' drags source_articles (and any future wide
+        // column) along on a poll that runs every 5s for up to 3 minutes.
+        const { data } = await supabase.from('news_summaries')
+          .select('category, day, time_slot, language, content, stories_content')
           .eq('shared_key', sharedKey).is('user_id', null).eq('day', day).eq('time_slot', 'Daily').maybeSingle();
         if (data) {
           finishProgressBar(() => { setNewsSummary(data); setNewsNotAvailable(false); setNewsLoading(false); });
@@ -1462,82 +1573,73 @@ const TheAIRundown = () => {
       handleGenerateCustomCategory();
   }, [newsNotAvailable, selectedCategory, selectedTime, selectedDay]);
 
-  const handleAuth = async () => {
-    if (!email || !password) return;
-    setAuthMessage(null);
-    setAuthLoading(true);
-    if (authMode === 'signup') {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/auth/send-verification`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        if (!res.ok) {
-          const e = await res.json();
-          const msg = e.error || '';
-          if (msg.toLowerCase().includes('already verified')) {
-            setAuthMessage({ type: 'info', text: `You already have a verified account with this email. Switch to Sign In below to log in.` });
-          } else {
-            setAuthMessage({ type: 'error', text: msg || 'Something went wrong. Please try again.' });
-          }
-          setAuthLoading(false); return;
-        }
-        const data = await res.json();
-        if (data.resent) {
-          setAuthMessage({ type: 'info', text: `Looks like you've already started signing up! We've resent a verification link to ${email} — check your inbox and click the link to complete your account setup.` });
-        } else {
-          setAuthMessage({ type: 'success', text: `Almost there! We've sent a verification link to ${email}. Check your inbox and click the link to activate your account.` });
-        }
-        setPassword('');
-        setAuthLoading(false);
-      } catch (error) {
-        setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' });
-        setAuthLoading(false);
-      }
-    } else {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-        if (authError) { setAuthMessage({ type: 'error', text: authError.message }); setAuthLoading(false); return; }
-        if (!authData.user) { setAuthMessage({ type: 'error', text: 'Sign-in failed. Please try again.' }); setAuthLoading(false); return; }
-        const { data: userProfile, error: profileError } = await supabase.from('users').select('*').eq('id', authData.user.id).single();
-        if (profileError) { setAuthMessage({ type: 'error', text: 'Failed to load user profile.' }); setAuthLoading(false); return; }
-        if (userProfile.verification_status !== 'verified') { setAuthMessage({ type: 'info', text: 'Please verify your email first. Check your inbox for the verification link.' }); setAuthLoading(false); return; }
-        const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authData.user.id).is('deleted_at', null);
-        const categories = categoriesData?.map(c => c.category_name) || [];
-        const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
-        const feed = userProfile.feed_categories || [];
-        const dbFeeds = userProfile.user_feeds || null;
-        // Ensure the user has a username (sets one from email if absent)
-        const socialProfile = await fetch(`${BACKEND_URL}/api/social/setup-username`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: authData.user.id, email: authData.user.email }),
-        }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
-        const userData = {
-          id: authData.user.id,
-          email: authData.user.email,
-          username: socialProfile.username || userProfile.username || null,
-          display_name: socialProfile.display_name || userProfile.display_name || null,
-          avatar_color: socialProfile.avatar_color || userProfile.avatar_color || '#6366f1',
-          categories,
-          emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
-          feedCategories: feed,
-          userFeeds: dbFeeds,
-        };
-        localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-        setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
-        // Load social data
-        loadSocialData(authData.user.id);
-        setFeedCategories(feed);
-        if (dbFeeds) {
-          setUserFeeds(dbFeeds);
-        } else if (feed.length > 0) {
-          setUserFeeds([{ id: 'default', name: 'My Feed', categories: feed }]);
-        }
-        if (feed.length > 0) setSelectedCategory('My Rundown');
-        setShowAuth(false); setShowMobileMenu(false); setEmail(''); setPassword(''); setAuthMessage(null);
-        setAuthLoading(false);
-      } catch (error) { setAuthMessage({ type: 'error', text: 'Unable to connect. Please check your internet and try again.' }); setAuthLoading(false); }
+  // Load (or bootstrap) the app profile after a successful Supabase auth, then sign in.
+  const completeSignIn = async (authUser) => {
+    try {
+      // OTP creates the auth user but not our `users` row — ensure it exists (verified).
+      const ensure = await fetch(`${BACKEND_URL}/api/auth/ensure-profile`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: authUser.id, email: authUser.email }),
+      }).then(r => r.ok ? r.json() : null).catch(() => null);
+      const userProfile = ensure?.profile || {};
+
+      const { data: categoriesData } = await supabase.from('custom_categories').select('category_name, category_description').eq('user_id', authUser.id).is('deleted_at', null);
+      const categories = categoriesData?.map(c => c.category_name) || [];
+      const descriptions = Object.fromEntries((categoriesData || []).map(c => [c.category_name, c.category_description || c.category_name]));
+      const feed = userProfile.feed_categories || [];
+      const socialProfile = await fetch(`${BACKEND_URL}/api/social/setup-username`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: authUser.id, email: authUser.email }),
+      }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+      const userData = {
+        id: authUser.id,
+        email: authUser.email,
+        username: socialProfile.username || userProfile.username || null,
+        display_name: socialProfile.display_name || userProfile.display_name || null,
+        avatar_color: socialProfile.avatar_color || userProfile.avatar_color || '#6366f1',
+        categories,
+        emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
+        feedCategories: feed,
+      };
+      localStorage.setItem('newsdigest_user', JSON.stringify(userData));
+      setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
+      loadSocialData(authUser.id);
+      setFeedCategories(feed);
+      if (feed.length > 0) setSelectedCategory('My Rundown');
+      setShowAuth(false); setShowMobileMenu(false); setEmail(''); setOtpCode(''); setOtpStep('email'); setAuthMessage(null);
+      navigate('/my-feed');
+    } catch (error) {
+      setAuthMessage({ type: 'error', text: 'Signed in, but failed to load your profile. Please refresh.' });
     }
+  };
+
+  // Passwordless: email a 6-digit code (creates the account on first use).
+  const handleSendCode = async () => {
+    const addr = email.trim();
+    if (!addr) { setAuthMessage({ type: 'error', text: 'Enter your email.' }); return; }
+    setAuthMessage(null); setAuthLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } });
+    setAuthLoading(false);
+    if (error) { setAuthMessage({ type: 'error', text: error.message }); return; }
+    setOtpStep('code');
+    setAuthMessage({ type: 'success', text: `We emailed a code to ${addr}. Enter it below to continue.` });
+  };
+
+  // Verify the code → sign in / create the session.
+  const handleVerifyCode = async () => {
+    const code = otpCode.trim();
+    // Supabase's OTP length is a project setting (6-10 digits), so don't hard-code 6 —
+            // a longer code was being truncated on entry, which made sign-in impossible.
+    if (code.length < 6) { setAuthMessage({ type: 'error', text: 'Enter the code from your email.' }); return; }
+    setAuthMessage(null); setAuthLoading(true);
+    const { data, error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code, type: 'email' });
+    if (error || !data?.user) {
+      setAuthLoading(false);
+      setAuthMessage({ type: 'error', text: error?.message || 'That code is invalid or expired. Try again.' });
+      return;
+    }
+    await completeSignIn(data.user);
+    setAuthLoading(false);
   };
 
   const handleAddCategory = async () => {
@@ -1626,25 +1728,6 @@ const TheAIRundown = () => {
     }).catch(err => console.error('Failed to save feed categories:', err));
   };
 
-  const handleReorderFeeds = (feeds) => saveUserFeeds(feeds);
-
-  // Save the full list of named feeds; keep feedCategories (union) in sync for narration
-  const saveUserFeeds = (feeds) => {
-    setUserFeeds(feeds);
-    const allCats = [...new Set(feeds.flatMap(f => f.categories))];
-    setFeedCategories(allCats);
-    const userData = { ...user, userFeeds: feeds, feedCategories: allCats };
-    localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-    setUser(userData);
-    // Persist union of categories to backend for narration compat
-    fetch(`${BACKEND_URL}/api/user/feed-categories`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, categories: allCats })
-    }).catch(err => console.error('Failed to save feed categories:', err));
-    // Persist named feeds structure directly to Supabase so it survives sign-out/sign-in
-    supabase.from('users').update({ user_feeds: feeds }).eq('id', user.id)
-      .then(({ error }) => { if (error) console.error('Failed to save user_feeds:', error); });
-  };
 
   const saveNewsLanguage = (lang) => {
     setNewsLanguage(lang);
@@ -1787,8 +1870,34 @@ const TheAIRundown = () => {
 
   // Fetch completion markers — tells us which day+slot combos have finished generating
   // Re-runs when newsLanguage changes so Arabic/English slots are tracked separately
+  const completedInFlight = useRef(false);
+  const completedFailures = useRef(0);
   useEffect(() => {
+    let cancelled = false;
+    let timer = null;
+
+    // Content lands twice a day, at fixed times. A 30s interval meant ~2,880 requests per
+    // open tab per day, all but a couple of them byte-identical — polling to catch a
+    // predictable event. We fetch once, refetch when the user returns to the app (which is
+    // both cheaper and more timely than any interval), and otherwise only retry on failure.
+    // This is also the right shape for the native app, where foreground is the real signal.
+    const schedule = (overrideMs) => {
+      if (cancelled) return;
+      const n = completedFailures.current;
+      if (overrideMs == null && n === 0) return;   // healthy: wait for a focus event instead
+      const delay = overrideMs != null ? overrideMs : Math.min(30000 * 2 ** n, 300000);
+      timer = setTimeout(fetchCompleted, delay);
+    };
+
     const fetchCompleted = async () => {
+      if (cancelled) return;
+      // Never stack these requests — but always leave a retry queued. Returning bare
+      // here deadlocks: StrictMode (and any effect re-run) starts a second call while
+      // the first is still in flight, the second bails, and the first — now cancelled —
+      // schedules nothing. completedSlots then stays empty and the feed renders blank.
+      if (completedInFlight.current) { schedule(250); return; } // retry shortly, not a full poll cycle
+      if (typeof document !== 'undefined' && document.hidden) { schedule(); return; } // don't poll hidden tabs
+      completedInFlight.current = true;
       try {
         let q = supabase
           .from('news_summaries')
@@ -1798,8 +1907,14 @@ const TheAIRundown = () => {
           .is('shared_key', null);
         // Filter by language if the column exists (graceful: missing column returns all rows)
         if (newsLanguage) q = q.eq('language', newsLanguage);
-        const { data } = await q;
-        if (data) {
+        // supabase-js resolves (it does not throw) on an HTTP error, so `error` must be
+        // read explicitly — otherwise a 5xx looks like "no data yet" and the UI waits forever.
+        const { data, error } = await q;
+        if (cancelled) return;
+        if (error || !data) {
+          completedFailures.current += 1;
+        } else {
+          completedFailures.current = 0;
           // Use functional update so we only replace the Set when content actually changes.
           // A new Set reference (even with same entries) triggers the handleFetchNews effect
           // which would cancel narration — so we must return the same `prev` when unchanged.
@@ -1808,14 +1923,31 @@ const TheAIRundown = () => {
             if (prev.size === incoming.length && incoming.every(k => prev.has(k))) return prev;
             return new Set(incoming);
           });
-          setSlotsLoaded(true);
         }
-      } catch (_) { setSlotsLoaded(true); } // mark loaded even on error so UI doesn't hang
+      } catch (_) {
+        completedFailures.current += 1;
+      } finally {
+        completedInFlight.current = false;
+        // Always unblock the UI. This flag gates the news fetch, so leaving it false on a
+        // failed request is what turns a backend hiccup into an app that loads forever.
+        if (!cancelled) setSlotsLoaded(true);
+        schedule();
+      }
     };
+
     fetchCompleted();
-    // Poll every 30 s so the UI unlocks automatically when generation finishes
-    const interval = setInterval(fetchCompleted, 30000);
-    return () => clearInterval(interval);
+    // Retry promptly when the user comes back to a tab that failed while hidden.
+    // Returning to the app is exactly when fresh data matters — and it's when a native
+    // app would fire onResume. Refetch on focus, not on a timer.
+    const onVisible = () => { if (!document.hidden) fetchCompleted(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Briefing feed: fetch metadata for all categories ────────────────────────
@@ -1829,25 +1961,44 @@ const TheAIRundown = () => {
     const slotOrder = ['Evening', 'Daily', 'Morning'];
     const presentSlots = slotOrder.filter(t => completedSlots.has(`${selectedDay}|${t}`));
     if (presentSlots.length === 0) return;
-    const cacheKey = `${selectedDay}|${presentSlots.join(',')}|${newsLanguage}`;
+    // Extra categories beyond the default 12 (subcategories picked into My News) change
+    // what this fetch covers, so they have to be part of the key — otherwise adding one
+    // would serve a stale cache entry from before it existed.
+    const extraCats = feedCategories.filter(c => !defaultCategories.includes(c)).sort().join(',');
+    const cacheKey = `${selectedDay}|${presentSlots.join(',')}|${newsLanguage}|${extraCats}`;
     // Serve from cache — avoids re-fetching when user switches back to an already-loaded day
     if (briefingCacheRef.current[cacheKey]) {
       setBriefingData(briefingCacheRef.current[cacheKey]);
       return;
     }
     setBriefingLoading(true);
-    const cats = defaultCategories;
+    // Subcategories (e.g. Football, AI) aren't in defaultCategories — All News stays
+    // parent-level only — but a user can still pick one into My News. Without folding
+    // feedCategories in here, briefingData would simply never have an entry for it and
+    // My Feed would render it as empty every day, silently.
+    const cats = [...new Set([...defaultCategories, ...feedCategories])];
     Promise.allSettled(cats.map(async (cat) => {
       try {
-        const { data } = await supabase
-          .from('news_summaries')
-          .select('content, stories_content, time_slot')
-          .eq('category', cat).eq('day', selectedDay)
-          .in('time_slot', presentSlots)
-          .eq('language', newsLanguage).is('user_id', null).is('shared_key', null);
+        // This is the heavy one: full article text for every category, on every load.
+        // A generated day+slot is immutable, so a cache hit skips the request entirely.
+        const slotKey = presentSlots.join('+');
+        const cached = readDayCache('list', cat, selectedDay, slotKey, newsLanguage);
+        let data = Array.isArray(cached) ? cached : null;  // never trust a non-array here
+        if (!data) {
+          const res = await supabase
+            .from('news_summaries')
+            .select('content, stories_content, time_slot, briefing')
+            .eq('category', cat).eq('day', selectedDay)
+            .in('time_slot', presentSlots)
+            .eq('language', newsLanguage).is('user_id', null).is('shared_key', null);
+          data = res.data;
+          if (data && data.length) writeDayCache('list', cat, selectedDay, slotKey, newsLanguage, data);
+        }
         if (!data || data.length === 0) return [cat, null];
         // Sort Evening first so incremental stories appear on top
         const sorted = [...data].sort((a, b) => slotOrder.indexOf(a.time_slot) - slotOrder.indexOf(b.time_slot));
+        // Category briefing — prefer the newest slot's summary (Evening over Morning)
+        const briefing = sorted.find(r => r.briefing && r.briefing.trim())?.briefing || null;
         // Merge stories across slots, tagging each with its source slot
         const s = sorted.flatMap(row => {
           const { stories } = buildStories(row.content, row.stories_content);
@@ -1864,7 +2015,7 @@ const TheAIRundown = () => {
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
         }, 0);
         const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
-        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s }];
+        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s, briefing }];
       } catch { return [cat, null]; }
     })).then(results => {
       const out = {};
@@ -1873,7 +2024,7 @@ const TheAIRundown = () => {
       setBriefingData(out);
       setBriefingLoading(false);
     });
-  }, [selectedDay, newsLanguage, slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedDay, newsLanguage, slotsLoaded, completedSlots, feedCategories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sync URL → selectedCategory for /category/:name routes ──────────────────
   useEffect(() => {
@@ -1969,7 +2120,7 @@ const TheAIRundown = () => {
     playerSourcePath.current = location.pathname;
     const ctxCats = location.pathname === '/my-feed'
       ? feedCategories
-      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+      : defaultCategories;
     setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.pendingLoad = false; st.audio = null; st.paused = false;
@@ -2023,7 +2174,7 @@ const TheAIRundown = () => {
     // Use the feed/context categories matching where the user played from
     const ctxCats = location.pathname === '/my-feed'
       ? feedCategories
-      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+      : defaultCategories;
     setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
@@ -2039,6 +2190,40 @@ const TheAIRundown = () => {
       st.pendingStartIndex = startIdx;
       handleSelectCategory(cat);
     }
+  };
+
+  // Build a one-briefing-per-category pseudo-story for the snapshot map.
+  const briefingPseudoStory = (cat, text) => ([{
+    headline: `${cat} Recap`,
+    tightBullets: [text],
+    allBullets: [text],
+    storySources: [],
+    _isBriefing: true,
+  }]);
+
+  // Play the category briefings of the source feed as a playlist. Modeled as a snapshot
+  // map (one briefing per category) so the player's next/prev and category strip move
+  // between category briefings — exactly like My Saves / Interesting cross-category playback.
+  const handleNarrateBriefing = (cat, cats) => {
+    const orderedCats = (cats && cats.length ? cats : [cat])
+      .filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim());
+    if (!orderedCats.includes(cat) || !briefingData[cat]?.briefing?.trim()) return;
+    if (isNarrating) narrateFnRef.current.stop();
+    playerSourcePath.current = location.pathname;
+    const map = {};
+    orderedCats.forEach(c => { map[c] = { allStories: briefingPseudoStory(c, briefingData[c].briefing) }; });
+    snapshotPlayRef.current = { category: cat, stories: map[cat].allStories, map };
+    playlistCatsRef.current = orderedCats;
+    setPlayerContextCategories(orderedCats);
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false; st.pendingLoad = false;
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setSelectedCategory(cat);
+    setStories(map[cat].allStories);
+    setStoryIndex(0);
+    storyNavRef.current = { idx: 0, stories: map[cat].allStories, cats: orderedCats, cat };
+    setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
   };
 
   const handlePlayStory = (cat, idx) => {
@@ -2072,7 +2257,7 @@ const TheAIRundown = () => {
 
     const ctxCats = location.pathname === '/my-feed'
       ? feedCategories
-      : (() => { const m = location.pathname.match(/^\/feed\/(.+)/); return m ? (userFeeds.find(f => f.id === m[1])?.categories || defaultCategories) : defaultCategories; })();
+      : defaultCategories;
     setPlayerContextCategories(ctxCats);
     const st = narrationStateRef.current;
     st.active = true; st.paused = false;
@@ -2110,6 +2295,8 @@ const TheAIRundown = () => {
 
   // Mark a story as read when user navigates into it (separate from play)
   const handleMarkRead = (story, cat, idx) => {
+    markSeen(cat, idx);   // session-level, so read badges work for guests and across modes
+    setFocus(cat, idx);   // keeps Scroll and Swipe pointing at the same story
     if (!user) return; // guests: no history, no popular contribution
     addToHistory(story, cat, idx, selectedTime || null, selectedDay || null);
     // Count reads toward Popular rankings (same key used by audio listen counter)
@@ -2122,8 +2309,11 @@ const TheAIRundown = () => {
         return next;
       });
     }
-    // Track in backend: metrics + social reads table (fire-and-forget)
-    if (user) {
+    // Track in backend: metrics + social reads table (fire-and-forget).
+    // Deferred off the current task: reads arrive in bursts from the scroll flush, and
+    // building/dispatching two requests per story alongside the re-render they trigger is
+    // enough main-thread work to drop frames. Nothing here is needed for what's on screen.
+    if (user) setTimeout(() => {
       fetch(`${BACKEND_URL}/api/metrics/track`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2138,7 +2328,7 @@ const TheAIRundown = () => {
           body: JSON.stringify({ user_id: user.id, category: cat, story_index: idx, headline: story.headline }),
         }).catch(() => {});
       }
-    }
+    }, 0);
   };
 
 
@@ -2197,53 +2387,211 @@ const TheAIRundown = () => {
   const isPopularPath   = location.pathname === '/popular';
   const isImportantPath = location.pathname === '/important';
   const isSavedPath     = location.pathname === '/saved';
-  const isCustomizePath = location.pathname === '/customize';
   const profileRouteMatch = location.pathname.match(/^\/profile\/([^/]+)$/);
   const isProfilePath   = !!profileRouteMatch;
-  const feedRouteMatch  = location.pathname.match(/^\/feed\/([^/]+)$/);
-  const feedIdFromUrl   = feedRouteMatch ? feedRouteMatch[1] : null;
-  const isFeedPage      = !!feedRouteMatch;
-  const currentFeedPage = feedIdFromUrl ? (userFeeds || []).find(f => f.id === feedIdFromUrl) : null;
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
   const catFromUrl      = storyRouteMatch ? decodeURIComponent(storyRouteMatch[1]) : null;
   const storyIdxFromUrl = storyRouteMatch ? parseInt(storyRouteMatch[2]) : null;
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isCustomizePath && !isFeedPage && !isProfilePath;
+  const briefingRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/briefing$/);
+  const isBriefingView  = !!briefingRouteMatch;
+  const briefingCat     = briefingRouteMatch ? decodeURIComponent(briefingRouteMatch[1]) : null;
+
+  // Cold loads onto a lingering story/briefing URL arrive with no location.state at all —
+  // every in-app navigate() to these routes sets at least { from }, so state is only ever
+  // missing when the browser (a mobile PWA resuming its last tab is the common case) opens
+  // straight to that URL rather than us routing there. Read as a normal open, that reads as
+  // "no asPage", which drops you straight into the summary sheet — or the Category Recap —
+  // stacked over an empty background, instead of the tab you'd actually expect on a fresh
+  // visit. Send it back to the plain feed once, on the very first render only.
+  const coldLoadRedirectedRef = useRef(false);
+  useEffect(() => {
+    if (coldLoadRedirectedRef.current) return;
+    coldLoadRedirectedRef.current = true;
+    if ((storyRouteMatch || briefingRouteMatch) && !location.state) {
+      navigate('/', { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Resolve the category set a given tab path represents — used to pick which
+  // sibling categories the Category Recap page can page through.
+  const catsForFrom = (from) => {
+    if (from === '/my-feed') return feedCategories;
+    if (from === '/popular') {
+      return defaultCategories.filter(c => (briefingData[c]?.allStories || []).some((s, idx) => {
+        const key = headlineKey(s.headline);
+        const stored = listenCounts[key] || 0;
+        const readToday = gamifiedStats?.todayProgress?.[c]?.listenedIndices;
+        const userRead = readToday?.has(idx) ? 1 : 0;
+        return Math.max(stored, userRead) > 0;
+      }));
+    }
+    if (from === '/important') return Object.keys(interestingBriefingData);
+    return allCategories;
+  };
+  // Ordered categories (with a briefing) of the feed the briefing was opened from —
+  // lets the reader + player move between sibling category briefings.
+  const briefingNavCats = isBriefingView
+    ? catsForFrom(location.state?.from)
+        .filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim())
+    : [];
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
+  // Opened via the Feed/Stories toggle: the reader IS the page, not a sheet over a tab.
+  const isStoriesPage    = isStoryView && !!location.state?.asPage;
+  // A story route without asPage is now just the summary sheet over whatever tab you were on.
+  const isStorySummary   = isStoryView && !location.state?.asPage;
+  // Opened via the Category Recap entry point: same idea, for the briefing view.
+  const isSummariesPage  = isBriefingView && !!location.state?.asPage;
 
   // When the reader sheet is open, which feed sits behind it?
   const storyFrom       = isStoryView ? (location.state?.from || '/') : null;
-  const showHomeBg      = isStoryView && (!storyFrom || storyFrom === '/');
-  const showMyFeedBg    = isStoryView && storyFrom === '/my-feed';
-  const showPopularBg   = isStoryView && storyFrom === '/popular';
-  const showImportantBg = isStoryView && storyFrom === '/important';
-  const showSavedBg     = isStoryView && storyFrom === '/saved';
+  const showHomeBg      = isStoryView && !isStoriesPage && (!storyFrom || storyFrom === '/');
+  const showMyFeedBg    = isStoryView && !isStoriesPage && storyFrom === '/my-feed';
+  const showPopularBg   = isStoryView && !isStoriesPage && storyFrom === '/popular';
+  const showImportantBg = isStoryView && !isStoriesPage && storyFrom === '/important';
+  const showSavedBg     = isStoryView && !isStoriesPage && storyFrom === '/saved';
 
-  // Which feed did the user navigate from? Used to keep the correct SideNav feed highlighted
-  // while on /category/... or /category/.../story/... pages.
-  const activeFeedId = (() => {
-    if (isFeedPage && feedIdFromUrl) return feedIdFromUrl;
-    if (isStoryView) {
-      const feedFrom = location.state?.feedFrom;
-      if (typeof feedFrom === 'string' && feedFrom.startsWith('/feed/')) return feedFrom.replace('/feed/', '');
-    }
-    return null;
-  })();
   const currentStory    = stories[storyIdxFromUrl ?? storyIndex] || null;
   // Map a source path (handles both '/popular' and 'popular' style values) to the feed's display name.
   const feedNameForPath = (p) => {
     if (!p || p === '/' || p === 'home' || p === 'category') return 'All News';
-    if (p === '/my-feed')                      return 'My Feed';
+    if (p === '/my-feed')                      return 'My News';
     if (p === '/popular'   || p === 'popular')  return 'Popular';
     if (p === '/important' || p === 'important') return 'Interesting';
     if (p === '/saved')                        return 'My Saves';
-    const m = typeof p === 'string' && p.match(/^\/feed\/(.+)/);
-    if (m) return (userFeeds.find(f => f.id === m[1])?.name) || 'Feed';
     return 'All News';
   };
   const miniPlayerVisible = playerVisible && playerMinimized;
-  // Show bottom nav everywhere except settings and when full player is open
-  const showBottomNav   = !isSettingsPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
+  // Show bottom nav everywhere except settings and when full player is open.
+  // The summary sheet sits over a live tab, so that tab keeps its nav.
+  const showBottomNav   = !isSettingsPath && !isStoriesPage && !isBriefingView && !(playerVisible && !playerMinimized && !fullPlayerExiting);
+
+  // ── Feed / Stories toggle — flatten a tab's stories into a swipeable playlist ──
+  // Mirrors the ordering each tab already uses for its card list.
+  const buildFeedStoriesPlaylist = () => {
+    const list = [];
+    allCategories.forEach(cat => {
+      (briefingData[cat]?.allStories || []).forEach((story, idx) => list.push({ category: cat, storyIndex: idx }));
+    });
+    return list;
+  };
+  const buildMyFeedStoriesPlaylist = () => {
+    const list = [];
+    feedCategories.forEach(cat => {
+      (briefingData[cat]?.allStories || []).forEach((story, idx) => list.push({ category: cat, storyIndex: idx }));
+    });
+    return list;
+  };
+  const buildPopularStoriesPlaylist = () => {
+    const all = [];
+    defaultCategories.forEach(cat => {
+      const d = briefingData[cat];
+      if (!d?.allStories?.length) return;
+      const readToday = gamifiedStats?.todayProgress?.[cat]?.listenedIndices;
+      d.allStories.forEach((story, idx) => {
+        const key = headlineKey(story.headline);
+        const stored = listenCounts[key] || 0;
+        const userRead = readToday?.has(idx) ? 1 : 0;
+        all.push({
+          category: cat, storyIndex: idx,
+          listenCount: Math.max(stored, userRead),
+          interestCount: savedCounts[key] || 0, rankKey: key,
+        });
+      });
+    });
+    // Same comparator as the visible list in PopularTab — if these two ever disagree, the
+    // order you swipe through stops matching the order you tapped from.
+    return rankStories(all.filter(s => s.listenCount > 0), 'reads')
+      .map(({ category, storyIndex }) => ({ category, storyIndex }));
+  };
+  const buildInterestingStoriesPlaylist = () => {
+    const all = [];
+    Object.keys(interestingBriefingData).forEach(cat => {
+      (interestingBriefingData[cat]?.allStories || []).forEach((story, idx) => {
+        all.push({ category: cat, storyIndex: idx, interestCount: story._interestCount || 0 });
+      });
+    });
+    return all.sort((a, b) => b.interestCount - a.interestCount).map(({ category, storyIndex }) => ({ category, storyIndex }));
+  };
+  // Enter the Reels-style reader as a real page for the given tab, starting at story 1.
+  const enterStoriesMode = (fromPath, playlist) => {
+    // Empty feed (e.g. Interesting before anything is saved): don't swallow the tap.
+    // Show the tab in Scroll mode so the empty state explains itself.
+    if (!playlist.length) { rememberReadMode('scroll'); navigate(fromPath); return; }
+    // Continue from wherever Scroll mode was, when that story is in this playlist.
+    const f = focusRef.current;
+    const start = (f && playlist.find(p => p.category === f.category && p.storyIndex === f.index)) || playlist[0];
+    const first = start;
+    handleSelectCategory(first.category);
+    navigate(`/category/${encodeURIComponent(first.category)}/story/${first.storyIndex}`, {
+      state: { from: fromPath, playlist, asPage: true },
+    });
+  };
+  // Audio mode from the toggle: open the player on the story the reader is currently on,
+  // so listening continues from where they were rather than restarting the category.
+  const enterAudioMode = (tabPath) => {
+    const f = focusRef.current;
+    if (f?.category) { handlePlayStory(f.category, f.index ?? 0); return; }
+    // Nothing focused yet (e.g. straight after load) — start the tab's first story.
+    const playlist = playlistForTab(tabPath);
+    if (playlist.length) handlePlayStory(playlist[0].category, playlist[0].storyIndex);
+  };
+
+  // Switch tabs from inside the Stories page — mode stays "stories", only the source feed
+  // changes. Every caller is already inside (or returning to) Swipe mode, so this must never
+  // drop into Scroll — that was the bug: an empty target (e.g. Interesting's global-saves
+  // list before anything's been marked today) used to fall back to navigate(tabPath), which
+  // reads as "no asPage" and lands on the plain Scroll tab, kicking you clean out of Swipe.
+  // With nothing to swipe through, staying exactly where you are is the only option that
+  // keeps the promise "this stays in Swipe" — a switch to an empty lens is a no-op, not an
+  // exit.
+  const enterStoriesForTab = (tabPath) => {
+    const playlist = playlistForTab(tabPath);
+    if (!playlist.length) return;
+    enterStoriesMode(tabPath, playlist);
+  };
+  const playlistForTab = (tabPath) => (
+    tabPath === '/my-feed'   ? buildMyFeedStoriesPlaylist()
+    : tabPath === '/popular'   ? buildPopularStoriesPlaylist()
+    : tabPath === '/important' ? buildInterestingStoriesPlaylist()
+    : buildFeedStoriesPlaylist()
+  );
+
+  // ── Preferred reading mode, remembered per user (guests get their own key).
+  // New users land in Swipe; after that the app opens whichever mode they last chose.
+  const readModeKey = (u) => `rundown_read_mode${u?.id ? `_${u.id}` : ''}`;
+  const rememberReadMode = (m) => { try { localStorage.setItem(readModeKey(user), m); } catch {} };
+  const preferredReadMode = () => {
+    try { return localStorage.getItem(readModeKey(user)) || 'swipe'; } catch { return 'swipe'; }
+  };
+
+  // Open the remembered mode once, on the first tab we land on. Runs only after auth has
+  // rehydrated (so we read the right user's key) and after the feed has stories to page
+  // through — until then the playlist is empty and there's nothing to open.
+  const autoModeDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoModeDoneRef.current || !authReady) return;
+    const tabPaths = ['/', '/my-feed', '/popular', '/important'];
+    if (!tabPaths.includes(location.pathname)) return;
+    if (preferredReadMode() !== 'swipe') { autoModeDoneRef.current = true; return; }
+    const playlist = playlistForTab(location.pathname);
+    if (!playlist.length) return; // data still loading — retry on the next render
+    autoModeDoneRef.current = true;
+    enterStoriesMode(location.pathname, playlist);
+  }, [authReady, location.pathname, briefingData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "{Feed} Summary" link in the Stories page — opens the browsable category-briefing sheet.
+  const openFeedSummary = (fromPath, cats) => {
+    const first = (cats || []).find(c => briefingData[c]?.briefing && briefingData[c].briefing.trim());
+    if (!first) return;
+    navigate(`/category/${encodeURIComponent(first)}/briefing`, { state: { from: fromPath } });
+  };
+  // Category Recap — opens the browsable category-briefing view as a real page.
+  const enterSummariesMode = (fromPath, fromMode = 'scroll') => {
+    const cats = catsForFrom(fromPath).filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim());
+    if (!cats.length) return;
+    navigate(`/category/${encodeURIComponent(cats[0])}/briefing`, { state: { from: fromPath, asPage: true, fromMode } });
+  };
 
   // ── Reader close: animate sheet down, then navigate away ─────────────────
   const readerGoBack = () => {
@@ -2252,10 +2600,11 @@ const TheAIRundown = () => {
     else if (from === '/my-feed') navigate('/my-feed');
     else if (from === '/popular') navigate('/popular');
     else if (from === '/important') navigate('/important');
-    else if (typeof from === 'string' && from.startsWith('/feed/')) navigate(from);
     else navigate('/');
   };
   const readerClose = () => {
+    // Leaving the full-page reader means the user picked Scroll — remember that choice.
+    if (isStoriesPage) { rememberReadMode('scroll'); setPendingFocus(focusRef.current); readerGoBack(); return; }
     setReaderExiting(true);
     setTimeout(() => {
       setReaderExiting(false);
@@ -2318,10 +2667,6 @@ const TheAIRundown = () => {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes sk-shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
         .sk { background: linear-gradient(90deg, #e8e8eb 25%, #f2f2f5 50%, #e8e8eb 75%); background-size: 1200px 100%; animation: sk-shimmer 1.4s ease-in-out infinite; }
-        .side-nav-wrap { display: none; }
-        .right-pane-wrap { display: none; }
-        .bottom-nav-wrap { display: block; }
-        .main-content-offset { margin-left: 0; }
         /* ── Animated gradient buttons ── */
         @keyframes border-flow {
           0%,100% { background-position: 0% 50%; }
@@ -2367,19 +2712,6 @@ const TheAIRundown = () => {
         .hero-title-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: nowrap; justify-content: space-between; }
         .hero-play-row .ai-btn-wrap, .hero-play-row .ai-btn-wrap-play, .hero-play-row .ai-btn-wrap-read { display: block; width: 100%; }
         .hero-play-row .ai-btn-inner { width: 100%; justify-content: center; border-radius: 14px; }
-        @media (min-width: 1024px) {
-          :root { --body-max: 780px; }
-          .side-nav-wrap { display: block; }
-          .right-pane-wrap { display: block; }
-          .bottom-nav-wrap { display: none; }
-          .main-content-offset { margin-left: 300px; margin-right: 300px; }
-          .mini-player-bar { left: 300px !important; right: 300px !important; }
-          .header-brand { display: inline; }
-          .hero-row { flex-direction: row; align-items: center; gap: 0.75rem; }
-          .hero-title-row { flex: 1; justify-content: flex-start; }
-          .hero-play-row .ai-btn-wrap { display: inline-block; width: auto; }
-          .hero-play-row .ai-btn-inner { width: auto; justify-content: center; border-radius: 11px; }
-        }
       `}</style>
 
       {/* ── Onboarding Tour ── */}
@@ -2389,9 +2721,14 @@ const TheAIRundown = () => {
       {showAuth && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#18181f', borderRadius: '20px', padding: '2rem', maxWidth: '380px', width: '90%', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '1.5rem', textAlign: 'center', color: 'white' }}>
-              {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', marginBottom: '0.4rem', textAlign: 'center', color: 'white' }}>
+              {otpStep === 'email' ? 'Sign in or sign up' : 'Enter your code'}
             </h2>
+            <p style={{ margin: '0 0 1.4rem', textAlign: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>
+              {otpStep === 'email'
+                ? 'Enter your email and we’ll send you a 6-digit code — no password needed.'
+                : <>We sent a code to <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>{email}</span></>}
+            </p>
             {authMessage && (
               <div style={{ marginBottom: '1.1rem', padding: '0.85rem 1rem', borderRadius: '12px', fontSize: '0.88rem', lineHeight: '1.5',
                 background: authMessage.type === 'error' ? 'rgba(239,68,68,0.1)' : authMessage.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(99,102,241,0.1)',
@@ -2401,21 +2738,43 @@ const TheAIRundown = () => {
                 {authMessage.text}
               </div>
             )}
-            <input type="email" placeholder="Email" value={email} onChange={e => { setEmail(e.target.value); setAuthMessage(null); }}
-              style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '0.7rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
-            <input type="password" placeholder="Password" value={password} onChange={e => { setPassword(e.target.value); setAuthMessage(null); }}
-              style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
-            <button onClick={handleAuth} disabled={authLoading}
-              style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: authLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', opacity: authLoading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              {authLoading
-                ? <><Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> {authMode === 'signin' ? 'Signing In…' : 'Creating Account…'}</>
-                : authMode === 'signin' ? 'Sign In' : 'Create Account'}
-            </button>
-            <button onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthMessage(null); }}
-              style={{ width: '100%', padding: '0.78rem', background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
-              {authMode === 'signin' ? 'Create Account Instead' : 'Sign In Instead'}
-            </button>
-            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); setAuthMessage(null); }}
+
+            {otpStep === 'email' ? (
+              <>
+                <input type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" value={email}
+                  onChange={e => { setEmail(e.target.value); setAuthMessage(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !authLoading) handleSendCode(); }}
+                  style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '0.93rem', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
+                <button onClick={handleSendCode} disabled={authLoading}
+                  style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: authLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', opacity: authLoading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {authLoading ? <><Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Sending code…</> : 'Send code'}
+                </button>
+              </>
+            ) : (
+              <>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={10} placeholder="Enter code" value={otpCode}
+                  onChange={e => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 10)); setAuthMessage(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !authLoading) handleVerifyCode(); }}
+                  autoFocus
+                  style={{ width: '100%', padding: '0.78rem 1rem', marginBottom: '1.2rem', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontSize: '1.4rem', letterSpacing: '0.35em', textAlign: 'center', fontWeight: 800, background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none', boxSizing: 'border-box' }} />
+                <button onClick={handleVerifyCode} disabled={authLoading}
+                  style={{ width: '100%', padding: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: authLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.93rem', marginBottom: '0.6rem', opacity: authLoading ? 0.8 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {authLoading ? <><Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Verifying…</> : 'Verify & continue'}
+                </button>
+                <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                  <button onClick={() => { setOtpStep('email'); setOtpCode(''); setAuthMessage(null); }}
+                    style={{ flex: 1, padding: '0.7rem', background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.84rem' }}>
+                    Change email
+                  </button>
+                  <button onClick={handleSendCode} disabled={authLoading}
+                    style={{ flex: 1, padding: '0.7rem', background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', borderRadius: '999px', cursor: authLoading ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.84rem' }}>
+                    Resend code
+                  </button>
+                </div>
+              </>
+            )}
+
+            <button onClick={() => { setShowAuth(false); setEmail(''); setPassword(''); setOtpCode(''); setOtpStep('email'); setAuthMessage(null); }}
               style={{ width: '100%', padding: '0.7rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '0.88rem' }}>
               Close
             </button>
@@ -2459,7 +2818,7 @@ const TheAIRundown = () => {
       {/* ── Main Content (URL-routed) ── */}
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div className="main-content-offset">
-      {(isLatestHome || showHomeBg) && (
+      {(isLatestHome || showHomeBg) && !isSummariesPage && (
         <BriefingFeed
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -2480,18 +2839,28 @@ const TheAIRundown = () => {
           currentStoryIndex={storyIndex}
           onPlayStory={handlePlayStory}
           onMarkRead={handleMarkRead}
+          focusStory={pendingFocus}
+          onFocusRestored={() => setPendingFocus(null)}
+          onFocusStory={setFocus}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           onShowSettings={() => navigate('/settings')}
           playerVisible={playerVisible}
           newsLanguage={newsLanguage}
           todayProgress={gamifiedStats.todayProgress}
-          challengeStats={challengeStats}
+          challengeStats={challengeStatsFull}
           gamifiedStats={gamifiedStats}
+          listenHistory={listenHistory}
+          perfectDays={perfectDays}
+          onEnterAudio={() => enterAudioMode('/')}
+          onEnterStories={() => { rememberReadMode('swipe'); enterStoriesMode('/', buildFeedStoriesPlaylist()); }}
+          onEnterSummaries={() => enterSummariesMode('/')}
+          savedStories={savedStories}
+          onToggleSaved={handleToggleSaved}
         />
       )}
 
-      {(isMyFeedPath || showMyFeedBg) && (
+      {(isMyFeedPath || showMyFeedBg) && !isSummariesPage && (
         <MyFeedTab
           briefingData={briefingData}
           briefingLoading={briefingLoading}
@@ -2502,57 +2871,38 @@ const TheAIRundown = () => {
           availableTimes={availableTimes}
           onSelectDay={selectDay}
           onSelectTime={setSelectedTime}
-          userFeeds={userFeeds}
           onPlayFeed={handlePlayFeed}
           onPlayMyFeed={handlePlayMyFeed}
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
           onMarkRead={handleMarkRead}
+          focusStory={pendingFocus}
+          onFocusRestored={() => setPendingFocus(null)}
+          onFocusStory={setFocus}
           isNarrating={isNarrating}
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
-          challengeStats={challengeStats}
+          challengeStats={challengeStatsFull}
           gamifiedStats={gamifiedStats}
+          onEnterAudio={() => enterAudioMode('/my-feed')}
+          onEnterStories={() => { rememberReadMode('swipe'); enterStoriesMode('/my-feed', buildMyFeedStoriesPlaylist()); }}
+          onEnterSummaries={() => enterSummariesMode('/my-feed')}
+          savedStories={savedStories}
+          onToggleSaved={handleToggleSaved}
         />
       )}
 
-      {isFeedPage && (
-        <FeedPage
-          feed={currentFeedPage}
-          briefingData={briefingData}
-          briefingLoading={briefingLoading}
-          selectedDay={selectedDay}
-          selectedTime={selectedTime}
-          availableDays={availableDays}
-          availableTimes={availableTimes}
-          onSelectDay={selectDay}
-          onSelectTime={setSelectedTime}
-          onPlayFeed={handlePlayFeed}
-          onPlayCategory={handlePlayCategory}
-          onSelectCategory={handleSelectCategory}
-          onPlayStory={handlePlayStory}
-          onMarkRead={handleMarkRead}
-          isNarrating={isNarrating}
-          selectedCategory={selectedCategory}
-          currentStoryIndex={storyIndex}
-          user={user}
-          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          playerVisible={playerVisible}
-          todayProgress={gamifiedStats.todayProgress}
-          allCaughtUp={gamifiedStats.allCaughtUp}
-          caughtUpCount={gamifiedStats.caughtUpCount}
-        />
-      )}
-
-      {(isPopularPath || showPopularBg) && (
+      {(isPopularPath || showPopularBg) && !isSummariesPage && (
         <PopularTab
           briefingData={briefingData}
           briefingLoading={briefingLoading}
           listenCounts={listenCounts}
+          savedCounts={savedCounts}
+          onMarkRead={handleMarkRead}
           defaultCategories={defaultCategories}
           onSelectCategory={handleSelectCategory}
           onPlayCategory={handlePlayCategory}
@@ -2560,30 +2910,41 @@ const TheAIRundown = () => {
           playerVisible={playerVisible}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          challengeStats={challengeStats}
+          challengeStats={challengeStatsFull}
           gamifiedStats={gamifiedStats}
           circlePopular={circlePopular}
           selectedDay={selectedDay}
           availableDays={availableDays}
           onSelectDay={selectDay}
+          onEnterAudio={() => enterAudioMode('/popular')}
+          onEnterStories={() => { rememberReadMode('swipe'); enterStoriesMode('/popular', buildPopularStoriesPlaylist()); }}
+          onEnterSummaries={() => enterSummariesMode('/popular')}
+          savedStories={savedStories}
+          onToggleSaved={handleToggleSaved}
         />
       )}
 
-      {(isImportantPath || showImportantBg) && (
+      {(isImportantPath || showImportantBg) && !isSummariesPage && (
         <ImportantTab
           briefingData={interestingBriefingData}
           onSelectCategory={handleSelectCategory}
           onPlayStory={handlePlayStory}
           onPlayCategory={handlePlayCategory}
+          onMarkRead={handleMarkRead}
           onOpenSaves={() => navigate('/saved')}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
-          challengeStats={challengeStats}
+          challengeStats={challengeStatsFull}
           gamifiedStats={gamifiedStats}
           selectedDay={selectedDay}
           availableDays={availableDays}
           onSelectDay={selectDay}
+          onEnterAudio={() => enterAudioMode('/important')}
+          onEnterStories={() => { rememberReadMode('swipe'); enterStoriesMode('/important', buildInterestingStoriesPlaylist()); }}
+          onEnterSummaries={() => enterSummariesMode('/important')}
+          savedStories={savedStories}
+          onToggleSaved={handleToggleSaved}
         />
       )}
 
@@ -2604,20 +2965,7 @@ const TheAIRundown = () => {
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
           playerVisible={playerVisible}
-          challengeStats={challengeStats}
-        />
-      )}
-
-      {isCustomizePath && (
-        <CustomizeTab
-          userFeeds={userFeeds}
-          onSaveUserFeeds={saveUserFeeds}
-          feedCategories={feedCategories}
-          onSaveFeedCategories={saveFeedCategories}
-          defaultCategories={defaultCategories}
-          user={user}
-          onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          playerVisible={playerVisible}
+          challengeStats={challengeStatsFull}
         />
       )}
 
@@ -2642,7 +2990,16 @@ const TheAIRundown = () => {
           <style>{`html, body { background: #ffffff !important; }`}</style>
           {/* Sticky header */}
           <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem' }}>
-            <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#8a8a9a', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
+            <button onClick={() => {
+              // Prefer real history back: it restores the full state (asPage, playlist,
+              // returnTo…) of whatever screen we came from. navigate(back) only had the
+              // path string, which meant returning from Swipe mode arrived with no state,
+              // and StoryReader — reading state.asPage to decide page vs. sheet — rendered
+              // the Summary sheet instead of the Swipe page. state.from only exists when we
+              // navigated here from inside the app, so a previous entry is guaranteed.
+              if (location.state?.from) navigate(-1);
+              else navigate('/');
+            }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#8a8a9a', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
               <ChevronLeft size={16} /> Back
             </button>
             <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0a0a0f', flex: 1 }}>Settings</h2>
@@ -2676,7 +3033,7 @@ const TheAIRundown = () => {
                   <button onClick={async () => {
                     setSignOutLoading(true);
                     await supabase.auth.signOut();
-                    setUser(null); setUserFeeds([]); setFeedCategories([]); setCustomCategories([]);
+                    setUser(null); setFeedCategories([]); setCustomCategories([]);
                     setCustomCategoryDescriptions({}); setFollowing([]); setCircleSaves([]); setCirclePopular([]);
                     localStorage.removeItem('newsdigest_user');
                     setSignOutLoading(false);
@@ -2760,24 +3117,13 @@ const TheAIRundown = () => {
               </div>
             </div>
             {user && (
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+            <div id="settings-myfeed" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden', scrollMarginTop: '72px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '1rem', color: MY_FEED_COLOR }}>★</span>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My Rundown</h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MY_FEED_COLOR} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My News</h3>
               </div>
-              <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Tap to add or remove. Numbers show story order.</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {defaultCategories.map(cat => {
-                  const pos = feedCategories.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
-                  const newCats = isSel ? feedCategories.filter(c => c !== cat) : [...feedCategories, cat];
-                  return (
-                    <button key={cat} onClick={() => saveFeedCategories(newCats)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : '#0a0a0f', border: `1.5px solid ${isSel ? color : 'rgba(0,0,0,0.08)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
-                      {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
+              <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Add the categories you want, then drag to rank them — the order sets your story order.</p>
+              <FeedCategoryEditor allCategories={myNewsCategories} selected={feedCategories} onChange={saveFeedCategories} />
             </div>
             )}
             {user && (
@@ -2834,6 +3180,15 @@ const TheAIRundown = () => {
           user={user}
           isInteresting={!!(currentStory && savedStories.some(s => headlineKey(s.headline || '') === headlineKey(currentStory.headline || '')))}
           onToggleInteresting={() => currentStory && handleToggleSaved(currentStory, selectedCategory, storyIndex)}
+          onRead={() => {
+            const cat = selectedCategory;
+            const isBr = !!currentStory?._isBriefing;
+            const from = playerSourcePath.current || '/';
+            narrateFnRef.current.stop();
+            setPlayerVisible(false);
+            if (isBr) navigate(`/category/${encodeURIComponent(cat)}/briefing`, { state: { from } });
+            else navigate(`/category/${encodeURIComponent(cat)}/story/${storyIndex}`, { state: { from } });
+          }}
           isNarrating={isNarrating}
           isPaused={isPaused}
           isLoading={isAudioLoading}
@@ -2889,49 +3244,36 @@ const TheAIRundown = () => {
         />
       )}
 
-      {/* ── Side Navigation (desktop) ── */}
-      {showBottomNav && (
-        <div className="side-nav-wrap">
-          <SideNav
-            userFeeds={userFeeds} onReorderFeeds={handleReorderFeeds}
-            categories={allCategories} briefingData={briefingData} onSelectCategory={handleSelectCategory}
-            user={user}
-            onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-            activeFeedId={activeFeedId}
-          />
-        </div>
-      )}
-
-      {/* ── Right Pane — Categories (desktop) ── */}
-      {showBottomNav && (
-        <div className="right-pane-wrap">
-          <RightPane
-            stats={gamifiedStats}
-            history={listenHistory}
-            onPlayStory={handlePlayStory}
-            user={user}
-            onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-            selectedProgressDay={selectedProgressDay}
-            onSelectProgressDay={setSelectedProgressDay}
-            onGoToCategory={(cat) => {
-              if (selectedProgressDay && selectedProgressDay !== today) {
-                selectDay(selectedProgressDay);
-              }
-              handleSelectCategory(cat);
-            }}
-          />
-        </div>
-      )}
-
-      {/* ── Bottom Navigation (mobile) ── */}
+      {/* ── Bottom Navigation ── */}
       {showBottomNav && (
         <div className="bottom-nav-wrap">
-          <BottomNav />
+          <BottomNav
+            mode="scroll"
+            onChangeMode={(m) => {
+              if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(location.pathname); }
+              else if (m === 'audio') enterAudioMode(location.pathname);
+            }}
+            challengeStats={challengeStatsFull} user={user} onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
         </div>
       )}
 
-      {/* ── Story Reader — bottom-up sheet (like FullPlayer) ── */}
-      {(isStoryView || readerExiting) && (() => {
+      {/* ── Story summary — opened from a story card in Scroll mode. Just the sheet over the
+             feed; the old bottom-up reader underneath it is gone now that Swipe mode is a page. ── */}
+      {isStorySummary && (
+        <StorySummarySheet
+          fixed
+          open={!readerExiting}
+          story={viewStories[storyIdxFromUrl] || null}
+          category={catFromUrl}
+          onClose={readerClose}
+          onPlay={() => handlePlayStory(catFromUrl, storyIdxFromUrl)}
+          isInteresting={!!(viewStories[storyIdxFromUrl] && savedStories.some(s => headlineKey(s.headline || '') === headlineKey(viewStories[storyIdxFromUrl].headline || '')))}
+          onToggleInteresting={() => viewStories[storyIdxFromUrl] && handleToggleSaved(viewStories[storyIdxFromUrl], catFromUrl, storyIdxFromUrl)}
+        />
+      )}
+
+      {/* ── Story Reader — full-page Swipe mode ── */}
+      {(isStoriesPage || (readerExiting && isStoriesPage)) && (() => {
         const readerTranslateY = (readerMounted && !readerExiting) ? '0px' : '100%';
         const contextCats = (() => {
           const from     = location.state?.from;
@@ -2941,28 +3283,26 @@ const TheAIRundown = () => {
             const seen = new Set();
             return playlist.map(p => p.category).filter(c => !seen.has(c) && seen.add(c));
           }
-          if (typeof from === 'string' && from.startsWith('/feed/')) {
-            const feedId = from.replace('/feed/', '');
-            return userFeeds.find(f => f.id === feedId)?.categories || allCategories;
-          }
           if (from === '/my-feed') return feedCategories;
           return allCategories;
         })();
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>
-            {/* Backdrop — dims behind sheet; fades out on exit */}
-            <div
-              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', transition: 'opacity 0.38s', opacity: readerExiting ? 0 : 1 }}
-              onClick={readerClose}
-            />
-            {/* Sheet */}
+            {/* Backdrop — dims behind sheet; fades out on exit. Not shown when opened as a full page. */}
+            {!isStoriesPage && (
+              <div
+                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', transition: 'opacity 0.38s', opacity: readerExiting ? 0 : 1 }}
+                onClick={readerClose}
+              />
+            )}
+            {/* Sheet (or full page, when opened via the Feed/Stories toggle) */}
             <div
               style={{
                 position: 'absolute', left: '50%', bottom: 0,
                 width: '100%', maxWidth: '560px', height: '100dvh',
-                background: '#ffffff', borderRadius: '20px 20px 0 0',
-                transform: `translateX(-50%) translateY(${readerTranslateY})`,
-                transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
+                background: '#ffffff', borderRadius: isStoriesPage ? 0 : '20px 20px 0 0',
+                transform: isStoriesPage ? 'translateX(-50%)' : `translateX(-50%) translateY(${readerTranslateY})`,
+                transition: isStoriesPage ? 'none' : 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
                 willChange: 'transform',
               }}
@@ -2986,13 +3326,106 @@ const TheAIRundown = () => {
                 contextCategories={contextCats}
                 playlist={location.state?.playlist || null}
                 feedName={feedNameForPath(location.state?.from)}
+                categoryBriefing={briefingData[catFromUrl]?.briefing || null}
+                onPlayRecap={() => handleNarrateBriefing(catFromUrl, contextCats.filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim()))}
                 inSheet
                 onClose={readerClose}
+                asPage={isStoriesPage}
+                challengeStats={challengeStatsFull}
+                selectedDay={selectedDay}
+                availableDays={availableDays}
+                onSelectDay={selectDay}
+                activeTabPath={location.state?.from || '/'}
+                onSwitchStoriesTab={enterStoriesForTab}
+                onOpenFeedSummary={() => openFeedSummary(location.state?.from || '/', contextCats)}
+                onEnterSummaries={() => enterSummariesMode(location.state?.from || '/', 'swipe')}
+                // Recap opens as a bottom sheet over Swipe mode — no asPage, so the
+                // full-page Category Recap is no longer used.
+                // Carry the exact route we're leaving, so closing the recap returns to this
+                // story in Swipe mode. `from` alone is the tab path, which always resolved
+                // to Scroll — so opening a recap from Swipe used to dump you into the feed.
+                onOpenCategoryRecap={(cat) => navigate(`/category/${encodeURIComponent(cat)}/briefing`, {
+                  state: { from: location.state?.from || '/', returnTo: location.pathname, returnState: location.state },
+                })}
+                storiesForCategory={(cat) => (
+                  (snapshotBriefing && snapshotBriefing[cat]?.allStories?.length > 0)
+                    ? snapshotBriefing[cat].allStories
+                    : (briefingData[cat]?.allStories || [])
+                )}
+                isStoryRead={(cat, idx) => sessionSeenRef.current.has(`${cat}|${idx}`) || readTodaySet.has(`${cat}|${idx}`)}
+                onFocusStory={setFocus}
+                onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+                // The lens control rendered in Swipe mode but nothing was wired to it, so
+                // tapping Popular or Interesting did nothing. Reuse enterStoriesForTab — the
+                // same switch the mode toggle already uses to move between feeds within
+                // Swipe — so Popular/Interesting behave exactly like the other tab switches,
+                // including the empty-feed fallback to the plain tab.
+                lens={
+                  location.state?.from === '/popular' ? 'popular'
+                  : location.state?.from === '/important' ? 'interesting'
+                  : 'latest'
+                }
+                onChangeLens={(l) => {
+                  const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
+                  enterStoriesForTab(tabPath);
+                }}
               />
             </div>
           </div>
         );
       })()}
+
+      {/* ── Category Briefing — bottom-up sheet, or a full page via the Category Recap entry point ── */}
+      {isBriefingView && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 165, pointerEvents: 'auto' }}>
+          <style>{`@keyframes briefingIn { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }`}</style>
+          {!isSummariesPage && (
+            <div
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+              onClick={() => navigate(location.state?.from || '/')}
+            />
+          )}
+          <div style={{
+            position: 'absolute', left: '50%', bottom: 0,
+            width: '100%', maxWidth: '560px', height: '100dvh',
+            background: '#fff', borderRadius: isSummariesPage ? 0 : '20px 20px 0 0',
+            transform: 'translate(-50%, 0)',
+            animation: isSummariesPage ? 'none' : 'briefingIn 0.38s cubic-bezier(0.32,0.72,0,1)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
+            <CategoryBriefing
+              category={briefingCat}
+              briefing={briefingData[briefingCat]?.briefing || null}
+              feedName={feedNameForPath(location.state?.from)}
+              cats={briefingNavCats}
+              onSelectCat={(c) => navigate(`/category/${encodeURIComponent(c)}/briefing`, { state: { from: location.state?.from || '/', asPage: isSummariesPage, fromMode: location.state?.fromMode || 'scroll', returnTo: location.state?.returnTo, returnState: location.state?.returnState } })}
+              onListen={() => handleNarrateBriefing(briefingCat, briefingNavCats)}
+              onReadStories={() => navigate(`/category/${encodeURIComponent(briefingCat)}/story/0`, { state: { from: location.state?.from || '/' } })}
+              onClose={() => {
+                const back = location.state?.returnTo;
+                if (back) navigate(back, { state: location.state?.returnState });
+                else navigate(location.state?.from || '/');
+              }}
+              asPage={isSummariesPage}
+              onSwitchTab={(tabPath) => enterSummariesMode(tabPath)}
+              activeTabPath={location.state?.from || '/'}
+              onExitToFeed={() => navigate(location.state?.from || '/')}
+              onExitToStories={() => enterStoriesForTab(location.state?.from || '/')}
+              onBack={() => {
+                const back = location.state?.from || '/';
+                if (location.state?.fromMode === 'swipe') enterStoriesForTab(back);
+                else navigate(back);
+              }}
+              challengeStats={challengeStatsFull}
+              user={user}
+              onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
+              selectedDay={selectedDay}
+              availableDays={availableDays}
+              onSelectDay={selectDay}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Category transition overlay ── */}
       <CategoryTransition
@@ -3012,7 +3445,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/*" element={<TheAIRundown />} />
-        <Route path="/verify-email" element={<VerificationPage />} />
       </Routes>
     </Router>
   );

@@ -185,9 +185,11 @@ export function computeChallengeStats(history, dailyGoal = 10, referenceDate = n
 
   const todayCount = dailyCountMap[today] || 0;
 
-  // Streak: consecutive days meeting goal (include today if goal met)
+  // Streak: consecutive days meeting goal (include today if goal met).
+  // Walks back from the content date, for the same reason the week does.
   let streakDays = 0;
-  const cur = new Date();
+  const [sy, sm, sd] = today.split('-').map(Number);
+  const cur = new Date(sy, sm - 1, sd, 12, 0, 0);
   if (todayCount >= dailyGoal) {
     streakDays++;
     cur.setDate(cur.getDate() - 1);
@@ -202,17 +204,35 @@ export function computeChallengeStats(history, dailyGoal = 10, referenceDate = n
     } else break;
   }
 
-  // Weekly: how many of last 7 days met goal
+  // Weekly: how many days of the current calendar week (Mon → Sun) met the goal.
+  //
+  // A calendar week, not a rolling seven days. The challenge is "hit your goal 6 days this
+  // week", which only means anything against a week that starts and ends — under a rolling
+  // window a day you already earned silently drops off the back while the same week is
+  // still running. This grid is the single source for both the ring and the day chart, so
+  // the two can't tell different stories.
+  // Anchored to the content date, not the device clock. Reads are credited to the day of
+  // the briefing, so a week measured against the phone's calendar drifts out of step with
+  // the days being counted: just past midnight the device is already on Monday while the
+  // newest briefing is still Sunday's, which emptied the week and parked today at zero.
+  // The challenge lives on the same calendar as the news.
+  const MONDAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const [ty, tm, td] = today.split('-').map(Number);
+  const todayDate = new Date(ty, tm - 1, td, 12, 0, 0);
+  const monday = new Date(todayDate);
+  monday.setDate(todayDate.getDate() - ((todayDate.getDay() + 6) % 7));
   let weeklyDays = 0;
   const weekGrid = Array.from({ length: 7 }, (_, i) => {
-    const ts  = Date.now() - (6 - i) * 86400000;
-    const k   = dayKey(ts);
-    const d   = new Date(ts);
-    const DAY = ['S','M','T','W','T','F','S'];
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const k   = dayKey(d.getTime());
     const cnt = dailyCountMap[k] || 0;
     const met = cnt >= dailyGoal;
     if (met) weeklyDays++;
-    return { key: k, day: DAY[d.getDay()], isToday: k === today, count: cnt, met };
+    return {
+      key: k, day: MONDAY_LETTERS[i], isToday: k === today, count: cnt, met,
+      isFuture: d.getTime() > todayDate.getTime(),
+    };
   });
 
   return {
@@ -254,8 +274,19 @@ export default function useListenHistory(userId = null) {
   const addToHistory = useCallback((story, category, storyIndex, timeSlot = null, contentDate = null) => {
     if (!story?.headline || !category) return;
     setHistory(prev => {
-      if (prev[0]?.headline === story.headline && prev[0]?.category === category
-          && Date.now() - prev[0].timestamp < 10000) return prev;
+      // Dedupe across the whole content-day, not just against the previous entry.
+      // Scrolling back to an earlier story, or re-opening it in the other mode, used to
+      // append a second entry — the challenge count survived it (it counts unique
+      // category|storyIndex per day) but history filled with duplicates and pushed real
+      // reads out of the capped list.
+      const contentDay = contentDate || dayKey(Date.now());
+      const idx = storyIndex ?? 0;
+      const alreadyToday = prev.some(h =>
+        (h.date || dayKey(h.timestamp)) === contentDay &&
+        h.category === category &&
+        (h.storyIndex ?? 0) === idx
+      );
+      if (alreadyToday) return prev;
       const entry = {
         id: Math.random().toString(36).slice(2, 10),
         headline: story.headline,
@@ -266,11 +297,35 @@ export default function useListenHistory(userId = null) {
         // date = content date; fall back to device date for old callers without contentDate
         date: contentDate || dayKey(Date.now()),
       };
-      const next = [entry, ...prev].slice(0, MAX_HISTORY);
-      try { localStorage.setItem(historyKey(userId), JSON.stringify(next)); } catch {}
-      return next;
+      return [entry, ...prev].slice(0, MAX_HISTORY);
     });
+  }, []);
+
+  // Persistence is deliberately outside the updater above. Writing there meant one
+  // synchronous JSON.stringify + localStorage.setItem per story — and reads arrive in
+  // bursts (a scroll flush hands over everything you passed at once), so that ran N times
+  // back-to-back on the main thread. localStorage is synchronous disk I/O; on a phone that
+  // burst is long enough to visibly stall a scroll. Debounced here, a burst costs one write.
+  // It also makes the updater pure again, which matters under StrictMode's double-invoke.
+  const historyRef = React.useRef(history);
+  historyRef.current = history;
+  const writeHistory = React.useCallback(() => {
+    try { localStorage.setItem(historyKey(userId), JSON.stringify(historyRef.current)); } catch {}
   }, [userId]);
+  React.useEffect(() => {
+    const id = setTimeout(writeHistory, 400);
+    return () => clearTimeout(id);
+  }, [history, writeHistory]);
+  // A debounce loses the tail if the app is backgrounded or closed inside the window.
+  React.useEffect(() => {
+    const flush = () => { if (document.visibilityState === 'hidden') writeHistory(); };
+    window.addEventListener('pagehide', writeHistory);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', writeHistory);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, [writeHistory]);
 
   const markPerfectDay = useCallback(() => {
     const today = dayKey(Date.now());

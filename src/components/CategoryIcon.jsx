@@ -18,6 +18,10 @@ import {
   FlaskConical,
   HeartPulse,
   Zap,
+  BrainCircuit,
+  Bitcoin,
+  Goal,
+  CircleDot,
 } from 'lucide-react';
 
 const LUCIDE = {
@@ -30,6 +34,10 @@ const LUCIDE = {
   'Science':       FlaskConical,
   'Health':        HeartPulse,
   'My Rundown':    Zap,
+  'AI':            BrainCircuit,
+  'Crypto':        Bitcoin,
+  'Football':      Goal,
+  'Basketball':    CircleDot,
 };
 
 const FLAGS = {

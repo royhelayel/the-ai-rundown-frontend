@@ -2,7 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Play, Pause, X, Loader } from 'lucide-react';
 import { colors, CATEGORY_COLORS } from '../theme';
 
-const DRAG_THRESHOLD = 6; // px of movement before we call it a drag
+// 10px matches the platform's own touch slop. At 6px a normal thumb tap that drifted
+// slightly was classified as a drag, and the tap-to-reopen was silently swallowed.
+const DRAG_THRESHOLD = 10;
 
 export default function MiniPlayer({
   category,
@@ -79,18 +81,22 @@ export default function MiniPlayer({
       if (dockPosition === 'top'    && dy >  DOCK_THRESHOLD) newDock = 'bottom';
       onDockChange?.(newDock);
       setDragging(false);
+    } else {
+      // Not a drag → this was a tap. Expand from pointerup rather than waiting for a
+      // synthetic click: the bar uses setPointerCapture, which can stop the click event
+      // being delivered at all, so tap-to-reopen was unreliable.
+      isDragRef.current = false;
+      onExpand?.();
     }
     pointerStart.current = null;
-  }, [dockPosition, onDockChange]);
+  }, [dockPosition, onDockChange, onExpand]);
 
   // Reset isDragRef after a tick so the next tap starts clean
-  const handleClick = useCallback((e) => {
-    if (isDragRef.current) {
-      isDragRef.current = false; // reset for next interaction
-      return;                    // suppress expand after a drag
-    }
-    onExpand?.();
-  }, [onExpand]);
+  // Pointerup already handles the tap; this only catches environments that deliver a
+  // click without pointer events. isDragRef guards against expanding after a drag.
+  const handleClick = useCallback(() => {
+    if (isDragRef.current) { isDragRef.current = false; return; }
+  }, []);
 
   // ── Position style ──────────────────────────────────────────────────────────
   const transition = 'top 0.32s cubic-bezier(0.34,1.2,0.64,1), bottom 0.32s cubic-bezier(0.34,1.2,0.64,1)';

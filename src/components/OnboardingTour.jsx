@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, Sparkles, Repeat,
-  ChevronLeft, ChevronRight, ChevronDown, Headphones, Zap, Star, Flame, Newspaper,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Headphones, Flame, Newspaper,
+  LayoutList, GalleryVerticalEnd,
 } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -52,9 +53,9 @@ function MiniStoryCard({ category, badge, faded, accentBtns = true }) {
       <Skel w="70%" h={8} style={{ marginBottom: 11 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <Skel w={42} h={6} c="#eef0f4" style={{ flex: 1 }} />
-        <span style={{ padding: '4px 11px', borderRadius: 7, fontSize: '0.6rem', fontWeight: 700, color, border: `1.4px solid ${accentBtns ? color : '#d6d9e0'}` }}>Read</span>
+        <span style={{ padding: '4px 11px', borderRadius: 7, fontSize: '0.6rem', fontWeight: 700, color, border: `1.4px solid ${accentBtns ? color : '#d6d9e0'}` }}>Summary</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 11px', borderRadius: 7, fontSize: '0.6rem', fontWeight: 700, color: '#fff', background: color }}>
-          <Play size={9} color="#fff" fill="#fff" /> Play
+          <Play size={9} color="#fff" fill="#fff" /> Listen
         </span>
       </div>
     </div>
@@ -80,34 +81,6 @@ function FeedMock() {
         <MiniStoryCard category="Technology" badge={<ReadBadge kind="unread" />} />
       </div>
     </div>
-  );
-}
-
-function CategoryMock() {
-  const cats = ['World News', 'Business', 'Technology', 'Sports'];
-  const counts = { 'World News': 12, Business: 9, Technology: 15, Sports: 7 };
-  return (
-    <Card style={{ width: 278, padding: 14 }}>
-      <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 12 }}>All News</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {cats.map(cat => {
-          const c = CATEGORY_COLORS[cat];
-          return (
-            <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 10px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)' }}>
-              <div style={{ width: 34, height: 34, minWidth: 34, borderRadius: 10, background: `${c}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CategoryIcon category={cat} size={17} color={c} />
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <span style={{ fontWeight: 800, fontSize: 12.5 }}>{CATEGORY_SHORT[cat]}</span>
-                <Skel w="55%" h={6} c="#eef0f4" />
-              </div>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: c, background: `${c}1a`, padding: '3px 9px', borderRadius: 999 }}>{counts[cat]}</span>
-              <ChevronRight size={15} color="#c5c8d0" />
-            </div>
-          );
-        })}
-      </div>
-    </Card>
   );
 }
 
@@ -152,7 +125,7 @@ function PlayerMock() {
         </div>
         {/* progress bar */}
         <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.12)', marginBottom: 14, overflow: 'hidden' }}>
-          <div style={{ width: '38%', height: '100%', background: color, borderRadius: 99 }} />
+          <div className="ob-progress" style={{ width: '38%', height: '100%', background: color, borderRadius: 99 }} />
         </div>
         {/* main controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 26, marginBottom: 12 }}>
@@ -177,66 +150,6 @@ function PlayerMock() {
   );
 }
 
-function BriefingMock() {
-  const cat = 'World News';
-  const color = CATEGORY_COLORS[cat];
-  return (
-    <Card style={{ width: 280, padding: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 9, background: `${color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CategoryIcon category={cat} size={16} color={color} />
-        </div>
-        <span style={{ fontWeight: 900, fontSize: 13 }}>World News</span>
-      </div>
-      {/* the differentiated briefing button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 12px', borderRadius: 13, background: 'linear-gradient(135deg,#6366f1,#ec4899)', boxShadow: '0 8px 18px rgba(99,102,241,0.35)', marginBottom: 13 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Zap size={14} color="#fff" fill="#fff" />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ color: '#fff', fontWeight: 800, fontSize: 11.5 }}>Play the briefing</span>
-          <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 9.5, fontWeight: 600 }}>60-sec summary of all stories</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <MiniStoryCard category="World News" faded badge={<ReadBadge kind="unread" />} />
-      </div>
-    </Card>
-  );
-}
-
-function MyFeedMock() {
-  const chips = [
-    { c: 'Technology', on: true }, { c: 'Sports', on: false }, { c: 'Business', on: true },
-    { c: 'Science', on: true }, { c: 'Entertainment', on: false }, { c: 'Health', on: true },
-  ];
-  return (
-    <Card style={{ width: 280, padding: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
-        <Star size={15} color="#7c3aed" fill="#7c3aed" />
-        <span style={{ fontWeight: 900, fontSize: 13 }}>My Feed</span>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {chips.map(ch => {
-          const c = CATEGORY_COLORS[ch.c];
-          return (
-            <span key={ch.c} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              fontSize: 11.5, fontWeight: 700, padding: '6px 11px', borderRadius: 999,
-              background: ch.on ? c : '#fff',
-              color: ch.on ? '#fff' : '#9aa0ab',
-              border: ch.on ? `1px solid ${c}` : '1px solid #e1e3ea',
-            }}>
-              <CategoryIcon category={ch.c} size={12} color={ch.on ? '#fff' : '#b4b8c2'} />
-              {CATEGORY_SHORT[ch.c]}
-            </span>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
 function InterestingMock() {
   const color = CATEGORY_COLORS['Science'];
   return (
@@ -251,9 +164,9 @@ function InterestingMock() {
       <Skel w="68%" h={8} style={{ marginBottom: 12 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 11, borderTop: '1px solid #f1f2f6' }}>
         <Skel w={42} h={6} c="#eef0f4" style={{ flex: 1 }} />
-        <span style={{ padding: '5px 11px', borderRadius: 7, fontSize: '0.62rem', fontWeight: 700, color, border: `1.4px solid ${color}` }}>Read</span>
+        <span style={{ padding: '5px 11px', borderRadius: 7, fontSize: '0.62rem', fontWeight: 700, color, border: `1.4px solid ${color}` }}>Summary</span>
         {/* active Interesting save */}
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, color: '#7c3aed', background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.6)' }}>
+        <span className="ob-pulse" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 999, fontSize: '0.62rem', fontWeight: 800, color: '#7c3aed', background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.6)' }}>
           <Sparkles size={13} color="#7c3aed" fill="#7c3aed" /> Interesting
         </span>
       </div>
@@ -312,6 +225,67 @@ function ChallengeMock() {
   );
 }
 
+/* Scroll vs Swipe — a taller frame so the gesture maps onto a recognisable screen,
+   with the front card rising away as the next one comes up behind it. */
+function ModesMock() {
+  const color = CATEGORY_COLORS['World News'];
+  const chip = (active, Icon) => (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      padding: '5px 10px', borderRadius: 6,
+      background: active ? '#0a0a0f' : 'transparent',
+      color: active ? '#fff' : '#8a8a9a',
+    }}>
+      <Icon size={12} strokeWidth={active ? 2.4 : 1.9} />
+    </span>
+  );
+  const cardFace = (faded) => (
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', padding: 11 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.58rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <CategoryIcon category="World News" size={10} color={color} /> World
+      </span>
+      <div style={{ marginTop: 8 }}>
+        <Skel w="94%" h={7} style={{ marginBottom: 5 }} />
+        <Skel w={faded ? '58%' : '76%'} h={7} style={{ marginBottom: 9 }} />
+        <Skel w="88%" h={5} c="#eef0f4" style={{ marginBottom: 4 }} />
+        <Skel w="66%" h={5} c="#eef0f4" />
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ width: 250, background: '#f1f2f6', borderRadius: 22, padding: 11, boxShadow: '0 24px 60px rgba(20,10,40,0.22)' }}>
+      {/* header: feed + day + the real mode toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 2px 9px' }}>
+        <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: '#0a0a0f', letterSpacing: '-0.01em', lineHeight: 1.15 }}>All News</div>
+          <div style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af' }}>Today</div>
+        </div>
+        <span style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: 8, padding: 2, flexShrink: 0 }}>
+          {chip(true, GalleryVerticalEnd)}
+          {chip(false, LayoutList)}
+        </span>
+      </div>
+      {/* category strip */}
+      <div style={{ display: 'flex', gap: 5, padding: '0 2px 10px', borderTop: '1px solid rgba(0,0,0,0.07)', paddingTop: 9 }}>
+        <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: '#0a0a0f', borderRadius: 5, padding: '3px 7px' }}>World</span>
+        <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Tech</span>
+        <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Business</span>
+      </div>
+      {/* the moving stack */}
+      <div style={{ position: 'relative', height: 128, overflow: 'hidden' }}>
+        <div className="ob-card-in" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(false)}</div>
+        <div className="ob-card-out" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(true)}</div>
+        {/* thumb hint tracing the swipe */}
+        <div className="ob-thumb" style={{ position: 'absolute', right: 14, bottom: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(10,10,20,0.55)', border: '2px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.28)' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 10, color: '#9ca3af', fontSize: 9, fontWeight: 600 }}>
+        <ChevronUp size={11} /> swipe up for the next story
+      </div>
+    </div>
+  );
+}
+
 /* ── slides: funky title (mixed weight) + flat trailing icon + mock ── */
 const reg = { fontWeight: 400 };
 const semi = { fontWeight: 600 };
@@ -323,37 +297,27 @@ const SLIDES = [
   {
     Mock: FeedMock,
     title: <><span style={semi}>Welcome to</span> <span style={heavy}>RadioNews</span><LogoTitle /></>,
-    body: 'Your daily news, summarized for you and narrated like a radio broadcast.',
-  },
-  {
-    Mock: CategoryMock,
-    title: <><span style={heavy}>All the News,</span> <span style={reg}>by</span> <span style={semi}>category</span><TitleIcon Icon={Newspaper} /></>,
-    body: 'Browse the day’s stories across every topic. Fresh briefings each morning, with an evening update on top.',
+    body: 'The day’s news, boiled down. Every story gets a short summary — and every category gets a one‑minute recap, so you can be properly caught up in the time it takes to make coffee.',
   },
   {
     Mock: PlayerMock,
-    title: <><span style={heavy}>Listen,</span> <span style={reg}>totally</span> <span style={semi}>hands-free</span><TitleIcon Icon={Headphones} /></>,
-    body: 'Tap play on any story or feed and have it narrated to you — perfect for your commute or the gym.',
+    title: <><span style={heavy}>Listen</span> <span style={reg}>like a</span> <span style={semi}>podcast</span><TitleIcon Icon={Headphones} /></>,
+    body: 'Press play and let the news come to you. Every summary is narrated, so you can catch up on the commute, at the gym, or while making dinner.',
   },
   {
-    Mock: BriefingMock,
-    title: <><span style={reg}>Quick</span> <span style={heavy}>Category Briefings</span><TitleIcon Icon={Zap} /></>,
-    body: 'Short on time? Play a briefing for a spoken summary of a whole category — not just one story.',
-  },
-  {
-    Mock: MyFeedMock,
-    title: <><span style={reg}>Make it</span> <span style={heavy}>Your Feed</span><TitleIcon Icon={Star} /></>,
-    body: 'Pick the categories you care about and My Feed keeps your daily rundown personal — only your topics.',
+    Mock: ModesMock,
+    title: <><span style={reg}>Skim by</span> <span style={heavy}>scroll or swipe</span><TitleIcon Icon={GalleryVerticalEnd} /></>,
+    body: 'Scan the day in a list, or swipe through stories one at a time — the same easy motion you already use on social. Switch between the two whenever you like.',
   },
   {
     Mock: InterestingMock,
-    title: <><span style={reg}>What’s</span> <span style={heavy}>Popular &amp; Interesting</span><TitleIcon Icon={Sparkles} /></>,
-    body: 'Follow trending news and the stories others marked as interesting — discover what’s resonating beyond your own feed.',
+    title: <><span style={reg}>See what</span> <span style={heavy}>others are reading</span><TitleIcon Icon={Sparkles} /></>,
+    body: 'Popular shows the stories people are reading most today. Interesting shows the ones readers thought were worth a second look — a good way to catch what you’d otherwise miss.',
   },
   {
     Mock: ChallengeMock,
-    title: <><span style={heavy}>Build</span> <span style={reg}>the</span> <span style={heavy}>Habit</span><TitleIcon Icon={Flame} /></>,
-    body: 'Hit your daily goal, keep your streak alive, and earn badges as you stay on top of the news.',
+    title: <><span style={heavy}>Keep</span> <span style={reg}>the</span> <span style={heavy}>streak</span><TitleIcon Icon={Flame} /></>,
+    body: 'Set yourself a small daily goal, build a streak, and pick up badges along the way. A few minutes a day is genuinely enough to stay in the loop.',
   },
 ];
 
@@ -388,7 +352,37 @@ export default function OnboardingTour({ onClose }) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <style>{`@keyframes obIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
+      <style>{`
+        @keyframes obIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        /* Slide 3 — demonstrates the swipe: the front card rises away while the next
+           one comes up from below, then it repeats. */
+        @keyframes obCardOut  { 0%,18% { transform: translateY(0); opacity: 1; }
+                                46%,100% { transform: translateY(-64px); opacity: 0; } }
+        @keyframes obCardIn   { 0%,18% { transform: translateY(58px) scale(0.94); opacity: 0.45; }
+                                46%,100% { transform: translateY(0) scale(1); opacity: 1; } }
+        /* the thumb hint that shows the gesture */
+        @keyframes obThumb    { 0%,10% { transform: translateY(16px); opacity: 0; }
+                                22% { opacity: 0.95; }
+                                46% { transform: translateY(-18px); opacity: 0.95; }
+                                58%,100% { transform: translateY(-18px); opacity: 0; } }
+        /* generic bits */
+        @keyframes obProgress { from { width: 12%; } to { width: 86%; } }
+        @keyframes obEq       { 0%,100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+        @keyframes obPulse    { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+        @keyframes obRing     { from { stroke-dashoffset: var(--ob-ring-from); } to { stroke-dashoffset: var(--ob-ring-to); } }
+        .ob-card-out { animation: obCardOut 3.4s ease-in-out infinite; }
+        .ob-card-in  { animation: obCardIn  3.4s ease-in-out infinite; }
+        .ob-thumb    { animation: obThumb   3.4s ease-in-out infinite; }
+        .ob-progress { animation: obProgress 6s ease-in-out infinite alternate; }
+        .ob-eq       { animation: obEq 0.9s ease-in-out infinite; transform-origin: bottom; }
+        .ob-pulse    { animation: obPulse 2.2s ease-in-out infinite; }
+        .ob-ring     { animation: obRing 2.4s ease-out both; }
+        @media (prefers-reduced-motion: reduce) {
+          .ob-card-out, .ob-card-in, .ob-thumb, .ob-progress, .ob-eq, .ob-pulse, .ob-ring { animation: none !important; }
+          .ob-card-in { opacity: 1 !important; transform: none !important; }
+          .ob-card-out { opacity: 1 !important; transform: none !important; }
+        }
+      `}</style>
 
       {/* Skip */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.85rem 1.25rem 0' }}>

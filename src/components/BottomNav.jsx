@@ -1,118 +1,151 @@
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X, UserCircle, LayoutList, GalleryVerticalEnd, Headphones, Flame } from 'lucide-react';
+import ProgressPill from './ProgressPill';
 
 const light = {
-  bg:        '#ffffff',
-  border:    'rgba(0,0,0,0.08)',
+  // The nav container now matches the page's own background (#f5f5f7, used everywhere else
+  // in Scroll mode) instead of white — the white bar read as a separate panel sitting on
+  // top of the page rather than the page's own footer. With the container no longer
+  // contrasting against the page, the dock needs its own surface to read as a control: white
+  // with a hairline border, the same relationship every story card has to the page behind it.
+  bg:        '#f5f5f7',
+  border:    'rgba(0,0,0,0.06)',
   text:      '#0a0a0f',
-  textMuted: '#8a8a9a',
+  textMuted: '#9ca3af',
+  track:     '#ffffff',
+  trackBorder: 'rgba(0,0,0,0.07)',
+  divider:   'rgba(0,0,0,0.10)',
+  activeBg:  'rgba(99,102,241,0.12)',
+  activeFg:  '#6366f1',
 };
 
-// SVG icon components — no emojis, consistent stroke style
-function IconMyFeed({ active }) {
-  const s = active ? 2.2 : 1.6;
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
-    </svg>
+const dark = {
+  bg:        '#0a0a14',
+  border:    'rgba(255,255,255,0.08)',
+  text:      '#ffffff',
+  textMuted: 'rgba(255,255,255,0.55)',
+  track:     'rgba(255,255,255,0.12)',
+  trackBorder: 'transparent',
+  divider:   'rgba(255,255,255,0.18)',
+  activeBg:  'rgba(165,180,252,0.22)',
+  activeFg:  '#c7d2fe',
+};
+
+/**
+ * BottomNav — Settings · View · Challenge.
+ *
+ * It used to be four destinations plus an action, mixing two kinds of thing on one row.
+ * Now the corpus (My news / All news) lives in the header where the rest of the scope
+ * controls are, which leaves this bar holding exactly three items and no ambiguity about
+ * what a tap does.
+ *
+ * View is the one control people touch every session — mode is chosen on open and then left
+ * alone — so it sits centre, under the thumb, as a single segmented control rather than
+ * three peers that would read as destinations.
+ */
+export default function BottomNav({
+  theme = 'light',
+  fixed = true,
+  mode = 'scroll',
+  onChangeMode,
+  challengeStats,
+  user,
+  onShowAuth,
+}) {
+  const navigate = useNavigate();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const t = theme === 'dark' ? dark : light;
+
+  const todayCount = challengeStats?.todayCount || 0;
+  const dailyGoal  = challengeStats?.dailyGoal  || 10;
+  const goalMet    = todayCount >= dailyGoal;
+
+  // ── One dock, every button named ───────────────────────────────────────────
+  //
+  // A group label told you what the trio was for but nothing about what each icon does, so
+  // you still had to decode a stack, a list and a pair of headphones. Naming each button
+  // removes the guesswork, and the dividers keep the grouping without needing a caption.
+  //
+  // The tint wraps icon and label together, so the selected cell is one object rather than
+  // a highlighted icon with a caption loose underneath it.
+  const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
+
+  const key = (icon, text, onClick, aria, { active = false, width } = {}) => (
+    <button key={aria} onClick={onClick} aria-label={aria} title={aria}
+      style={{
+        width, borderRadius: 8, border: 'none', padding: '4px 0 3px',
+        cursor: active ? 'default' : 'pointer',
+        background: active ? t.activeBg : 'transparent',
+        color: active ? t.activeFg : t.textMuted,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+      }}>
+      <span style={{ height: 20, display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <span style={{ fontSize: '0.64rem', fontWeight: 500, lineHeight: 1.2 }}>{text}</span>
+    </button>
   );
-}
 
-function IconAllNews({ active }) {
-  const s = active ? 2.2 : 1.6;
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/>
-      <line x1="16" y1="17" x2="8" y2="17"/>
-      <polyline points="10 9 9 9 8 9"/>
-    </svg>
-  );
-}
-
-function IconPopular({ active }) {
-  const s = active ? 2.2 : 1.6;
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-      <polyline points="17 6 23 6 23 12"/>
-    </svg>
-  );
-}
-
-function IconImportant({ active }) {
-  const s = active ? 2.2 : 1.6;
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" fill={active ? 'currentColor' : 'none'}/>
-      <path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>
-    </svg>
-  );
-}
-
-const TABS = [
-  {
-    path:    '/my-feed',
-    label:   'My Feed',
-    matchFn: p => p === '/my-feed',
-    Icon:    IconMyFeed,
-  },
-  {
-    path:    '/',
-    label:   'All News',
-    matchFn: p => p === '/' || (p.startsWith('/category/') && !p.includes('/story/')),
-    Icon:    IconAllNews,
-  },
-  {
-    path:    '/popular',
-    label:   'Popular',
-    matchFn: p => p === '/popular',
-    Icon:    IconPopular,
-  },
-  {
-    path:    '/important',
-    label:   'Interesting',
-    matchFn: p => p === '/important',
-    Icon:    IconImportant,
-  },
-];
-
-export default function BottomNav() {
-  const navigate  = useNavigate();
-  const { pathname } = useLocation();
+  const divider = (k) => <span key={k} aria-hidden style={{ width: 1, alignSelf: 'stretch', background: t.divider, margin: '3px 5px', flexShrink: 0 }} />;
 
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 45,
-      background: `${light.bg}f2`,
-      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      borderTop: `1px solid ${light.border}`,
-      display: 'flex',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      boxShadow: '0 -1px 12px rgba(0,0,0,0.05)',
-    }}>
-      {TABS.map(({ path, label, matchFn, Icon }) => {
-        const active = matchFn(pathname);
-        return (
-          <button
-            key={path}
-            onClick={() => navigate(path)}
-            style={{
-              flex: 1, padding: '0.55rem 0.25rem 0.6rem',
-              border: 'none', background: 'transparent', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
-              color: active ? light.text : light.textMuted,
-            }}
-          >
-            <Icon active={active} />
-            <span style={{ fontSize: '0.65rem', fontWeight: active ? '800' : '500' }}>
-              {label}
-            </span>
+    <>
+      <nav style={{
+        ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
+        zIndex: 45, flexShrink: 0,
+        background: t.bg,
+        padding: '12px 16px',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        display: 'flex', justifyContent: 'center',
+      }}>
+        {/* The dock carries its own border now that the nav container no longer contrasts
+            against the page — same idea as a story card's hairline against the gray page
+            behind it. Transparent in dark mode: the track there is already visibly lighter
+            than the near-black page, so it doesn't need a second edge. */}
+        <div style={{ display: 'inline-flex', alignItems: 'stretch', background: t.track, border: `1px solid ${t.trackBorder}`, borderRadius: 12, padding: 5 }}>
+          {key(<UserCircle size={19} strokeWidth={1.7} />, 'Settings', goSettings, 'Settings', { width: 54 })}
+          {divider('d1')}
+          {key(<GalleryVerticalEnd size={18} strokeWidth={mode === 'swipe' ? 2.3 : 1.9} />, 'Swipe', () => mode !== 'swipe' && onChangeMode?.('swipe'), 'Swipe', { active: mode === 'swipe', width: 48 })}
+          {key(<LayoutList size={18} strokeWidth={mode === 'scroll' ? 2.3 : 1.9} />, 'Scroll', () => mode !== 'scroll' && onChangeMode?.('scroll'), 'Scroll', { active: mode === 'scroll', width: 48 })}
+          {key(<Headphones size={18} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => onChangeMode?.('audio'), 'Listen', { active: mode === 'audio', width: 48 })}
+          {divider('d2')}
+          {key(
+            // Guests have no count, so show the flame rather than a blank — an empty cell
+            // reads as broken or disabled, which it isn't.
+            user
+              ? <span style={{ fontSize: '0.78rem', fontWeight: 700, lineHeight: 1 }}>{todayCount}</span>
+              : <Flame size={18} strokeWidth={1.9} />,
+            'Challenge',
+            () => setSheetOpen(true),
+            !user ? 'Reading challenge — sign in to track progress'
+              : goalMet ? `Reading challenge complete — ${todayCount} stories today`
+              : `Reading challenge — ${todayCount} of ${dailyGoal} stories today`,
+            { width: 62 },
+          )}
+        </div>
+      </nav>
+
+      {/* Challenge bottom sheet */}
+      <div onClick={() => setSheetOpen(false)}
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.5)', opacity: sheetOpen ? 1 : 0, pointerEvents: sheetOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }} />
+      <div style={{
+        position: 'fixed', left: '50%', bottom: 0, zIndex: 301,
+        width: '100%', maxWidth: 560, transform: `translateX(-50%) translateY(${sheetOpen ? '0' : '100%'})`,
+        transition: 'transform 0.34s cubic-bezier(0.32,0.72,0,1)',
+        background: '#fff', borderRadius: '20px 20px 0 0',
+        maxHeight: '85dvh', overflowY: 'auto', overscrollBehavior: 'contain',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        <div style={{ padding: '10px 18px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.15)', position: 'absolute', left: '50%', top: 10, transform: 'translateX(-50%)' }} />
+          <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Reading Challenge</span>
+          <button onClick={() => setSheetOpen(false)} style={{ width: 28, height: 28, borderRadius: '50%', background: '#f5f5f7', border: 'none', color: '#8a8a9a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Close">
+            <X size={15} />
           </button>
-        );
-      })}
-    </nav>
+        </div>
+        <div style={{ padding: '4px 0 18px' }}>
+          <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} style={{ margin: '0 16px', width: 'calc(100% - 32px)' }} />
+        </div>
+      </div>
+    </>
   );
 }

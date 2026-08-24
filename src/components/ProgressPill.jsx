@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { dayKey } from '../hooks/useListenHistory';
 
 // ── Award definitions ─────────────────────────────────────────────────────────
 // Ordered lowest → highest rank. Social profiles will use these colours.
@@ -10,24 +7,24 @@ export const AWARDS = [
     id:       'informed',
     title:    'Informed',
     subtitle: "Today's challenge achieved",
-    color:    '#cd7f32',                                        // Bronze
-    glow:     'rgba(205,127,50,0.35)',
+    color:    '#a5b4fc',                                        // pale (lightest tier)
+    glow:     'rgba(165,180,252,0.35)',
     check:    (s) => s.todayCount >= s.dailyGoal,
   },
   {
     id:       'sharp',
     title:    'Sharp',
     subtitle: '3-day streak achieved',
-    color:    '#94a3b8',                                        // Silver
-    glow:     'rgba(148,163,184,0.35)',
+    color:    '#6366f1',                                        // prominent (mid tier)
+    glow:     'rgba(99,102,241,0.35)',
     check:    (s) => s.streakDays >= 3,
   },
   {
     id:       'savvy',
     title:    'Savvy',
     subtitle: 'Weekly challenge achieved',
-    color:    '#f59e0b',                                        // Gold
-    glow:     'rgba(245,158,11,0.40)',
+    color:    '#db2777',                                        // boldest (top tier)
+    glow:     'rgba(219,39,119,0.40)',
     check:    (s) => s.weeklyDays >= (s.weeklyGoal || 6),
   },
 ];
@@ -81,86 +78,60 @@ function AwardIcon({ awardId, size, color }) {
 
 // ── Single ring component ─────────────────────────────────────────────────────
 
-function ChallengeRing({
-  size = 84, strokeW = 6,
-  pct = 0,
-  gradId, color0, color1, trackColor,
-  label, count, total, unit, toGo,
-  awardTitle, awardColor, awardId,
-  earned = false,
-}) {
+// A compact ring — arc, count, and its short caption ("stories today" etc.) inside, same as
+// the numbers always showed — just smaller, since the award's name and full description now
+// sit right next to it instead of in a separate section.
+function MiniRing({ size = 72, strokeW = 5, pct = 0, count, total, caption, color }) {
   const r    = (size - strokeW) / 2;
   const circ = 2 * Math.PI * r;
   const dash = circ * Math.min(1, Math.max(0, pct));
-
-  // Arc and label colours depend on whether the challenge is earned
-  const arcColor0   = earned ? color0 : 'rgba(255,255,255,0.08)';
-  const arcColor1   = earned ? color1 : 'rgba(255,255,255,0.20)';
-  const titleColor  = earned ? awardColor : 'rgba(255,255,255,0.22)';
+  const exceeded = count > total;   // past the goal → show just the numerator
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      {/* Award title + icon above ring */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-        <AwardIcon awardId={awardId} size={10} color={titleColor} />
-        <span style={{
-          fontSize: '0.65rem', fontWeight: 800,
-          textTransform: 'uppercase', letterSpacing: '0.08em',
-          color: titleColor,
-        }}>
-          {awardTitle}
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f4" strokeWidth={strokeW} />
+        {dash > 0 && (
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeW}
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+        )}
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '0 6px' }}>
+        {exceeded ? (
+          <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0a0a0f', lineHeight: 1 }}>{count}</span>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, gap: 1 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0a0a0f' }}>{count}</span>
+            <span style={{ fontSize: '0.56rem', fontWeight: 500, color: '#9ca3af' }}>/</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0a0a0f' }}>{total}</span>
+          </div>
+        )}
+        <span style={{ fontSize: '0.48rem', fontWeight: 700, color: '#9ca3af', textAlign: 'center', lineHeight: 1.05 }}>
+          {caption}
         </span>
       </div>
-      {/* Ring */}
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size}
-          style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-          <defs>
-            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%"   stopColor={arcColor0} />
-              <stop offset="100%" stopColor={arcColor1} />
-            </linearGradient>
-          </defs>
-          <circle cx={size / 2} cy={size / 2} r={r}
-            fill="none" stroke={trackColor} strokeWidth={strokeW} />
-          {dash > 0 && (
-            <circle cx={size / 2} cy={size / 2} r={r}
-              fill="none" stroke={`url(#${gradId})`} strokeWidth={strokeW}
-              strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
-          )}
-        </svg>
+    </div>
+  );
+}
 
-        {/* Inner content */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 1,
-        }}>
-          <span style={{
-            fontSize: '0.6rem', fontWeight: 800,
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            color: 'rgba(255,255,255,0.42)', marginTop: 2,
-          }}>
-            {label}
+// One award, one row: ring on the left, name + what it takes on the right — the two things
+// that used to live in separate sections (the rings up top, the explainer text buried behind
+// a link at the bottom) are now the same row, so there's nothing left to go find.
+function ChallengeRow({ pct, count, total, caption, awardTitle, awardColor, awardId, earned, description }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <MiniRing pct={pct} count={count} total={total} caption={caption} color={awardColor} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+          <span style={{ width: 17, height: 17, borderRadius: 6, background: `${awardColor}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <AwardIcon awardId={awardId} size={9} color={awardColor} />
           </span>
-          <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, gap: 1 }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff' }}>{count}</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)' }}>/</span>
-            <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>{total}</span>
-          </div>
-          <span style={{ fontSize: '0.55rem', fontWeight: 600, color: 'rgba(255,255,255,0.28)' }}>
-            {unit}
+          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: earned ? awardColor : '#0a0a0f' }}>
+            {awardTitle}
           </span>
         </div>
+        <p style={{ margin: 0, fontSize: '0.74rem', color: '#8a8a9a', lineHeight: 1.45 }}>{description}</p>
       </div>
-
-      {/* Below ring */}
-      <span style={{
-        fontSize: '0.6rem', fontWeight: 600,
-        color: 'rgba(255,255,255,0.32)', textAlign: 'center', lineHeight: 1.3,
-      }}>
-        {toGo}
-      </span>
     </div>
   );
 }
@@ -311,28 +282,29 @@ function AwardToast({ award, onDone }) {
 
 // ── Guest sign-in promo card ──────────────────────────────────────────────────
 
-function GuestPromo() {
-  const navigate = useNavigate();
+// onShowAuth opens the sign-in dialog. This used to navigate to /settings instead: you
+// asked to sign in and got taken to a settings page, losing your place and still having to
+// find the control. Signing in is a dialog you dismiss, not a destination you travel to.
+function GuestPromo({ onShowAuth }) {
   return (
     <button
-      onClick={() => navigate('/settings')}
+      onClick={() => onShowAuth?.()}
       style={{
         display: 'flex', alignItems: 'center', gap: '14px',
         margin: '0 16px 12px', width: 'calc(100% - 32px)',
-        background: 'linear-gradient(145deg, #0f0f1e, #181830)',
-        border: 'none', borderRadius: 20,
-        padding: '16px 18px', cursor: 'pointer', textAlign: 'left',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+        background: '#fff',
+        border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18,
+        padding: '15px 16px', cursor: 'pointer', textAlign: 'left',
+        boxShadow: '0 6px 18px rgba(20,20,40,0.05)',
       }}
     >
       <div style={{
-        width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+        background: '#f1eefe',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="rgba(255,255,255,0.55)" strokeWidth="1.8"
+          stroke="#6d28d9" strokeWidth="1.8"
           strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -341,17 +313,17 @@ function GuestPromo() {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#fff', marginBottom: '4px', letterSpacing: '-0.01em' }}>
+        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0a0a0f', marginBottom: '3px', letterSpacing: '-0.01em' }}>
           Sign In to Track Progress
         </div>
-        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: '0.72rem', color: '#9ca3af', lineHeight: 1.5 }}>
           Customise your feed, complete reading challenges and access popular &amp; interesting stories in your circle.
         </div>
       </div>
 
       <div style={{
         padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
-        background: 'linear-gradient(135deg, #6366f1, #ec4899)',
+        background: '#6d28d9',
         color: '#fff', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap',
       }}>
         Sign In
@@ -360,571 +332,24 @@ function GuestPromo() {
   );
 }
 
-// ── Challenge Detail Sheet ────────────────────────────────────────────────────
 
-function StatusBadge({ done, onTrack }) {
-  const base = {
-    display: 'inline-flex', alignItems: 'center', gap: '4px',
-    padding: '3px 10px', borderRadius: '20px',
-    fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.03em',
-    whiteSpace: 'nowrap', flexShrink: 0,
-  };
-  if (done) return (
-    <span style={{ ...base, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}>
-      ✓ Complete
-    </span>
-  );
-  if (onTrack) return (
-    <span style={{ ...base, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
-      ⚡ On Track
-    </span>
-  );
-  return (
-    <span style={{ ...base, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }}>
-      · Not started
-    </span>
-  );
-}
+// One line per award — read by ChallengeRow, next to that award's ring.
+const AWARD_DESCRIPTIONS = [
+  'Read your daily goal in a single day — the ring resets every morning.',
+  'Hit that daily goal three days in a row. Miss a day and the streak starts over.',
+  'Hit the daily goal 6 days this week — the 7th is your digital detox day.',
+];
 
-function SheetSectionLabel({ children }) {
-  return (
-    <p style={{
-      margin: '0 0 0.55rem',
-      fontSize: '0.58rem', fontWeight: '800',
-      textTransform: 'uppercase', letterSpacing: '0.12em',
-      color: 'rgba(255,255,255,0.28)',
-    }}>
-      {children}
-    </p>
-  );
-}
-
-function ChallengeSheet({ open, onClose, challengeStats }) {
-  const [mounted, setMounted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const sheetRef    = useRef(null);
-  const dragStartY  = useRef(0);
-  const dragActive  = useRef(false);
-
-  // Open: mount → next frame → slide in
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const t = setTimeout(() => setVisible(true), 16);
-      return () => clearTimeout(t);
-    } else {
-      setVisible(false);
-      setDragOffset(0);
-      const t = setTimeout(() => setMounted(false), 400);
-      return () => clearTimeout(t);
-    }
-  }, [open]);
-
-  const handleTouchStart = (e) => {
-    dragStartY.current = e.touches[0].clientY;
-    dragActive.current = false;
-  };
-
-  const handleTouchMove = (e) => {
-    const delta     = e.touches[0].clientY - dragStartY.current;
-    const scrollTop = sheetRef.current?.scrollTop ?? 0;
-    // Only take over when at the very top of scroll and moving downward
-    if (!dragActive.current && delta > 6 && scrollTop === 0) {
-      dragActive.current = true;
-    }
-    if (dragActive.current && delta > 0) {
-      setDragOffset(delta);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (dragActive.current) {
-      if (dragOffset > 80) {
-        onClose();
-      } else {
-        setDragOffset(0);
-      }
-      dragActive.current = false;
-    }
-    dragStartY.current = 0;
-  };
-
-  if (!mounted) return null;
-
-  const {
-    todayCount = 0,
-    dailyGoal  = 10,
-    streakDays = 0,
-    weeklyDays = 0,
-    weeklyGoal = 6,
-    weekGrid   = [],
-    dailyCountMap = {},
-  } = challengeStats || {};
-
-  const todayPct = Math.min(1, todayCount / Math.max(1, dailyGoal));
-  const todayDone = todayCount >= dailyGoal;
-  const todayOnTrack = !todayDone && todayCount >= Math.ceil(dailyGoal / 2);
-  const streakDone = streakDays >= 3;
-  const weekDone = weeklyDays >= weeklyGoal;
-
-  // 3 cells: day-before-yesterday, yesterday, today
-  const DAY_FULL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const threeDays = [2, 1, 0].map(daysAgo => {
-    const ts  = Date.now() - daysAgo * 86400000;
-    const k   = dayKey(ts);
-    const d   = new Date(ts);
-    const cnt = dailyCountMap?.[k] || 0;
-    const met = cnt >= dailyGoal;
-    return {
-      key: k,
-      label: daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : DAY_FULL[d.getDay()],
-      dayLetter: DAY_FULL[d.getDay()].slice(0, 1),
-      cnt,
-      met,
-      isToday: daysAgo === 0,
-    };
-  });
-
-  // Motivational message
-  const getMotivation = () => {
-    if (weekDone) return { emoji: '🏆', text: 'You nailed the weekly challenge. You\'re a Savvy reader!' };
-    if (streakDone && todayDone) return { emoji: '🔥', text: 'On fire! Keep the streak alive tomorrow.' };
-    if (todayDone) return { emoji: '✅', text: `Goal done! Read ${weeklyGoal - weeklyDays} more day${weeklyGoal - weeklyDays !== 1 ? 's' : ''} this week to earn Savvy.` };
-    if (streakDays > 0) return { emoji: '⚡', text: `${streakDays}-day streak! Read ${dailyGoal - todayCount} more ${dailyGoal - todayCount === 1 ? 'story' : 'stories'} today to extend it.` };
-    if (todayCount > 0) return { emoji: '📖', text: `${dailyGoal - todayCount} more stories to hit today's goal. You're getting there!` };
-    return { emoji: '🌅', text: `Start with ${dailyGoal} stories today to kick off your streak.` };
-  };
-  const motivation = getMotivation();
-
-  // Arc SVG for the daily ring (in the sheet)
-  const r = 44;
-  const circ = 2 * Math.PI * r;
-  const dash = circ * todayPct;
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          zIndex: 400,
-          opacity: visible ? 1 : 0,
-          transition: 'opacity 0.32s ease',
-        }}
-      />
-
-      {/* Sheet */}
-      <div
-        ref={sheetRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          position: 'fixed', left: 0, right: 0, bottom: 0,
-          zIndex: 401,
-          background: 'linear-gradient(180deg, #111127 0%, #0a0a15 100%)',
-          borderRadius: '24px 24px 0 0',
-          boxShadow: '0 -8px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 1.5rem)',
-          maxHeight: '88vh',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          transform: dragOffset > 0
-            ? `translateY(${dragOffset}px)`
-            : visible ? 'translateY(0)' : 'translateY(100%)',
-          transition: dragOffset > 0 ? 'none' : 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
-        }}
-      >
-        {/* Sticky header */}
-        <div style={{
-          padding: '0.65rem 1.25rem 0',
-          position: 'sticky', top: 0,
-          background: 'linear-gradient(180deg, #111127 0%, #111127cc 100%)',
-          backdropFilter: 'blur(12px)',
-          zIndex: 1,
-        }}>
-          {/* Drag handle */}
-          <div style={{
-            width: '36px', height: '4px', borderRadius: '2px',
-            background: 'rgba(255,255,255,0.14)', margin: '0 auto 0.85rem',
-          }} />
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', marginBottom: '1rem',
-          }}>
-            <div>
-              <span style={{
-                fontSize: '1.05rem', fontWeight: '900', color: '#fff',
-                letterSpacing: '-0.025em',
-              }}>
-                Your Challenges
-              </span>
-              <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', fontWeight: '500' }}>
-                Build a daily reading habit
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                border: 'none', borderRadius: '50%', cursor: 'pointer',
-                width: 32, height: 32,
-                background: 'rgba(255,255,255,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,255,255,0.5)',
-                flexShrink: 0,
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '0 1rem 0.5rem' }}>
-
-          {/* ── Card 1: Daily Goal ─────────────────────────────────────────── */}
-          <div style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '20px',
-            padding: '1.1rem',
-            marginBottom: '0.75rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            {/* Subtle purple glow */}
-            <div style={{
-              position: 'absolute', top: -30, right: -30,
-              width: 120, height: 120, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)',
-              pointerEvents: 'none',
-            }} />
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <SheetSectionLabel>Challenge 1</SheetSectionLabel>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
-                  <LightbulbIcon size={14} color={todayDone ? AWARDS[0].color : 'rgba(255,255,255,0.7)'} />
-                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
-                    Daily Goal
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
-                  Read {dailyGoal} stories today to earn the{' '}
-                  <span style={{ color: AWARDS[0].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
-                    <LightbulbIcon size={11} color={AWARDS[0].color} /> Informed
-                  </span> badge
-                </p>
-              </div>
-              <StatusBadge done={todayDone} onTrack={todayOnTrack} />
-            </div>
-
-            {/* Ring + count */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
-                <svg width={96} height={96} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
-                  <defs>
-                    <linearGradient id="sheet-daily-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#ec4899" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx={48} cy={48} r={r} fill="none" stroke="rgba(99,102,241,0.14)" strokeWidth={7} />
-                  {dash > 0 && (
-                    <circle cx={48} cy={48} r={r} fill="none" stroke="url(#sheet-daily-grad)" strokeWidth={7}
-                      strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
-                  )}
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '1.45rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                    {todayCount}
-                  </span>
-                  <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>of {dailyGoal}</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', marginBottom: '0.6rem' }}>
-                  {todayDone
-                    ? `All ${todayCount} stories read today! ${todayCount > dailyGoal ? `+${todayCount - dailyGoal} bonus` : ''}`
-                    : `${dailyGoal - todayCount} more ${dailyGoal - todayCount === 1 ? 'story' : 'stories'} to go`}
-                </div>
-                {/* Story dots progress */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                  {Array.from({ length: dailyGoal }, (_, i) => (
-                    <div key={i} style={{
-                      width: '10px', height: '10px', borderRadius: '3px',
-                      background: i < todayCount
-                        ? `linear-gradient(135deg, #6366f1, #ec4899)`
-                        : 'rgba(255,255,255,0.1)',
-                      transition: 'background 0.2s',
-                    }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Card 2: 3-Day Streak ───────────────────────────────────────── */}
-          <div style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '20px',
-            padding: '1.1rem',
-            marginBottom: '0.75rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', top: -30, left: -30,
-              width: 120, height: 120, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)',
-              pointerEvents: 'none',
-            }} />
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <SheetSectionLabel>Challenge 2</SheetSectionLabel>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
-                  <LightningIcon size={13} color={streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.7)'} />
-                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
-                    3-Day Streak
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
-                  Hit your daily goal 3 days running to earn the{' '}
-                  <span style={{ color: AWARDS[1].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
-                    <LightningIcon size={11} color={AWARDS[1].color} /> Sharp
-                  </span> badge
-                </p>
-              </div>
-              {streakDone
-                ? <StatusBadge done={true} onTrack={false} />
-                : streakDays > 0
-                  ? <StatusBadge done={false} onTrack={true} />
-                  : <StatusBadge done={false} onTrack={false} />
-              }
-            </div>
-
-            {/* 3 day cells */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.8rem' }}>
-              {threeDays.map(day => {
-                const cellDone = day.met;
-                const cellActive = day.isToday && !cellDone && day.cnt > 0;
-                const borderColor = cellDone
-                  ? 'rgba(148,163,184,0.4)'
-                  : day.isToday
-                    ? 'rgba(99,102,241,0.4)'
-                    : 'rgba(255,255,255,0.08)';
-                const bg = cellDone
-                  ? 'linear-gradient(145deg, #1e3a5f, #1e293b)'
-                  : day.isToday
-                    ? 'rgba(99,102,241,0.1)'
-                    : 'rgba(255,255,255,0.03)';
-
-                return (
-                  <div key={day.key} style={{
-                    flex: 1,
-                    background: bg,
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: '14px',
-                    padding: '0.8rem 0.5rem',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: '5px',
-                  }}>
-                    <span style={{
-                      fontSize: '0.6rem', fontWeight: '800',
-                      textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: day.isToday ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
-                    }}>
-                      {day.label}
-                    </span>
-
-                    {/* Check or count */}
-                    {cellDone ? (
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: 'rgba(148,163,184,0.2)',
-                        border: `1.5px solid ${AWARDS[1].color}60`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                          <path d="M3 8l4 4 6-7" stroke={AWARDS[1].color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    ) : (
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: day.isToday ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
-                        border: day.isToday ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px dashed rgba(255,255,255,0.12)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        {day.cnt > 0 ? (
-                          <span style={{ fontSize: '0.75rem', fontWeight: '900', color: '#a5b4fc' }}>{day.cnt}</span>
-                        ) : (
-                          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.18)' }}>—</span>
-                        )}
-                      </div>
-                    )}
-
-                    <span style={{
-                      fontSize: '0.58rem', fontWeight: '700',
-                      color: cellDone ? AWARDS[1].color : day.cnt > 0 ? '#a5b4fc' : 'rgba(255,255,255,0.2)',
-                    }}>
-                      {cellDone ? `${day.cnt} ✓` : day.cnt > 0 ? `${day.cnt}/${dailyGoal}` : 'No reads'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Current streak indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: '2px',
-                  width: `${Math.min(100, (streakDays / 3) * 100)}%`,
-                  background: streakDone ? `linear-gradient(90deg, #2563eb, ${AWARDS[1].color})` : 'rgba(99,102,241,0.6)',
-                  transition: 'width 0.5s ease',
-                }} />
-              </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: '800', color: streakDone ? AWARDS[1].color : 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
-                {streakDays} / 3 days
-              </span>
-            </div>
-          </div>
-
-          {/* ── Card 3: Weekly Challenge ───────────────────────────────────── */}
-          <div style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '20px',
-            padding: '1.1rem',
-            marginBottom: '0.75rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', top: -30, right: -10,
-              width: 120, height: 120, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
-              pointerEvents: 'none',
-            }} />
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '0.9rem' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <SheetSectionLabel>Challenge 3</SheetSectionLabel>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
-                  <StarIcon size={14} color={weekDone ? AWARDS[2].color : 'rgba(255,255,255,0.7)'} />
-                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
-                    Weekly Goal
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
-                  Reach your daily goal on {weeklyGoal} of 7 days to earn the{' '}
-                  <span style={{ color: AWARDS[2].color, fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', verticalAlign: 'middle' }}>
-                    <StarIcon size={11} color={AWARDS[2].color} /> Savvy
-                  </span> badge
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: '900', color: weekDone ? AWARDS[2].color : '#fff', letterSpacing: '-0.04em' }}>
-                  {weeklyDays}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>/ {weeklyGoal}</span>
-              </div>
-            </div>
-
-            {/* 7-day grid */}
-            <div style={{ display: 'flex', gap: '5px', marginBottom: '0.75rem' }}>
-              {weekGrid.map(day => {
-                const bg = day.met
-                  ? 'linear-gradient(145deg, #78350f, #d97706)'
-                  : day.count > 0
-                    ? 'rgba(245,158,11,0.15)'
-                    : 'rgba(255,255,255,0.05)';
-                const border = day.isToday
-                  ? '1.5px solid rgba(99,102,241,0.6)'
-                  : day.met
-                    ? '1px solid rgba(245,158,11,0.35)'
-                    : '1px solid rgba(255,255,255,0.07)';
-
-                return (
-                  <div key={day.key} style={{
-                    flex: 1, height: 52, borderRadius: '10px',
-                    background: bg, border,
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '3px',
-                  }}>
-                    <span style={{
-                      fontSize: '0.55rem', fontWeight: '800',
-                      letterSpacing: '0.05em',
-                      color: day.met ? '#fef3c7' : day.isToday ? '#a5b4fc' : 'rgba(255,255,255,0.3)',
-                    }}>
-                      {day.day}
-                    </span>
-                    {day.met ? (
-                      <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="#fef3c7" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    ) : day.count > 0 ? (
-                      <span style={{ fontSize: '0.55rem', fontWeight: '900', color: '#fbbf24' }}>{day.count}</span>
-                    ) : (
-                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {[
-                { color: '#d97706', label: 'Goal met' },
-                { color: 'rgba(245,158,11,0.3)', label: 'Partial', border: '1px solid rgba(245,158,11,0.4)' },
-                { color: 'rgba(255,255,255,0.06)', label: 'No reads', border: '1px solid rgba(255,255,255,0.1)' },
-              ].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '3px', background: l.color, border: l.border }} />
-                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>{l.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Motivation / Tip card ──────────────────────────────────────── */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(236,72,153,0.07) 100%)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderRadius: '16px',
-            padding: '1rem 1.1rem',
-            display: 'flex', alignItems: 'flex-start', gap: '10px',
-          }}>
-            <span style={{ fontSize: '1.3rem', lineHeight: 1.2, flexShrink: 0 }}>{motivation.emoji}</span>
-            <div>
-              <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '700', color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
-                {motivation.text}
-              </p>
-              <p style={{ margin: '5px 0 0', fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
-                Tip: Reading stories in different categories builds broader awareness.
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </>
-  );
+// A hairline the width of the card read as a seam — this fades in from both edges instead,
+// so each section still separates from the next without cutting a hard line across the card.
+function SoftDivider() {
+  return <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(10,10,15,0.08), transparent)' }} />;
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export default function ProgressPill({ challengeStats, user, onShowAuth, style = {} }) {
   // All hooks must be called unconditionally before any early return
-  const [open, setOpen] = useState(false);
   const [toastAward, setToastAward] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const prevAwardId = useRef(null);
@@ -958,7 +383,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   }, [topAward?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Guest: render promo card
-  if (!user) return <GuestPromo />;
+  if (!user) return <GuestPromo onShowAuth={onShowAuth} />;
 
   const todayPct  = todayCount / Math.max(1, dailyGoal);
   const streakPct = Math.min(streakDays, 3) / 3;
@@ -968,73 +393,117 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   const streakLeft = Math.max(0, 3 - Math.min(3, streakDays));
   const weekLeft   = Math.max(0, weeklyGoal - weeklyDays);
 
+  // The calendar week from useListenHistory — the same grid the weekly ring counts, so the
+  // two always agree. All seven days show, read or not, so the week reads as a fixed frame
+  // rather than shrinking and growing as content is generated through the week.
+  const weekDays = weekGrid
+    .map(d => ({ key: d.key, letter: d.day, count: d.count, met: d.met, isToday: d.isToday }));
+
   const todayDone  = todayCount >= dailyGoal;
   const streakDone = streakDays >= 3;
   const weekDone   = weeklyDays >= weeklyGoal;
 
+  // Collapsed bar: highest earned badge + the next one and how to earn it.
+  //
+  // The next award is whatever ranks just above the highest one already earned — not simply
+  // the lowest of the three not currently true. Informed resets every morning, so once a
+  // streak has carried Sharp (or Savvy) past it, Informed can read as "not met" again purely
+  // because today hasn't started yet — .find from the bottom would land back on Informed and
+  // talk the message backwards ("you achieved Sharp, read more to become Informed"), a lower
+  // rank than the one already announced a few words earlier.
+  const topIdx = topAward ? AWARDS.findIndex(a => a.id === topAward.id) : -1;
+  const nextAward = topIdx + 1 < AWARDS.length ? AWARDS[topIdx + 1] : null;
+  const nextReq = !nextAward ? null
+    : nextAward.id === 'informed' ? `read ${todayLeft} more ${todayLeft === 1 ? 'story' : 'stories'} today`
+    : nextAward.id === 'sharp'    ? `keep your streak ${streakLeft} more day${streakLeft !== 1 ? 's' : ''}`
+    : `hit your goal ${weekLeft} more day${weekLeft !== 1 ? 's' : ''} this week`;
+  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  // Inline badge: icon + name, in the badge colour, bold.
+  const BadgeLabel = ({ award }) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, verticalAlign: 'middle', color: award.color, fontWeight: 800 }}>
+      <AwardIcon awardId={award.id} size={12} color={award.color} />
+      {award.title}
+    </span>
+  );
+
   return (
     <>
-      {/* ── Three-ring card ───────────────────────────────────────────────── */}
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 0,
-          margin: '0 16px 12px',
-          width: 'calc(100% - 32px)',
-          background: 'linear-gradient(145deg, #0f0f1e, #181830)',
-          border: topAward ? `1px solid ${topAward.color}30` : 'none',
-          borderRadius: 20,
-          padding: '14px 10px 10px',
-          cursor: 'pointer',
-          boxShadow: topAward
-            ? `0 4px 24px rgba(0,0,0,0.18), 0 0 0 1px ${topAward.color}15`
-            : '0 4px 24px rgba(0,0,0,0.18)',
-          ...style,
-        }}
-      >
-        {/* Rings row */}
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <ChallengeRing
-            size={84} strokeW={6}
-            pct={todayPct}
-            gradId="cr-today" color0="#7c3a1e" color1="#cd7f32"
-            trackColor="rgba(124,58,30,0.18)"
-            label="Today"
-            count={todayCount} total={dailyGoal} unit="stories"
-            toGo={todayLeft > 0 ? `${todayLeft} stories to go` : 'Goal complete!'}
-            awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed"
-            earned={todayDone}
-          />
+      {(
+        /* ── Rings card ──────────────────────────────────────────────────── */
+        <div style={{ margin: '0 16px 12px', width: 'calc(100% - 32px)', background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18, boxShadow: '0 6px 18px rgba(20,20,40,0.05)', overflow: 'hidden', ...style }}>
+          {/* Where you stand, in a sentence, above the rings that qualify it. Sections are
+              separated by a soft fading rule rather than a flat edge-to-edge line — a hard
+              hairline the full width of the card read as a seam cutting the card in two; a
+              rule that fades out toward both edges reads as a break between chapters of the
+              same card instead. */}
+          <div style={{ padding: '16px 16px 14px' }}>
+            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: '#6b7280', lineHeight: 1.55 }}>
+              {!nextAward ? (
+                <>You achieved <BadgeLabel award={topAward} /> — top rank this week 🎉</>
+              ) : topAward ? (
+                <>You achieved <BadgeLabel award={topAward} />, {nextReq} to become <BadgeLabel award={nextAward} /></>
+              ) : (
+                <>{capitalize(nextReq)} to become <BadgeLabel award={nextAward} /></>
+              )}
+            </p>
+          </div>
 
-          <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+          <SoftDivider />
+          {/* One row per award — the ring and what it takes, together, instead of three
+              rings up top and their explanations three sections away. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px' }}>
+            <ChallengeRow pct={todayPct} count={todayCount} total={dailyGoal} caption="stories today" awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed" earned={todayDone} description={AWARD_DESCRIPTIONS[0]} />
+            <ChallengeRow pct={streakPct} count={streakDays} total={3} caption="day streak" awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp" earned={streakDone} description={AWARD_DESCRIPTIONS[1]} />
+            <ChallengeRow pct={weekPct} count={weeklyDays} total={weeklyGoal} caption="days this week" awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy" earned={weekDone} description={AWARD_DESCRIPTIONS[2]} />
+          </div>
 
-          <ChallengeRing
-            size={84} strokeW={6}
-            pct={streakPct}
-            gradId="cr-streak" color0="#2563eb" color1="#e2e8f0"
-            trackColor="rgba(37,99,235,0.15)"
-            label="Streak"
-            count={streakDays} total={3} unit="days"
-            toGo={streakLeft > 0 ? `${streakLeft} day${streakLeft !== 1 ? 's' : ''} to go` : 'Streak complete!'}
-            awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp"
-            earned={streakDone}
-          />
-
-          <div style={{ width: 1, height: 58, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
-
-          <ChallengeRing
-            size={84} strokeW={6}
-            pct={weekPct}
-            gradId="cr-week" color0="#92400e" color1="#ffd700"
-            trackColor="rgba(180,83,9,0.18)"
-            label="Week"
-            count={weeklyDays} total={weeklyGoal} unit="days"
-            toGo={weekLeft > 0 ? `${weekLeft} day${weekLeft !== 1 ? 's' : ''} to go` : 'Week complete!'}
-            awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy"
-            earned={weekDone}
-          />
-        </div>
-      </button>
+          {/* This week, day by day.
+              Bars were the wrong instrument: height is a quantity, and the question here is
+              binary — did you clear 10 or not. You had to compare a bar against a dashed
+              line to answer it. These are the same rings as above, one per day, so a closed
+              ring means downstairs exactly what it means upstairs: goal met. */}
+          <SoftDivider />
+          <div style={{ padding: '16px 16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af' }}>This week</span>
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#9ca3af' }}>goal {dailyGoal}/day</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {weekDays.map(d => {
+                const R = 14, C = 2 * Math.PI * R;
+                const pct = Math.min(1, d.count / Math.max(1, dailyGoal));
+                const col = d.met ? AWARDS[1].color : d.isToday ? '#6366f1' : '#b6bac4';
+                return (
+                  <div key={d.key} title={`${d.count} of ${dailyGoal}`}
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+                    <span style={{ position: 'relative', display: 'flex', width: 34, height: 34 }}>
+                      <svg width="34" height="34" viewBox="0 0 34 34" style={{ display: 'block' }}>
+                        {/* Hitting the goal fills the disc solid. Arc length alone was the
+                            problem — 9 and 10 look nearly identical as arcs, and the whole
+                            question is which side of 10 you landed on. Outline vs solid is
+                            categorical, so it answers at a glance rather than on inspection. */}
+                        <circle cx="17" cy="17" r={R} fill={d.met ? col : 'transparent'} stroke={d.met ? col : '#eceef2'} strokeWidth="3.5" />
+                        {!d.met && pct > 0 && (
+                          <circle cx="17" cy="17" r={R} fill="none" stroke={col} strokeWidth="3.5" strokeLinecap="round"
+                            strokeDasharray={C} strokeDashoffset={C * (1 - pct)} transform="rotate(-90 17 17)"
+                            style={{ transition: 'stroke-dashoffset 0.5s cubic-bezier(0.22,0.61,0.36,1)' }} />
+                        )}
+                      </svg>
+                      <span style={{
+                        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.62rem', fontWeight: 800, lineHeight: 1,
+                        color: d.met ? '#fff' : d.count ? col : '#d2d5dc',
+                      }}>{d.count}</span>
+                    </span>
+                    <span style={{ fontSize: '0.58rem', fontWeight: d.isToday ? 900 : 600, color: d.isToday ? '#6366f1' : '#9ca3af' }}>{d.letter}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+</div>
+      )}
 
       {/* ── Cosmic burst ──────────────────────────────────────────────────── */}
       {showConfetti && <Confetti award={toastAward} onDone={() => setShowConfetti(false)} />}
@@ -1043,13 +512,6 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
       {toastAward && (
         <AwardToast award={toastAward} onDone={() => setToastAward(null)} />
       )}
-
-      {/* ── Detail bottom sheet ───────────────────────────────────────────── */}
-      <ChallengeSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        challengeStats={challengeStats}
-      />
     </>
   );
 }

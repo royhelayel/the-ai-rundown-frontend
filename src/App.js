@@ -1484,19 +1484,24 @@ const TheAIRundown = () => {
     setNewsLoading(true);
     setNewsNotAvailable(false);
     try {
-      let q;
+      let data;
       if (isCustom) {
         const sharedKey = (customCategoryDescriptions[selectedCategory] || selectedCategory).toLowerCase().trim();
-        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
+        const q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
           .eq('shared_key', sharedKey).is('user_id', null).eq('day', selectedDay).eq('time_slot', 'Daily');
+        const r = await q.maybeSingle();
+        if (r.error) throw r.error;
+        data = r.data;
       } else {
-        q = supabase.from('news_summaries').select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
-          .eq('category', selectedCategory).eq('day', selectedDay).eq('time_slot', selectedTime)
-          .eq('language', newsLanguage)
-          .is('user_id', null).is('shared_key', null);
+        // Routed through /api/news (a Vercel serverless function) instead of straight to
+        // Supabase — it sets a Cache-Control header so repeat requests for the same
+        // day/category/slot, from ANY visitor, are served from Vercel's edge cache instead
+        // of hitting the database again. See api/news.js for the cache-duration logic.
+        const params = new URLSearchParams({ mode: 'one', category: selectedCategory, day: selectedDay, timeSlot: selectedTime, language: newsLanguage });
+        const r = await fetch(`/api/news?${params}`);
+        if (!r.ok) throw new Error('news fetch failed');
+        data = await r.json();
       }
-      const { data, error } = await q.maybeSingle();
-      if (error) throw error;
       if (!data) { setNewsNotAvailable(true); setNewsSummary(null); return; }
       if (!isCustom) writeDayCache('one', selectedCategory, selectedDay, selectedTime, newsLanguage, data);
       setNewsSummary(data); setNewsNotAvailable(false); setShowAllSources(false);
@@ -1989,13 +1994,10 @@ const TheAIRundown = () => {
         const cached = readDayCache('list', cat, selectedDay, slotKey, newsLanguage);
         let data = Array.isArray(cached) ? cached : null;  // never trust a non-array here
         if (!data) {
-          const res = await supabase
-            .from('news_summaries')
-            .select('content, stories_content, time_slot, briefing')
-            .eq('category', cat).eq('day', selectedDay)
-            .in('time_slot', presentSlots)
-            .eq('language', newsLanguage).is('user_id', null).is('shared_key', null);
-          data = res.data;
+          // Same shared edge cache as the single-category fetch above — see api/news.js.
+          const params = new URLSearchParams({ mode: 'list', category: cat, day: selectedDay, slots: presentSlots.join(','), language: newsLanguage });
+          const res = await fetch(`/api/news?${params}`);
+          data = res.ok ? await res.json() : null;
           if (data && data.length) writeDayCache('list', cat, selectedDay, slotKey, newsLanguage, data);
         }
         if (!data || data.length === 0) return [cat, null];

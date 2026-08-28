@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Users, Globe } from 'lucide-react';
+import { Users, Globe } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
-import ProgressPill from './ProgressPill';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
-import CategoryIcon from './CategoryIcon';
 import useScrollRestore from '../hooks/useScrollRestore';
-import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
+import { rankStories } from '../utils';
+import { CATEGORY_SHORT } from '../theme';
 
 const bg = '#f5f5f7';
 const light = {
@@ -22,15 +21,19 @@ export function headlineKey(headline) {
   return (headline || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().slice(0, 50);
 }
 
+// Popular — only the stories that have been read, ranked by most read. The category
+// strip lists just the categories that have read stories (+ All) and filters the list.
 export default function PopularTab({
-  briefingData, briefingLoading, listenCounts,
+  briefingData, briefingLoading, listenCounts, savedCounts = {},
   defaultCategories,
-  onSelectCategory, onPlayCategory,
+  onSelectCategory, onPlayCategory, onMarkRead,
   isNarrating, playerVisible,
   user, onShowAuth,
   challengeStats, gamifiedStats = {},
   circlePopular = [],
   selectedDay, availableDays = [], onSelectDay,
+  onEnterStories, onEnterSummaries, onEnterAudio,
+  savedStories = [], onToggleSaved,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/popular');
@@ -38,9 +41,7 @@ export default function PopularTab({
   const [scope, setScope] = useState('everyone'); // 'everyone' | 'circle'
 
   // Flatten all stories across all categories.
-  // listenCount = stored count OR 1 if the current user has read the story today
-  // (gamifiedStats fallback ensures reads always surface even if listenCounts
-  //  was not populated — e.g. reads that predate this feature).
+  // listenCount = stored count OR 1 if the current user has read the story today.
   const allStories = [];
   defaultCategories.forEach(cat => {
     const d = briefingData[cat];
@@ -51,20 +52,22 @@ export default function PopularTab({
       const stored = listenCounts[key] || 0;
       const userRead = readToday?.has(idx) ? 1 : 0;
       const listenCount = Math.max(stored, userRead);
-      allStories.push({ ...story, category: cat, storyIndex: idx, listenCount });
+      // interestCount is the second sort key; rankKey is the last. Both are content-based,
+      // so they mean the same thing here as in the playlist App builds for Swipe mode.
+      allStories.push({
+        ...story, category: cat, storyIndex: idx, listenCount,
+        interestCount: savedCounts[key] || 0, rankKey: key,
+      });
     });
   });
 
   const hasAnyData    = allStories.length > 0;
   const hasAnyListens = allStories.some(s => s.listenCount > 0);
 
-  // === Everyone view ===
-  const sorted = [...allStories]
-    .filter(s => s.listenCount > 0)
-    .sort((a, b) => b.listenCount - a.listenCount);
+  // === Everyone view === only read stories: most-read, then most-saved, then stable order.
+  const sorted = rankStories(allStories.filter(s => s.listenCount > 0), 'reads');
 
   // === Circle view ===
-  // circlePopular is [{ story_key, category, story_index, circleCount }]
   const circleStories = circlePopular.map(cp => {
     const story = briefingData[cp.category]?.allStories?.[cp.story_index];
     if (!story) return null;
@@ -75,6 +78,33 @@ export default function PopularTab({
   const cats = [...new Set(activeList.map(s => s.category))];
   const filtered = selectedCat ? activeList.filter(s => s.category === selectedCat) : activeList;
 
+  // The same progress rail as the other scroll screens, on the same rule: it marks the
+  // story currently under the header, so it moves both ways as you scroll. Popular renders
+  // a flat ranked list rather than StoryList, so it tracks its own position — but with the
+  // identical observer geometry, or the rail would mean something different here.
+  const [railIdx, setRailIdx] = useState(-1);
+  useEffect(() => { setRailIdx(-1); }, [selectedCat, scope]);
+  const focusObsRef = useRef(null);
+  const cardCbRef = useRef(new Map());
+  const getFocusObserver = () => {
+    if (focusObsRef.current) return focusObsRef.current;
+    focusObsRef.current = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting && e.target.__idx != null) setRailIdx(e.target.__idx); });
+    }, { rootMargin: '-150px 0px -65% 0px', threshold: 0 });
+    return focusObsRef.current;
+  };
+  useEffect(() => () => focusObsRef.current?.disconnect(), []);
+  // Cached per index so the ref identity is stable — a fresh callback each render would
+  // detach and re-attach every card on every render.
+  const observeCard = (i) => {
+    let cb = cardCbRef.current.get(i);
+    if (!cb) {
+      cb = (el) => { if (!el) return; el.__idx = i; getFocusObserver().observe(el); };
+      cardCbRef.current.set(i, cb);
+    }
+    return cb;
+  };
+
   const handleStoryClick = (cat, storyIndex, list = activeList) => {
     onSelectCategory(cat);
     const playlist = list.map(s => ({ category: s.category, storyIndex: s.storyIndex }));
@@ -82,46 +112,25 @@ export default function PopularTab({
   };
 
   const hasCircle = circlePopular.length > 0;
+  const subtitle = selectedCat
+    ? `${CATEGORY_SHORT[selectedCat] || selectedCat} · ${filtered.length} stories`
+    : (filtered.length > 0 ? `${filtered.length} stories` : undefined);
 
   return (
     <div style={{ background: bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } body { background: ${bg}; margin: 0; } ::-webkit-scrollbar { display: none; } .pop-cat-strip::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <FeedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} />
+      <FeedHeader feedName="Popular" user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} challengeStats={challengeStats} viewMode="feed" onChangeViewMode={(m) => { if (m === 'stories') onEnterStories?.(); else if (m === 'summaries') onEnterSummaries?.(); }} onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
+        categories={!briefingLoading && cats.length > 1 ? cats : []} activeCategory={selectedCat} onSelectCategory={(cat) => setSelectedCat(cat === selectedCat ? null : cat)} showAllPill subtitle={subtitle}
+        // The lens row was missing here entirely, so arriving at Popular had no way back to
+        // Latest or across to Interesting except the browser's own back button — it read as
+        // the Popular option vanishing rather than as "you're already on it".
+        showLens lens="popular"
+        onChangeLens={(l) => { if (l === 'latest') navigate('/'); else if (l === 'interesting') navigate('/important'); }}
+        corpus="all"
+        onChangeCorpus={(c) => navigate(c === 'mine' ? '/my-feed' : '/')}
+        progressListened={railIdx + 1} progressTotal={filtered.length} />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
-        <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
-      </div>
-
-      {/* Title row */}
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <h2 style={{ margin: 0, flex: 1, fontSize: '1.55rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1 }}>
-          Popular
-        </h2>
-        {activeList.length > 0 && (
-          <>
-            <div className="ai-btn-wrap-read" style={{ flexShrink: 0 }}>
-              <button
-                className="ai-btn-inner-white"
-                style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
-                onClick={() => handleStoryClick(activeList[0].category, activeList[0].storyIndex)}
-              >
-                Read
-              </button>
-            </div>
-            <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
-              <button
-                className="ai-btn-inner"
-                style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }}
-                onClick={() => { onSelectCategory(activeList[0].category); onPlayCategory(activeList[0].category); }}
-              >
-                <Play size={11} fill="white" color="white" />
-                Play
-              </button>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* Everyone | Circle toggle — only shown when the user follows someone */}
       {user && hasCircle && (
@@ -147,47 +156,6 @@ export default function PopularTab({
                 {tab.icon}{tab.label}
               </button>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Category filter pills */}
-      {cats.length > 1 && !briefingLoading && (
-        <div className="pop-cat-strip" style={{ overflowX: 'auto', scrollbarWidth: 'none', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '6px', padding: '0 16px 12px', minWidth: 'max-content' }}>
-            <button
-              onClick={() => setSelectedCat(null)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 13px', borderRadius: '8px', border: 'none',
-                background: selectedCat === null ? light.text : light.bgSub,
-                color: selectedCat === null ? '#fff' : light.textMuted,
-                fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              All
-            </button>
-            {cats.map(cat => {
-              const c = CATEGORY_COLORS[cat] || '#6366f1';
-              const act = selectedCat === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCat(act ? null : cat)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '5px 13px', borderRadius: '8px',
-                    border: `1px solid ${act ? c : light.border}`,
-                    background: act ? c : light.bgSub,
-                    color: act ? '#fff' : light.textMuted,
-                    fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  }}
-                >
-                  <CategoryIcon category={cat} size={13} color={act ? '#fff' : light.textMuted} />
-                  {CATEGORY_SHORT[cat] || cat}
-                </button>
-              );
-            })}
           </div>
         </div>
       )}
@@ -218,18 +186,22 @@ export default function PopularTab({
           <SkeletonPopularList count={7} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {filtered.map((story) => {
+            {filtered.map((story, i) => {
               const isRead = !!(gamifiedStats.todayProgress?.[story.category]?.listenedIndices?.has(story.storyIndex));
               return (
-                <StoryCard
-                  key={`${story.category}-${story.storyIndex}`}
-                  story={story}
-                  category={story.category}
-                  listenCount={story.listenCount}
-                  isRead={user ? isRead : undefined}
-                  onRead={() => handleStoryClick(story.category, story.storyIndex, filtered)}
-                  onPlay={() => { onSelectCategory(story.category); onPlayCategory(story.category); }}
-                />
+                <div key={`${story.category}-${story.storyIndex}`} ref={observeCard(i)}>
+                  <StoryCard
+                    story={story}
+                    category={story.category}
+                    listenCount={story.listenCount}
+                    isRead={user ? isRead : undefined}
+                    isSaved={savedStories.some(s => headlineKey(s.headline || '') === headlineKey(story.headline || ''))}
+                    onToggleSaved={() => onToggleSaved?.(story, story.category, story.storyIndex)}
+                    onRead={() => handleStoryClick(story.category, story.storyIndex, filtered)}
+                    onSeen={() => onMarkRead?.(story, story.category, story.storyIndex)}
+                    onPlay={() => { onSelectCategory(story.category); onPlayCategory(story.category); }}
+                  />
+                </div>
               );
             })}
           </div>

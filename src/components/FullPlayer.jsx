@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
+import { centrePill } from '../utils';
 
 // ── Speed cycle helper ─────────────────────────────────────────────────────────
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -11,10 +12,10 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
+  // Fires when playback crosses into a new category. Strip-local for the same reason as the
+  // other two strips — scrollIntoView would also scroll whatever is behind the player.
   useEffect(() => {
-    if (activeRef.current && stripRef.current) {
-      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    centrePill(stripRef.current, activeRef.current);
   }, [category]);
 
   return (
@@ -26,7 +27,9 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
       }}
     >
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
-      <div className="fp-cat-strip" style={{ display: 'flex', gap: '6px', padding: '8px 16px', minWidth: 'max-content' }}>
+      <div className="fp-cat-strip" style={{ display: 'flex', gap: 8, padding: '8px 16px', minWidth: 'max-content' }}>
+        {/* Original player treatment restored — it works against the artwork. Only the
+            type size is aligned with the other screens (0.76rem). */}
         {contextCategories.map(cat => {
           const c   = CATEGORY_COLORS[cat] || '#6366f1';
           const act = cat === category;
@@ -44,11 +47,11 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
                 WebkitBackdropFilter: act ? 'none' : 'blur(6px)',
                 cursor: act ? 'default' : 'pointer',
                 whiteSpace: 'nowrap', flexShrink: 0,
-                fontSize: '0.82rem', fontWeight: act ? '800' : '600',
+                fontSize: '0.76rem', fontWeight: act ? '800' : '600',
                 color: act ? 'white' : 'rgba(255,255,255,0.8)',
               }}
             >
-              <CategoryIcon category={cat} size={15} color={act ? 'white' : 'rgba(255,255,255,0.8)'} />
+              <CategoryIcon category={cat} size={13} color={act ? 'white' : 'rgba(255,255,255,0.8)'} />
               {CATEGORY_SHORT[cat] || cat}
             </button>
           );
@@ -98,6 +101,8 @@ export default function FullPlayer({
   // Interesting toggle
   isInteresting,
   onToggleInteresting,
+  // Switch to the reader (silent) for the current story / briefing
+  onRead,
 }) {
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
@@ -126,6 +131,7 @@ export default function FullPlayer({
   const translateY = mounted ? 0 : '100%';
 
   const headline = story?.headline || '';
+  const isRecap  = !!story?._isBriefing;
   const bullets  = depthLevel === 'deep' ? (story?.allBullets || story?.tightBullets || []) : (story?.tightBullets || story?.allBullets || []);
   const excerpt  = bullets[0] || '';
 
@@ -188,7 +194,7 @@ export default function FullPlayer({
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
-              {category} · {storyIndex + 1} of {storyCount}
+              {isRecap ? `${category} Recap` : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
         </div>
@@ -228,17 +234,19 @@ export default function FullPlayer({
               {excerpt}
             </p>
           )}
-          {/* Headlines / Summary depth toggle — centered, under the story */}
+          {/* Takeaways / Summary depth toggle — centered, under the story (not for recaps) */}
+          {!isRecap && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
-            {[['headlines', 'Headlines'], ['deep', 'Summary']].map(([level, label]) => (
+            {[['takeaways', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
               <button
                 key={level}
                 onClick={() => onSetDepth(level)}
-                style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? color : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.7)' }}>
+                style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? color : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.7)' }}>
                 {label}
               </button>
             ))}
           </div>
+          )}
         </div>
 
         {/* ── Progress bar ── */}
@@ -285,6 +293,7 @@ export default function FullPlayer({
               {playbackSpeed}×
             </button>
 
+            {isRecap ? <div /> : (
             <button
               onClick={onToggleInteresting}
               title={isInteresting ? 'Remove from Interesting' : 'Mark as Interesting'}
@@ -299,6 +308,7 @@ export default function FullPlayer({
               <Sparkles size={15} fill={isInteresting ? color : 'none'} />
               Interesting
             </button>
+            )}
 
             <button
               onClick={onRepeatToggle}

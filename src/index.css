@@ -1,3 +1,26 @@
+/* touch-action: manipulation switches off double-tap-to-zoom.
+   That gesture is why every tap felt slightly late: while a second tap could still arrive,
+   the browser holds the first for ~300ms to see whether it's a double-tap. Remove the
+   gesture and the wait goes with it.
+   Deliberately not `user-scalable=no` on the viewport meta — iOS Safari has ignored that
+   since iOS 10, and it would take pinch-zoom away from people who need it. This drops only
+   the gesture that was costing latency and leaves pinch-zoom alone. */
+html, body {
+  touch-action: manipulation;
+}
+
+/* Nothing scrolls sideways at page level — the only horizontal scrollers are the category
+   strips, which own their overflow. overscroll-behavior-x alone stops the drift/bounce when
+   a horizontal drag isn't caught by one of them.
+   Not overflow-x: hidden — setting overflow on either axis makes an element a scroll
+   container on BOTH axes per spec (the other axis, left at its default 'visible', computes
+   to 'auto' instead). On html/body that silently turns the page into a second, nested
+   scrolling context, and every position: sticky header downstream stops sticking — it was
+   locking to that container's (unmoving) scroll offset instead of the page's. */
+html, body {
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

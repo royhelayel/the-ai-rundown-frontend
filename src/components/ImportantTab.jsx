@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Bookmark } from 'lucide-react';
-import ProgressPill from './ProgressPill';
+import { Bookmark } from 'lucide-react';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
-import CategoryIcon from './CategoryIcon';
 import useScrollRestore from '../hooks/useScrollRestore';
-import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
+import { CATEGORY_SHORT } from '../theme';
+import { headlineKey } from './PopularTab';
 
 const light = {
   bg:        '#f5f5f7',
@@ -16,12 +15,14 @@ const light = {
   textMuted: '#8a8a9a',
 };
 
-// Interesting — the stories marked as interesting (saved) by all users,
-// ranked by interest count. Same feed chrome as other tabs: category pills + "All".
+// Interesting — the stories marked as interesting (saved) by all users, ranked by
+// interest count. The category strip lists just the categories present (+ All) and
+// filters the list.
 export default function ImportantTab({
   briefingData = {},
   onSelectCategory,
   onPlayStory,
+  onMarkRead,
   onOpenSaves,
   user,
   onShowAuth,
@@ -29,6 +30,8 @@ export default function ImportantTab({
   challengeStats,
   gamifiedStats = {},
   selectedDay, availableDays = [], onSelectDay,
+  onEnterStories, onEnterSummaries, onEnterAudio,
+  savedStories = [], onToggleSaved,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/important');
@@ -46,8 +49,6 @@ export default function ImportantTab({
 
   const cats = [...new Set(allStories.map(s => s.category))];
 
-  // All view → ranked across categories by interest count.
-  // Category view → that category's stories (already ranked).
   const ranked = [...allStories].sort((a, b) => b.interestCount - a.interestCount);
   const activeList = selectedCat ? ranked.filter(s => s.category === selectedCat) : ranked;
 
@@ -59,7 +60,9 @@ export default function ImportantTab({
     });
   };
 
-  const firstStory = activeList[0];
+  const subtitle = selectedCat
+    ? `${CATEGORY_SHORT[selectedCat] || selectedCat} · ${activeList.length} stories`
+    : (activeList.length > 0 ? `${activeList.length} stories` : undefined);
 
   return (
     <div style={{ background: light.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -70,33 +73,13 @@ export default function ImportantTab({
         .imp-cat-strip::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <FeedHeader user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} />
+      <FeedHeader feedName="Interesting" user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} challengeStats={challengeStats} viewMode="feed" onChangeViewMode={(m) => { if (m === 'stories') onEnterStories?.(); else if (m === 'summaries') onEnterSummaries?.(); }} onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
+        categories={cats} activeCategory={selectedCat} onSelectCategory={(cat) => setSelectedCat(cat === selectedCat ? null : cat)} showAllPill subtitle={subtitle}
+        showLens lens="interesting"
+        onChangeLens={(l) => { if (l === 'latest') navigate('/'); else if (l === 'popular') navigate('/popular'); }}
+        corpus="all"
+        onChangeCorpus={(c) => navigate(c === 'mine' ? '/my-feed' : '/')} />
 
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: '4px' }}>
-        <ProgressPill challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
-      </div>
-
-      {/* Title row + Read/Play */}
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <h2 style={{ margin: 0, flex: 1, fontSize: '1.55rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.035em', lineHeight: 1.1 }}>
-          Interesting
-        </h2>
-        {firstStory && (
-          <>
-            <div className="ai-btn-wrap-read" style={{ flexShrink: 0 }}>
-              <button className="ai-btn-inner-white" style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }} onClick={() => openStory(firstStory)}>
-                Read
-              </button>
-            </div>
-            <div className="ai-btn-wrap-play" style={{ flexShrink: 0 }}>
-              <button className="ai-btn-inner" style={{ padding: '0.38rem 1rem', fontSize: '0.78rem' }} onClick={() => onPlayStory?.(firstStory.category, firstStory.storyIndex)}>
-                <Play size={11} fill="white" color="white" />
-                Play
-              </button>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* My Saves entry */}
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 10px' }}>
@@ -122,47 +105,6 @@ export default function ImportantTab({
         </button>
       </div>
 
-      {/* Category pills */}
-      {cats.length > 0 && (
-        <div className="imp-cat-strip" style={{ overflowX: 'auto', scrollbarWidth: 'none', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '6px', padding: '0 16px 12px', minWidth: 'max-content' }}>
-            <button
-              onClick={() => setSelectedCat(null)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 13px', borderRadius: '8px', border: 'none',
-                background: selectedCat === null ? light.text : light.bgSub,
-                color: selectedCat === null ? '#fff' : light.textMuted,
-                fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              All
-            </button>
-            {cats.map(cat => {
-              const c = CATEGORY_COLORS[cat] || '#6366f1';
-              const act = selectedCat === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCat(act ? null : cat)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    padding: '5px 13px', borderRadius: '8px',
-                    border: `1px solid ${act ? c : light.border}`,
-                    background: act ? c : light.bgSub,
-                    color: act ? '#fff' : light.textMuted,
-                    fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  }}
-                >
-                  <CategoryIcon category={cat} size={13} color={act ? '#fff' : light.textMuted} />
-                  {CATEGORY_SHORT[cat] || cat}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* List */}
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: playerVisible ? '8rem' : '5rem' }}>
         {activeList.length === 0 ? (
@@ -185,7 +127,10 @@ export default function ImportantTab({
                   category={item.category}
                   isRead={user ? isRead : undefined}
                   savedCount={item.interestCount}
+                  isSaved={savedStories.some(s => headlineKey(s.headline || '') === headlineKey(item.headline || ''))}
+                  onToggleSaved={() => onToggleSaved?.(item, item.category, item.storyIndex)}
                   onRead={() => openStory(item)}
+                  onSeen={() => onMarkRead?.(item, item.category, item.storyIndex)}
                   onPlay={() => onPlayStory?.(item.category, item.storyIndex)}
                 />
               );

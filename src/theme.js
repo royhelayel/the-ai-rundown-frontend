@@ -28,6 +28,21 @@ export const CATEGORY_ICONS = {
   'QAT':           '🇶🇦',
   'LEB':           '🇱🇧',
   'My Rundown':    '⚡',
+  'AI':            '🤖',
+  'Crypto':        '🪙',
+  'Football':      '⚽',
+  'Basketball':    '🏀',
+};
+
+// ── Subcategory → parent mapping ────────────────────────────────────────────
+// Used only by the My News category picker to nest a subcategory's chip under its
+// parent's. Every other consumer (All News, headers, story lists) treats these as
+// ordinary flat categories — same generation unit, same data shape, no special-casing.
+export const CATEGORY_PARENT = {
+  'AI':         'Technology',
+  'Crypto':     'Technology',
+  'Football':   'Sports',
+  'Basketball': 'Sports',
 };
 
 // ── Category short labels (for pills) ─────────────────────────────────────────
@@ -44,7 +59,11 @@ export const CATEGORY_SHORT = {
   'KSA':           'KSA',
   'QAT':           'QAT',
   'LEB':           'LEB',
-  'My Rundown':    'My Feed',
+  'My Rundown':    'My News',
+  'AI':            'AI',
+  'Crypto':        'Crypto',
+  'Football':      'Football',
+  'Basketball':    'Basketball',
 };
 
 // ── Category accent colours ────────────────────────────────────────────────────
@@ -62,6 +81,10 @@ export const CATEGORY_COLORS = {
   'QAT':           '#86198f',
   'LEB':           '#c2410c',
   'My Rundown':    '#7c3aed',
+  'AI':            '#7c3aed',
+  'Crypto':        '#b45309',
+  'Football':      '#15803d',
+  'Basketball':    '#ea580c',
 };
 
 // ── Category hero images (Unsplash CDN) ───────────────────────────────────────
@@ -81,6 +104,12 @@ export const CATEGORY_IMAGES = {
   'QAT':           'https://images.unsplash.com/photo-1763811939372-85d2f05db792?w=900&q=80&auto=format&fit=crop',
   'LEB':           'https://images.unsplash.com/photo-1779874033061-61aa1b2ec3a9?w=900&q=80&auto=format&fit=crop',
   'My Rundown':    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80&auto=format&fit=crop',
+  // Reuse the parent's image as a placeholder until these get their own — swap anytime,
+  // nothing else keys off this value.
+  'AI':            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=900&q=80&auto=format&fit=crop',
+  'Crypto':        'https://images.unsplash.com/photo-1518770660439-4636190af475?w=900&q=80&auto=format&fit=crop',
+  'Football':      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=900&q=80&auto=format&fit=crop',
+  'Basketball':    'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=900&q=80&auto=format&fit=crop',
 };
 
 // ── Helper: derive dark gradient from hex colour ───────────────────────────────

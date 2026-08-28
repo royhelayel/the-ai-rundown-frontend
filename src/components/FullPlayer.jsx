@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import { centrePill } from '../utils';
@@ -184,11 +184,16 @@ export default function FullPlayer({
         </div>
 
         {/* ── Top bar (floats over image) ── */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
+          {/* Close — stops playback outright, distinct from minimize which keeps it
+              running behind the mini player. Takes the left slot minimize used to
+              occupy; minimize moves to the right so the two aren't easy to mistake
+              for each other. */}
           <button
-            onClick={onMinimize}
+            onClick={onClose}
+            aria-label="Close player"
             style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
-            <ChevronDown size={20} />
+            <X size={20} />
           </button>
           {/* Absolutely centered breadcrumb — unaffected by button widths */}
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
@@ -197,6 +202,12 @@ export default function FullPlayer({
               {isRecap ? `${category} Recap` : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
+          <button
+            onClick={onMinimize}
+            aria-label="Minimize player"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
+            <ChevronDown size={20} />
+          </button>
         </div>
 
         {/* ── Story progress dots (floats over image) ── */}

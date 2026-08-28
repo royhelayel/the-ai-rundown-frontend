@@ -3285,12 +3285,25 @@ const TheAIRundown = () => {
           const from     = location.state?.from;
           const playlist = location.state?.playlist;
           // Playlist mode (Popular / Interesting): pills show only categories in that list, in order
+          let cats;
           if (playlist?.length) {
             const seen = new Set();
-            return playlist.map(p => p.category).filter(c => !seen.has(c) && seen.add(c));
+            cats = playlist.map(p => p.category).filter(c => !seen.has(c) && seen.add(c));
+          } else if (from === '/my-feed') {
+            cats = feedCategories;
+          } else {
+            cats = allCategories;
           }
-          if (from === '/my-feed') return feedCategories;
-          return allCategories;
+          // location.state survives across every in-reader navigate() — each one does a
+          // history replace that carries the same state forward unchanged (see navTo in
+          // StoryReader). A playlist or feedCategories snapshot from wherever the reader was
+          // FIRST opened can outlive its relevance: swipe far enough and catFromUrl drifts
+          // outside that original list. When that happens the pill strip's own length>1 gate
+          // flips between a real list and a stale one-or-zero-category list, which is the
+          // strip appearing and disappearing. If the category actually being viewed isn't in
+          // the resolved list, the list is stale — fall back to the full set instead of
+          // trusting state that no longer describes what's on screen.
+          return cats.includes(catFromUrl) ? cats : allCategories;
         })();
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>

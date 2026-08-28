@@ -424,6 +424,9 @@ export default function StoryReader({
   const touchY = useRef(null);
   const touchEdge = useRef({ top: true, bottom: true });
   const wheelLock = useRef(false);
+  const wheelQuietTimer = useRef(null);
+  const WHEEL_QUIET_MS = 180; // see onWheel below
+  useEffect(() => () => { if (wheelQuietTimer.current) clearTimeout(wheelQuietTimer.current); }, []);
   const atTop = () => { const el = contentRef.current; return !el || el.scrollTop <= 1; };
   const atBottom = () => { const el = contentRef.current; return !el || (el.scrollHeight - el.scrollTop - el.clientHeight) <= 1; };
   const navBlocked = () => summaryOpen || recapOpen;
@@ -516,13 +519,27 @@ export default function StoryReader({
     }
   };
   const onWheel = (e) => {
-    if (navBlocked() || wheelLock.current || Math.abs(e.deltaY) < 14) return;
+    if (navBlocked() || Math.abs(e.deltaY) < 14) return;
+
+    // A single physical trackpad fling doesn't fire one wheel event — it fires dozens,
+    // decaying over 600-900ms of inertial momentum. wheelLock used to release on a fixed
+    // 260ms timer (the slide animation's own duration), unrelated to whether that momentum
+    // was still flowing. The next still-large tick after 260ms then read as a brand new
+    // gesture and fired its own commit — one continuous swipe cascading through several
+    // stories, sometimes into the next category, before it finally "settled". Every
+    // qualifying tick now pushes this deadline forward, locked or not, so the lock only
+    // clears once the wheel has actually gone quiet — swallowing the whole momentum tail
+    // into the single commit the gesture started, rather than releasing mid-flow.
+    if (wheelQuietTimer.current) clearTimeout(wheelQuietTimer.current);
+    wheelQuietTimer.current = setTimeout(() => { wheelLock.current = false; }, WHEEL_QUIET_MS);
+
+    if (wheelLock.current) return;
     if (e.deltaY > 0 && !atBottom()) return; // let the content scroll down first
     if (e.deltaY < 0 && !atTop()) return;    // let the content scroll up first
     if (e.deltaY > 0 && !hasNext) return;
     if (e.deltaY < 0 && !hasPrev) return;
     wheelLock.current = true;
-    commitTo(e.deltaY > 0 ? 'next' : 'prev', () => { wheelLock.current = false; });
+    commitTo(e.deltaY > 0 ? 'next' : 'prev');
   };
 
   // Bookmark identity

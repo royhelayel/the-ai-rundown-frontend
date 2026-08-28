@@ -90,7 +90,7 @@ function StoryListInner({
   showCategoryImages = false,
   sectionTitle = '',
   onEditFeed,
-  markNew = false, // show a "NEW" badge on evening-incremental stories (live feeds only)
+  markNew = false, // show "New"/"Updated" badges on evening-incremental stories (live feeds only)
   activeCategory = null,
   onCategoryChange,
   hidePills = false, // caller (FeedHeader) already renders the pills strip
@@ -503,7 +503,8 @@ function buildSections({
                       story={story}
                       category={cat}
                       isRead={user ? listenedSet.has(idx) : undefined}
-                      isNew={markNew && story.generatedSlot === 'Evening'}
+                      isNew={markNew && story.status === 'New'}
+                      isUpdated={markNew && story.status === 'Updated'}
                       isSaved={savedKeySet.has(headlineKey(story.headline || ''))}
                       onToggleSaved={() => handleToggleSaved(story, cat, idx)}
                       onRead={() => handleRead(cat, idx)}

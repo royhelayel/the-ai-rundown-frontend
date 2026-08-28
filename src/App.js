@@ -516,6 +516,9 @@ const TheAIRundown = () => {
       const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
       const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
       const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
+      // Only set on Evening's incremental-merge digest (see generateEveningUpdate on the
+      // backend) — "Unchanged" carries no badge, only "Updated"/"New" do.
+      const statusMatch = rest.match(/\*\*Status:\*\*\s*(Updated|New|Unchanged)/);
       const storySources = chunk.coverageLinks.filter((s, i, a) => a.findIndex(x => x.url === s.url) === i);
       const key = normalizeHeadline(chunk.headline);
       const punchy = punchyMap[key] || (canIndexMatch ? punchyList[ci] : undefined);
@@ -529,6 +532,7 @@ const TheAIRundown = () => {
         perspectives: perspMatch?.[1] || null,
         why: whyMatch?.[1] || null,
         summary: punchy?.summary || null,  // elaborate narrative paragraph (new generation cycle only)
+        status: statusMatch?.[1] === 'Updated' || statusMatch?.[1] === 'New' ? statusMatch[1] : null,
         storySources,
         bodyLines: chunk.bodyLines, // kept for Read mode renderer
       };
@@ -1960,8 +1964,9 @@ const TheAIRundown = () => {
   }, [newsLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Briefing feed: fetch metadata for all categories ────────────────────────
-  // Fetches all completed slots for selectedDay (Morning + Evening) and merges them:
-  // Evening stories appear first (newest on top), Morning stories below.
+  // Fetches all completed slots for selectedDay. Evening's digest already carries every
+  // Morning story forward (updated in place or unchanged) plus new ones appended, so once
+  // Evening exists its row is used on its own — see the `hasEvening` filter below.
   // Each story is tagged with generatedSlot ('Morning'|'Evening') for display/tracking.
   // Cache key includes which slots are present so it self-invalidates when Evening arrives.
   useEffect(() => {
@@ -2002,7 +2007,12 @@ const TheAIRundown = () => {
         }
         if (!data || data.length === 0) return [cat, null];
         // Sort Evening first so incremental stories appear on top
-        const sorted = [...data].sort((a, b) => slotOrder.indexOf(a.time_slot) - slotOrder.indexOf(b.time_slot));
+        let sorted = [...data].sort((a, b) => slotOrder.indexOf(a.time_slot) - slotOrder.indexOf(b.time_slot));
+        // Evening's digest already reproduces every Morning story (updated in place or
+        // carried over unchanged) plus any new ones appended — see generateEveningUpdate
+        // on the backend. Showing Morning's row alongside it would duplicate every story
+        // that Evening didn't touch, so once Evening exists it fully replaces Morning.
+        if (sorted.some(r => r.time_slot === 'Evening')) sorted = sorted.filter(r => r.time_slot !== 'Morning');
         // Category briefing — prefer the newest slot's summary (Evening over Morning)
         const briefing = sorted.find(r => r.briefing && r.briefing.trim())?.briefing || null;
         // Merge stories across slots, tagging each with its source slot

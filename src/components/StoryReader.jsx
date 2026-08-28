@@ -591,7 +591,7 @@ export default function StoryReader({
                 one you'd simply not got to yet. */}
             {user && (
               <p style={{ margin: 0, fontSize: '0.66rem', fontWeight: 700, color: read ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {read ? '✓ Read' : entry.story.generatedSlot === 'Evening' ? 'New' : 'Unread'}
+                {read ? '✓ Read' : entry.story.status === 'New' ? 'New' : entry.story.status === 'Updated' ? 'Updated' : 'Unread'}
               </p>
             )}
           </div>

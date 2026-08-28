@@ -24,7 +24,8 @@ export default function StoryCard({
   story,
   category,
   isRead,
-  isNew,        // story added in the evening incremental load — shows "NEW" until read
+  isNew,        // story added in the evening incremental load — shows "New" until read
+  isUpdated,    // existing story with a fresh evening development merged in — shows "Updated" until read
   listenCount,
   savedCount,
   isSaved,       // whether this story is in the user's Interesting list
@@ -71,6 +72,12 @@ export default function StoryCard({
     badge = (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'none', color: '#9ca3af' }}>
         New
+      </span>
+    );
+  } else if (isUpdated) {
+    badge = (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', fontSize: '0.55rem', fontWeight: '700', flexShrink: 0, background: 'none', color: '#9ca3af' }}>
+        Updated
       </span>
     );
   } else if (isRead === false) {

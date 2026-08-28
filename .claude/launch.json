@@ -44,6 +44,24 @@
       "port": 4322
     },
     {
+      "name": "backend-admin",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd /Users/royhelayel/Documents/Github/the-ai-rundown-backend && node backend-server.js"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "vercel-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "npx vercel dev --listen 3010 --yes"
+      ],
+      "port": 3010
+    },
+    {
       "name": "wireframes",
       "runtimeExecutable": "npx",
       "runtimeArgs": [

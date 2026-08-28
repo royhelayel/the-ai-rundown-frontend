@@ -1974,7 +1974,11 @@ const TheAIRundown = () => {
     // Determine which slots have completed for this day
     const slotOrder = ['Evening', 'Daily', 'Morning'];
     const presentSlots = slotOrder.filter(t => completedSlots.has(`${selectedDay}|${t}`));
-    if (presentSlots.length === 0) return;
+    // No completed slot for this day yet (generation running late, paused, or genuinely
+    // no news for this day) — bail out of the loading state instead of leaving
+    // briefingLoading stuck at its initial `true` forever, which reads as an infinite
+    // skeleton with nothing ever telling the UI to stop waiting.
+    if (presentSlots.length === 0) { setBriefingLoading(false); return; }
     // Extra categories beyond the default 12 (subcategories picked into My News) change
     // what this fetch covers, so they have to be part of the key — otherwise adding one
     // would serve a stale cache entry from before it existed.
@@ -1983,6 +1987,7 @@ const TheAIRundown = () => {
     // Serve from cache — avoids re-fetching when user switches back to an already-loaded day
     if (briefingCacheRef.current[cacheKey]) {
       setBriefingData(briefingCacheRef.current[cacheKey]);
+      setBriefingLoading(false);
       return;
     }
     setBriefingLoading(true);

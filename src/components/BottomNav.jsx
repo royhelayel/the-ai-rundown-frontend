@@ -94,7 +94,11 @@ export default function BottomNav({
         zIndex: 45, flexShrink: 0,
         background: t.bg,
         padding: '12px 16px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        // Clearance above env(safe-area-inset-bottom) — the inset itself already reserves
+        // the home-indicator's gesture area, so this is on top of that, not instead of it.
+        // Was 12px, which read as a second, unexplained gap once the inset was already
+        // padding it out; 6px still keeps the dock clear of the gesture area.
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
         display: 'flex', justifyContent: 'center',
       }}>
         {/* The dock carries its own border now that the nav container no longer contrasts

@@ -720,9 +720,25 @@ export default function StoryReader({
 
           </div>
           {/* Sits directly under the card, inside the same block, so it travels with the
-              story instead of anchoring to the bottom of the band. Only the live layer is
-              given anything here — neighbours pass null. */}
-          {below}
+              story instead of anchoring to the bottom of the band.
+
+              The slot is always rendered, at a constant height, and whatever goes in it is
+              absolutely positioned so its own height never feeds back into the layout. Only
+              the live layer gets content here — neighbours pass null — so when this was a
+              plain {below} the incoming card was laid out ~38px shorter than the same card
+              one frame later, once it became live and the hint appeared. The card block sits
+              between flex:2 and flex:3 spacers, so that extra height pushed it up by two
+              fifths of it the instant a swipe landed: the twitch. Reserving the space in
+              every layer means the geometry is identical before and after the handover.
+              This also stops the card jumping when the hint swaps for the batch gate, or
+              hides itself while the summary sheet is open. */}
+          <div style={{ height: 52, position: 'relative', flexShrink: 0 }}>
+            {below && (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+                {below}
+              </div>
+            )}
+          </div>
         </div>
         <div style={{ flex: 3, minHeight: '0.5rem' }} />
       </>

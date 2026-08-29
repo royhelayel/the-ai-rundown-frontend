@@ -297,14 +297,36 @@ export default function StoryReader({
   const committingRef = useRef(false); // mid-flight between applyOffset(animate) and the route swap
 
   // One "slot" of the strip = the height of the swipe viewport.
-  const [stripH, setStripH] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
+  //
+  // Kept in a ref, and measured with a ResizeObserver on the element itself, because there
+  // used to be two different answers to "how tall is a slot". commitTo measured the live
+  // clientHeight to decide how far to slide, while applyOffset positioned the slots from a
+  // `stripH` state that only refreshed on a window `resize` event. Any time this element's
+  // own height changed *without* a window resize — mobile Safari showing/hiding its URL bar
+  // is the constant one, but so is anything above the strip changing height — the two
+  // disagreed. The incoming story then animated to (stale − live)px instead of 0, and the
+  // layout effect below snapped it the remaining distance right after the route swapped:
+  // the twitch as a story lands, on every single swipe. One number, observed on the element
+  // that actually defines it, so the animation and the positioning cannot drift apart.
+  const stripHRef = useRef(typeof window !== 'undefined' ? window.innerHeight : 800);
   useEffect(() => {
-    const measure = () => setStripH(rootRef.current?.clientHeight || window.innerHeight);
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.clientHeight || window.innerHeight;
+      if (h === stripHRef.current) return;
+      stripHRef.current = h;
+      // A resize while sitting still must re-seat the neighbours at the new slot height —
+      // otherwise they stay parked at the old one and the next swipe starts out misaligned.
+      if (!draggingRef.current && !committingRef.current) applyOffset(0, false);
+    };
     measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-  const viewH = () => rootRef.current?.clientHeight || stripH;
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const viewH = () => stripHRef.current;
 
   // Neighbouring stories, so the incoming one is already on screen while the finger drags.
   // Must mirror goNextStory / goPrevStory exactly, including the category hops — the
@@ -349,11 +371,24 @@ export default function StoryReader({
   const SLIDE = 'transform 0.26s cubic-bezier(0.22,0.61,0.36,1)';
 
   // The one place the strip's position is written. Straight to style — no React involved.
+  //
+  // Skips a layer already at its target transform/transition. This effect's own
+  // useLayoutEffect (below) has no dependency array on purpose, so it re-runs on every
+  // render this component gets for any reason — several async pieces of app state can each
+  // land within the same second right after this page mounts, and every one of those
+  // re-renders used to unconditionally rewrite inline styles on every layer even though
+  // nothing had actually moved. That turned into hundreds of redundant DOM writes on the
+  // photo layers in under a second, visible as flicker. A newly mounted neighbour layer
+  // (swiping to a new story) has no matching style yet, so it's untouched by this — only
+  // layers that are already exactly where they should be get skipped.
   const applyOffset = (dy, animate) => {
     dragRef.current = dy;
+    const transition = animate ? SLIDE : 'none';
     layersRef.current.forEach(({ el, slot }) => {
-      el.style.transition = animate ? SLIDE : 'none';
-      el.style.transform = `translate3d(0, ${dy + slot * stripH}px, 0)`;
+      const transform = `translate3d(0, ${dy + slot * stripHRef.current}px, 0)`;
+      if (el.style.transform === transform && el.style.transition === transition) return;
+      el.style.transition = transition;
+      el.style.transform = transform;
     });
   };
 

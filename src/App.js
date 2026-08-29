@@ -2408,6 +2408,8 @@ const TheAIRundown = () => {
   const isPopularPath   = location.pathname === '/popular';
   const isImportantPath = location.pathname === '/important';
   const isSavedPath     = location.pathname === '/saved';
+  // The Listen tab — the player as a page rather than a sheet over a feed.
+  const isListenPath    = location.pathname === '/listen';
   const profileRouteMatch = location.pathname.match(/^\/profile\/([^/]+)$/);
   const isProfilePath   = !!profileRouteMatch;
   const storyRouteMatch = location.pathname.match(/^\/category\/([^/]+)\/story\/(\d+)$/);
@@ -2454,7 +2456,7 @@ const TheAIRundown = () => {
     ? catsForFrom(location.state?.from)
         .filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim())
     : [];
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath && !isListenPath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
   // Opened via the Feed/Stories toggle: the reader IS the page, not a sheet over a tab.
@@ -2485,7 +2487,9 @@ const TheAIRundown = () => {
   const miniPlayerVisible = playerVisible && playerMinimized;
   // Show bottom nav everywhere except settings and when full player is open.
   // The summary sheet sits over a live tab, so that tab keeps its nav.
-  const showBottomNav   = !isSettingsPath && !isStoriesPage && !isBriefingView && !(playerVisible && !playerMinimized && !fullPlayerExiting);
+  // Listen is excluded for the same reason Swipe is: it's a full page that renders its own
+  // dark nav inside its container, so the global one would be a second bar underneath it.
+  const showBottomNav   = !isSettingsPath && !isStoriesPage && !isBriefingView && !isListenPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
 
   // ── Feed / Stories toggle — flatten a tab's stories into a swipeable playlist ──
   // Mirrors the ordering each tab already uses for its card list.
@@ -2550,12 +2554,35 @@ const TheAIRundown = () => {
   };
   // Audio mode from the toggle: open the player on the story the reader is currently on,
   // so listening continues from where they were rather than restarting the category.
+  // Cue a story up without starting it. The Listen page opens paused — it's a destination
+  // you land on (it's the default tab now), not something you asked to play, so autoplaying
+  // would talk at you the moment the app opens. Play is one tap away on the page itself.
+  const cueStory = (cat, idx) => {
+    narrateFnRef.current.stop();
+    // Read the stories straight off briefingData — the same array Swipe and Scroll page
+    // through. handlePlayStory gets there indirectly, by selecting the category and waiting
+    // on a fetch, which is fine when you've asked to play but leaves the page showing
+    // "1 of 0" on a cold load. Nothing to wait for here: the feed is already in memory.
+    const all = briefingData[cat]?.allStories || [];
+    setPlayerContextCategories(playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
+    setSelectedCategory(cat);
+    setStories(all);
+    setStoryIndex(idx);
+    setNarrationProgress(0);
+    narrationDurationRef.current = 0;
+    setFocus(cat, idx);          // keeps Swipe and Scroll pointing at the same story
+  };
+
+  // The Listen tab: continue from wherever the reader is, cued but silent.
   const enterAudioMode = (tabPath) => {
+    rememberReadMode('audio');
+    playerSourcePath.current = tabPath && tabPath !== '/listen' ? tabPath : (playerSourcePath.current || '/');
     const f = focusRef.current;
-    if (f?.category) { handlePlayStory(f.category, f.index ?? 0); return; }
-    // Nothing focused yet (e.g. straight after load) — start the tab's first story.
-    const playlist = playlistForTab(tabPath);
-    if (playlist.length) handlePlayStory(playlist[0].category, playlist[0].storyIndex);
+    if (f?.category) { cueStory(f.category, f.index ?? 0); navigate('/listen'); return; }
+    // Nothing focused yet (e.g. straight after load) — cue the tab's first story.
+    const playlist = playlistForTab(playerSourcePath.current);
+    if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
+    navigate('/listen');
   };
 
   // Switch tabs from inside the Stories page — mode stays "stories", only the source feed
@@ -2579,11 +2606,13 @@ const TheAIRundown = () => {
   );
 
   // ── Preferred reading mode, remembered per user (guests get their own key).
-  // New users land in Swipe; after that the app opens whichever mode they last chose.
+  // New users land on Listen — narrated news is the point of the app, so that's what a first
+  // run should open on. After that the app opens whichever mode they last chose, so someone
+  // who prefers reading isn't sent back to the player every launch.
   const readModeKey = (u) => `rundown_read_mode${u?.id ? `_${u.id}` : ''}`;
   const rememberReadMode = (m) => { try { localStorage.setItem(readModeKey(user), m); } catch {} };
   const preferredReadMode = () => {
-    try { return localStorage.getItem(readModeKey(user)) || 'swipe'; } catch { return 'swipe'; }
+    try { return localStorage.getItem(readModeKey(user)) || 'audio'; } catch { return 'audio'; }
   };
 
   // Open the remembered mode once, on the first tab we land on. Runs only after auth has
@@ -2594,12 +2623,26 @@ const TheAIRundown = () => {
     if (autoModeDoneRef.current || !authReady) return;
     const tabPaths = ['/', '/my-feed', '/popular', '/important'];
     if (!tabPaths.includes(location.pathname)) return;
-    if (preferredReadMode() !== 'swipe') { autoModeDoneRef.current = true; return; }
+    const mode = preferredReadMode();
+    if (mode !== 'swipe' && mode !== 'audio') { autoModeDoneRef.current = true; return; }
     const playlist = playlistForTab(location.pathname);
     if (!playlist.length) return; // data still loading — retry on the next render
     autoModeDoneRef.current = true;
-    enterStoriesMode(location.pathname, playlist);
+    if (mode === 'audio') enterAudioMode(location.pathname);
+    else enterStoriesMode(location.pathname, playlist);
   }, [authReady, location.pathname, briefingData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Landing on /listen without a cued story — a reload, a bookmark, or a shared link. The
+  // page renders off selectedCategory/storyIndex, so without this it shows "1 of 0" and an
+  // empty card. Cues the shared cursor's story, or the tab's first, and stays paused.
+  useEffect(() => {
+    if (!isListenPath || !authReady) return;
+    if (stories.length > 0) return;               // already cued
+    const f = focusRef.current;
+    if (f?.category) { cueStory(f.category, f.index ?? 0); return; }
+    const playlist = playlistForTab(playerSourcePath.current || '/');
+    if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
+  }, [isListenPath, authReady, briefingData, stories.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // "{Feed} Summary" link in the Stories page — opens the browsable category-briefing sheet.
   const openFeedSummary = (fromPath, cats) => {
@@ -3186,10 +3229,29 @@ const TheAIRundown = () => {
         </main>
       )}
       {/* ── FullPlayer overlay ── */}
-      {playerVisible && (!playerMinimized || fullPlayerExiting) && (
+      {/* One player, two shells. On /listen it's the page (always mounted, playing or not);
+          everywhere else it's the sheet, which only exists while something is playing. */}
+      {(isListenPath || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
-          visible={!fullPlayerExiting}
-          isExiting={fullPlayerExiting}
+          asPage={isListenPath}
+          visible={isListenPath ? true : !fullPlayerExiting}
+          isExiting={isListenPath ? false : fullPlayerExiting}
+          footer={isListenPath ? (
+            <BottomNav theme="dark" fixed={false} mode="audio"
+              onChangeMode={(m) => {
+                if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(playerSourcePath.current || '/'); }
+                else if (m === 'scroll') { rememberReadMode('scroll'); navigate(playerSourcePath.current || '/'); }
+              }}
+              challengeStats={challengeStatsFull} user={user}
+              onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
+          ) : null}
+          corpus={playerSourcePath.current === '/my-feed' ? 'mine' : 'all'}
+          onChangeCorpus={(c) => enterAudioMode(c === 'mine' ? '/my-feed' : '/')}
+          selectedDay={selectedDay}
+          availableDays={availableDays}
+          onSelectDay={selectDay}
+          onOpenRecap={(cat) => navigate(`/category/${encodeURIComponent(cat)}/briefing`, { state: { from: playerSourcePath.current || '/' } })}
+          onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
           onMinimize={handleMinimizePlayer}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
           category={selectedCategory}
@@ -3373,6 +3435,7 @@ const TheAIRundown = () => {
                 onSwitchStoriesTab={enterStoriesForTab}
                 onOpenFeedSummary={() => openFeedSummary(location.state?.from || '/', contextCats)}
                 onEnterSummaries={() => enterSummariesMode(location.state?.from || '/', 'swipe')}
+                onEnterAudio={() => enterAudioMode(location.state?.from || '/')}
                 // Recap opens as a bottom sheet over Swipe mode — no asPage, so the
                 // full-page Category Recap is no longer used.
                 // Carry the exact route we're leaving, so closing the recap returns to this

@@ -1,8 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles, Calendar } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
+import CorpusToggle from './CorpusToggle';
+import RecapBar from './RecapBar';
 import { centrePill } from '../utils';
+
+function formatHeaderDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const today = new Date();
+    if (y === today.getFullYear() && m === today.getMonth() + 1 && d === today.getDate()) return 'Today';
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch { return dateStr; }
+}
 
 // ── Speed cycle helper ─────────────────────────────────────────────────────────
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -65,6 +78,10 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
 export default function FullPlayer({
   visible,
   isExiting,
+  asPage = false,
+  // Rendered at the bottom of the page shell (the dark BottomNav). Page mode only — the
+  // sheet covers the nav rather than carrying one.
+  footer = null,
   onMinimize,
   onClose,
   // Current story data
@@ -103,7 +120,25 @@ export default function FullPlayer({
   onToggleInteresting,
   // Switch to the reader (silent) for the current story / briefing
   onRead,
+  // Page-mode header: same scope controls the other two tabs carry, so Listen isn't a
+  // dead end you have to leave to change day or corpus.
+  corpus = 'all',
+  onChangeCorpus,
+  selectedDay,
+  availableDays = [],
+  onSelectDay,
+  onOpenRecap,
+  onPlayRecap,
 }) {
+  const [dayPickerOpen, setDayPickerOpen] = useState(false);
+  const dayPickerRef = useRef(null);
+  useEffect(() => {
+    if (!dayPickerOpen) return;
+    const handler = (e) => { if (dayPickerRef.current && !dayPickerRef.current.contains(e.target)) setDayPickerOpen(false); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, [dayPickerOpen]);
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
   const glow   = categoryGlow(color);
@@ -138,31 +173,17 @@ export default function FullPlayer({
   // bg color as rgb for gradient stop
   const bgColor = colors.bg || '#0a0a14';
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-      {/* Backdrop */}
-      <div
-        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: isExiting ? 0 : 1, transition: isExiting ? 'opacity 0.38s ease' : 'none' }}
-        onClick={onMinimize}
-      />
-
-      {/* Sheet */}
-      <div
-        ref={sheetRef}
-        style={{
-          position: 'absolute',
-          left: '50%', bottom: 0,
-          width: '100%', maxWidth: '480px',
-          height: '100dvh',
-          background: bgColor,
-          borderRadius: '20px 20px 0 0',
-          transform: `translateX(-50%) translateY(${typeof translateY === 'number' ? translateY + 'px' : translateY})`,
-          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
-          display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
-          willChange: 'transform',
-        }}
-      >
+  // Two shells, one body.
+  //
+  // asPage is the Listen tab: the player IS the screen, so it sits in normal flow with no
+  // overlay, no backdrop and no slide-up — the bottom nav stays put beneath it and you switch
+  // away with the nav rather than by dismissing anything. Everything below this is shared, so
+  // the page and the sheet can't drift apart.
+  //
+  // Without asPage it stays exactly what it was: a sheet over whatever you were reading,
+  // which is still how a single story is played from Scroll or Swipe.
+  const body = (
+    <>
         {/* ── Full-bleed immersive image ── */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '58%', zIndex: 0 }}>
           {image ? (
@@ -183,31 +204,86 @@ export default function FullPlayer({
           <div style={{ position: 'absolute', inset: 0, background: glow, mixBlendMode: 'screen', opacity: 0.35 }} />
         </div>
 
+        {/* ── Page header: wordmark, then scope — the same statement the other two tabs
+               open with, so Listen isn't a dead end you must leave to change day or feed. ── */}
+        {asPage && (
+          <>
+            <div style={{ position: 'relative', zIndex: 10, padding: '9px 16px 0', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
+                <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
+              </span>
+            </div>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 10px', gap: 10 }}>
+              <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
+              <div style={{ flex: 1 }} />
+              <div style={{ position: 'relative' }} ref={dayPickerRef}>
+                <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: availableDays.length ? 'pointer' : 'default' }}>
+                  <Calendar size={12} color="rgba(255,255,255,0.6)" />
+                  <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
+                  {availableDays.length > 0 && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
+                </button>
+                {dayPickerOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {availableDays.map(day => {
+                      const active = day.fullDate === selectedDay;
+                      return (
+                        <button key={day.fullDate}
+                          onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: '0.78rem', fontWeight: active ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                          {formatHeaderDate(day.fullDate)}
+                          {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            {onOpenRecap && !isRecap && (
+              <div style={{ position: 'relative', zIndex: 10, padding: '0 16px 6px' }}>
+                <RecapBar category={category} theme="dark" compact
+                  onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+              </div>
+            )}
+          </>
+        )}
+
         {/* ── Top bar (floats over image) ── */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: asPage ? '0 1.25rem 0.5rem' : '1rem 1.25rem 0.5rem', minHeight: asPage ? 0 : '52px' }}>
           {/* Close — stops playback outright, distinct from minimize which keeps it
               running behind the mini player. Takes the left slot minimize used to
               occupy; minimize moves to the right so the two aren't easy to mistake
-              for each other. */}
+              for each other. Neither belongs on the page: there's nothing behind it to
+              minimise onto and the nav is how you leave. */}
+          {!asPage && (
           <button
             onClick={onClose}
             aria-label="Close player"
             style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
             <X size={20} />
           </button>
-          {/* Absolutely centered breadcrumb — unaffected by button widths */}
-          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+          )}
+          {/* Absolutely centered breadcrumb — unaffected by button widths. On the page there
+              are no buttons to dodge, and staying absolute made it overlay the recap chip
+              above, so it sits in flow there instead. */}
+          <div style={asPage
+            ? { flex: 1, textAlign: 'center', pointerEvents: 'none' }
+            : { position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
               {isRecap ? `${category} Recap` : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
+          {!asPage && (
           <button
             onClick={onMinimize}
             aria-label="Minimize player"
             style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
             <ChevronDown size={20} />
           </button>
+          )}
         </div>
 
         {/* ── Story progress dots (floats over image) ── */}
@@ -330,6 +406,56 @@ export default function FullPlayer({
         </div>
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </>
+  );
+
+  // The Listen tab — a full page, laid out the same way the Swipe page is: its own
+  // fixed container with the nav rendered inside it via `footer`, rather than relying on
+  // the app's global bar (which would end up underneath this). No backdrop and no
+  // transform: there's nothing behind it to dim, and a page that slid up every time you
+  // tapped Listen would read as a modal you're supposed to dismiss.
+  if (asPage) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 150,
+        background: bgColor,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {body}
+        </div>
+        {footer}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: isExiting ? 0 : 1, transition: isExiting ? 'opacity 0.38s ease' : 'none' }}
+        onClick={onMinimize}
+      />
+
+      {/* Sheet */}
+      <div
+        ref={sheetRef}
+        style={{
+          position: 'absolute',
+          left: '50%', bottom: 0,
+          width: '100%', maxWidth: '480px',
+          height: '100dvh',
+          background: bgColor,
+          borderRadius: '20px 20px 0 0',
+          transform: `translateX(-50%) translateY(${typeof translateY === 'number' ? translateY + 'px' : translateY})`,
+          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+          willChange: 'transform',
+        }}
+      >
+        {body}
       </div>
     </div>
   );

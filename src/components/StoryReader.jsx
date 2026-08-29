@@ -78,6 +78,7 @@ export default function StoryReader({
   onSwitchStoriesTab,
   onOpenFeedSummary,
   onEnterSummaries,
+  onEnterAudio,
   onOpenCategoryRecap,
   storiesForCategory,
   isStoryRead,
@@ -882,13 +883,14 @@ export default function StoryReader({
           </div>
 
           {/* Scope row: corpus left, day right — the same statement as Scroll mode's.
-              The bottom padding is the point: the divider belongs to the row below, and a
-              control sitting flush against a rule reads as attached to it.
+              Tight to the topics below it: with the rule moved under the pills, these two
+              rows are the same header block, so the air between them is grouping, not
+              separation. It used to be padded away from a rule that sat directly beneath it.
               zIndex 8, above every other zIndex-6 row here: the day picker is an absolutely
               positioned child of this row, so its z-index only wins within this row's own
               stacking context — against the category strip and recap/lens rows below it,
               which tie on 6 and win on DOM order, it painted underneath and got clipped. */}
-          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: '11px 16px 13px', gap: 10 }}>
+          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
             <CorpusToggle
               value={activeTabPath === '/my-feed' ? 'mine' : 'all'}
               onChange={(c) => onSwitchStoriesTab?.(c === 'mine' ? '/my-feed' : '/')}
@@ -948,7 +950,10 @@ export default function StoryReader({
 
       {/* ── Category pills — quick jump across topics ── */}
       {contextCategories.length > 1 && (
-        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        /* Rule sits under the pills rather than over them, so the wordmark, the scope row
+           and the topics read as one header block and the rule separates that block from
+           the story below it — rather than splitting the header's own two halves. */
+        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
         {/* Same control, same place as Scroll mode's — outside the scroller, so it holds
             still while the pills move past it. */}
         {onEditCategories && (
@@ -958,17 +963,17 @@ export default function StoryReader({
             onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
             aria-label="Choose your topics"
             title="Choose your topics"
-            style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, marginTop: 3, borderRadius: 8, border: 'none',
-              // The pill strip's own padding is 15px top / 9px bottom — asymmetric, so its
-              // pills sit 3px below the true center of this row. Centering the icon against
-              // the row (rather than the pills) left it 3px too high; nudged down to match.
+            style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
+              // The pill strip's padding is 8px top / 9px bottom — near enough symmetric that
+              // its pills sit on the row's true centre, so the icon centres with them and
+              // needs no nudge. (It carried a 3px offset while that padding was 15/9.)
               background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <SlidersHorizontal size={14} />
           </button>
         )}
         <div ref={catStripRef} className="rdr-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: 8, padding: '15px 16px 9px', minWidth: 'max-content' }}>
+          <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
             {/* "All" — the ranking itself, in rank order across every category. */}
             {showAllPill && (
               <>
@@ -1022,7 +1027,9 @@ export default function StoryReader({
           category"; the recap here would just be a second, narrower way to do the same thing
           for whichever one category you happened to land on. */}
       {asPage && onOpenCategoryRecap && !showAllPill && (
-        <div style={{ position: 'relative', zIndex: 6, padding: '14px 16px 0' }}>
+        /* Sits clear of the rule above it: the recap belongs to the story area, not to the
+           header block the rule closes, so it needs visible air rather than hugging it. */
+        <div style={{ position: 'relative', zIndex: 6, padding: '24px 16px 0' }}>
           <RecapBar
             category={category}
             storyCount={stories.length}
@@ -1072,7 +1079,10 @@ export default function StoryReader({
         <BottomNav theme="dark" fixed={false} mode="swipe"
           onChangeMode={(m) => {
             if (m === 'scroll') (onClose ? onClose() : goBack());
-            else if (m === 'audio') onPlayFrom(storyIndex); // continue from this story
+            // Listen is a tab now, not a sheet over this one: hand off to the Listen page,
+            // which picks up the same story from the shared cursor. Falls back to the old
+            // play-in-place behaviour if the page isn't wired up.
+            else if (m === 'audio') (onEnterAudio ? onEnterAudio() : onPlayFrom(storyIndex));
           }}
           challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
       )}

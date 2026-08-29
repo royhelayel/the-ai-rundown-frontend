@@ -108,9 +108,11 @@ export default function BottomNav({
         <div style={{ display: 'inline-flex', alignItems: 'stretch', background: t.track, border: `1px solid ${t.trackBorder}`, borderRadius: 12, padding: 5 }}>
           {key(<UserCircle size={19} strokeWidth={1.7} />, 'Settings', goSettings, 'Settings', { width: 54 })}
           {divider('d1')}
+          {/* Listen sits centre of the trio, under the thumb: it's the app's main proposition
+              and the tab you land on, so it gets the easiest position of the three. */}
           {key(<GalleryVerticalEnd size={18} strokeWidth={mode === 'swipe' ? 2.3 : 1.9} />, 'Swipe', () => mode !== 'swipe' && onChangeMode?.('swipe'), 'Swipe', { active: mode === 'swipe', width: 48 })}
+          {key(<Headphones size={18} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => mode !== 'audio' && onChangeMode?.('audio'), 'Listen', { active: mode === 'audio', width: 48 })}
           {key(<LayoutList size={18} strokeWidth={mode === 'scroll' ? 2.3 : 1.9} />, 'Scroll', () => mode !== 'scroll' && onChangeMode?.('scroll'), 'Scroll', { active: mode === 'scroll', width: 48 })}
-          {key(<Headphones size={18} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => onChangeMode?.('audio'), 'Listen', { active: mode === 'audio', width: 48 })}
           {divider('d2')}
           {key(
             // Guests have no count, so show the flame rather than a blank — an empty cell

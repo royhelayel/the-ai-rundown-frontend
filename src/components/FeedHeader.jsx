@@ -122,12 +122,14 @@ export default function FeedHeader({
 
         {/* ── Scope row: corpus left, day right. The two ends of the same statement —
                "All news, today" — rather than a title with a subtitle under it.
+               Tight to the topics below it: with the rule moved under the pills, these two
+               rows are one header block, so the air between them is grouping, not separation.
                zIndex 8, above the category strip below it (zIndex 3): the day picker is an
                absolutely-positioned child of this row, so its own z-index only outranks
                siblings *within* this row's stacking context — against the strip, which ties
                on the old zIndex 3 and wins on DOM order, the dropdown painted underneath it
                and its lower half was clipped. ── */}
-        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: '11px 16px 13px', gap: 10 }}>
+        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
           <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="light" />
           <div style={{ flex: 1 }} />
           <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -165,7 +167,10 @@ export default function FeedHeader({
 
         {/* ── Category pills — quick jump across topics ── */}
         {categories.length > 0 && (
-          <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'center', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+          /* Rule under the pills rather than over them, so the wordmark, the scope row and
+             the topics read as one header block and the rule closes it off from the feed —
+             rather than splitting the header's own two halves. Matches Swipe mode. */
+          <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
             <style>{`.fh-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
             {/* Outside the scroller, so it stays put while the pills move. Icon rather than a
@@ -188,7 +193,7 @@ export default function FeedHeader({
             )}
 
             <div ref={stripRef} className="fh-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-            <div style={{ display: 'flex', gap: 8, padding: '16px 16px 14px', minWidth: 'max-content' }}>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
               {showAllPill && (
                 <button onClick={() => onSelectCategory?.(null)}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 8, border: 'none',

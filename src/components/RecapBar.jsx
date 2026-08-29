@@ -42,42 +42,41 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
     </>
   );
 
-  // One line rather than two stacked. Full width across the screen with the lens on its own
-  // row beneath — the arrangement that read best — but the recap itself is half the height
-  // it was, and that difference goes to the story card.
+  // Compact: a chip sized to its own content, not a full-width filled bar.
   //
-  // The title truncates and the actions never shrink: if a category name runs long, it's the
-  // name that gives, not the two things you can do here.
+  // It used to spell out "{Name} Category recap" and carry two labelled buttons, Read and
+  // Listen. Directly beneath it the story card carries Summary and Listen — the same two
+  // verbs, forty pixels apart, at different scopes, which is a real "which one did I just
+  // tap" problem rather than only visual noise. So the words go: the chip body is the read
+  // affordance and the trailing icon is listen, which leaves exactly one pair of labelled
+  // buttons on the screen — the card's.
+  //
+  // The name goes too. The active category pill sits directly above this, so "Tech Category
+  // recap" said Tech twice within a hundred pixels; "Recap · 1 min" says the part that isn't
+  // already on screen. Ghost rather than filled for the same reason: this is a secondary
+  // offer next to the story, and a filled block competed with the card for first read.
   if (compact) {
     return (
-      <div onClick={onOpen}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 5px 5px 11px',
-          borderRadius: 11, cursor: 'pointer',
-          background: dark ? 'rgba(165,180,252,0.14)' : `${accent}17` }}>
-        <FileText size={15} color={accent} style={{ flexShrink: 0 }} />
-        <span style={{ flex: 1, minWidth: 0, fontSize: '0.74rem', fontWeight: 700,
-          color: dark ? 'rgba(255,255,255,0.92)' : '#0a0a0f',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {name} Category recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>· 1 min</span>
-        </span>
-        {/* Same shape as the story card's own Summary/Listen pair below — rounded-rect,
-            not a pill — so the two look like the same family of button rather than two
-            different button languages on the same screen. */}
-        <button onClick={(e) => { e.stopPropagation(); onOpen?.(); }} aria-label={`Read the ${name} recap`}
-          style={{ flexShrink: 0, padding: '3px 11px', borderRadius: 8, background: 'transparent',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.3)' : `${accent}66`}`,
-            color: accent, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
-          Read
-        </button>
-        {onPlay && (
-          <button onClick={(e) => { e.stopPropagation(); onPlay(); }} aria-label={`Listen to the ${name} recap`}
-            style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px',
-              borderRadius: 8, border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-              background: dark ? 'rgba(255,255,255,0.92)' : accent, color: dark ? '#0a0a14' : '#fff' }}>
-            <Play size={9} fill={dark ? '#0a0a14' : '#fff'} color={dark ? '#0a0a14' : '#fff'} />
-            Listen
-          </button>
-        )}
+      <div style={{ display: 'flex' }}>
+        <div onClick={onOpen}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '4px 4px 4px 10px', borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.16)' : `${accent}40`}`,
+            background: dark ? 'rgba(255,255,255,0.04)' : `${accent}0f` }}>
+          <FileText size={13} color={accent} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
+            color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
+            Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
+          </span>
+          {onPlay && (
+            <button onClick={(e) => { e.stopPropagation(); onPlay(); }} aria-label={`Listen to the ${name} recap`}
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: dark ? 'rgba(255,255,255,0.92)' : accent }}>
+              <Play size={9} fill={dark ? '#0a0a14' : '#fff'} color={dark ? '#0a0a14' : '#fff'} style={{ marginLeft: 1 }} />
+            </button>
+          )}
+        </div>
       </div>
     );
   }

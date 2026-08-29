@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, Sparkles, Repeat,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Headphones, Flame, Newspaper,
+  ChevronLeft, ChevronRight, ChevronDown, Headphones, Flame, Newspaper,
   LayoutList, GalleryVerticalEnd, Sun, Moon, ArrowRight, Clock, TrendingUp, SlidersHorizontal, Check,
+  UserCircle, ArrowDownUp,
 } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -245,14 +246,14 @@ function FullDayMock() {
   );
 }
 
-/* ── 6. Scroll, swipe, or listen — three ways to read the same feed ── */
+/* ── 6. Scroll, swipe, or listen — the real control is the bottom dock
+       (Settings · Swipe · Scroll · Listen · Challenge), not a top-right toggle.
+       Three scenes crossfade in the frame above it, one per mode, in step with the
+       dock cell that lights up — so the picture always matches the highlighted mode.
+       Crossfading whole scenes (rather than animating one set of cards through all
+       three states) also means each scene's own loop resets while it's invisible. ── */
 function ModesMock() {
   const color = CATEGORY_COLORS['World News'];
-  const chip = (Icon, cls) => (
-    <span className={cls} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '5px 9px', borderRadius: 6 }}>
-      <Icon size={12} strokeWidth={2.2} color="currentColor" />
-    </span>
-  );
   const cardFace = (faded) => (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', padding: 11 }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.58rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -266,61 +267,115 @@ function ModesMock() {
       </div>
     </div>
   );
+  const listRow = (w) => (
+    <div style={{ background: '#fff', borderRadius: 10, border: '1px solid rgba(0,0,0,0.07)', padding: 9, marginBottom: 7 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.52rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <CategoryIcon category="World News" size={8} color={color} /> World
+      </span>
+      <div style={{ marginTop: 6 }}>
+        <Skel w="92%" h={6} style={{ marginBottom: 4 }} />
+        <Skel w={w} h={6} />
+      </div>
+    </div>
+  );
+  // Mirrors BottomNav: icon over label, active cell tinted indigo, dividers around the trio.
+  const dockCell = (Icon, label, cls) => (
+    <span className={cls} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '3px 0 2px', borderRadius: 6, width: 40 }}>
+      <Icon size={13} strokeWidth={1.9} color="currentColor" />
+      <span style={{ fontSize: 6.5, fontWeight: 500, lineHeight: 1.2 }}>{label}</span>
+    </span>
+  );
+  const divider = <span aria-hidden style={{ width: 1, alignSelf: 'stretch', background: 'rgba(0,0,0,0.10)', margin: '2px 3px', flexShrink: 0 }} />;
+  const scene = { position: 'absolute', inset: 0 };
   return (
     <div style={{ width: 250, background: '#f1f2f6', borderRadius: 22, padding: 11, boxShadow: '0 24px 60px rgba(20,10,40,0.22)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 2px 9px' }}>
-        <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 900, color: '#0a0a0f', letterSpacing: '-0.01em', lineHeight: 1.15 }}>All News</div>
-          <div style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af' }}>Today</div>
-        </div>
-        <span style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: 8, padding: 2, flexShrink: 0, gap: 1 }}>
-          {chip(LayoutList, 'ob-chip3-a')}
-          {chip(GalleryVerticalEnd, 'ob-chip3-b')}
-          {chip(Headphones, 'ob-chip3-c')}
-        </span>
-      </div>
-      <div style={{ display: 'flex', gap: 5, padding: '0 2px 10px', borderTop: '1px solid rgba(0,0,0,0.07)', paddingTop: 9 }}>
+      <div style={{ display: 'flex', gap: 5, padding: '2px 2px 10px' }}>
         <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: '#0a0a0f', borderRadius: 5, padding: '3px 7px' }}>World</span>
         <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Tech</span>
         <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Business</span>
       </div>
-      <div style={{ position: 'relative', height: 128, overflow: 'hidden' }}>
-        <div className="ob-card-in" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(false)}</div>
-        <div className="ob-card-out" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(true)}</div>
-        <div className="ob-thumb" style={{ position: 'absolute', right: 14, bottom: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(10,10,20,0.55)', border: '2px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.28)' }} />
-        {/* Listen phase overlay — a little "now playing" strip over the same cards */}
-        <div className="ob-listen-overlay" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(10,10,20,0.85)', borderRadius: 10, padding: '7px 9px' }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Play size={9} color="#fff" fill="#fff" />
+
+      <div style={{ position: 'relative', height: 122, overflow: 'hidden' }}>
+        {/* Swipe — one story at a time, the front card flying up as the next rises */}
+        <div className="ob-show3-a" style={scene}>
+          <div className="ob-card-in" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(false)}</div>
+          <div className="ob-card-out" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(true)}</div>
+          <div className="ob-thumb" style={{ position: 'absolute', right: 14, bottom: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(10,10,20,0.55)', border: '2px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.28)' }} />
+        </div>
+
+        {/* Scroll — the same stories as a list, drifting under the thumb */}
+        <div className="ob-show3-b" style={scene}>
+          <div className="ob-scroll-drift">
+            {listRow('64%')}{listRow('78%')}{listRow('58%')}
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12, flex: 1 }}>
-            {[0, 1, 2, 3, 4].map(i => (
-              <span key={i} className="ob-eq" style={{ width: 3, height: '100%', borderRadius: 2, background: 'rgba(255,255,255,0.85)', animationDelay: `${i * 0.11}s` }} />
-            ))}
+        </div>
+
+        {/* Listen — the story with the player docked over it */}
+        <div className="ob-show3-c" style={scene}>
+          {cardFace(false)}
+          <div style={{ position: 'absolute', left: 4, right: 4, bottom: 4, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(10,10,20,0.88)', borderRadius: 10, padding: '7px 9px' }}>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Play size={9} color="#fff" fill="#fff" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12, flex: 1 }}>
+              {[0, 1, 2, 3, 4].map(i => (
+                <span key={i} className="ob-eq" style={{ width: 3, height: '100%', borderRadius: 2, background: 'rgba(255,255,255,0.85)', animationDelay: `${i * 0.11}s` }} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 10, color: '#9ca3af', fontSize: 9, fontWeight: 600 }}>
-        <ChevronUp size={11} /> scroll, swipe, or just listen
+
+      {/* The dock itself — white pill on the page background, same as BottomNav */}
+      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 11 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'stretch', background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 11, padding: 4 }}>
+          {dockCell(UserCircle, 'Settings', 'ob-dock-idle')}
+          {divider}
+          {dockCell(GalleryVerticalEnd, 'Swipe', 'ob-dock-a')}
+          {dockCell(LayoutList, 'Scroll', 'ob-dock-b')}
+          {dockCell(Headphones, 'Listen', 'ob-dock-c')}
+          {divider}
+          {dockCell(Flame, 'Challenge', 'ob-dock-idle')}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ── 7. Latest, Popular, or Interesting — three ways to sort ── */
+/* ── 7. Latest, Popular, or Interesting — the real LensToggle is a right-aligned
+       dropdown above the list, not a pill row. Shown open, with the highlight
+       cycling through the three options. ── */
 function FilterMock() {
   const color = CATEGORY_COLORS['Politics'];
-  const pill = (label, cls) => (
-    <span className={cls} style={{ padding: '5px 11px', borderRadius: 999, fontSize: 10, fontWeight: 800 }}>{label}</span>
+  const row = (label, cls) => (
+    <div className={cls} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 9px', borderRadius: 8, fontSize: 10 }}>
+      {label}
+      <Check size={11} className={`${cls}-check`} />
+    </div>
   );
   return (
     <div style={{ width: 272, background: '#f1f2f6', borderRadius: 22, padding: 14, boxShadow: '0 24px 60px rgba(20,10,40,0.22)' }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, justifyContent: 'center' }}>
-        {pill('Latest', 'ob-chip3-a')}
-        {pill('Popular', 'ob-chip3-b')}
-        {pill('Interesting', 'ob-chip3-c')}
+      {/* The trigger, right-aligned — ArrowDownUp + current label + chevron */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 600, color: '#6b7280' }}>
+          <ArrowDownUp size={11} />
+          <span style={{ position: 'relative', display: 'inline-block', minWidth: 54, textAlign: 'left' }}>
+            <span className="ob-show3-a" style={{ position: 'relative' }}>Latest</span>
+            <span className="ob-show3-b" style={{ position: 'absolute', left: 0, top: 0 }}>Popular</span>
+            <span className="ob-show3-c" style={{ position: 'absolute', left: 0, top: 0 }}>Interesting</span>
+          </span>
+          <ChevronDown size={10} />
+        </span>
       </div>
+      {/* The open menu, right-aligned under it */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <div style={{ width: 132, background: '#fff', borderRadius: 11, boxShadow: '0 12px 36px rgba(0,0,0,0.18)', border: '1px solid rgba(0,0,0,0.08)', padding: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {row('Latest', 'ob-lens-a')}
+          {row('Popular', 'ob-lens-b')}
+          {row('Interesting', 'ob-lens-c')}
+        </div>
+      </div>
+      {/* The story underneath, its meta line changing with the chosen lens */}
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', padding: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9, minHeight: 15 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.6rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -328,8 +383,8 @@ function FilterMock() {
           </span>
           <span style={{ position: 'relative', display: 'inline-block', fontSize: 9.5, fontWeight: 700 }}>
             <span className="ob-show3-a" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 3, color: '#9ca3af' }}><Clock size={10} /> 2m ago</span>
-            <span className="ob-show3-b" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#ef4444' }}><TrendingUp size={10} /> 3.2k readers</span>
-            <span className="ob-show3-c" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#7c3aed' }}><Sparkles size={10} /> Interesting</span>
+            <span className="ob-show3-b" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', color: '#6b7280' }}><TrendingUp size={10} /> 3.2k readers</span>
+            <span className="ob-show3-c" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', color: '#7c3aed' }}><Sparkles size={10} /> Interesting</span>
           </span>
         </div>
         <Skel w="92%" h={8} style={{ marginBottom: 6 }} />
@@ -339,56 +394,91 @@ function FilterMock() {
   );
 }
 
-/* ── 8. The challenge — read 6 days a week, earn Savvy ── */
-function ChallengeRingMini({ pct, c0, c1, track, awardTitle, awardColor, Icon, count, total, label, earned, gid }) {
-  const size = 62, strokeW = 5, r = (size - strokeW) / 2, circ = 2 * Math.PI * r, dash = circ * Math.min(1, pct);
-  const arc0 = earned ? c0 : 'rgba(255,255,255,0.08)';
-  const arc1 = earned ? c1 : 'rgba(255,255,255,0.2)';
-  const titleColor = earned ? awardColor : 'rgba(255,255,255,0.25)';
+/* ── 8. The challenge — mirrors the real ProgressPill card: white, one row per
+       award (ring + name + what it takes), then the week strip underneath. ── */
+const AWARD_COLORS = { informed: '#a5b4fc', sharp: '#6366f1', savvy: '#db2777' };
+
+function MiniRing({ size = 54, strokeW = 4, pct, count, total, caption, color }) {
+  const r = (size - strokeW) / 2, circ = 2 * Math.PI * r, dash = circ * Math.min(1, pct);
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-        <Icon size={9} color={titleColor} />
-        <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: titleColor }}>{awardTitle}</span>
-      </div>
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-          <defs>
-            <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={arc0} /><stop offset="100%" stopColor={arc1} />
-            </linearGradient>
-          </defs>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={strokeW} />
-          {dash > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gid})`} strokeWidth={strokeW} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />}
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 6.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-            <span style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{count}</span>
-            <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)' }}>/</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{total}</span>
-          </div>
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f4" strokeWidth={strokeW} />
+        {dash > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeW} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />}
+      </svg>
+      {/* Caption wraps inside the ring rather than spilling past it — same as the real
+          MiniRing, which pads it in and lets "stories today" break over two lines. */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '0 7px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 1, lineHeight: 1 }}>
+          <span style={{ fontSize: 10, fontWeight: 900, color: '#0a0a0f' }}>{count}</span>
+          <span style={{ fontSize: 6.5, fontWeight: 500, color: '#9ca3af' }}>/</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#0a0a0f' }}>{total}</span>
         </div>
+        <span style={{ fontSize: 5.5, fontWeight: 700, color: '#9ca3af', textAlign: 'center', lineHeight: 1.15 }}>{caption}</span>
+      </div>
+    </div>
+  );
+}
+
+function ChallengeRow({ pct, count, total, caption, title, color, Icon, earned, description }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <MiniRing pct={pct} count={count} total={total} caption={caption} color={color} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+          <span style={{ width: 14, height: 14, borderRadius: 5, background: `${color}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon size={8} color={color} />
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: earned ? color : '#0a0a0f' }}>{title}</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 9, color: '#8a8a9a', lineHeight: 1.4 }}>{description}</p>
       </div>
     </div>
   );
 }
 
 function ChallengeMock() {
+  const week = [
+    { d: 'M', met: true }, { d: 'T', met: true }, { d: 'W', met: true },
+    { d: 'T', met: true }, { d: 'F', met: false, today: true }, { d: 'S', met: false }, { d: 'S', met: false },
+  ];
   return (
-    <div style={{ width: 290, background: 'linear-gradient(145deg, #0f0f1e, #181830)', borderRadius: 20, border: '1px solid rgba(205,127,50,0.30)', padding: '14px 8px', boxShadow: '0 24px 60px rgba(20,10,40,0.4)' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <ChallengeRingMini gid="ob-today" pct={1} earned c0="#7c3a1e" c1="#cd7f32" track="rgba(124,58,30,0.18)"
-          awardTitle="Informed" awardColor="#cd7f32" Icon={LightbulbIcon} label="Today" count={10} total={10} />
-        <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.07)' }} />
-        <ChallengeRingMini gid="ob-streak" pct={0.66} c0="#2563eb" c1="#e2e8f0" track="rgba(37,99,235,0.15)"
-          awardTitle="Sharp" awardColor="#94a3b8" Icon={LightningIcon} label="Streak" count={2} total={3} />
-        <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.07)' }} />
-        <ChallengeRingMini gid="ob-week" pct={0.66} c0="#92400e" c1="#ffd700" track="rgba(180,83,9,0.18)"
-          awardTitle="Savvy" awardColor="#f59e0b" Icon={StarBadgeIcon} label="Week" count={4} total={6} />
+    <div style={{ width: 288, background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18, boxShadow: '0 24px 60px rgba(20,10,40,0.22)', overflow: 'hidden' }}>
+      <div style={{ padding: '13px 14px 11px' }}>
+        <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: '#6b7280', lineHeight: 1.5 }}>
+          You achieved <span style={{ color: AWARD_COLORS.sharp, fontWeight: 800 }}>Sharp</span>, hit your goal 2 more days this week to become <span style={{ color: AWARD_COLORS.savvy, fontWeight: 800 }}>Savvy</span>
+        </p>
       </div>
-      <div style={{ textAlign: 'center', marginTop: 12, paddingTop: 11, borderTop: '1px solid rgba(255,255,255,0.07)', fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
-        6 of 7 days → <span style={{ color: '#f59e0b', fontWeight: 800 }}>Savvy</span> unlocked. Day 7's a detox — even we think that's healthy.
+      <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(10,10,15,0.08), transparent)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '13px 14px' }}>
+        <ChallengeRow pct={1} count={10} total={10} caption="stories today" title="Informed" color={AWARD_COLORS.informed} Icon={LightbulbIcon} earned description="Read your daily goal in a single day." />
+        <ChallengeRow pct={1} count={3} total={3} caption="day streak" title="Sharp" color={AWARD_COLORS.sharp} Icon={LightningIcon} earned description="Hit that daily goal three days in a row." />
+        <ChallengeRow pct={0.66} count={4} total={6} caption="days this week" title="Savvy" color={AWARD_COLORS.savvy} Icon={StarBadgeIcon} description="Hit the goal 6 days this week — the 7th is your detox day." />
+      </div>
+      <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(10,10,15,0.08), transparent)' }} />
+      <div style={{ padding: '12px 14px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 9 }}>
+          <span style={{ fontSize: 7.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af' }}>This week</span>
+          <span style={{ fontSize: 8, fontWeight: 700, color: '#9ca3af' }}>goal 10/day</span>
+        </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {week.map((d, i) => {
+            const R = 11, S = 26, C = 2 * Math.PI * R;
+            const col = d.met ? AWARD_COLORS.sharp : d.today ? '#6366f1' : '#b6bac4';
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <div style={{ position: 'relative', width: S, height: S }}>
+                  <svg width={S} height={S} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+                    <circle cx={S / 2} cy={S / 2} r={R} fill="none" stroke="#eef0f4" strokeWidth={3} />
+                    {d.met && <circle cx={S / 2} cy={S / 2} r={R} fill="none" stroke={col} strokeWidth={3} strokeDasharray={`${C} ${C}`} strokeLinecap="round" />}
+                  </svg>
+                  {d.met && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={10} color={col} strokeWidth={3} /></div>}
+                </div>
+                <span style={{ fontSize: 7.5, fontWeight: d.today ? 800 : 600, color: d.today ? '#6366f1' : '#9ca3af' }}>{d.d}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -540,33 +630,61 @@ export default function OnboardingTour({ onClose }) {
 
         /* Three-phase loop (used by both Modes' Scroll/Swipe/Listen toggle and the
            Latest/Popular/Interesting filter pills) — same three windows, reused. */
-        @keyframes obChip3A  { 0%,26% { background: #0a0a0f; color: #fff; } 30%,100% { background: transparent; color: #9ca3af; } }
-        @keyframes obChip3B  { 0%,30% { background: transparent; color: #9ca3af; } 33%,59% { background: #0a0a0f; color: #fff; } 63%,100% { background: transparent; color: #9ca3af; } }
-        @keyframes obChip3C  { 0%,63% { background: transparent; color: #9ca3af; } 66%,92% { background: #0a0a0f; color: #fff; } 96%,100% { background: transparent; color: #9ca3af; } }
         @keyframes obShow3A  { 0%,26% { opacity: 1; } 30%,100% { opacity: 0; } }
         @keyframes obShow3B  { 0%,30% { opacity: 0; } 33%,59% { opacity: 1; } 63%,100% { opacity: 0; } }
         @keyframes obShow3C  { 0%,63% { opacity: 0; } 66%,92% { opacity: 1; } 96%,100% { opacity: 0; } }
-        .ob-chip3-a  { animation: obChip3A 6.5s ease-in-out infinite; }
-        .ob-chip3-b  { animation: obChip3B 6.5s ease-in-out infinite; }
-        .ob-chip3-c  { animation: obChip3C 6.5s ease-in-out infinite; }
         .ob-show3-a  { animation: obShow3A 6.5s ease-in-out infinite; }
         .ob-show3-b  { animation: obShow3B 6.5s ease-in-out infinite; }
         .ob-show3-c  { animation: obShow3C 6.5s ease-in-out infinite; }
-        /* Listen is the third phase of the same loop — the mini player only shows then */
-        @keyframes obListenShow { 0%,63% { opacity: 0; transform: translateY(6px); } 66%,92% { opacity: 1; transform: translateY(0); } 96%,100% { opacity: 0; transform: translateY(6px); } }
-        .ob-listen-overlay { animation: obListenShow 6.5s ease-in-out infinite; }
 
+        /* The bottom dock's selected cell — BottomNav's own light-theme colours
+           (activeBg rgba(99,102,241,0.12) on activeFg #6366f1, idle #9ca3af). */
+        @keyframes obDockA { 0%,26% { background: rgba(99,102,241,0.12); color: #6366f1; } 30%,100% { background: transparent; color: #9ca3af; } }
+        @keyframes obDockB { 0%,30% { background: transparent; color: #9ca3af; } 33%,59% { background: rgba(99,102,241,0.12); color: #6366f1; } 63%,100% { background: transparent; color: #9ca3af; } }
+        @keyframes obDockC { 0%,63% { background: transparent; color: #9ca3af; } 66%,92% { background: rgba(99,102,241,0.12); color: #6366f1; } 96%,100% { background: transparent; color: #9ca3af; } }
+        .ob-dock-idle { color: #9ca3af; }
+        .ob-dock-a { animation: obDockA 6.5s ease-in-out infinite; }
+        .ob-dock-b { animation: obDockB 6.5s ease-in-out infinite; }
+        .ob-dock-c { animation: obDockC 6.5s ease-in-out infinite; }
+        /* Scroll scene — the list drifting under the thumb */
+        @keyframes obScrollDrift { from { transform: translateY(0); } to { transform: translateY(-24px); } }
+        .ob-scroll-drift { animation: obScrollDrift 3.2s ease-in-out infinite alternate; }
+
+        /* The open lens menu — LensToggle's own selected row styling */
+        @keyframes obLensA { 0%,26% { background: rgba(99,102,241,0.10); color: #6366f1; font-weight: 800; } 30%,100% { background: transparent; color: #374151; font-weight: 500; } }
+        @keyframes obLensB { 0%,30% { background: transparent; color: #374151; font-weight: 500; } 33%,59% { background: rgba(99,102,241,0.10); color: #6366f1; font-weight: 800; } 63%,100% { background: transparent; color: #374151; font-weight: 500; } }
+        @keyframes obLensC { 0%,63% { background: transparent; color: #374151; font-weight: 500; } 66%,92% { background: rgba(99,102,241,0.10); color: #6366f1; font-weight: 800; } 96%,100% { background: transparent; color: #374151; font-weight: 500; } }
+        .ob-lens-a { animation: obLensA 6.5s ease-in-out infinite; }
+        .ob-lens-b { animation: obLensB 6.5s ease-in-out infinite; }
+        .ob-lens-c { animation: obLensC 6.5s ease-in-out infinite; }
+        /* Each row's tick shares the phase window of its row */
+        .ob-lens-a-check { animation: obShow3A 6.5s ease-in-out infinite; }
+        .ob-lens-b-check { animation: obShow3B 6.5s ease-in-out infinite; }
+        .ob-lens-c-check { animation: obShow3C 6.5s ease-in-out infinite; }
+
+        /* Reduced motion: every loop stops on its first phase, so each mock still reads
+           as one coherent still frame rather than a half-finished transition. */
         @media (prefers-reduced-motion: reduce) {
-          .ob-card-out, .ob-card-in, .ob-thumb, .ob-progress, .ob-eq,
+          .ob-card-out, .ob-card-in, .ob-thumb, .ob-progress, .ob-eq, .ob-scroll-drift,
           .ob-chip2-a, .ob-chip2-b, .ob-show2-a, .ob-show2-b, .ob-bullet-slide,
-          .ob-chip3-a, .ob-chip3-b, .ob-chip3-c, .ob-show3-a, .ob-show3-b, .ob-show3-c,
-          .ob-listen-overlay, .ob-recap-glow, .ob-toggle-chip, .ob-check-pop { animation: none !important; }
+          .ob-show3-a, .ob-show3-b, .ob-show3-c,
+          .ob-dock-a, .ob-dock-b, .ob-dock-c,
+          .ob-lens-a, .ob-lens-b, .ob-lens-c,
+          .ob-lens-a-check, .ob-lens-b-check, .ob-lens-c-check,
+          .ob-recap-glow, .ob-toggle-chip, .ob-check-pop { animation: none !important; }
           .ob-card-in, .ob-show2-a, .ob-show3-a { opacity: 1 !important; transform: none !important; }
-          .ob-card-out, .ob-show2-b, .ob-show3-b, .ob-show3-c, .ob-listen-overlay { opacity: 0 !important; }
+          .ob-card-out, .ob-show2-b, .ob-show3-b, .ob-show3-c { opacity: 0 !important; }
           .ob-toggle-chip { border-color: #16a34a !important; background: rgba(22,163,74,0.1) !important; color: #16a34a !important; }
           .ob-check-pop { opacity: 1 !important; transform: none !important; }
-          .ob-chip2-a, .ob-chip3-a { background: #0a0a0f !important; color: #fff !important; }
-          .ob-chip2-b, .ob-chip3-b, .ob-chip3-c { background: transparent !important; color: #9ca3af !important; }
+          .ob-chip2-a { background: #0a0a0f !important; color: #fff !important; }
+          .ob-chip2-b { background: transparent !important; color: #9ca3af !important; }
+          /* Phase-one cells stay selected; the rest stay idle */
+          .ob-dock-a { background: rgba(99,102,241,0.12) !important; color: #6366f1 !important; }
+          .ob-dock-b, .ob-dock-c { background: transparent !important; color: #9ca3af !important; }
+          .ob-lens-a { background: rgba(99,102,241,0.10) !important; color: #6366f1 !important; font-weight: 800 !important; }
+          .ob-lens-b, .ob-lens-c { background: transparent !important; color: #374151 !important; font-weight: 500 !important; }
+          .ob-lens-a-check { opacity: 1 !important; }
+          .ob-lens-b-check, .ob-lens-c-check { opacity: 0 !important; }
         }
       `}</style>
 

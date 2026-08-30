@@ -334,20 +334,24 @@ export default function FullPlayer({
         {/* ── Category recap, page only. It sits against the artwork, directly above the
                story it summarises, rather than up among the scope controls — it's content,
                not scope, and it was the one piece of *reading* stranded in the header. ── */}
-        {!isRecap && (asPage ? (onChangeLens || (storyCount > 0 && onOpenRecap)) : (storyCount > 0 && onOpenRecap)) && (
-          /* Recap left, lens right — one row over the artwork. The lens sorts the stories the
-             transport pages through, so it belongs with them rather than up in the scope
-             rows; Swipe puts it in the same relationship, low and close to the card. */
-          <div style={{ position: 'relative', zIndex: 10, padding: '0.5rem 1.25rem 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* The lens must outlive the stories: switch to a feed that happens to be empty
-                and, gated on storyCount like everything else, the only control that could get
-                you back out disappeared with them. */}
-            {onOpenRecap && storyCount > 0 ? (
-              <RecapBar category={category} theme="dark" compact
-                onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
-            ) : <div />}
-            <div style={{ flex: 1 }} />
-            {asPage && onChangeLens && <LensToggle value={lens} onChange={onChangeLens} theme="dark" />}
+        {/* ── Category recap, then the lens: two rows above the story, at Swipe's spacing.
+               They were one row with the recap left and the lens right, which is neither
+               screen's arrangement and left the lens sharing a line with content. ── */}
+        {!isRecap && storyCount > 0 && onOpenRecap && (
+          <div style={{ position: 'relative', zIndex: 10, padding: '24px 16px 0' }}>
+            <RecapBar category={category} storyCount={storyCount} theme="dark" compact
+              onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+          </div>
+        )}
+
+        {/* zIndex above the story card's 10, not level with it. The card is later in the DOM,
+            so at equal z-index it won every tie — which is why the open menu was drawn
+            underneath it. It also outlives the stories: switch to a feed that happens to be
+            empty and, gated on storyCount, the one control that could get you back out would
+            disappear with them. */}
+        {asPage && !isRecap && onChangeLens && (
+          <div style={{ position: 'relative', zIndex: 20, padding: '32px 16px 0' }}>
+            <LensToggle value={lens} onChange={onChangeLens} theme="dark" />
           </div>
         )}
 

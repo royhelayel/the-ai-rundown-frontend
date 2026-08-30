@@ -193,6 +193,7 @@ export default function FullPlayer({
   const isRecap  = !!story?._isBriefing;
   const bullets  = depthLevel === 'deep' ? (story?.allBullets || story?.tightBullets || []) : (story?.tightBullets || story?.allBullets || []);
   const excerpt  = bullets[0] || '';
+  const outlets  = (story?.storySources || []).filter(so => so.outlet);
 
   // bg color as rgb for gradient stop
   const bgColor = colors.bg || '#0a0a14';
@@ -225,11 +226,13 @@ export default function FullPlayer({
   // which is still how a single story is played from Scroll or Swipe.
   const body = (
     <>
-        {/* ── Full-bleed photo + scrim, Swipe's treatment.
+        {/* ── Full-bleed photo + scrim, Swipe's treatment. Sheet only on the page: there the
+               shell paints it behind the header too, so the body would double it up.
                The photo fills the whole surface behind everything and one layered scrim
                carries it down to near-black. It used to be a 58%-tall band with its own
                vignettes, which ended in a visible horizon halfway down. Same gradient stops
                as StoryReader, so all three screens sit at the same depth. ── */}
+        {!asPage && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           {image
             ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -238,6 +241,7 @@ export default function FullPlayer({
           {/* Chrome scrim: the controls sit over their own fade rather than on the photo. */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
         </div>
+        )}
 
         {/* ── Top bar (floats over image) ── */}
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
@@ -317,13 +321,38 @@ export default function FullPlayer({
         {/* ── Spacer — pushes headline down into the gradient zone ── */}
         <div style={{ flex: 1, position: 'relative', zIndex: 10 }} />
 
-        {/* ── Headline + Excerpt (overlaid on image gradient) ── */}
-        <div style={{ position: 'relative', zIndex: 10, padding: '0 1.5rem 0.75rem' }}>
+        {/* ── The story, as a card.
+               On the page this is Swipe's card, part for part: category and read status on
+               one row, headline, sources, then Interesting and Go deeper docked at the
+               bottom — all on the same dark panel. The pieces were previously scattered
+               (status floating over the photo, actions stranded in the screen's bottom
+               corners) which read as chrome around a picture rather than as a story you
+               could act on. The depth toggle and the transport stay below it.
+               The sheet keeps the looser overlay: it's a panel over a card you came from. ── */}
+        <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem 0.5rem' : '0 1.5rem 0.75rem' }}>
+        <div style={asPage && storyCount > 0
+          ? { padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)', border: '1px solid rgba(255,255,255,0.08)' }
+          : undefined}>
+          {/* Category left, read status right — the corners Swipe and Scroll both use. */}
+          {asPage && storyCount > 0 && !isRecap && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.66rem', fontWeight: 800, color: tintForDark(CATEGORY_COLORS[category]), textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <CategoryIcon category={category} size={11} color={tintForDark(CATEGORY_COLORS[category])} />
+                {CATEGORY_SHORT[category] || category}
+              </span>
+              <span style={{ flex: 1 }} />
+              {user && (
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+                </span>
+              )}
+            </div>
+          )}
           {/* Read status, above the headline — the same three states and the same wording the
               Scroll and Swipe cards carry, so a story's status doesn't disappear the moment
               you switch to listening to it. An evening-incremental story reads NEW until
               it's opened, then Read like any other. */}
-          {user && storyCount > 0 && !isRecap && (
+          {!asPage && user && storyCount > 0 && !isRecap && (
             <p style={{ margin: '0 0 6px', fontSize: '0.66rem', fontWeight: 700, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
             </p>
@@ -341,10 +370,48 @@ export default function FullPlayer({
               {excerpt}
             </p>
           )}
-          {/* Takeaways / Summary depth toggle — centered, under the story (not for recaps) */}
+
+          {/* Sources — one muted line, capped at two outlets plus a count, exactly as the
+              Swipe card renders them. The full list lives in Go deeper. */}
+          {asPage && storyCount > 0 && !isRecap && outlets.length > 0 && (() => {
+            const shown = outlets.slice(0, 2);
+            const rest = outlets.length - shown.length;
+            const src = { fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '9px 0 0', overflow: 'hidden' }}>
+                {shown.map((so, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
+                    {so.url
+                      ? <a href={so.url} target="_blank" rel="noopener noreferrer" title={so.title || so.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</a>
+                      : <span style={src}>{so.outlet}</span>}
+                  </React.Fragment>
+                ))}
+                {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
+              </div>
+            );
+          })()}
+
+          {/* Interesting and Go deeper, docked at the bottom of the card — the same corners
+              the Swipe card gives them. */}
+          {asPage && storyCount > 0 && !isRecap && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 }}>
+              <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
+              <CircleAction
+                Icon={FileText}
+                label="Go deeper"
+                theme="dark"
+                onClick={onOpenSummary}
+                aria-label="Go deeper"
+              />
+            </div>
+          )}
+        </div>
+
+          {/* Takeaways / Go deeper depth toggle — centered, under the card (not for recaps) */}
           {!isRecap && storyCount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
-            {[['takeaways', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
+            {[['takeaways', 'Takeaways'], ['deep', 'Go deeper']].map(([level, label]) => (
               <button
                 key={level}
                 onClick={() => onSetDepth(level)}
@@ -420,20 +487,14 @@ export default function FullPlayer({
               set once, not things you do to this story, and giving them the widest, most
               reachable slots put the furniture above the content. They move up beside the
               progress bar; see above. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {isRecap ? <div /> : (
+          {/* Sheet only: on the page these live in the story card above, where the two cards
+              already put them. */}
+          {!asPage && !isRecap && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
-            )}
-            {asPage && !isRecap ? (
-              <CircleAction
-                Icon={FileText}
-                label="Summary"
-                theme="dark"
-                onClick={onOpenSummary}
-                aria-label="Open summary"
-              />
-            ) : <div />}
-          </div>
+              <div />
+            </div>
+          )}
         </div>
         )}
 
@@ -454,6 +515,22 @@ export default function FullPlayer({
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
+        {/* The photo runs behind the header, not below it — Swipe's arrangement. On its own
+            flat black strip the header read as a separate black bar bolted above the
+            artwork; over the photo with Swipe's own top scrim it belongs to the same screen,
+            and the scrim still guarantees the toggle and the date have something to sit on
+            whatever image loads. Full width, while the content column above stays at
+            PAGE_MAX, so the artwork fills the window the way it does in Swipe. */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          {image
+            ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+          {/* Chrome scrims, same as Swipe's: the header fades out of the photo at the top and
+              the transport fades in at the bottom. */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+        </div>
         {/* ── Page header: wordmark, then scope — the same statement the other two tabs open
                with, so Listen isn't a dead end you must leave to change day or feed.
 
@@ -462,7 +539,7 @@ export default function FullPlayer({
                had no contrast against whatever photo happened to load, and it displaced the
                player's own spacing so the page and the sheet no longer matched. On its own
                opaque strip it always reads, and everything below is the sheet untouched. ── */}
-        <div style={{ position: 'relative', zIndex: 20, flexShrink: 0, background: bgColor }}>
+        <div style={{ position: 'relative', zIndex: 20, flexShrink: 0 }}>
           <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
             <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
               <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>

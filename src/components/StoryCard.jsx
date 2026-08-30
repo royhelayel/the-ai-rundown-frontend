@@ -208,10 +208,10 @@ export default function StoryCard({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <CircleAction
               Icon={FileText}
-              label="Summary"
+              label="Go deeper"
               accent={color}
               onClick={e => { e.stopPropagation(); openSummary(); }}
-              aria-label="Open summary"
+              aria-label="Go deeper"
             />
             <CircleAction
               Icon={Play}

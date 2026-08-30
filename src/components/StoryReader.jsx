@@ -709,10 +709,10 @@ export default function StoryReader({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <CircleAction
                 Icon={FileText}
-                label="Summary"
+                label="Go deeper"
                 theme="dark"
                 onClick={(e) => { e.stopPropagation(); setRecapOpen(false); setSummaryOpen(true); }}
-                aria-label="Open summary"
+                aria-label="Go deeper"
               />
               <CircleAction
                 Icon={Play}

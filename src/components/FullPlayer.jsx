@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
 import InterestingButton from './InterestingButton';
+import CircleAction from './CircleAction';
+import LensToggle from './LensToggle';
 import { centrePill } from '../utils';
 
 function formatHeaderDate(dateStr) {
@@ -148,6 +150,10 @@ export default function FullPlayer({
   onEditCategories,
   onGuestEdit,
   user,
+  isStoryRead = false,
+  onOpenSummary,
+  lens,
+  onChangeLens,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -316,10 +322,17 @@ export default function FullPlayer({
         {/* ── Category recap, page only. It sits against the artwork, directly above the
                story it summarises, rather than up among the scope controls — it's content,
                not scope, and it was the one piece of *reading* stranded in the header. ── */}
-        {asPage && onOpenRecap && !isRecap && storyCount > 0 && (
-          <div style={{ position: 'relative', zIndex: 10, padding: '0.5rem 1.25rem 0' }}>
-            <RecapBar category={category} theme="dark" compact
-              onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+        {asPage && !isRecap && storyCount > 0 && (onOpenRecap || onChangeLens) && (
+          /* Recap left, lens right — one row over the artwork. The lens sorts the stories the
+             transport pages through, so it belongs with them rather than up in the scope
+             rows; Swipe puts it in the same relationship, low and close to the card. */
+          <div style={{ position: 'relative', zIndex: 10, padding: '0.5rem 1.25rem 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {onOpenRecap ? (
+              <RecapBar category={category} theme="dark" compact
+                onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+            ) : <div />}
+            <div style={{ flex: 1 }} />
+            {onChangeLens && <LensToggle value={lens} onChange={onChangeLens} theme="dark" />}
           </div>
         )}
 
@@ -328,6 +341,15 @@ export default function FullPlayer({
 
         {/* ── Headline + Excerpt (overlaid on image gradient) ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: '0 1.5rem 0.75rem' }}>
+          {/* Read status, above the headline — the same three states and the same wording the
+              Scroll and Swipe cards carry, so a story's status doesn't disappear the moment
+              you switch to listening to it. An evening-incremental story reads NEW until
+              it's opened, then Read like any other. */}
+          {user && storyCount > 0 && !isRecap && (
+            <p style={{ margin: '0 0 6px', fontSize: '0.66rem', fontWeight: 700, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+            </p>
+          )}
           {/* Headline. With nothing to play — a day that was never generated, reached from the
               date picker — the card would otherwise be blank under a "1 of 0" breadcrumb,
               which reads as a failed load rather than an empty day. Says what the other tabs
@@ -358,10 +380,28 @@ export default function FullPlayer({
 
         {/* ── Progress bar ── */}
         {storyCount > 0 && (
-        <div style={{ position: 'relative', zIndex: 10, padding: '0.6rem 1.5rem 0.5rem' }}>
-          <div style={{ height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', zIndex: 10, padding: '0.6rem 1.5rem 0.5rem', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Speed and repeat live on the progress line: both are about *playback*, which is
+              what this line reports, and both are set-once settings. Bare text and a bare
+              icon rather than a pill and a filled circle — the card's actions below are the
+              buttons that should read as buttons, and four circles in two rows was too many
+              for one screen. */}
+          <button
+            onClick={onSpeedCycle}
+            aria-label={`Playback speed ${playbackSpeed}×`}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
+            {playbackSpeed}×
+          </button>
+          <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: '99px', transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
           </div>
+          <button
+            onClick={onRepeatToggle}
+            aria-label={repeatMode ? 'Repeat on' : 'Repeat off'}
+            aria-pressed={!!repeatMode}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
+            <Repeat size={15} />
+          </button>
         </div>
         )}
 
@@ -397,24 +437,24 @@ export default function FullPlayer({
             </button>
           </div>
 
-          {/* Secondary: Speed + Depth toggle + Repeat */}
+          {/* Secondary: the story's own two actions, in the corners, matching the cards.
+              Speed and repeat used to hold these corners — but they're playback settings you
+              set once, not things you do to this story, and giving them the widest, most
+              reachable slots put the furniture above the content. They move up beside the
+              progress bar; see above. */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <button
-              onClick={onSpeedCycle}
-              style={{ display: 'flex', alignItems: 'center', padding: '0.4rem 0.8rem', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', border: 'none', color: colors.textSub, cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700' }}>
-              {playbackSpeed}×
-            </button>
-
-            {/* The same control the two cards use, rather than a pill unique to the player. */}
             {isRecap ? <div /> : (
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
             )}
-
-            <button
-              onClick={onRepeatToggle}
-              style={{ width: '42px', height: '42px', borderRadius: '50%', background: repeatMode ? `${color}33` : 'rgba(255,255,255,0.08)', border: 'none', color: repeatMode ? color : colors.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Repeat size={18} />
-            </button>
+            {isRecap ? <div /> : (
+              <CircleAction
+                Icon={FileText}
+                label="Summary"
+                theme="dark"
+                onClick={onOpenSummary}
+                aria-label="Open summary"
+              />
+            )}
           </div>
         </div>
         )}

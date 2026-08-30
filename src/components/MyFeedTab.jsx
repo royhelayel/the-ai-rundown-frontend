@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackToTop from './BackToTop';
 import { User } from 'lucide-react';
 import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
@@ -182,6 +183,8 @@ export default function MyFeedTab({
           onToggleSaved={onToggleSaved}
         />
       </div>
+
+      <BackToTop />
     </div>
   );
 }

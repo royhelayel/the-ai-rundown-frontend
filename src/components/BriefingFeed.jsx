@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BackToTop from './BackToTop';
 import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
@@ -148,6 +149,8 @@ export default function BriefingFeed({
           onToggleSaved={onToggleSaved}
         />
       </div>
+
+      <BackToTop />
     </div>
   );
 }

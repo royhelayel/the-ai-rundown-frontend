@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, X, Sparkles } from 'lucide-react';
+import { Play, X } from 'lucide-react';
+import InterestingButton from './InterestingButton';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 
 const light = {
@@ -122,13 +123,7 @@ export default function StorySummarySheet({
               {/* Interesting sits immediately left of Close — the same top-right corner it
                   occupies on the story card and in Swipe mode. */}
               {onToggleInteresting && (
-                <button onClick={onToggleInteresting}
-                  aria-label={isInteresting ? 'Remove from Interesting' : 'Mark as Interesting'}
-                  title={isInteresting ? 'Remove from Interesting' : 'Mark as Interesting'}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, border: `1px solid ${isInteresting ? '#7c3aed' : 'rgba(0,0,0,0.14)'}`, background: isInteresting ? 'rgba(124,58,237,0.10)' : 'transparent', color: isInteresting ? '#7c3aed' : '#6b7280', fontSize: '0.66rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                  <Sparkles size={12} fill={isInteresting ? 'currentColor' : 'none'} />
-                  Interesting
-                </button>
+                <InterestingButton active={!!isInteresting} onClick={onToggleInteresting} />
               )}
               <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: light.bgSub, border: 'none', color: light.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label="Close summary"><X size={16} /></button>
             </div>

@@ -69,7 +69,7 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
           <FileText size={13} color={accent} style={{ flexShrink: 0 }} />
           <span style={{ fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
-            Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
+            Category Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
           </span>
           {onPlay && (
             <button onClick={(e) => { e.stopPropagation(); onPlay(); }} aria-label={`Listen to the ${name} recap`}

@@ -225,7 +225,9 @@ export default function FeedHeader({
         {/* Right-aligned, last in the header, so it lands directly above the first story
             and reads as a property of the list rather than another piece of scope. */}
         {showLens && (
-          <div style={{ padding: '0 16px 12px' }}>
+          /* Clear of the rule above it: butted straight against the pills' underline, the
+             control read as part of that row rather than as a property of the list below. */
+          <div style={{ padding: '12px 16px 12px' }}>
             <LensToggle value={lens} onChange={onChangeLens} theme="light" />
           </div>
         )}

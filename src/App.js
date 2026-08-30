@@ -2623,6 +2623,12 @@ const TheAIRundown = () => {
   // With nothing to swipe through, staying exactly where you are is the only option that
   // keeps the promise "this stays in Swipe" — a switch to an empty lens is a no-op, not an
   // exit.
+  // Leaving the Listen page for another mode. See the nav handler for why this is needed.
+  const leaveListenPlayer = () => {
+    if (isNarrating) { setPlayerMinimized(true); setPlayerVisible(true); }
+    else { setPlayerVisible(false); setPlayerMinimized(false); }
+  };
+
   const enterStoriesForTab = (tabPath) => {
     const playlist = playlistForTab(tabPath);
     if (!playlist.length) return;
@@ -3306,6 +3312,13 @@ const TheAIRundown = () => {
           footer={isListenPath ? (
             <BottomNav theme="dark" fixed={false} mode="audio"
               onChangeMode={(m) => {
+                // Step out of the page's player state before leaving. On /listen the player
+                // is the page, so playerVisible has no bearing on what you see — but the
+                // moment the route changes, that same flag renders the *sheet* over Swipe or
+                // Scroll. Leaving with audio running hands it to the mini player, which is
+                // what "keep listening while I read" already means everywhere else; leaving
+                // silent just closes it.
+                leaveListenPlayer();
                 if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(playerSourcePath.current || '/'); }
                 // Hand the cursor over the same way leaving Swipe does, so Scroll opens on
                 // the story you were listening to rather than at the top of the feed.
@@ -3324,6 +3337,20 @@ const TheAIRundown = () => {
           onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
           onGuestEdit={() => navigate('/my-feed')}
           user={user}
+          isStoryRead={sessionSeenRef.current.has(`${selectedCategory}|${storyIndex}`) || readTodaySet.has(`${selectedCategory}|${storyIndex}`)}
+          // Summary opens the story in the reader with its sheet already up — the same sheet
+          // the Summary button opens from a card, rather than a second copy of it here.
+          onOpenSummary={() => {
+            const from = playerSourcePath.current || '/';
+            narrateFnRef.current.stop();
+            setPlayerVisible(false);
+            navigate(`/category/${encodeURIComponent(selectedCategory)}/story/${storyIndex}`, { state: { from, openSummary: true } });
+          }}
+          lens={playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
+          onChangeLens={(l) => {
+            const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
+            enterAudioMode(tabPath);
+          }}
           onMinimize={handleMinimizePlayer}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
           category={selectedCategory}

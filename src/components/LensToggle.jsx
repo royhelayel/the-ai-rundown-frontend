@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDownUp, ChevronDown, Check } from 'lucide-react';
 
 export const LENSES = [
-  { id: 'latest',  label: 'Latest' },
+  // 'latest' is still the id everywhere — this is the label only. "Latest" described the
+  // sort; "Relevant" describes what you get, which is what the other two options do too.
+  { id: 'latest',  label: 'Relevant' },
   { id: 'popular', label: 'Popular' },
   { id: 'interesting', label: 'Interesting' },
 ];

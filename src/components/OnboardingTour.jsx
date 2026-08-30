@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  Play, Pause, SkipBack, SkipForward, Sparkles, Repeat,
+  Play, SkipBack, SkipForward, Sparkles,
   ChevronLeft, ChevronRight, ChevronDown, Headphones, Flame, Newspaper,
   LayoutList, GalleryVerticalEnd, Sun, Moon, ArrowRight, Clock, TrendingUp, SlidersHorizontal, Check,
   UserCircle, ArrowDownUp,
@@ -61,7 +61,7 @@ function TakeawaysMock() {
       </div>
       <Card style={{ padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.6rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-          <CategoryIcon category="World News" size={11} color={color} /> Takeaways (a demo)
+          <CategoryIcon category="World News" size={11} color={color} /> Takeaways
         </div>
         <div style={{ fontSize: '1.0rem', fontWeight: 800, lineHeight: 1.3, marginBottom: 12, color: '#0a0a0f' }}>
           Everything, everywhere — boiled down to three lines
@@ -150,63 +150,6 @@ function RecapEntryMock() {
 }
 
 /* ── 4. The player — narrates the day like a podcast ── */
-function PlayerMock() {
-  const cat = 'World News';
-  const color = CATEGORY_COLORS[cat];
-  const dots = [1, 1, 0, 0, 0, 0, 0, 0];
-  return (
-    <div style={{ width: 252, background: '#09090f', borderRadius: 24, overflow: 'hidden', boxShadow: '0 24px 60px rgba(20,10,40,0.35)' }}>
-      <div style={{ position: 'relative', height: 132, background: `linear-gradient(155deg, ${color} 0%, #312e81 100%)` }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35), transparent 40%, #09090f)' }} />
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 12px 0' }}>
-          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ChevronDown size={15} color="#fff" />
-          </div>
-          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-            <div style={{ fontSize: 7.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>All News</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>World News · 1 of 10</div>
-          </div>
-        </div>
-        <div style={{ position: 'absolute', bottom: 44, left: 12, right: 12, display: 'flex', gap: 3 }}>
-          {dots.map((d, i) => (
-            <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: i === 1 ? '#fff' : d ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }} />
-          ))}
-        </div>
-        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
-          <Skel w="95%" h={9} c="rgba(255,255,255,0.92)" style={{ marginBottom: 5 }} />
-          <Skel w="60%" h={9} c="rgba(255,255,255,0.92)" />
-        </div>
-      </div>
-      <div style={{ padding: '10px 14px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 3, width: 'fit-content', margin: '0 auto 12px' }}>
-          {['Headlines', 'Summary'].map((t, i) => (
-            <span key={t} style={{ padding: '3px 11px', borderRadius: 999, fontSize: 9, fontWeight: 700, background: i === 1 ? color : 'transparent', color: i === 1 ? '#fff' : 'rgba(255,255,255,0.6)' }}>{t}</span>
-          ))}
-        </div>
-        <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.12)', marginBottom: 14, overflow: 'hidden' }}>
-          <div className="ob-progress" style={{ width: '38%', height: '100%', background: color, borderRadius: 99 }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 26, marginBottom: 12 }}>
-          <SkipBack size={18} color="rgba(255,255,255,0.6)" />
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 24px ${color}80` }}>
-            <Pause size={20} color="#fff" fill="#fff" />
-          </div>
-          <SkipForward size={18} color="rgba(255,255,255,0.6)" />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>1×</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', fontSize: 9.5, fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>
-            <Sparkles size={12} color="rgba(255,255,255,0.6)" /> Interesting
-          </span>
-          <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Repeat size={14} color="rgba(255,255,255,0.6)" />
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── 5. Morning generation, evening update — full-day coverage ── */
 function FullDayMock() {
   const color = CATEGORY_COLORS['World News'];
@@ -254,6 +197,18 @@ function FullDayMock() {
        three states) also means each scene's own loop resets while it's invisible. ── */
 function ModesMock() {
   const color = CATEGORY_COLORS['World News'];
+
+  // Each scene carries its own header rather than sharing one above the frame: Listen is a
+  // dark page with its own pill row and progress rule, so a light strip of pills floating
+  // over it would show a screen the app never renders.
+  const lightPills = (
+    <div style={{ display: 'flex', gap: 5, padding: '2px 2px 8px' }}>
+      <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: '#0a0a0f', borderRadius: 5, padding: '3px 7px' }}>World</span>
+      <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Tech</span>
+      <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Business</span>
+    </div>
+  );
+
   const cardFace = (faded) => (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', padding: 11 }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.58rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -278,6 +233,7 @@ function ModesMock() {
       </div>
     </div>
   );
+
   // Mirrors BottomNav: icon over label, active cell tinted indigo, dividers around the trio.
   const dockCell = (Icon, label, cls) => (
     <span className={cls} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '3px 0 2px', borderRadius: 6, width: 40 }}>
@@ -287,53 +243,84 @@ function ModesMock() {
   );
   const divider = <span aria-hidden style={{ width: 1, alignSelf: 'stretch', background: 'rgba(0,0,0,0.10)', margin: '2px 3px', flexShrink: 0 }} />;
   const scene = { position: 'absolute', inset: 0 };
+
   return (
     <div style={{ width: 250, background: '#f1f2f6', borderRadius: 22, padding: 11, boxShadow: '0 24px 60px rgba(20,10,40,0.22)' }}>
-      <div style={{ display: 'flex', gap: 5, padding: '2px 2px 10px' }}>
-        <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: '#0a0a0f', borderRadius: 5, padding: '3px 7px' }}>World</span>
-        <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Tech</span>
-        <span style={{ fontSize: 8, fontWeight: 600, color: '#9ca3af', padding: '3px 4px' }}>Business</span>
-      </div>
+      <div style={{ position: 'relative', height: 166, overflow: 'hidden' }}>
 
-      <div style={{ position: 'relative', height: 122, overflow: 'hidden' }}>
-        {/* Swipe — one story at a time, the front card flying up as the next rises */}
+        {/* Listen — the player page itself, the tab you land on. Not the mini player: this
+            is the whole screen, the way it renders at /listen. */}
         <div className="ob-show3-a" style={scene}>
-          <div className="ob-card-in" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(false)}</div>
-          <div className="ob-card-out" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(true)}</div>
-          <div className="ob-thumb" style={{ position: 'absolute', right: 14, bottom: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(10,10,20,0.55)', border: '2px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.28)' }} />
+          <div style={{ height: '100%', background: '#09090f', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {/* Dark header — pills, then the story progress as the rule beneath them */}
+            <div style={{ padding: '7px 8px 0', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 7.5, fontWeight: 800, color: '#fff', background: color, borderRadius: 5, padding: '3px 7px' }}>
+                  <CategoryIcon category="World News" size={8} color="#fff" /> World
+                </span>
+                <span style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 5, padding: '3px 7px' }}>Tech</span>
+                <span style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 5, padding: '3px 7px' }}>Business</span>
+              </div>
+              <div style={{ display: 'flex', gap: 2, marginTop: 7 }}>
+                {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
+                  <span key={i} style={{ flex: 1, height: 2.5, borderRadius: 99, background: i === 0 ? '#fff' : 'rgba(255,255,255,0.22)' }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Artwork with the breadcrumb over it, melting into the page */}
+            <div style={{ position: 'relative', height: 62, marginTop: 6, flexShrink: 0, background: `linear-gradient(155deg, ${color} 0%, #312e81 100%)` }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.30), transparent 45%, #09090f)' }} />
+              <div style={{ position: 'relative', textAlign: 'center', paddingTop: 6 }}>
+                <div style={{ fontSize: 6.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>All News</div>
+                <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.92)', marginTop: 1 }}>World News · 1 of 8</div>
+              </div>
+            </div>
+
+            {/* Headline, then the transport */}
+            <div style={{ padding: '0 12px', marginTop: -12, position: 'relative' }}>
+              <Skel w="92%" h={7} c="rgba(255,255,255,0.92)" style={{ marginBottom: 4 }} />
+              <Skel w="58%" h={7} c="rgba(255,255,255,0.92)" />
+            </div>
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, paddingBottom: 12 }}>
+              <SkipBack size={13} color="rgba(255,255,255,0.55)" />
+              <span style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 18px ${color}80` }}>
+                <Play size={14} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
+              </span>
+              <SkipForward size={13} color="rgba(255,255,255,0.55)" />
+            </div>
+          </div>
+        </div>
+
+        {/* Swipe — one story at a time, the front card flying up as the next rises */}
+        <div className="ob-show3-b" style={scene}>
+          {lightPills}
+          <div style={{ position: 'relative' }}>
+            <div className="ob-card-in" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(false)}</div>
+            <div className="ob-card-out" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>{cardFace(true)}</div>
+            <div className="ob-thumb" style={{ position: 'absolute', right: 14, top: 96, width: 22, height: 22, borderRadius: '50%', background: 'rgba(10,10,20,0.55)', border: '2px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.28)' }} />
+          </div>
         </div>
 
         {/* Scroll — the same stories as a list, drifting under the thumb */}
-        <div className="ob-show3-b" style={scene}>
+        <div className="ob-show3-c" style={scene}>
+          {lightPills}
           <div className="ob-scroll-drift">
             {listRow('64%')}{listRow('78%')}{listRow('58%')}
           </div>
         </div>
-
-        {/* Listen — the story with the player docked over it */}
-        <div className="ob-show3-c" style={scene}>
-          {cardFace(false)}
-          <div style={{ position: 'absolute', left: 4, right: 4, bottom: 4, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(10,10,20,0.88)', borderRadius: 10, padding: '7px 9px' }}>
-            <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Play size={9} color="#fff" fill="#fff" />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12, flex: 1 }}>
-              {[0, 1, 2, 3, 4].map(i => (
-                <span key={i} className="ob-eq" style={{ width: 3, height: '100%', borderRadius: 2, background: 'rgba(255,255,255,0.85)', animationDelay: `${i * 0.11}s` }} />
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* The dock itself — white pill on the page background, same as BottomNav */}
+      {/* The dock itself — white pill on the page background, in the real nav's order:
+          Settings | Swipe, Listen, Scroll | Challenge, with Listen centre. */}
       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 11 }}>
         <div style={{ display: 'inline-flex', alignItems: 'stretch', background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 11, padding: 4 }}>
           {dockCell(UserCircle, 'Settings', 'ob-dock-idle')}
           {divider}
-          {dockCell(GalleryVerticalEnd, 'Swipe', 'ob-dock-a')}
-          {dockCell(LayoutList, 'Scroll', 'ob-dock-b')}
-          {dockCell(Headphones, 'Listen', 'ob-dock-c')}
+          {dockCell(GalleryVerticalEnd, 'Swipe', 'ob-dock-b')}
+          {dockCell(Headphones, 'Listen', 'ob-dock-a')}
+          {dockCell(LayoutList, 'Scroll', 'ob-dock-c')}
           {divider}
           {dockCell(Flame, 'Challenge', 'ob-dock-idle')}
         </div>
@@ -509,12 +496,12 @@ const SLIDES = [
   {
     Mock: TakeawaysMock,
     title: <><span style={semi}>The news,</span> <span style={heavy}>minus the noise</span></>,
-    body: 'Every story lands as a headline and a few sharp takeaways — not a wall of text. (These particular takeaways are made up. The real ones are, we promise, less unhinged.)',
+    body: 'Every story lands as a headline and a few sharp takeaways — not a wall of text.',
   },
   {
-    Mock: CustomizeMock,
-    title: <><span style={reg}>Make it</span> <span style={heavy}>yours</span><TitleIcon Icon={SlidersHorizontal} /></>,
-    body: 'Pick the topics you actually want — a personal feed of just the categories that matter to you, nothing else in the way.',
+    Mock: ModesMock,
+    title: <><span style={heavy}>Listen</span><span style={reg}>,</span> <span style={heavy}>swipe</span><span style={reg}>, or</span> <span style={heavy}>scroll</span><ModesTitleIcon /></>,
+    body: 'Every story is narrated — press play and let the day come to you. Or swipe through it one story at a time, or read it as a list. Same news, however you want it.',
   },
   {
     Mock: RecapEntryMock,
@@ -522,19 +509,14 @@ const SLIDES = [
     body: 'Every category gets a 60‑second recap — tap Read or Listen and you’re caught up without opening a single story.',
   },
   {
-    Mock: PlayerMock,
-    title: <><span style={heavy}>Or just</span> <span style={reg}>press</span> <span style={heavy}>play</span><TitleIcon Icon={Headphones} /></>,
-    body: 'Every story is narrated. Press play and let the news come to you — hands‑free, on the commute, at the gym, wherever.',
+    Mock: CustomizeMock,
+    title: <><span style={reg}>Make it</span> <span style={heavy}>yours</span><TitleIcon Icon={SlidersHorizontal} /></>,
+    body: 'Pick the topics you actually want — a personal feed of just the categories that matter to you, nothing else in the way.',
   },
   {
     Mock: FullDayMock,
     title: <><span style={heavy}>Morning</span> <span style={reg}>news,</span> <span style={heavy}>evening</span> <span style={reg}>updates</span><DayNightTitleIcon /></>,
     body: 'We publish fresh stories every morning, then fold in what’s changed by evening — so you’re never stuck reading yesterday’s version of today.',
-  },
-  {
-    Mock: ModesMock,
-    title: <><span style={heavy}>Scroll</span><span style={reg}>,</span> <span style={heavy}>swipe</span><span style={reg}>, or</span> <span style={heavy}>listen</span><ModesTitleIcon /></>,
-    body: 'Read the day like a list, swipe through it one story at a time, or let it play like a podcast — same news, however you like it.',
   },
   {
     Mock: FilterMock,

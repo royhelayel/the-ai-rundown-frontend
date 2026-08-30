@@ -1978,7 +1978,12 @@ const TheAIRundown = () => {
     // no news for this day) — bail out of the loading state instead of leaving
     // briefingLoading stuck at its initial `true` forever, which reads as an infinite
     // skeleton with nothing ever telling the UI to stop waiting.
-    if (presentSlots.length === 0) { setBriefingLoading(false); return; }
+    //
+    // Clear the data too. Bailing without clearing left the *previous* day's stories in
+    // briefingData under the new day's date — Scroll happens to guard on its own and shows
+    // "No stories available", but the player page read straight from briefingData and
+    // cheerfully played Friday's news under a Wednesday header.
+    if (presentSlots.length === 0) { setBriefingData({}); setBriefingLoading(false); return; }
     // Extra categories beyond the default 12 (subcategories picked into My News) change
     // what this fetch covers, so they have to be part of the key — otherwise adding one
     // would serve a stale cache entry from before it existed.
@@ -2644,6 +2649,43 @@ const TheAIRundown = () => {
     if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
   }, [isListenPath, authReady, briefingData, stories.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Changing the day on the player page drops whatever is cued, so the effect above re-cues
+  // from the new day. `stories` is a snapshot copied out of briefingData at cue time, so it
+  // outlives the day it came from: pick a different date and the header changed while the
+  // card kept playing the old day's story. Clearing the shared cursor too — it points at an
+  // index in the old day's list, which means nothing in the new one.
+  const cuedDayRef = useRef(null);
+  useEffect(() => {
+    if (!isListenPath) return;
+    if (cuedDayRef.current === selectedDay) return;
+    const first = cuedDayRef.current === null;
+    cuedDayRef.current = selectedDay;
+    if (first) return;              // arriving, not switching — leave the cue alone
+    focusRef.current = null;
+    setStories([]);
+    setStoryIndex(0);
+  }, [isListenPath, selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Moving on the Listen page moves the shared cursor, exactly as swiping does in Swipe mode
+  // (StoryReader publishes its position the same way, via onFocusStory).
+  //
+  // Skip / previous / the progress dots / the category pills all changed storyIndex without
+  // touching focusRef, so the player's position was invisible to the other two modes: skip
+  // to story 4, tap Swipe, and you landed back on story 1. That was survivable while the
+  // player was only a sheet you opened on one story and dismissed — now it's a tab you
+  // navigate in, so it has to report where it is. Gated on isListenPath: as a sheet it's
+  // playing *over* a reader that owns the cursor, and moving it there would drag the reader
+  // along behind the overlay.
+  //
+  // Only once something is actually cued: on a cold load selectedCategory already holds a
+  // default while briefingData is still in flight, and publishing that would hand the cue
+  // effect above a cursor pointing at a category with no stories in it — which it prefers
+  // over the playlist fallback, leaving the page stuck on "1 of 0".
+  useEffect(() => {
+    if (!isListenPath || !selectedCategory || stories.length === 0) return;
+    setFocus(selectedCategory, storyIndex);
+  }, [isListenPath, selectedCategory, storyIndex, stories.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // "{Feed} Summary" link in the Stories page — opens the browsable category-briefing sheet.
   const openFeedSummary = (fromPath, cats) => {
     const first = (cats || []).find(c => briefingData[c]?.briefing && briefingData[c].briefing.trim());
@@ -3240,7 +3282,9 @@ const TheAIRundown = () => {
             <BottomNav theme="dark" fixed={false} mode="audio"
               onChangeMode={(m) => {
                 if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(playerSourcePath.current || '/'); }
-                else if (m === 'scroll') { rememberReadMode('scroll'); navigate(playerSourcePath.current || '/'); }
+                // Hand the cursor over the same way leaving Swipe does, so Scroll opens on
+                // the story you were listening to rather than at the top of the feed.
+                else if (m === 'scroll') { rememberReadMode('scroll'); setPendingFocus(focusRef.current); navigate(playerSourcePath.current || '/'); }
               }}
               challengeStats={challengeStatsFull} user={user}
               onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />

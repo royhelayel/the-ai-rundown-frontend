@@ -173,6 +173,16 @@ export default function FullPlayer({
   // bg color as rgb for gradient stop
   const bgColor = colors.bg || '#0a0a14';
 
+  // The story progress dots, defined once because they render in two different places:
+  // floating over the artwork in the sheet, and as the page header's dividing rule.
+  const dots = (stories || []).map((_, i) => (
+    <button
+      key={i}
+      onClick={() => onGoToStory?.(i)}
+      style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i === storyIndex ? 'white' : i < storyIndex ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
+    />
+  ));
+
   // Two shells, one body.
   //
   // asPage is the Listen tab: the player IS the screen, so it sits in normal flow with no
@@ -204,54 +214,8 @@ export default function FullPlayer({
           <div style={{ position: 'absolute', inset: 0, background: glow, mixBlendMode: 'screen', opacity: 0.35 }} />
         </div>
 
-        {/* ── Page header: wordmark, then scope — the same statement the other two tabs
-               open with, so Listen isn't a dead end you must leave to change day or feed. ── */}
-        {asPage && (
-          <>
-            <div style={{ position: 'relative', zIndex: 10, padding: '9px 16px 0', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
-                <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
-              </span>
-            </div>
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 10px', gap: 10 }}>
-              <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
-              <div style={{ flex: 1 }} />
-              <div style={{ position: 'relative' }} ref={dayPickerRef}>
-                <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: availableDays.length ? 'pointer' : 'default' }}>
-                  <Calendar size={12} color="rgba(255,255,255,0.6)" />
-                  <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
-                  {availableDays.length > 0 && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
-                </button>
-                {dayPickerOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {availableDays.map(day => {
-                      const active = day.fullDate === selectedDay;
-                      return (
-                        <button key={day.fullDate}
-                          onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: '0.78rem', fontWeight: active ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                          {formatHeaderDate(day.fullDate)}
-                          {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-            {onOpenRecap && !isRecap && (
-              <div style={{ position: 'relative', zIndex: 10, padding: '0 16px 6px' }}>
-                <RecapBar category={category} theme="dark" compact
-                  onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
-              </div>
-            )}
-          </>
-        )}
-
         {/* ── Top bar (floats over image) ── */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: asPage ? '0 1.25rem 0.5rem' : '1rem 1.25rem 0.5rem', minHeight: asPage ? 0 : '52px' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
           {/* Close — stops playback outright, distinct from minimize which keeps it
               running behind the mini player. Takes the left slot minimize used to
               occupy; minimize moves to the right so the two aren't easy to mistake
@@ -265,15 +229,12 @@ export default function FullPlayer({
             <X size={20} />
           </button>
           )}
-          {/* Absolutely centered breadcrumb — unaffected by button widths. On the page there
-              are no buttons to dodge, and staying absolute made it overlay the recap chip
-              above, so it sits in flow there instead. */}
-          <div style={asPage
-            ? { flex: 1, textAlign: 'center', pointerEvents: 'none' }
-            : { position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+          {/* Absolutely centered breadcrumb — unaffected by button widths, so it sits in the
+              same place on the page (where the two buttons are absent) as in the sheet. */}
+          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
-              {isRecap ? `${category} Recap` : `${category} · ${storyIndex + 1} of ${storyCount}`}
+              {isRecap ? `${category} Recap` : storyCount === 0 ? category : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
           {!asPage && (
@@ -286,19 +247,18 @@ export default function FullPlayer({
           )}
         </div>
 
-        {/* ── Story progress dots (floats over image) ── */}
+        {/* ── Story progress dots (floats over image). Sheet only: on the page they move up
+               into the header, where they double as its dividing rule. ── */}
+        {!asPage && (
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', gap: '4px', padding: '0.4rem 1.25rem' }}>
-          {stories?.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onGoToStory?.(i)}
-              style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i === storyIndex ? 'white' : i < storyIndex ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
-            />
-          ))}
+          {dots}
         </div>
+        )}
 
-        {/* ── Category pills strip ── */}
-        {contextCategories.length > 0 && (
+        {/* ── Category pills strip. Sheet only, for the same reason — on the page the pills
+               belong with the rest of the narrowing chain (corpus, day, topic) up in the
+               header, and this slot carries the recap instead. ── */}
+        {!asPage && contextCategories.length > 0 && (
           <CatStrip
             contextCategories={contextCategories}
             category={category}
@@ -306,14 +266,27 @@ export default function FullPlayer({
           />
         )}
 
+        {/* ── Category recap, page only. It sits against the artwork, directly above the
+               story it summarises, rather than up among the scope controls — it's content,
+               not scope, and it was the one piece of *reading* stranded in the header. ── */}
+        {asPage && onOpenRecap && !isRecap && storyCount > 0 && (
+          <div style={{ position: 'relative', zIndex: 10, padding: '0.5rem 1.25rem 0' }}>
+            <RecapBar category={category} theme="dark" compact
+              onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+          </div>
+        )}
+
         {/* ── Spacer — pushes headline down into the gradient zone ── */}
         <div style={{ flex: 1, position: 'relative', zIndex: 10 }} />
 
         {/* ── Headline + Excerpt (overlaid on image gradient) ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: '0 1.5rem 0.75rem' }}>
-          {/* Headline */}
-          <h2 style={{ margin: '0 0 0.55rem', fontSize: '1.35rem', fontWeight: '900', color: '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
-            {headline}
+          {/* Headline. With nothing to play — a day that was never generated, reached from the
+              date picker — the card would otherwise be blank under a "1 of 0" breadcrumb,
+              which reads as a failed load rather than an empty day. Says what the other tabs
+              say in the same situation. */}
+          <h2 style={{ margin: '0 0 0.55rem', fontSize: storyCount === 0 ? '1rem' : '1.35rem', fontWeight: storyCount === 0 ? '700' : '900', color: storyCount === 0 ? 'rgba(255,255,255,0.6)' : '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
+            {storyCount === 0 ? 'No stories available for this day.' : headline}
           </h2>
           {/* Excerpt */}
           {excerpt && (
@@ -322,7 +295,7 @@ export default function FullPlayer({
             </p>
           )}
           {/* Takeaways / Summary depth toggle — centered, under the story (not for recaps) */}
-          {!isRecap && (
+          {!isRecap && storyCount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
             {[['takeaways', 'Takeaways'], ['deep', 'Summary']].map(([level, label]) => (
               <button
@@ -337,13 +310,18 @@ export default function FullPlayer({
         </div>
 
         {/* ── Progress bar ── */}
+        {storyCount > 0 && (
         <div style={{ position: 'relative', zIndex: 10, padding: '0.6rem 1.5rem 0.5rem' }}>
           <div style={{ height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: '99px', transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
           </div>
         </div>
+        )}
 
-        {/* ── Controls ── */}
+        {/* ── Controls. Hidden with nothing cued: transport that can't transport anything
+               invites taps that do nothing, and skip/next on an empty list is exactly how
+               the player used to wander off into another category. ── */}
+        {storyCount > 0 && (
         <div style={{ position: 'relative', zIndex: 10, padding: '0.25rem 1.5rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
           {/* Main controls */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
@@ -404,6 +382,7 @@ export default function FullPlayer({
             </button>
           </div>
         </div>
+        )}
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
@@ -422,7 +401,79 @@ export default function FullPlayer({
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* ── Page header: wordmark, then scope — the same statement the other two tabs open
+               with, so Listen isn't a dead end you must leave to change day or feed.
+
+               It sits *above* the body rather than inside it. Inside, it was painted over the
+               top of the full-bleed image: the toggle's translucent track and the muted date
+               had no contrast against whatever photo happened to load, and it displaced the
+               player's own spacing so the page and the sheet no longer matched. On its own
+               opaque strip it always reads, and everything below is the sheet untouched. ── */}
+        <div style={{ position: 'relative', zIndex: 20, flexShrink: 0, background: bgColor }}>
+          <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto' }}>
+            <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
+                <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
+              </span>
+            </div>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 10px', gap: 10 }}>
+              <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
+              <div style={{ flex: 1 }} />
+              <div style={{ position: 'relative' }} ref={dayPickerRef}>
+                <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: availableDays.length ? 'pointer' : 'default' }}>
+                  <Calendar size={12} color="rgba(255,255,255,0.6)" />
+                  <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
+                  {availableDays.length > 0 && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
+                </button>
+                {dayPickerOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {availableDays.map(day => {
+                      const active = day.fullDate === selectedDay;
+                      return (
+                        <button key={day.fullDate}
+                          onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: '0.78rem', fontWeight: active ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                          {formatHeaderDate(day.fullDate)}
+                          {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Topics close the header, the same order the other two tabs use: wordmark,
+                scope, topic, rule. The recap moved down onto the artwork — it was the only
+                piece of content sitting in a strip of controls. */}
+            {contextCategories.length > 0 && (
+              <CatStrip
+                contextCategories={contextCategories}
+                category={category}
+                onSelectCategory={onSelectCategory}
+              />
+            )}
+
+            {/* The rule under the topics IS the story progress — one 3px line doing both
+                jobs, instead of a hairline border and a separate strip of dots twenty
+                pixels apart. Tapping a segment still jumps to that story. Falls back to a
+                plain border when there's nothing to be partway through. */}
+            {dots.length > 0 ? (
+              <div style={{ display: 'flex', gap: '3px', padding: '4px 16px 6px' }}>
+                {dots}
+              </div>
+            ) : (
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+            )}
+          </div>
+        </div>
+
+        {/* Wrapped to --body-max, the same column Scroll and Swipe use. This is a page among
+            those pages, so it wraps where they wrap; on a desktop window an unconstrained
+            player stretched the image and the controls edge to edge while every other tab
+            stayed in its column. Below this the layout is the sheet's, untouched. */}
+        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {body}
         </div>
         {footer}

@@ -273,7 +273,11 @@ export default function FullPlayer({
         </div>
         )}
 
-        {/* ── Top bar (floats over image) ── */}
+        {/* ── Top bar (floats over image). Sheet only: everything in it — close, the
+               breadcrumb, minimize — is sheet-only, so on the page it rendered as an empty
+               52px box that pushed the recap 76px below the header where Swipe puts it at
+               24, and squeezed the spacer above the story card to nothing. ── */}
+        {!asPage && (
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
           {/* Close — stops playback outright, distinct from minimize which keeps it
               running behind the mini player. Takes the left slot minimize used to
@@ -308,6 +312,7 @@ export default function FullPlayer({
           </button>
           )}
         </div>
+        )}
 
         {/* ── Topics, then the story progress as the rule beneath them. Sheet only: the page
                carries both in its own header. Same order and same pairing either way — the
@@ -355,8 +360,12 @@ export default function FullPlayer({
           </div>
         )}
 
-        {/* ── Spacer — pushes headline down into the gradient zone ── */}
-        <div style={{ flex: 1, position: 'relative', zIndex: 10 }} />
+        {/* ── Spacer — pushes the story down into the gradient zone. A floor on it so the card
+               never butts against the lens above: as pure flex it collapsed to nothing
+               whenever the content happened to fill the screen. Swipe's equivalent gap is far
+               larger, but Swipe has nothing below its card — here the depth toggle, the
+               progress line and the transport all have to fit under it. ── */}
+        <div style={{ flex: 1, minHeight: asPage ? 28 : 0, position: 'relative', zIndex: 10 }} />
 
         {/* ── The story, as a card.
                On the page this is Swipe's card, part for part: category and read status on

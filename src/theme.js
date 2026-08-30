@@ -149,5 +149,5 @@ export function categoryGlow(color) {
 // its own — it touches nothing but presentation.
 export const UI_TRIAL = {
   photoBackdrop: false,
-  navIcons: false,
+  navIcons: true,
 };

@@ -916,7 +916,7 @@ export default function StoryReader({
             <div style={{ position: 'relative' }} ref={dayPickerRef}>
               <button onClick={() => canPickDay && setDayPickerOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: canPickDay ? 'pointer' : 'default' }}>
                 <Calendar size={12} color="rgba(255,255,255,0.6)" />
-                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
                 {canPickDay && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
               </button>
               {dayPickerOpen && canPickDay && (
@@ -1020,10 +1020,10 @@ export default function StoryReader({
                 // strip stops reading as twelve competing buttons over the photo.
                 <button key={cat} ref={act ? activeCatRef : null}
                   onClick={() => { if (act) return; setScope('category'); navTo(cat, 0); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 8, border: 'none',
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
                     background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
                     color: c,
-                    fontSize: '0.76rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
+                    fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
                   <CategoryIcon category={cat} size={13} color={c} />
                   {CATEGORY_SHORT[cat] || cat}
                 </button>

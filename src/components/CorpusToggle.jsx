@@ -29,13 +29,13 @@ export default function CorpusToggle({ value = 'all', onChange, theme = 'light' 
         onClick={() => !active && onChange?.(key)}
         aria-pressed={active}
         style={{
-          padding: '4px 11px', borderRadius: 999, border: 'none',
+          padding: '5px 13px', borderRadius: 999, border: 'none',
           background: active ? onBg : 'transparent',
           color: active ? onFg : offFg,
           // The thumb sits on the track rather than being cut into it — a small drop is what
           // sells it as a moving part instead of a highlighted cell.
           boxShadow: active ? '0 1px 3px rgba(0,0,0,0.35)' : 'none',
-          fontSize: '0.76rem', fontWeight: active ? 800 : 600,
+          fontSize: '0.82rem', fontWeight: active ? 800 : 600,
           whiteSpace: 'nowrap', cursor: active ? 'default' : 'pointer',
         }}
       >

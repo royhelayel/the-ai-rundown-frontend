@@ -63,20 +63,20 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
       <div style={{ display: 'flex' }}>
         <div onClick={onOpen}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '4px 4px 4px 10px', borderRadius: 10, cursor: 'pointer',
+            padding: '5px 5px 5px 12px', borderRadius: 11, cursor: 'pointer',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.16)' : `${accent}40`}`,
             background: dark ? 'rgba(255,255,255,0.04)' : `${accent}0f` }}>
-          <FileText size={13} color={accent} style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
+          <FileText size={14} color={accent} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.79rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
             Category Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
           </span>
           {onPlay && (
             <button onClick={(e) => { e.stopPropagation(); onPlay(); }} aria-label={`Listen to the ${name} recap`}
               style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                width: 24, height: 24, borderRadius: '50%', border: 'none', cursor: 'pointer',
                 background: dark ? 'rgba(255,255,255,0.92)' : accent }}>
-              <Play size={9} fill={dark ? '#0a0a14' : '#fff'} color={dark ? '#0a0a14' : '#fff'} style={{ marginLeft: 1 }} />
+              <Play size={10} fill={dark ? '#0a0a14' : '#fff'} color={dark ? '#0a0a14' : '#fff'} style={{ marginLeft: 1 }} />
             </button>
           )}
         </div>

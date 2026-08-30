@@ -2589,12 +2589,29 @@ const TheAIRundown = () => {
   // would talk at you the moment the app opens. Play is one tap away on the page itself.
   const cueStory = (cat, idx) => {
     narrateFnRef.current.stop();
-    // Read the stories straight off briefingData — the same array Swipe and Scroll page
+    // Read the stories straight off the feed's own map — the same array Swipe and Scroll page
     // through. handlePlayStory gets there indirectly, by selecting the category and waiting
     // on a fetch, which is fine when you've asked to play but leaves the page showing
     // "1 of 0" on a cold load. Nothing to wait for here: the feed is already in memory.
-    const all = briefingData[cat]?.allStories || [];
-    setPlayerContextCategories(playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
+    //
+    // Interesting and My Saves are snapshots, not live news: their stories live in their own
+    // maps and are absent from briefingData entirely. Reading only briefingData is why
+    // switching the player to Interesting produced an empty player — there was nothing under
+    // that category to find.
+    const snapMap = playerSourcePath.current === '/saved' ? savesBriefingData
+                  : playerSourcePath.current === '/important' ? interestingBriefingData
+                  : null;
+    const all = (snapMap ? snapMap[cat]?.allStories : briefingData[cat]?.allStories) || [];
+    if (snapMap && all.length) {
+      // Keep the snapshot pointer in step, so skip/next walks this feed rather than
+      // wandering back into live news at the category boundary.
+      snapshotPlayRef.current = { category: cat, stories: all, map: snapMap };
+      playlistCatsRef.current = Object.keys(snapMap);
+      setPlayerContextCategories(Object.keys(snapMap));
+    } else {
+      snapshotPlayRef.current = null;
+      setPlayerContextCategories(playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
+    }
     setSelectedCategory(cat);
     setStories(all);
     setStoryIndex(idx);
@@ -2606,12 +2623,18 @@ const TheAIRundown = () => {
   // The Listen tab: continue from wherever the reader is, cued but silent.
   const enterAudioMode = (tabPath) => {
     rememberReadMode('audio');
-    playerSourcePath.current = tabPath && tabPath !== '/listen' ? tabPath : (playerSourcePath.current || '/');
-    const f = focusRef.current;
+    const prev = playerSourcePath.current || '/';
+    const next = tabPath && tabPath !== '/listen' ? tabPath : prev;
+    playerSourcePath.current = next;
+    // Resume where the reader is — but only within the same feed. Switching feed (the lens,
+    // or the corpus toggle) kept resuming the remembered story regardless, so picking Popular
+    // or Interesting changed the label and nothing else: same category, same story, same
+    // list. A different feed is a different list, so it starts at that list's top.
+    const f = next === prev ? focusRef.current : null;
     if (f?.category) { cueStory(f.category, f.index ?? 0); navigate('/listen'); return; }
-    // Nothing focused yet (e.g. straight after load) — cue the tab's first story.
-    const playlist = playlistForTab(playerSourcePath.current);
+    const playlist = playlistForTab(next);
     if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
+    else { setStories([]); setStoryIndex(0); focusRef.current = null; }
     navigate('/listen');
   };
 

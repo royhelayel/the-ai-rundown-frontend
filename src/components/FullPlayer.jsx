@@ -304,12 +304,15 @@ export default function FullPlayer({
         {/* ── Category recap, page only. It sits against the artwork, directly above the
                story it summarises, rather than up among the scope controls — it's content,
                not scope, and it was the one piece of *reading* stranded in the header. ── */}
-        {!isRecap && storyCount > 0 && (onOpenRecap || (asPage && onChangeLens)) && (
+        {!isRecap && (asPage ? (onChangeLens || (storyCount > 0 && onOpenRecap)) : (storyCount > 0 && onOpenRecap)) && (
           /* Recap left, lens right — one row over the artwork. The lens sorts the stories the
              transport pages through, so it belongs with them rather than up in the scope
              rows; Swipe puts it in the same relationship, low and close to the card. */
           <div style={{ position: 'relative', zIndex: 10, padding: '0.5rem 1.25rem 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {onOpenRecap ? (
+            {/* The lens must outlive the stories: switch to a feed that happens to be empty
+                and, gated on storyCount like everything else, the only control that could get
+                you back out disappeared with them. */}
+            {onOpenRecap && storyCount > 0 ? (
               <RecapBar category={category} theme="dark" compact
                 onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
             ) : <div />}
@@ -362,7 +365,11 @@ export default function FullPlayer({
               which reads as a failed load rather than an empty day. Says what the other tabs
               say in the same situation. */}
           <h2 style={{ margin: '0 0 0.55rem', fontSize: storyCount === 0 ? '1rem' : '1.35rem', fontWeight: storyCount === 0 ? '700' : '900', color: storyCount === 0 ? 'rgba(255,255,255,0.6)' : '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
-            {storyCount === 0 ? 'No stories available for this day.' : headline}
+            {storyCount === 0
+              ? (lens === 'popular' ? 'Nothing popular yet today.'
+                : lens === 'interesting' ? 'Nothing marked interesting yet today.'
+                : 'No stories available for this day.')
+              : headline}
           </h2>
           {/* Excerpt */}
           {excerpt && (

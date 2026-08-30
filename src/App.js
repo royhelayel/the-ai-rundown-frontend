@@ -2244,6 +2244,89 @@ const TheAIRundown = () => {
   };
 
   // Build a one-briefing-per-category pseudo-story for the snapshot map.
+  // ── Period recaps (the week, the month) ─────────────────────────────────────
+  //
+  // Generated on the backend and stored under the sentinel category `__period__`, keyed on
+  // the period's LAST day — so they come back through the same read layer as everything
+  // else, with no new endpoint. A chip only appears when its row exists, which means the
+  // feature is invisible until the day it has something to say.
+  const [periodRecaps, setPeriodRecaps] = useState({ Weekly: null, Monthly: null });
+
+  const periodEnds = useMemo(() => {
+    const base = selectedDay || today;
+    const d = new Date(`${base}T00:00:00Z`);
+    // The most recent Sunday on or before the day being viewed.
+    const week = new Date(d);
+    week.setUTCDate(week.getUTCDate() - week.getUTCDay());
+    // The last day of the month being viewed — unless that is still ahead of today, in
+    // which case the month isn't over and the one to offer is the month before.
+    let month = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+    if (month.toISOString().slice(0, 10) > today) {
+      month = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 0));
+    }
+    return { Weekly: week.toISOString().slice(0, 10), Monthly: month.toISOString().slice(0, 10) };
+  }, [selectedDay, today]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async (period) => {
+      const day = periodEnds[period];
+      if (!day) return [period, null];
+      try {
+        const params = new URLSearchParams({ mode: 'one', category: '__period__', day, timeSlot: period, language: newsLanguage });
+        const res = await fetch(`/api/news?${params}`);
+        if (!res.ok) return [period, null];
+        const row = await res.json();
+        const text = (row?.briefing || row?.content || '').trim();
+        return [period, text ? { day, text } : null];
+      } catch { return [period, null]; }
+    };
+    Promise.all([load('Weekly'), load('Monthly')]).then(pairs => {
+      if (cancelled) return;
+      setPeriodRecaps(Object.fromEntries(pairs));
+    });
+    return () => { cancelled = true; };
+  }, [periodEnds, newsLanguage]);
+
+  const PERIOD_LABEL = { Weekly: 'Weekly', Monthly: 'Monthly' };
+  const periodMinutes = (text) => Math.max(1, Math.round(text.split(/\s+/).length / 150));
+
+  // Read: the same bottom sheet a story's "Go deeper" opens, given the recap as its full
+  // picture — one prose block, which is exactly the shape that sheet already renders.
+  const [periodReader, setPeriodReader] = useState(null);
+  const openPeriodRecap = (period) => {
+    const r = periodRecaps[period];
+    if (!r) return;
+    setPeriodReader({
+      headline: period === 'Weekly' ? 'Your week' : 'Your month',
+      summary: r.text,
+      tightBullets: [], allBullets: [], storySources: [],
+      _isBriefing: true,
+    });
+  };
+
+  // Listen: narrated through the same pseudo-story path the category recap uses.
+  const playPeriodRecap = (period) => {
+    const r = periodRecaps[period];
+    if (!r) return;
+    if (isNarrating) narrateFnRef.current.stop();
+    const label = period === 'Weekly' ? 'Your week' : 'Your month';
+    const stories = [{ headline: label, tightBullets: [r.text], allBullets: [r.text], storySources: [], _isBriefing: true }];
+    snapshotPlayRef.current = { category: label, stories, map: { [label]: { allStories: stories } } };
+    playlistCatsRef.current = [label];
+    setPlayerContextCategories([label]);
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false; st.pendingLoad = false;
+    unlockSpeech();
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setSelectedCategory(label);
+    setStories(stories);
+    setStoryIndex(0);
+    storyNavRef.current = { idx: 0, stories, cats: [label], cat: label };
+    setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+  };
+
   const briefingPseudoStory = (cat, text) => ([{
     headline: `${cat} Recap`,
     tightBullets: [text],
@@ -3378,6 +3461,10 @@ const TheAIRundown = () => {
             setPlayerVisible(false);
             navigate(`/category/${encodeURIComponent(selectedCategory)}/story/${storyIndex}`, { state: { from, openSummary: true } });
           }}
+          periodRecaps={periodRecaps}
+          periodMinutes={periodMinutes}
+          onOpenPeriodRecap={openPeriodRecap}
+          onPlayPeriodRecap={playPeriodRecap}
           lens={playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
           onChangeLens={(l) => {
             const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
@@ -3486,6 +3573,19 @@ const TheAIRundown = () => {
         />
       )}
 
+      {/* ── Period recap reader. The same sheet a story's "Go deeper" opens: a recap is one
+             prose block, which is the shape that sheet's "full picture" already renders, so
+             it needs no view of its own. ── */}
+      {periodReader && (
+        <StorySummarySheet
+          fixed
+          open
+          story={periodReader}
+          category={selectedCategory}
+          onClose={() => setPeriodReader(null)}
+        />
+      )}
+
       {/* ── Story Reader — full-page Swipe mode ── */}
       {(isStoriesPage || (readerExiting && isStoriesPage)) && (() => {
         const readerTranslateY = (readerMounted && !readerExiting) ? '0px' : '100%';
@@ -3582,6 +3682,10 @@ const TheAIRundown = () => {
                 )}
                 isStoryRead={(cat, idx) => sessionSeenRef.current.has(`${cat}|${idx}`) || readTodaySet.has(`${cat}|${idx}`)}
                 onFocusStory={setFocus}
+                periodRecaps={periodRecaps}
+                periodMinutes={periodMinutes}
+                onOpenPeriodRecap={openPeriodRecap}
+                onPlayPeriodRecap={playPeriodRecap}
                 onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
                 // The lens control rendered in Swipe mode but nothing was wired to it, so
                 // tapping Popular or Interesting did nothing. Reuse enterStoriesForTab — the

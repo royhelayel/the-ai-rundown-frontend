@@ -12,6 +12,7 @@ import ProgressRail from './ProgressRail';
 import LensToggle from './LensToggle';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
+import PeriodRecapChips from './PeriodRecapChips';
 import { centrePill } from '../utils';
 
 function formatHeaderDate(dateStr) {
@@ -87,6 +88,10 @@ export default function StoryReader({
   lens = 'latest',
   onChangeLens,
   onEditCategories,
+  periodRecaps,
+  periodMinutes = () => 1,
+  onOpenPeriodRecap,
+  onPlayPeriodRecap,
 }) {
   const navigate = useNavigate();
   const modeLinkStyle = { padding: '2px 8px', border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' };
@@ -1045,7 +1050,8 @@ export default function StoryReader({
       {asPage && onOpenCategoryRecap && !showAllPill && (
         /* Sits clear of the rule above it: the recap belongs to the story area, not to the
            header block the rule closes, so it needs visible air rather than hugging it. */
-        <div style={{ position: 'relative', zIndex: 6, padding: '24px 16px 0' }}>
+        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, padding: '24px 16px 0', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
           <RecapBar
             category={category}
             storyCount={stories.length}
@@ -1054,6 +1060,8 @@ export default function StoryReader({
             onOpen={() => onOpenCategoryRecap(category)}
             onPlay={onPlayRecap}
           />
+          <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
+            onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
         </div>
       )}
 

@@ -7,6 +7,7 @@ import RecapBar from './RecapBar';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
 import LensToggle from './LensToggle';
+import PeriodRecapChips from './PeriodRecapChips';
 import { centrePill } from '../utils';
 
 function formatHeaderDate(dateStr) {
@@ -154,6 +155,10 @@ export default function FullPlayer({
   onOpenSummary,
   lens,
   onChangeLens,
+  periodRecaps,
+  periodMinutes = () => 1,
+  onOpenPeriodRecap,
+  onPlayPeriodRecap,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -349,9 +354,14 @@ export default function FullPlayer({
                They were one row with the recap left and the lens right, which is neither
                screen's arrangement and left the lens sharing a line with content. ── */}
         {!isRecap && storyCount > 0 && onOpenRecap && (
-          <div style={{ position: 'relative', zIndex: 10, padding: '24px 16px 0' }}>
+          /* Scrolls sideways: the category's recap always fits, and the week and month join
+             it on the days they exist rather than being budgeted for year-round. */
+          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, padding: '24px 16px 0', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
             <RecapBar category={category} storyCount={storyCount} theme="dark" compact
               onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+            <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
+              onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
           </div>
         )}
 

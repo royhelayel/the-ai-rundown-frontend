@@ -188,18 +188,25 @@ export default function StoryCard({
 
         {/* Actions row — Interesting anchors the bottom-left corner, the same slot it
             occupies on the Swipe-mode card, so the two line up. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '14px' }}>
 
-          {onToggleSaved && (
-            <InterestingButton active={!!isSaved} onClick={e => { e.stopPropagation(); onToggleSaved(); }} />
-          )}
-
-          {/* Audience counts only — the read time was noise on every card */}
-          <span style={{ flex: 1, fontSize: '0.72rem', fontWeight: '600', color: '#9ca3af' }}>
-            {listenCount > 0 && `${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
-            {listenCount > 0 && savedCount > 0 && ' · '}
-            {savedCount > 0 && `${savedCount.toLocaleString()} interested`}
-          </span>
+          {/* Audience counts sit *under* Interesting rather than beside it. On Popular and
+              Interesting they were a line of grey text wedged between the flag and the two
+              actions, so the row read as three unrelated things competing for one line and
+              the counts looked like a label for the buttons to their right. Stacked, they
+              read as what they are: how many people did this to this story. */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, flex: 1, minWidth: 0 }}>
+            {onToggleSaved && (
+              <InterestingButton active={!!isSaved} onClick={e => { e.stopPropagation(); onToggleSaved(); }} />
+            )}
+            {(listenCount > 0 || savedCount > 0) && (
+              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                {listenCount > 0 && `${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
+                {listenCount > 0 && savedCount > 0 && ' · '}
+                {savedCount > 0 && `${savedCount.toLocaleString()} interested`}
+              </span>
+            )}
+          </div>
 
           {/* Summary and Listen in the same circle-and-caption shape as Interesting, pinned
               to the right. They were an outlined pill and a filled one — three peer actions

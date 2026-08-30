@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, UserPlus, UserCheck, Bookmark, Users } from 'lucide-react';
+import { ChevronLeft, UserPlus, UserCheck, Sparkles, Users } from 'lucide-react';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
 
@@ -184,12 +184,14 @@ export default function ProfilePage({
         {/* Divider */}
         <div style={{ height: '1px', background: light.border, margin: '0 16px' }} />
 
-        {/* Saved stories */}
+        {/* My Interesting — what this user flagged */}
         <div style={{ padding: '16px 0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px 12px' }}>
-            <Bookmark size={16} color={light.textMuted} />
+            <Sparkles size={16} color={light.textMuted} />
             <span style={{ fontSize: '0.85rem', fontWeight: '700', color: light.textMuted }}>
-              {enrichedSaves.length === 0 ? 'No saved stories yet' : `${enrichedSaves.length} saved ${enrichedSaves.length === 1 ? 'story' : 'stories'}`}
+              {enrichedSaves.length === 0
+                ? 'Nothing marked interesting yet'
+                : `My Interesting · ${enrichedSaves.length} ${enrichedSaves.length === 1 ? 'story' : 'stories'}`}
             </span>
           </div>
 

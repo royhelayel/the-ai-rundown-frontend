@@ -5,7 +5,9 @@ import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
 
-// My Saves — the user's saved stories rendered as their own feed.
+// My Interesting — the stories this user flagged, rendered as their own feed.
+// Reached from My Profile in Settings; it used to hang off the Interesting tab, which is the
+// shared view of what readers collectively flagged.
 // Mirrors the other feeds (day nav + category-grouped StoryList) but sources its
 // data from saved snapshots (savesBriefingData) instead of live news.
 export default function MySavesTab({
@@ -56,7 +58,7 @@ export default function MySavesTab({
           </div>
           <div>
             <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: '800', color: '#0a0a0f' }}>
-              {user ? 'Nothing saved for this day' : 'Sign in to save stories'}
+              {user ? 'Nothing marked interesting for this day' : 'Sign in to mark stories interesting'}
             </h3>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#8a8a9a', lineHeight: 1.55 }}>
               {user
@@ -85,7 +87,7 @@ export default function MySavesTab({
             challengeStats={challengeStats}
             loading={false}
             fromPath="/saved"
-            sectionTitle="My Saves"
+            sectionTitle="My Interesting"
             onPlayFeed={onPlayFeed}
           />
         </div>

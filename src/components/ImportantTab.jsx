@@ -23,7 +23,6 @@ export default function ImportantTab({
   onSelectCategory,
   onPlayStory,
   onMarkRead,
-  onOpenSaves,
   user,
   onShowAuth,
   playerVisible,
@@ -81,29 +80,10 @@ export default function ImportantTab({
         onChangeCorpus={(c) => navigate(c === 'mine' ? '/my-feed' : '/')} />
 
 
-      {/* My Saves entry */}
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 16px 10px' }}>
-        <button
-          onClick={() => (user ? onOpenSaves?.() : onShowAuth?.())}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-            padding: '12px 14px', borderRadius: '14px',
-            background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
-            cursor: 'pointer', textAlign: 'left',
-          }}
-        >
-          <div style={{ width: 34, height: 34, borderRadius: '10px', background: light.bgSub, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Bookmark size={17} color="#6366f1" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0a0a0f' }}>My Saves</div>
-            <div style={{ fontSize: '0.74rem', color: light.textMuted, fontWeight: '500' }}>Stories you marked as interesting</div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={light.textMuted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
+      {/* What you personally flagged lives under My Profile now — see Settings. This tab is
+          the shared view: what readers collectively found interesting. Carrying a personal
+          shortcut at the top of it put two different scopes on one screen, and the entry
+          point was easy to mistake for a filter on the list below it. */}
 
       {/* List */}
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', paddingBottom: playerVisible ? '8rem' : '5rem' }}>

@@ -2511,7 +2511,7 @@ const TheAIRundown = () => {
     if (p === '/my-feed')                      return 'My News';
     if (p === '/popular'   || p === 'popular')  return 'Popular';
     if (p === '/important' || p === 'important') return 'Interesting';
-    if (p === '/saved')                        return 'My Saves';
+    if (p === '/saved')                        return 'My Interesting';
     return 'All News';
   };
   const miniPlayerVisible = playerVisible && playerMinimized;
@@ -3091,7 +3091,6 @@ const TheAIRundown = () => {
           onPlayStory={handlePlayStory}
           onPlayCategory={handlePlayCategory}
           onMarkRead={handleMarkRead}
-          onOpenSaves={() => navigate('/saved')}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           playerVisible={playerVisible}
@@ -3182,6 +3181,16 @@ const TheAIRundown = () => {
                       {user.username && <div style={{ fontSize: '0.75rem', color: '#8a8a9a', marginTop: '1px' }}>@{user.username}</div>}
                     </div>
                   </div>
+                  {/* My Interesting — the stories this user flagged. It used to hang off the
+                      Interesting tab, which is the *shared* view of what readers found
+                      interesting; a personal shortcut at the top of it put two scopes on one
+                      screen. It belongs with the rest of "things that are mine". */}
+                  <button onClick={() => navigate('/saved')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
+                    <Sparkles size={15} color="#7c3aed" />
+                    <span style={{ flex: 1, textAlign: 'left' }}>My Interesting</span>
+                    <ChevronRight size={15} color="#8a8a9a" />
+                  </button>
                   {/* View profile link */}
                   {user.username && (
                     <button onClick={() => navigate(`/profile/${user.username}`)}

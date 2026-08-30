@@ -205,6 +205,33 @@ export default function FullPlayer({
   // now the same object at the same size rather than two sizes of the same design.
   const PAGE_MAX = 480;
 
+  // Swipe up / down to move through stories, the same gesture Swipe mode uses — on a screen
+  // whose whole job is one story at a time, reaching for a button to get to the next one is
+  // the odd part. The buttons stay: this is an addition, not a replacement.
+  //
+  // Deliberately dumb compared to StoryReader's: no drag-follow, no rubber-banding, just a
+  // committed flick. There is nothing to drag here — the card doesn't travel with the finger
+  // — so tracking one would promise a transition the player doesn't perform.
+  const touchRef = useRef(null);
+  const SWIPE_MIN = 55;      // px of travel before a flick counts
+  const onTouchStart = (e) => {
+    const t = e.touches?.[0];
+    touchRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start || storyCount === 0) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dy = t.clientY - start.y;
+    const dx = t.clientX - start.x;
+    // Ignore anything that reads as horizontal (the category strip scrolls that way) or as
+    // a tap that wandered a little.
+    if (Math.abs(dy) < SWIPE_MIN || Math.abs(dy) <= Math.abs(dx)) return;
+    if (dy < 0) onNext?.(); else onPrev?.();
+  };
+
   // The story progress dots, defined once because they render in two different places:
   // floating over the artwork in the sheet, and as the page header's dividing rule.
   const dots = (stories || []).map((_, i) => (
@@ -417,7 +444,7 @@ export default function FullPlayer({
 
           {/* Takeaways / Go deeper depth toggle — centered, under the card (not for recaps) */}
           {!isRecap && storyCount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: asPage ? '2rem' : '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
             {[['takeaways', 'Takeaways'], ['deep', 'Go deeper']].map(([level, label]) => (
               <button
                 key={level}
@@ -612,7 +639,10 @@ export default function FullPlayer({
         {/* Wrapped to the sheet's width — see PAGE_MAX. Unconstrained, this stretched the
             image and the controls edge to edge on a desktop window while every other tab
             stayed in its column. Below this the layout is the sheet's, untouched. */}
-        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {body}
         </div>
         {footer}

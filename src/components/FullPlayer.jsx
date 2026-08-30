@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
@@ -463,24 +463,42 @@ export default function FullPlayer({
           )}
         </div>
 
-          {/* Takeaways / Go deeper depth toggle — centered, under the card (not for recaps) */}
-          {!isRecap && storyCount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '3px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', borderRadius: '999px', padding: '3px', marginTop: asPage ? '2rem' : '0.85rem', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
-            {[['takeaways', 'Takeaways'], ['deep', 'Go deeper']].map(([level, label]) => (
-              <button
-                key={level}
-                onClick={() => onSetDepth(level)}
-                style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', background: depthLevel === level ? color : 'transparent', color: depthLevel === level ? 'white' : 'rgba(255,255,255,0.7)' }}>
-                {label}
-              </button>
-            ))}
-          </div>
-          )}
         </div>
 
         {/* Slack lives here now: between the story and the transport, where growing it just
             opens up the screen rather than stranding the card. */}
         {asPage && <div style={{ flex: 1, minHeight: 12, position: 'relative', zIndex: 10 }} />}
+
+        {/* ── How much gets read aloud.
+               It was a filled pill floating dead-centre in the gap between the story and the
+               transport, belonging to neither — and its second option was labelled "Go
+               deeper", the same words as the button forty pixels above it in the card, which
+               opens the summary sheet. Two different behaviours, one name.
+               So: "Full", and it sits with the playback controls, because that is what it
+               governs — the length of the narration, alongside its speed and repeat. Quiet
+               track rather than a filled pill; the play button is the only filled thing down
+               here. ── */}
+        {!isRecap && storyCount > 0 && (
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem' }}>
+          <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+            {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
+              const on = depthLevel === level;
+              return (
+                <button
+                  key={level}
+                  onClick={() => onSetDepth(level)}
+                  aria-pressed={on}
+                  style={{ padding: '3px 11px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                    fontSize: '0.7rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                    background: on ? 'rgba(255,255,255,0.92)' : 'transparent',
+                    color: on ? '#0a0a14' : 'rgba(255,255,255,0.6)' }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        )}
 
         {/* ── Progress bar ── */}
         {storyCount > 0 && (
@@ -522,7 +540,7 @@ export default function FullPlayer({
               onClick={onPrev}
               aria-label="Previous story"
               style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-              <SkipBack size={24} />
+              <Rewind size={24} />
             </button>
 
             <button
@@ -541,7 +559,7 @@ export default function FullPlayer({
               onClick={onNext}
               aria-label="Next story"
               style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-              <SkipForward size={24} />
+              <FastForward size={24} />
             </button>
           </div>
 

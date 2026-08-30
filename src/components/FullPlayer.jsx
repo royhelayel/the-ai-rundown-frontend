@@ -192,6 +192,13 @@ export default function FullPlayer({
   // bg color as rgb for gradient stop
   const bgColor = colors.bg || '#0a0a14';
 
+  // The player wraps narrower than the feed tabs. Those are a column of text you read down;
+  // this is one phone-shaped screen — a full-bleed photo, a headline and a transport — and
+  // stretched to the feed's 600px the artwork went wide and letterboxed while the controls
+  // drifted apart. 480 is the width the sheet already uses, so the page and the sheet are
+  // now the same object at the same size rather than two sizes of the same design.
+  const PAGE_MAX = 480;
+
   // The story progress dots, defined once because they render in two different places:
   // floating over the artwork in the sheet, and as the page header's dividing rule.
   const dots = (stories || []).map((_, i) => (
@@ -438,7 +445,7 @@ export default function FullPlayer({
                player's own spacing so the page and the sheet no longer matched. On its own
                opaque strip it always reads, and everything below is the sheet untouched. ── */}
         <div style={{ position: 'relative', zIndex: 20, flexShrink: 0, background: bgColor }}>
-          <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto' }}>
+          <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
             <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
               <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
@@ -500,11 +507,10 @@ export default function FullPlayer({
           </div>
         </div>
 
-        {/* Wrapped to --body-max, the same column Scroll and Swipe use. This is a page among
-            those pages, so it wraps where they wrap; on a desktop window an unconstrained
-            player stretched the image and the controls edge to edge while every other tab
+        {/* Wrapped to the sheet's width — see PAGE_MAX. Unconstrained, this stretched the
+            image and the controls edge to edge on a desktop window while every other tab
             stayed in its column. Below this the layout is the sheet's, untouched. */}
-        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: 'var(--body-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {body}
         </div>
         {footer}

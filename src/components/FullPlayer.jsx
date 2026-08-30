@@ -205,9 +205,10 @@ export default function FullPlayer({
   // now the same object at the same size rather than two sizes of the same design.
   const PAGE_MAX = 480;
 
-  // Swipe up / down to move through stories, the same gesture Swipe mode uses — on a screen
-  // whose whole job is one story at a time, reaching for a button to get to the next one is
-  // the odd part. The buttons stay: this is an addition, not a replacement.
+  // Swipe left / right to move through stories — on a screen whose whole job is one story at
+  // a time, reaching for a button to advance is the odd part. The buttons stay: this is an
+  // addition, not a replacement. Left goes forward, the direction the next card would come
+  // from; right goes back.
   //
   // Deliberately dumb compared to StoryReader's: no drag-follow, no rubber-banding, just a
   // committed flick. There is nothing to drag here — the card doesn't travel with the finger
@@ -216,7 +217,10 @@ export default function FullPlayer({
   const SWIPE_MIN = 55;      // px of travel before a flick counts
   const onTouchStart = (e) => {
     const t = e.touches?.[0];
-    touchRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+    // A horizontal drag that starts inside something that scrolls sideways belongs to that
+    // thing, not to us.
+    const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll]');
+    touchRef.current = t && !inScroller ? { x: t.clientX, y: t.clientY } : null;
   };
   const onTouchEnd = (e) => {
     const start = touchRef.current;
@@ -224,12 +228,11 @@ export default function FullPlayer({
     if (!start || storyCount === 0) return;
     const t = e.changedTouches?.[0];
     if (!t) return;
-    const dy = t.clientY - start.y;
     const dx = t.clientX - start.x;
-    // Ignore anything that reads as horizontal (the category strip scrolls that way) or as
-    // a tap that wandered a little.
-    if (Math.abs(dy) < SWIPE_MIN || Math.abs(dy) <= Math.abs(dx)) return;
-    if (dy < 0) onNext?.(); else onPrev?.();
+    const dy = t.clientY - start.y;
+    // Ignore anything that reads as vertical, or as a tap that wandered a little.
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) return;
+    if (dx < 0) onNext?.(); else onPrev?.();
   };
 
   // The story progress dots, defined once because they render in two different places:

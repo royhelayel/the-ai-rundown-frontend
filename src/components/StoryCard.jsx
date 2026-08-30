@@ -14,10 +14,11 @@
  *   removeButton — optional JSX rendered in the top-right badge slot
  */
 import React from 'react';
-import { Play } from 'lucide-react';
+import { Play, FileText } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
+import CircleAction from './CircleAction';
 
 
 export default function StoryCard({
@@ -200,22 +201,28 @@ export default function StoryCard({
             {savedCount > 0 && `${savedCount.toLocaleString()} interested`}
           </span>
 
-          {/* Summary — outlined */}
-          <button
-            onClick={e => { e.stopPropagation(); openSummary(); }}
-            style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1.5px solid ${color}`, flexShrink: 0 }}
-          >
-            Summary
-          </button>
-
-          {/* Play — filled */}
-          <button
-            onClick={e => { e.stopPropagation(); onPlay?.(); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: 'none', flexShrink: 0 }}
-          >
-            <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: '1px' }} />
-            Listen to story
-          </button>
+          {/* Summary and Listen in the same circle-and-caption shape as Interesting, pinned
+              to the right. They were an outlined pill and a filled one — three peer actions
+              in three different silhouettes, with the two pills wide enough to push
+              Interesting into the far corner. Listen stays filled so it still leads. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <CircleAction
+              Icon={FileText}
+              label="Summary"
+              accent={color}
+              onClick={e => { e.stopPropagation(); openSummary(); }}
+              aria-label="Open summary"
+            />
+            <CircleAction
+              Icon={Play}
+              label="Listen"
+              variant="filled"
+              accent={color}
+              iconProps={{ fill: '#fff', color: '#fff', style: { marginLeft: 1 } }}
+              onClick={e => { e.stopPropagation(); onPlay?.(); }}
+              aria-label="Listen to story"
+            />
+          </div>
         </div>
       </div>
     </div>

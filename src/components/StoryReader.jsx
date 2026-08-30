@@ -4,6 +4,7 @@ import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calenda
 import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
+import CircleAction from './CircleAction';
 import { headlineKey } from './PopularTab';
 import BottomNav from './BottomNav';
 import StorySummarySheet from './StorySummarySheet';
@@ -703,19 +704,25 @@ export default function StoryReader({
               active={entrySaved}
               onClick={(e) => { e.stopPropagation(); onToggleSaved?.(entry.story, entry.category, entry.index); }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
+            {/* Same circle-and-caption shape as Interesting opposite, pinned right — matches
+                the Scroll card exactly, so the two modes present one set of actions. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CircleAction
+                Icon={FileText}
+                label="Summary"
+                theme="dark"
                 onClick={(e) => { e.stopPropagation(); setRecapOpen(false); setSummaryOpen(true); }}
-                style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color: 'rgba(255,255,255,0.92)', border: '1px solid rgba(255,255,255,0.3)' }}>
-                Summary
-              </button>
-              <button
+                aria-label="Open summary"
+              />
+              <CircleAction
+                Icon={Play}
+                label="Listen"
+                variant="filled"
+                theme="dark"
+                iconProps={{ fill: '#0a0a14', color: '#0a0a14', style: { marginLeft: 1 } }}
                 onClick={(e) => { e.stopPropagation(); onPlayFrom(entry.index); }}
                 aria-label={isNarrating ? 'Playing' : 'Listen to story'}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.92)', color: '#0a0a14', border: 'none' }}>
-                <Play size={10} fill="#0a0a14" color="#0a0a14" style={{ marginLeft: 1 }} />
-                Listen
-              </button>
+              />
             </div>
           </div>
 
@@ -967,7 +974,7 @@ export default function StoryReader({
               // The pill strip's padding is 8px top / 9px bottom — near enough symmetric that
               // its pills sit on the row's true centre, so the icon centres with them and
               // needs no nudge. (It carried a 3px offset while that padding was 15/9.)
-              background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+              background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <SlidersHorizontal size={14} />
           </button>

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Sparkles, Calendar } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
+import InterestingButton from './InterestingButton';
 import { centrePill } from '../utils';
 
 function formatHeaderDate(dateStr) {
@@ -17,11 +18,21 @@ function formatHeaderDate(dateStr) {
   } catch { return dateStr; }
 }
 
+// Lift a category colour toward white so it stays legible over the dark photo — the same
+// helper Swipe mode uses for its pills, copied so the two strips tint identically.
+function tintForDark(hex, amount = 0.45) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16);
+  const mix = (ch) => Math.round(ch + (255 - ch) * amount);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
+
 // ── Speed cycle helper ─────────────────────────────────────────────────────────
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 // ── Category strip (auto-scrolls active pill into view) ───────────────────────
-function CatStrip({ contextCategories, category, onSelectCategory }) {
+function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -31,44 +42,49 @@ function CatStrip({ contextCategories, category, onSelectCategory }) {
     centrePill(stripRef.current, activeRef.current);
   }, [category]);
 
+  // Drawn exactly as Swipe's strip: flat text pills, only the active one carrying a fill,
+  // its colour the category's own tinted for a dark ground. It used to be a row of bordered,
+  // blurred chips — its own dialect on the one screen that should look most like the others.
   return (
-    <div
-      ref={stripRef}
-      style={{
-        position: 'relative', zIndex: 10,
-        overflowX: 'auto', scrollbarWidth: 'none',
-      }}
-    >
+    <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center' }}>
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
-      <div className="fp-cat-strip" style={{ display: 'flex', gap: 8, padding: '8px 16px', minWidth: 'max-content' }}>
-        {/* Original player treatment restored — it works against the artwork. Only the
-            type size is aligned with the other screens (0.76rem). */}
-        {contextCategories.map(cat => {
-          const c   = CATEGORY_COLORS[cat] || '#6366f1';
-          const act = cat === category;
-          return (
-            <button
-              key={cat}
-              ref={act ? activeRef : null}
-              onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '5px',
-                padding: '5px 13px', borderRadius: '8px',
-                border: `1px solid ${act ? c : 'rgba(255,255,255,0.22)'}`,
-                background: act ? c : 'rgba(0,0,0,0.38)',
-                backdropFilter: act ? 'none' : 'blur(6px)',
-                WebkitBackdropFilter: act ? 'none' : 'blur(6px)',
-                cursor: act ? 'default' : 'pointer',
-                whiteSpace: 'nowrap', flexShrink: 0,
-                fontSize: '0.76rem', fontWeight: act ? '800' : '600',
-                color: act ? 'white' : 'rgba(255,255,255,0.8)',
-              }}
-            >
-              <CategoryIcon category={cat} size={13} color={act ? 'white' : 'rgba(255,255,255,0.8)'} />
-              {CATEGORY_SHORT[cat] || cat}
-            </button>
-          );
-        })}
+
+      {/* Same control, same place as Swipe and Scroll — outside the scroller so it holds
+          still while the pills move past it. */}
+      {onEditCategories && (
+        <button
+          onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
+          aria-label="Choose your topics"
+          title="Choose your topics"
+          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
+            background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <SlidersHorizontal size={14} />
+        </button>
+      )}
+
+      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
+          {contextCategories.map(cat => {
+            const act = cat === category;
+            const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.55)';
+            return (
+              <button
+                key={cat}
+                ref={act ? activeRef : null}
+                onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 8, border: 'none',
+                  background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
+                  color: c,
+                  fontSize: '0.76rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
+                  cursor: act ? 'default' : 'pointer' }}
+              >
+                <CategoryIcon category={cat} size={13} color={c} />
+                {CATEGORY_SHORT[cat] || cat}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -129,6 +145,9 @@ export default function FullPlayer({
   onSelectDay,
   onOpenRecap,
   onPlayRecap,
+  onEditCategories,
+  onGuestEdit,
+  user,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -194,7 +213,24 @@ export default function FullPlayer({
   // which is still how a single story is played from Scroll or Swipe.
   const body = (
     <>
-        {/* ── Full-bleed immersive image ── */}
+        {/* ── Full-bleed photo + scrim.
+               On the page this is Swipe's treatment exactly: the photo fills the whole
+               screen behind everything and one layered scrim carries it down to near-black,
+               rather than a 58%-tall band with its own vignettes that ended in a visible
+               horizon halfway down. Same gradient stops as StoryReader, so the two screens
+               sit at the same depth.
+               The sheet keeps the band — it's a panel over a page, not the page. ── */}
+        {asPage ? (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            {image
+              ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+            {/* Chrome scrim, as in Swipe: the controls sit over their own fade rather than
+                straight on the photo. */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+          </div>
+        ) : (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '58%', zIndex: 0 }}>
           {image ? (
             <img
@@ -213,6 +249,7 @@ export default function FullPlayer({
           {/* Color glow tint */}
           <div style={{ position: 'absolute', inset: 0, background: glow, mixBlendMode: 'screen', opacity: 0.35 }} />
         </div>
+        )}
 
         {/* ── Top bar (floats over image) ── */}
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
@@ -229,14 +266,17 @@ export default function FullPlayer({
             <X size={20} />
           </button>
           )}
-          {/* Absolutely centered breadcrumb — unaffected by button widths, so it sits in the
-              same place on the page (where the two buttons are absent) as in the sheet. */}
+          {/* Absolutely centered breadcrumb — unaffected by button widths. Sheet only: on the
+              page the header directly above already names the feed, the day and (via the
+              active pill) the category, so this restated all three over the artwork. */}
+          {!asPage && (
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
               {isRecap ? `${category} Recap` : storyCount === 0 ? category : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
+          )}
           {!asPage && (
           <button
             onClick={onMinimize}
@@ -358,21 +398,9 @@ export default function FullPlayer({
               {playbackSpeed}×
             </button>
 
+            {/* The same control the two cards use, rather than a pill unique to the player. */}
             {isRecap ? <div /> : (
-            <button
-              onClick={onToggleInteresting}
-              title={isInteresting ? 'Remove from Interesting' : 'Mark as Interesting'}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '0.45rem 1rem', borderRadius: '999px', cursor: 'pointer',
-                background: isInteresting ? `${color}33` : 'rgba(255,255,255,0.08)',
-                border: `1px solid ${isInteresting ? color : 'transparent'}`,
-                color: isInteresting ? color : colors.textSub,
-                fontSize: '0.76rem', fontWeight: '800',
-              }}>
-              <Sparkles size={15} fill={isInteresting ? color : 'none'} />
-              Interesting
-            </button>
+              <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
             )}
 
             <button
@@ -452,6 +480,9 @@ export default function FullPlayer({
                 contextCategories={contextCategories}
                 category={category}
                 onSelectCategory={onSelectCategory}
+                onEditCategories={onEditCategories}
+                user={user}
+                onGuestEdit={onGuestEdit}
               />
             )}
 
@@ -460,11 +491,11 @@ export default function FullPlayer({
                 pixels apart. Tapping a segment still jumps to that story. Falls back to a
                 plain border when there's nothing to be partway through. */}
             {dots.length > 0 ? (
-              <div style={{ display: 'flex', gap: '3px', padding: '4px 16px 6px' }}>
+              <div style={{ display: 'flex', gap: '3px' }}>
                 {dots}
               </div>
             ) : (
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
             )}
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Play } from 'lucide-react';
+import CircleAction from './CircleAction';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 
 /**
@@ -16,28 +17,30 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
   const accent = dark ? '#a5b4fc' : (CATEGORY_COLORS[category] || '#6366f1');
   const name = CATEGORY_SHORT[category] || category;
 
-  const readBtn = {
-    padding: compact ? '4px 10px' : '5px 12px', borderRadius: 8,
-    fontSize: compact ? '0.7rem' : '0.72rem', fontWeight: 700, cursor: 'pointer',
-    whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent', color: accent,
-    border: `1px solid ${dark ? 'rgba(255,255,255,0.3)' : `${accent}66`}`,
-  };
-  const listenBtn = {
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: compact ? '4px 10px' : '5px 12px', borderRadius: 8,
-    fontSize: compact ? '0.7rem' : '0.72rem', fontWeight: 700, cursor: 'pointer',
-    whiteSpace: 'nowrap', flexShrink: 0, border: 'none',
-    background: dark ? 'rgba(255,255,255,0.92)' : accent,
-    color: dark ? '#0a0a14' : '#fff',
-  };
+  // The same circle-and-caption pair the story cards carry, so a recap and a story offer
+  // their actions in one shape rather than two — this row sits directly above the first
+  // card, where a pair of pills read as a different kind of control entirely.
   const actions = (
     <>
-      <button onClick={(e) => { e.stopPropagation(); onOpen?.(); }} style={readBtn}>Read</button>
+      <CircleAction
+        Icon={FileText}
+        label="Read"
+        accent={accent}
+        theme={dark ? 'dark' : 'light'}
+        onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
+        aria-label={`Read the ${name} recap`}
+      />
       {onPlay && (
-        <button onClick={(e) => { e.stopPropagation(); onPlay(); }} aria-label={`Listen to the ${name} recap`} style={listenBtn}>
-          <Play size={10} fill={dark ? '#0a0a14' : '#fff'} color={dark ? '#0a0a14' : '#fff'} style={{ marginLeft: 1 }} />
-          Listen
-        </button>
+        <CircleAction
+          Icon={Play}
+          label="Listen"
+          variant="filled"
+          accent={accent}
+          theme={dark ? 'dark' : 'light'}
+          iconProps={{ fill: dark ? '#0a0a14' : '#fff', color: dark ? '#0a0a14' : '#fff', style: { marginLeft: 1 } }}
+          onClick={(e) => { e.stopPropagation(); onPlay(); }}
+          aria-label={`Listen to the ${name} recap`}
+        />
       )}
     </>
   );
@@ -99,7 +102,7 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
           {storyCount} {storyCount === 1 ? 'story' : 'stories'} · 1 min
         </p>
       </div>
-      <div style={{ display: 'flex', gap: 6 }}>{actions}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>{actions}</div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { SkeletonCategoryRows } from './SkeletonScreens';
 import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
+import CircleAction from './CircleAction';
 import { headlineKey } from './PopularTab';
 
 // ── Topic card — photo banner + two clearly-separate things ──────────────────
@@ -33,18 +34,28 @@ function CategoryImageHeader({ cat, color, image, onBrowse, onPlay, onBriefing, 
       <div style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', gap: 8 }}>
         <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0a0a0f' }}>{CATEGORY_SHORT[cat] || cat} Category recap · 1 min</span>
         <span style={{ flex: 1 }} />
-        {hasBriefing && onBriefing && (
-          <button onClick={(e) => { e.stopPropagation(); onBriefing(cat); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', color, border: `1.5px solid ${color}` }}>
-            <FileText size={11} />
-            Read
-          </button>
-        )}
-        <button onClick={() => onPlay?.(cat)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', background: color, color: '#fff', border: '1.5px solid transparent' }}>
-          <Play size={10} fill="#fff" color="#fff" style={{ marginLeft: 1 }} />
-          Listen
-        </button>
+        {/* Same circle-and-caption pair the story cards below use — a category's actions and
+            a story's actions are the same two verbs, so they get the same shape. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {hasBriefing && onBriefing && (
+            <CircleAction
+              Icon={FileText}
+              label="Read"
+              accent={color}
+              onClick={(e) => { e.stopPropagation(); onBriefing(cat); }}
+              aria-label={`Read the ${CATEGORY_SHORT[cat] || cat} recap`}
+            />
+          )}
+          <CircleAction
+            Icon={Play}
+            label="Listen"
+            variant="filled"
+            accent={color}
+            iconProps={{ fill: '#fff', color: '#fff', style: { marginLeft: 1 } }}
+            onClick={() => onPlay?.(cat)}
+            aria-label={`Listen to the ${CATEGORY_SHORT[cat] || cat} recap`}
+          />
+        </div>
       </div>
     </div>
   );

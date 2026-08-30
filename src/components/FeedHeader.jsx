@@ -186,7 +186,7 @@ export default function FeedHeader({
                 aria-label="Choose your topics"
                 title="Choose your topics"
                 style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
-                  background: 'rgba(0,0,0,0.06)', color: '#6b7280', cursor: 'pointer',
+                  background: 'transparent', color: '#6b7280', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <SlidersHorizontal size={14} />
               </button>

@@ -2141,10 +2141,35 @@ const TheAIRundown = () => {
 
   storyGoRef.current = { goNext, goPrev };
 
+  // iOS Safari only lets speechSynthesis start from inside a user gesture. The browser voice
+  // is our fallback when TTS fails (no credit, network, 5xx), but by then we're several
+  // hundred milliseconds past the tap — inside a promise callback — so Safari refuses it and
+  // the story just never plays. Speaking one empty utterance on the tap itself unlocks the
+  // API for the rest of the session; after that the late fallback is allowed to speak.
+  const speechUnlockedRef = useRef(false);
+  const unlockSpeech = () => {
+    if (speechUnlockedRef.current) return;
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      synth.speak(u);
+      speechUnlockedRef.current = true;
+    } catch {}
+  };
+
   const onPlayFrom = (idx) => {
     if (isNarrating) narrateFnRef.current.stop();
-    playerSourcePath.current = location.pathname;
-    const ctxCats = location.pathname === '/my-feed'
+    unlockSpeech();
+    // '/listen' is the player itself, not a feed — recording it here lost which feed the
+    // player was playing, so the corpus toggle fell back to "All news" and the Swipe
+    // hand-off had no playlist to look up. Keep whatever feed we came from.
+    const srcPath = location.pathname === '/listen'
+      ? (playerSourcePath.current || '/')
+      : location.pathname;
+    playerSourcePath.current = srcPath;
+    const ctxCats = srcPath === '/my-feed'
       ? feedCategories
       : defaultCategories;
     setPlayerContextCategories(ctxCats);
@@ -3296,6 +3321,9 @@ const TheAIRundown = () => {
           onSelectDay={selectDay}
           onOpenRecap={(cat) => navigate(`/category/${encodeURIComponent(cat)}/briefing`, { state: { from: playerSourcePath.current || '/' } })}
           onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
+          onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+          onGuestEdit={() => navigate('/my-feed')}
+          user={user}
           onMinimize={handleMinimizePlayer}
           onClose={() => { setPlayerVisible(false); narrateFnRef.current.stop(); }}
           category={selectedCategory}

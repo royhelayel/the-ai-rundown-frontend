@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, LayoutList, GalleryVerticalEnd, Headphones, Flame } from 'lucide-react';
 import ProgressPill from './ProgressPill';
+import { UI_TRIAL } from '../theme';
 
 const light = {
   // The nav container now matches the page's own background (#f5f5f7, used everywhere else
@@ -71,17 +72,25 @@ export default function BottomNav({
   // a highlighted icon with a caption loose underneath it.
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  const key = (icon, text, onClick, aria, { active = false, width } = {}) => (
+  // Labels alone, unless UI_TRIAL.navIcons is on. The icons were carrying no meaning the
+  // word underneath didn't already carry — three of the five needed the label to be read at
+  // all — and dropping them lets the dock sit shorter and stop competing with the screen.
+  const showIcons = UI_TRIAL.navIcons;
+  // `keepGlyph` survives the icons being switched off: the Challenge cell's glyph is the
+  // day's story count, which is information rather than decoration and would simply be
+  // deleted along with the icons.
+  const key = (icon, text, onClick, aria, { active = false, width, keepGlyph = false } = {}) => (
     <button key={aria} onClick={onClick} aria-label={aria} title={aria}
       style={{
-        width, borderRadius: 8, border: 'none', padding: '4px 0 3px',
+        width, borderRadius: 8, border: 'none',
+        padding: showIcons || keepGlyph ? '4px 0 3px' : '6px 0',
         cursor: active ? 'default' : 'pointer',
         background: active ? t.activeBg : 'transparent',
         color: active ? t.activeFg : t.textMuted,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
       }}>
-      <span style={{ height: 20, display: 'flex', alignItems: 'center' }}>{icon}</span>
-      <span style={{ fontSize: '0.64rem', fontWeight: 500, lineHeight: 1.2 }}>{text}</span>
+      {(showIcons || keepGlyph) && <span style={{ height: 20, display: 'flex', alignItems: 'center' }}>{icon}</span>}
+      <span style={{ fontSize: showIcons || keepGlyph ? '0.64rem' : '0.7rem', fontWeight: showIcons || keepGlyph ? 500 : 600, lineHeight: 1.2 }}>{text}</span>
     </button>
   );
 
@@ -125,7 +134,7 @@ export default function BottomNav({
             !user ? 'Reading challenge — sign in to track progress'
               : goalMet ? `Reading challenge complete — ${todayCount} stories today`
               : `Reading challenge — ${todayCount} of ${dailyGoal} stories today`,
-            { width: 62 },
+            { width: 62, keepGlyph: !!user },
           )}
         </div>
       </nav>

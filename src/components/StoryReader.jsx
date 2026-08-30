@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -860,10 +860,19 @@ export default function StoryReader({
           return (
             <div key={slot} ref={registerLayer(`photo${slot}`, slot)}
               style={{ position: 'absolute', inset: 0, willChange: 'transform', backfaceVisibility: 'hidden' }}>
-              {img
-                ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${col} 0%, ${col}66 100%)` }} />}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+              {UI_TRIAL.photoBackdrop ? (
+                <>
+                  {img
+                    ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${col} 0%, ${col}66 100%)` }} />}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+                </>
+              ) : (
+                /* Flat ground, with one faint wash of the category's colour so the screen
+                   still says which section you're in. Each layer keeps its own, so the wash
+                   still travels with the story as you swipe. */
+                <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${col}1f 0%, transparent 62%), #0a0a14` }} />
+              )}
             </div>
           );
         })}

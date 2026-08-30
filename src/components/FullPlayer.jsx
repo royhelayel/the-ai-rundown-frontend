@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
-import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from '../theme';
+import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -264,12 +264,18 @@ export default function FullPlayer({
                as StoryReader, so all three screens sit at the same depth. ── */}
         {!asPage && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {image
-            ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
-          {/* Chrome scrim: the controls sit over their own fade rather than on the photo. */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+          {UI_TRIAL.photoBackdrop ? (
+            <>
+              {image
+                ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+              {/* Chrome scrim: the controls sit over their own fade, not on the photo. */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+            </>
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${color}1f 0%, transparent 62%), ${bgColor}` }} />
+          )}
         </div>
         )}
 
@@ -360,12 +366,11 @@ export default function FullPlayer({
           </div>
         )}
 
-        {/* ── Spacer — pushes the story down into the gradient zone. A floor on it so the card
-               never butts against the lens above: as pure flex it collapsed to nothing
-               whenever the content happened to fill the screen. Swipe's equivalent gap is far
-               larger, but Swipe has nothing below its card — here the depth toggle, the
-               progress line and the transport all have to fit under it. ── */}
-        <div style={{ flex: 1, minHeight: asPage ? 28 : 0, position: 'relative', zIndex: 10 }} />
+        {/* ── Above the card: a fixed gap on the page, so the story stays anchored near the
+               controls that scope it. It used to be the flexible one, which parked the card
+               in the middle of an empty band once the flat ground removed the photo that had
+               been filling that space. Slack now pools *below* the card instead. ── */}
+        <div style={{ flex: asPage ? '0 0 auto' : 1, height: asPage ? 24 : undefined, position: 'relative', zIndex: 10 }} />
 
         {/* ── The story, as a card.
                On the page this is Swipe's card, part for part: category and read status on
@@ -473,6 +478,10 @@ export default function FullPlayer({
           )}
         </div>
 
+        {/* Slack lives here now: between the story and the transport, where growing it just
+            opens up the screen rather than stranding the card. */}
+        {asPage && <div style={{ flex: 1, minHeight: 12, position: 'relative', zIndex: 10 }} />}
+
         {/* ── Progress bar ── */}
         {storyCount > 0 && (
         <div style={{ position: 'relative', zIndex: 10, padding: '0.6rem 1.5rem 0.5rem', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -507,28 +516,32 @@ export default function FullPlayer({
         <div style={{ position: 'relative', zIndex: 10, padding: '0.25rem 1.5rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
           {/* Main controls */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            {/* Skip loses its disc: three filled circles in a row meant the one that matters
+                stopped looking like the one that matters. Same tap target, no chrome. */}
             <button
               onClick={onPrev}
-              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: colors.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-              <SkipBack size={22} />
+              aria-label="Previous story"
+              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
+              <SkipBack size={24} />
             </button>
 
             <button
               onClick={isLoading ? undefined : (isPaused ? onResume : (isNarrating ? onPause : onPlay))}
-              style={{ width: '72px', height: '72px', borderRadius: '50%', background: color, border: 'none', color: 'white', cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 28px ${color}60`, transition: 'transform 0.15s', flexShrink: 0 }}>
+              style={{ width: '62px', height: '62px', borderRadius: '50%', background: color, border: 'none', color: 'white', cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: UI_TRIAL.photoBackdrop ? `0 8px 28px ${color}60` : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
               {isLoading
                 ? <Loader size={26} style={{ animation: 'spin 0.8s linear infinite' }} />
                 : (isNarrating && !isPaused
-                  ? <Pause size={26} fill="white" />
-                  : <Play size={26} fill="white" style={{ marginLeft: '3px' }} />
+                  ? <Pause size={23} fill="white" />
+                  : <Play size={23} fill="white" style={{ marginLeft: '3px' }} />
                 )
               }
             </button>
 
             <button
               onClick={onNext}
-              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: colors.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-              <SkipForward size={22} />
+              aria-label="Next story"
+              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
+              <SkipForward size={24} />
             </button>
           </div>
 
@@ -572,14 +585,24 @@ export default function FullPlayer({
             whatever image loads. Full width, while the content column above stays at
             PAGE_MAX, so the artwork fills the window the way it does in Swipe. */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {image
-            ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
-          {/* Chrome scrims, same as Swipe's: the header fades out of the photo at the top and
-              the transport fades in at the bottom. */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+          {UI_TRIAL.photoBackdrop ? (
+            <>
+              {image
+                ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+              {/* Chrome scrims, same as Swipe's: the header fades out of the photo at the top
+                  and the transport fades in at the bottom. */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+            </>
+          ) : (
+            /* Flat ground. The photo was the loudest thing on a screen whose subject is a
+               headline and a play button, and every scrim on top of it existed to hold it
+               down. One faint wash of the category's colour keeps the screen from reading as
+               a black rectangle and still says which section you're in. */
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${color}1f 0%, transparent 62%), ${bgColor}` }} />
+          )}
         </div>
         {/* ── Page header: wordmark, then scope — the same statement the other two tabs open
                with, so Listen isn't a dead end you must leave to change day or feed.

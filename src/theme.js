@@ -132,3 +132,22 @@ export function categoryGlow(color) {
   const b = parseInt(h.slice(4, 6), 16);
   return `radial-gradient(ellipse at 30% 20%, rgba(${r},${g},${b},0.25) 0%, transparent 65%)`;
 }
+
+// ── UI trial switches ─────────────────────────────────────────────────────────
+//
+// A visual direction being tried on the Swipe and Listen screens. Both are one-line
+// reversals: flip a flag back to `true` and the previous look returns, with no other
+// change needed anywhere.
+//
+//   photoBackdrop  true  → the category photo fills the screen behind the story (previous)
+//                  false → a flat near-black ground, so nothing competes with the card
+//
+//   navIcons       true  → the bottom dock shows an icon above each label (previous)
+//                  false → labels only, which lets the dock sit shorter and quieter
+//
+// If the whole direction is unwanted, the commit that introduced it reverts cleanly on
+// its own — it touches nothing but presentation.
+export const UI_TRIAL = {
+  photoBackdrop: false,
+  navIcons: false,
+};

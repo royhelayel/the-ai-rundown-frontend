@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, SkipBack, SkipForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
-import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, categoryGlow } from '../theme';
+import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -166,7 +166,6 @@ export default function FullPlayer({
   }, [dayPickerOpen]);
   const color  = CATEGORY_COLORS[category] || colors.accent;
   const image  = CATEGORY_IMAGES[category];
-  const glow   = categoryGlow(color);
 
   // Sheet slide-in / slide-out animation
   const [mounted, setMounted] = useState(false);
@@ -226,43 +225,19 @@ export default function FullPlayer({
   // which is still how a single story is played from Scroll or Swipe.
   const body = (
     <>
-        {/* ── Full-bleed photo + scrim.
-               On the page this is Swipe's treatment exactly: the photo fills the whole
-               screen behind everything and one layered scrim carries it down to near-black,
-               rather than a 58%-tall band with its own vignettes that ended in a visible
-               horizon halfway down. Same gradient stops as StoryReader, so the two screens
-               sit at the same depth.
-               The sheet keeps the band — it's a panel over a page, not the page. ── */}
-        {asPage ? (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            {image
-              ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-              : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
-            {/* Chrome scrim, as in Swipe: the controls sit over their own fade rather than
-                straight on the photo. */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
-          </div>
-        ) : (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '58%', zIndex: 0 }}>
-          {image ? (
-            <img
-              src={image}
-              alt={category}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
-            />
-          ) : (
-            /* Fallback: color gradient if no image */
-            <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${color}40 0%, ${color}10 100%)` }} />
-          )}
-          {/* Top vignette — subtle dark fade so top bar text is readable */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), transparent)' }} />
-          {/* Bottom fade — image melts into the dark background */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '70%', background: `linear-gradient(to bottom, transparent 0%, ${bgColor}cc 60%, ${bgColor} 100%)` }} />
-          {/* Color glow tint */}
-          <div style={{ position: 'absolute', inset: 0, background: glow, mixBlendMode: 'screen', opacity: 0.35 }} />
+        {/* ── Full-bleed photo + scrim, Swipe's treatment.
+               The photo fills the whole surface behind everything and one layered scrim
+               carries it down to near-black. It used to be a 58%-tall band with its own
+               vignettes, which ended in a visible horizon halfway down. Same gradient stops
+               as StoryReader, so all three screens sit at the same depth. ── */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          {image
+            ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
+          {/* Chrome scrim: the controls sit over their own fade rather than on the photo. */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
         </div>
-        )}
 
         {/* ── Top bar (floats over image) ── */}
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', minHeight: '52px' }}>
@@ -300,29 +275,32 @@ export default function FullPlayer({
           )}
         </div>
 
-        {/* ── Story progress dots (floats over image). Sheet only: on the page they move up
-               into the header, where they double as its dividing rule. ── */}
-        {!asPage && (
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', gap: '4px', padding: '0.4rem 1.25rem' }}>
-          {dots}
-        </div>
-        )}
-
-        {/* ── Category pills strip. Sheet only, for the same reason — on the page the pills
-               belong with the rest of the narrowing chain (corpus, day, topic) up in the
-               header, and this slot carries the recap instead. ── */}
+        {/* ── Topics, then the story progress as the rule beneath them. Sheet only: the page
+               carries both in its own header. Same order and same pairing either way — the
+               dots used to sit *above* the pills here, so the sheet read bottom-up while the
+               page read top-down. ── */}
         {!asPage && contextCategories.length > 0 && (
-          <CatStrip
-            contextCategories={contextCategories}
-            category={category}
-            onSelectCategory={onSelectCategory}
-          />
+          <>
+            <CatStrip
+              contextCategories={contextCategories}
+              category={category}
+              onSelectCategory={onSelectCategory}
+              onEditCategories={onEditCategories}
+              user={user}
+              onGuestEdit={onGuestEdit}
+            />
+            {dots.length > 0 && (
+              <div style={{ position: 'relative', zIndex: 10, display: 'flex', gap: '3px', padding: '0 16px' }}>
+                {dots}
+              </div>
+            )}
+          </>
         )}
 
         {/* ── Category recap, page only. It sits against the artwork, directly above the
                story it summarises, rather than up among the scope controls — it's content,
                not scope, and it was the one piece of *reading* stranded in the header. ── */}
-        {asPage && !isRecap && storyCount > 0 && (onOpenRecap || onChangeLens) && (
+        {!isRecap && storyCount > 0 && (onOpenRecap || (asPage && onChangeLens)) && (
           /* Recap left, lens right — one row over the artwork. The lens sorts the stories the
              transport pages through, so it belongs with them rather than up in the scope
              rows; Swipe puts it in the same relationship, low and close to the card. */
@@ -332,7 +310,7 @@ export default function FullPlayer({
                 onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
             ) : <div />}
             <div style={{ flex: 1 }} />
-            {onChangeLens && <LensToggle value={lens} onChange={onChangeLens} theme="dark" />}
+            {asPage && onChangeLens && <LensToggle value={lens} onChange={onChangeLens} theme="dark" />}
           </div>
         )}
 
@@ -446,7 +424,7 @@ export default function FullPlayer({
             {isRecap ? <div /> : (
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
             )}
-            {isRecap ? <div /> : (
+            {asPage && !isRecap ? (
               <CircleAction
                 Icon={FileText}
                 label="Summary"
@@ -454,7 +432,7 @@ export default function FullPlayer({
                 onClick={onOpenSummary}
                 aria-label="Open summary"
               />
-            )}
+            ) : <div />}
           </div>
         </div>
         )}

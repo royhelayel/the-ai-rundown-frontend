@@ -730,14 +730,15 @@ export default function StoryReader({
                 layer, not two. */}
             {/* Interesting anchors the bottom-left corner — the same slot the Scroll-mode
                 card gives it, next to the audience-count text there. */}
-            <InterestingButton
-              theme="dark"
-              active={entrySaved}
-              onClick={(e) => { e.stopPropagation(); onToggleSaved?.(entry.story, entry.category, entry.index); }}
-            />
-            {/* Same circle-and-caption shape as Interesting opposite, pinned right — matches
-                the Scroll card exactly, so the two modes present one set of actions. */}
+            <div style={{ flex: 1 }} />
+            {/* All three actions together on the right. Interesting used to hold the opposite
+                corner, which split one set of controls across the width of the card. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <InterestingButton
+                theme="dark"
+                active={entrySaved}
+                onClick={(e) => { e.stopPropagation(); onToggleSaved?.(entry.story, entry.category, entry.index); }}
+              />
               <CircleAction
                 Icon={FileText}
                 label="Go deeper"

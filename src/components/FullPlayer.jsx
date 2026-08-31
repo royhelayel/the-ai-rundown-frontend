@@ -488,7 +488,7 @@ export default function FullPlayer({
           {/* Interesting and Go deeper, docked at the bottom of the card — the same corners
               the Swipe card gives them. */}
           {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               <CircleAction
                 Icon={FileText}

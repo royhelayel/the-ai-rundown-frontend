@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackToTop from './BackToTop';
+import RecapBar from './RecapBar';
+import PeriodRecapChips from './PeriodRecapChips';
+import LensToggle from './LensToggle';
 import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
@@ -22,6 +25,7 @@ export default function BriefingFeed({
   isPaused, newsLanguage, todayProgress, onShowSettings,
   onEnterStories, onEnterSummaries, onEnterAudio,
   savedStories, onToggleSaved,
+  periodRecaps, periodMinutes = () => 1, onOpenPeriodRecap, onPlayPeriodRecap,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/');
@@ -104,7 +108,6 @@ export default function BriefingFeed({
         activeCategory={effectiveCat}
         onSelectCategory={scrollToCat}
         subtitle={subtitle}
-        showLens
         onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
         corpus="all"
         onChangeCorpus={(c) => { if (c === 'mine') navigate('/my-feed'); }}
@@ -113,6 +116,35 @@ export default function BriefingFeed({
         progressListened={railPos.cat === effectiveCat ? railPos.idx + 1 : 0}
         progressTotal={shownCounts[effectiveCat] ?? (allNewsStats.todayProgress?.[effectiveCat]?.total || 0)}
       />
+
+      {/* ── Recap, then the lens — Swipe's order and Swipe's spacing.
+             Both used to sit the other way round, with the lens inside the sticky header and
+             the category's recap further down inside the feed. They live in the scrolling
+             content now so the recap comes first, as it does in the other two modes, and so
+             neither of them is glued to the top of the screen while you read. ── */}
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <RecapBar
+            category={effectiveCat}
+            onOpen={() => navigate(`/category/${encodeURIComponent(effectiveCat)}/briefing`, { state: { from: '/' } })}
+            compact
+          />
+          <PeriodRecapChips
+            recaps={periodRecaps}
+            minutesOf={periodMinutes}
+            theme="light"
+            onOpen={onOpenPeriodRecap}
+            onPlay={onPlayPeriodRecap}
+          />
+        </div>
+        <div style={{ padding: '32px 16px 12px' }}>
+          <LensToggle
+            value={lens}
+            onChange={(l) => { if (l === 'popular') navigate('/popular'); else if (l === 'interesting') navigate('/important'); else setLens('latest'); }}
+            theme="light"
+          />
+        </div>
+      </div>
 
       <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <StoryList

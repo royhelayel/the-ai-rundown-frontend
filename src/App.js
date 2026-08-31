@@ -3128,6 +3128,10 @@ const TheAIRundown = () => {
       <div className="main-content-offset">
       {(isLatestHome || showHomeBg) && !isSummariesPage && (
         <BriefingFeed
+          periodRecaps={periodRecaps}
+          periodMinutes={periodMinutes}
+          onOpenPeriodRecap={openPeriodRecap}
+          onPlayPeriodRecap={playPeriodRecap}
           briefingData={briefingData}
           briefingLoading={briefingLoading}
           selectedDay={selectedDay}

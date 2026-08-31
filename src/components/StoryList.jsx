@@ -443,14 +443,10 @@ function buildSections({
             <div key={cat} id={`sl-topic-${cat}`} style={{ scrollMarginTop: 'calc(var(--header-h, 135px) + 10px)' }}>
               {showCategoryImages ? (
                 /* ── Topic card ── */
-                <div style={{ marginBottom: '14px' }}>
-                  <CategoryImageHeader
-                    cat={cat}
-                    onPlay={() => handlePlayCat(cat, 0)}
-                    onBriefing={handleOpenBriefing}
-                    hasBriefing={!!(catData?.briefing && catData.briefing.trim())}
-                  />
-                </div>
+                /* The recap now sits once, under the header, as it does in Swipe and Listen
+                   — so a copy at the top of every section would be the same control twice on
+                   one screen for whichever category you happen to be looking at. */
+                null
               ) : (
                 /* ── Simple text category header ── */
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>

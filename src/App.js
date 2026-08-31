@@ -2691,6 +2691,7 @@ const TheAIRundown = () => {
   // would talk at you the moment the app opens. Play is one tap away on the page itself.
   const cueStory = (cat, idx) => {
     narrateFnRef.current.stop();
+    setPlayerAllScope(false);
     // Read the stories straight off the feed's own map — the same array Swipe and Scroll page
     // through. handlePlayStory gets there indirectly, by selecting the category and waiting
     // on a fetch, which is fine when you've asked to play but leaves the page showing
@@ -2721,6 +2722,50 @@ const TheAIRundown = () => {
     narrationDurationRef.current = 0;
     setFocus(cat, idx);          // keeps Swipe and Scroll pointing at the same story
   };
+
+  // ── "All" scope on the player: play the ranking, not one category's slice of it ──
+  //
+  // Popular and Interesting are ranked lists that happen to span categories. Picking All
+  // cues the ranking itself, in rank order, so skip walks from the top story to the second
+  // wherever each one lives — rather than to the second story of whichever category the top
+  // one happened to be in.
+  //
+  // `stories` becomes the ranked list with each entry tagged _category, and selectedCategory
+  // is kept in step with whichever one is playing (see the effect below). Everything
+  // downstream — colours, the card's category chip, the recap — reads selectedCategory, so
+  // tagging plus syncing is all it takes; nothing else has to learn about scope.
+  const [playerAllScope, setPlayerAllScope] = useState(false);
+  const playerShowAllPill = playerSourcePath.current === '/popular' || playerSourcePath.current === '/important';
+
+  const enterAllScope = () => {
+    const path = playerSourcePath.current || '/';
+    const playlist = playlistForTab(path);
+    if (!playlist.length) return;
+    const snapMap = path === '/saved' ? savesBriefingData
+                  : path === '/important' ? interestingBriefingData
+                  : null;
+    const ranked = playlist.map(({ category: cat, storyIndex: idx }) => {
+      const list = (snapMap ? snapMap[cat]?.allStories : briefingData[cat]?.allStories) || [];
+      const st = list[idx];
+      return st ? { ...st, _category: cat } : null;
+    }).filter(Boolean);
+    if (!ranked.length) return;
+    narrateFnRef.current.stop();
+    snapshotPlayRef.current = null;   // the ranking is its own list; don't also walk a snapshot
+    setPlayerAllScope(true);
+    setStories(ranked);
+    setStoryIndex(0);
+    setSelectedCategory(ranked[0]._category);
+    setNarrationProgress(0);
+    narrationDurationRef.current = 0;
+  };
+
+  // Keep the labelled category in step with the ranking as it plays.
+  useEffect(() => {
+    if (!playerAllScope) return;
+    const cat = stories[storyIndex]?._category;
+    if (cat && cat !== selectedCategory) setSelectedCategory(cat);
+  }, [playerAllScope, storyIndex, stories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The Listen tab: continue from wherever the reader is, cued but silent.
   const enterAudioMode = (tabPath) => {
@@ -3480,6 +3525,9 @@ const TheAIRundown = () => {
             setPlayerVisible(false);
             navigate(`/category/${encodeURIComponent(selectedCategory)}/story/${storyIndex}`, { state: { from, openSummary: true } });
           }}
+          showAllPill={playerShowAllPill}
+          allScope={playerAllScope}
+          onSelectAll={enterAllScope}
           periodRecaps={periodRecaps}
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}

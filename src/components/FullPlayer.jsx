@@ -35,7 +35,7 @@ function tintForDark(hex, amount = 0.45) {
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 // ── Category strip (auto-scrolls active pill into view) ───────────────────────
-function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit }) {
+function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -68,8 +68,27 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
 
       <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
         <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
+          {/* "All" — the ranking itself, in rank order across every category. Popular and
+              Interesting are cross-category lists, so the whole list is a scope in its own
+              right and not just the union of the pills beside it. Same control, same rule as
+              Swipe: the divider marks it as a different kind of choice, and in All scope no
+              category pill is selected, because the one you happen to be on is incidental. */}
+          {showAllPill && (
+            <>
+              <button
+                onClick={() => { if (!allScope) onSelectAll?.(); }}
+                style={{ display: 'flex', alignItems: 'center', padding: '8px 13px', borderRadius: 9, border: 'none',
+                  background: allScope ? 'rgba(255,255,255,0.20)' : 'transparent',
+                  color: allScope ? '#fff' : 'rgba(255,255,255,0.55)',
+                  fontSize: '0.84rem', fontWeight: allScope ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
+                  cursor: allScope ? 'default' : 'pointer' }}>
+                All
+              </button>
+              <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '3px 3px', background: 'rgba(255,255,255,0.20)', flexShrink: 0 }} />
+            </>
+          )}
           {contextCategories.map(cat => {
-            const act = cat === category;
+            const act = !allScope && cat === category;
             const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.55)';
             return (
               <button
@@ -155,6 +174,9 @@ export default function FullPlayer({
   onOpenSummary,
   lens,
   onChangeLens,
+  showAllPill = false,
+  allScope = false,
+  onSelectAll,
   periodRecaps,
   periodMinutes = () => 1,
   onOpenPeriodRecap,
@@ -338,6 +360,9 @@ export default function FullPlayer({
               onEditCategories={onEditCategories}
               user={user}
               onGuestEdit={onGuestEdit}
+              showAllPill={showAllPill}
+              allScope={allScope}
+              onSelectAll={onSelectAll}
             />
             {dots.length > 0 && (
               <div style={{ position: 'relative', zIndex: 10, display: 'flex', gap: '3px', padding: '0 16px' }}>
@@ -690,6 +715,9 @@ export default function FullPlayer({
                 onEditCategories={onEditCategories}
                 user={user}
                 onGuestEdit={onGuestEdit}
+                showAllPill={showAllPill}
+                allScope={allScope}
+                onSelectAll={onSelectAll}
               />
             )}
 

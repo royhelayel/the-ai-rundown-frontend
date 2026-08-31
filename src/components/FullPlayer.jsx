@@ -677,7 +677,9 @@ export default function FullPlayer({
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>
             </div>
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 10px', gap: 10 }}>
+            {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
+                pixels lower than the other two modes' — enough to see when switching. */}
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
               <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>

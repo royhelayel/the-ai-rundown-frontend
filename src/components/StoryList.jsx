@@ -1,45 +1,28 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Play, FileText } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from '../theme';
+import { Pencil } from 'lucide-react';
+import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 import { SkeletonCategoryRows } from './SkeletonScreens';
 import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
-import CircleAction from './CircleAction';
 import RecapBar from './RecapBar';
 import { headlineKey } from './PopularTab';
 
-// ── Topic card — photo banner + two clearly-separate things ──────────────────
-//   Left:  "N stories · Browse →"   → the articles (opens the topic's story list)
-//   Right: "1-min recap"            → the AI summary of all N (opens the briefing reader)
-function CategoryImageHeader({ cat, color, image, onBrowse, onPlay, onBriefing, hasBriefing }) {
+// ── Category header — the recap chip, and nothing else ───────────────────────
+//
+// This was a photo banner with the category's name over it, and the recap chip beneath. The
+// photo was doing no work the pills and the chip weren't already doing: it named a category
+// you had just tapped to reach, and cost 168px of the screen before the first story. Neither
+// Swipe nor Listen shows one, and the point of the chip was that the recap looks the same in
+// all three modes — which it can't while one of them wraps it in a card the others don't have.
+function CategoryImageHeader({ cat, onPlay, onBriefing, hasBriefing }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.07)' }}>
-      {/* Photo banner */}
-      <div onClick={() => onBrowse?.(cat)} style={{ position: 'relative', height: 168, cursor: 'pointer' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: image ? `url(${image})` : 'none', backgroundColor: image ? 'transparent' : color, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-        {/* Softer scrim — only the top and bottom darken, so the photo breathes */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.28) 100%)' }} />
-        <div style={{ position: 'absolute', top: 11, left: 14, right: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CategoryIcon category={cat} size={18} color="#fff" />
-          <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{CATEGORY_SHORT[cat] || cat}</span>
-        </div>
-      </div>
-
-      {/* Footer — the recap, as the same chip Swipe and Listen use.
-          It was a full-width row of its own: a label plus a Read and a Listen circle, which
-          is a different object from the chip the other two modes show for the same thing.
-          One component now, so the category recap looks and behaves the same wherever you
-          meet it. */}
-      <div style={{ padding: '11px 14px' }}>
-        <RecapBar
-          category={cat}
-          onOpen={() => (hasBriefing && onBriefing) ? onBriefing(cat) : onPlay?.(cat)}
-          compact
-        />
-      </div>
-    </div>
+    <RecapBar
+      category={cat}
+      onOpen={() => (hasBriefing && onBriefing) ? onBriefing(cat) : onPlay?.(cat)}
+      compact
+    />
   );
 }
 
@@ -449,7 +432,6 @@ function buildSections({
           const catData     = briefingData[cat];
           const stories     = catData?.allStories || [];
           const color       = CATEGORY_COLORS[cat] || '#6366f1';
-          const image       = CATEGORY_IMAGES[cat] || null;
           const listenedSet = gamifiedStats?.todayProgress?.[cat]?.listenedIndices || new Set();
           if (stories.length === 0) return null;
 
@@ -464,10 +446,6 @@ function buildSections({
                 <div style={{ marginBottom: '14px' }}>
                   <CategoryImageHeader
                     cat={cat}
-                    catData={catData}
-                    color={color}
-                    image={image}
-                    onBrowse={handleBrowse}
                     onPlay={() => handlePlayCat(cat, 0)}
                     onBriefing={handleOpenBriefing}
                     hasBriefing={!!(catData?.briefing && catData.briefing.trim())}

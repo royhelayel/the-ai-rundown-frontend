@@ -272,6 +272,66 @@ export default function FullPlayer({
     />
   ));
 
+  // The playback controls — the progress line and the transport — as one block, because on
+  // the page they live inside the story card and in the sheet they sit under it. One
+  // definition, two placements; two copies would drift.
+  const playback = (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Speed and repeat live on the progress line: both are about *playback*, which is
+            what this line reports, and both are set-once settings. Bare text and a bare icon
+            rather than a pill and a filled circle — the play button should be the only filled
+            thing here. */}
+        <button
+          onClick={onSpeedCycle}
+          aria-label={`Playback speed ${playbackSpeed}×`}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
+          {playbackSpeed}×
+        </button>
+        <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: '99px', transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
+        </div>
+        <button
+          onClick={onRepeatToggle}
+          aria-label={repeatMode ? 'Repeat on' : 'Repeat off'}
+          aria-pressed={!!repeatMode}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
+          <Repeat size={15} />
+        </button>
+      </div>
+
+      {/* Grouped, not spread edge to edge: skip belongs to play, and pinned to the margins
+          the three read as three unrelated controls with a gap in the middle. Skip has no
+          disc — three filled circles in a row meant the one that matters stopped looking
+          like the one that matters. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px' }}>
+        <button
+          onClick={onPrev}
+          aria-label="Previous story"
+          style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
+          <Rewind size={24} />
+        </button>
+        <button
+          onClick={isLoading ? undefined : (isPaused ? onResume : (isNarrating ? onPause : onPlay))}
+          style={{ width: '62px', height: '62px', borderRadius: '50%', background: color, border: 'none', color: 'white', cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: UI_TRIAL.photoBackdrop ? `0 8px 28px ${color}60` : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+          {isLoading
+            ? <Loader size={26} style={{ animation: 'spin 0.8s linear infinite' }} />
+            : (isNarrating && !isPaused
+              ? <Pause size={23} fill="white" />
+              : <Play size={23} fill="white" style={{ marginLeft: '3px' }} />
+            )
+          }
+        </button>
+        <button
+          onClick={onNext}
+          aria-label="Next story"
+          style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
+          <FastForward size={24} />
+        </button>
+      </div>
+    </>
+  );
+
   // Two shells, one body.
   //
   // asPage is the Listen tab: the player IS the screen, so it sits in normal flow with no
@@ -430,9 +490,23 @@ export default function FullPlayer({
                 {CATEGORY_SHORT[category] || category}
               </span>
               <span style={{ flex: 1 }} />
-              {user && (
-                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+              {/* Takeaways / Full takes the corner the read status had. It changes what this
+                  card shows as much as what gets read aloud, so up here it reads as a switch
+                  on the content — which is what it is — rather than as a playback setting
+                  sitting on top of the transport. */}
+              {!isRecap && (
+                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
+                  {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
+                    const on = depthLevel === level;
+                    return (
+                      <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
+                        style={{ padding: '2px 9px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                          fontSize: '0.62rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                          background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </span>
               )}
             </div>
@@ -481,12 +555,23 @@ export default function FullPlayer({
                   </React.Fragment>
                 ))}
                 {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
+                {/* Read status moves down here, beside the sources — still on the card, still
+                    on its own line's right edge, but no longer holding a corner the depth
+                    switch makes better use of. */}
+                {user && (
+                  <>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: '0.62rem', fontWeight: 700, flexShrink: 0, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+                    </span>
+                  </>
+                )}
               </div>
             );
           })()}
 
-          {/* Interesting and Go deeper, docked at the bottom of the card — the same corners
-              the Swipe card gives them. */}
+          {/* Interesting and Go deeper, on the right — the same corner the Swipe card gives
+              them. */}
           {asPage && storyCount > 0 && !isRecap && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
@@ -499,126 +584,61 @@ export default function FullPlayer({
               />
             </div>
           )}
-        </div>
 
-        </div>
-
-        {/* Slack lives here now: between the story and the transport, where growing it just
-            opens up the screen rather than stranding the card. */}
-        {asPage && <div style={{ flex: 1, minHeight: 12, position: 'relative', zIndex: 10 }} />}
-
-        {/* ── How much gets read aloud.
-               It was a filled pill floating dead-centre in the gap between the story and the
-               transport, belonging to neither — and its second option was labelled "Go
-               deeper", the same words as the button forty pixels above it in the card, which
-               opens the summary sheet. Two different behaviours, one name.
-               So: "Full", and it sits with the playback controls, because that is what it
-               governs — the length of the narration, alongside its speed and repeat. Quiet
-               track rather than a filled pill; the play button is the only filled thing down
-               here. ── */}
-        {!isRecap && storyCount > 0 && (
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem 14px' }}>
-          <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
-            {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
-              const on = depthLevel === level;
-              return (
-                <button
-                  key={level}
-                  onClick={() => onSetDepth(level)}
-                  aria-pressed={on}
-                  style={{ padding: '3px 11px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                    fontSize: '0.7rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
-                    // The category's colour, not white — white made this the brightest thing
-                    // in the transport block, competing with the play button beside it.
-                    background: on ? color : 'transparent',
-                    color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        )}
-
-        {/* ── Progress bar ── */}
-        {storyCount > 0 && (
-        <div style={{ position: 'relative', zIndex: 10, padding: '0.6rem 1.5rem 0.5rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Speed and repeat live on the progress line: both are about *playback*, which is
-              what this line reports, and both are set-once settings. Bare text and a bare
-              icon rather than a pill and a filled circle — the card's actions below are the
-              buttons that should read as buttons, and four circles in two rows was too many
-              for one screen. */}
-          <button
-            onClick={onSpeedCycle}
-            aria-label={`Playback speed ${playbackSpeed}×`}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
-            {playbackSpeed}×
-          </button>
-          <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: '99px', transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
-          </div>
-          <button
-            onClick={onRepeatToggle}
-            aria-label={repeatMode ? 'Repeat on' : 'Repeat off'}
-            aria-pressed={!!repeatMode}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
-            <Repeat size={15} />
-          </button>
-        </div>
-        )}
-
-        {/* ── Controls. Hidden with nothing cued: transport that can't transport anything
-               invites taps that do nothing, and skip/next on an empty list is exactly how
-               the player used to wander off into another category. ── */}
-        {storyCount > 0 && (
-        <div style={{ position: 'relative', zIndex: 10, padding: '0.25rem 1.5rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
-          {/* Main controls */}
-          {/* Grouped, not spread edge to edge: skip belongs to play, and pinned to the
-              margins the three read as three unrelated controls with a gap in the middle. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginBottom: '1.25rem' }}>
-            {/* Skip loses its disc: three filled circles in a row meant the one that matters
-                stopped looking like the one that matters. Same tap target, no chrome. */}
-            <button
-              onClick={onPrev}
-              aria-label="Previous story"
-              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-              <Rewind size={24} />
-            </button>
-
-            <button
-              onClick={isLoading ? undefined : (isPaused ? onResume : (isNarrating ? onPause : onPlay))}
-              style={{ width: '62px', height: '62px', borderRadius: '50%', background: color, border: 'none', color: 'white', cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: UI_TRIAL.photoBackdrop ? `0 8px 28px ${color}60` : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
-              {isLoading
-                ? <Loader size={26} style={{ animation: 'spin 0.8s linear infinite' }} />
-                : (isNarrating && !isPaused
-                  ? <Pause size={23} fill="white" />
-                  : <Play size={23} fill="white" style={{ marginLeft: '3px' }} />
-                )
-              }
-            </button>
-
-            <button
-              onClick={onNext}
-              aria-label="Next story"
-              style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-              <FastForward size={24} />
-            </button>
-          </div>
-
-          {/* Secondary: the story's own two actions, in the corners, matching the cards.
-              Speed and repeat used to hold these corners — but they're playback settings you
-              set once, not things you do to this story, and giving them the widest, most
-              reachable slots put the furniture above the content. They move up beside the
-              progress bar; see above. */}
-          {/* Sheet only: on the page these live in the story card above, where the two cards
-              already put them. */}
-          {!asPage && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
-              <div />
+          {/* ── The player, inside the card.
+                 It sat in the lower third of the screen with nothing tying it to the story
+                 above, which is most of why this screen read as another swipeable card. In
+                 the card it is unmistakably a player: the story and the means of playing it
+                 are one object, sharing one border.
+                 Docked with `position: sticky` on the card's own bottom edge, so a story long
+                 enough to scroll keeps its transport in reach — the same technique the Swipe
+                 card uses for its action row. Bleeds to the card's edges through negative
+                 margins, and takes the card's own background, so the rule above it reads as a
+                 division of one panel rather than a second panel laid on top. ── */}
+          {asPage && storyCount > 0 && (
+            <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
+              margin: '14px -15px -11px', padding: '11px 15px 13px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(8,8,16,0.92)',
+              borderRadius: '0 0 15px 15px' }}>
+              {playback}
             </div>
           )}
         </div>
+
+        </div>
+
+        {/* Sheet only. On the page the depth switch sits in the card's top row and the
+               playback controls are docked inside the card itself — see above. ── */}
+        {!asPage && !isRecap && storyCount > 0 && (
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem 14px' }}>
+            <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+              {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
+                const on = depthLevel === level;
+                return (
+                  <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
+                    style={{ padding: '3px 11px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                      fontSize: '0.7rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                      background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {!asPage && storyCount > 0 && (
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '1.25rem',
+            padding: '0.6rem 1.5rem 0.25rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+            {playback}
+            {!isRecap && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
+              </div>
+            )}
+          </div>
         )}
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

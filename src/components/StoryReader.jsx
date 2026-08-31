@@ -464,13 +464,20 @@ export default function StoryReader({
 
   // ── Vertical swipe / wheel — content scrolls first, then the card pans at the edge ──
   const touchY = useRef(null);
-  const touchEdge = useRef({ top: true, bottom: true });
+  const dragBase = useRef(null);   // y at which the card began following the finger
   const wheelLock = useRef(false);
   const wheelQuietTimer = useRef(null);
   const WHEEL_QUIET_MS = 180; // see onWheel below
   useEffect(() => () => { if (wheelQuietTimer.current) clearTimeout(wheelQuietTimer.current); }, []);
-  const atTop = () => { const el = contentRef.current; return !el || el.scrollTop <= 1; };
-  const atBottom = () => { const el = contentRef.current; return !el || (el.scrollHeight - el.scrollTop - el.clientHeight) <= 1; };
+  // 4px, not 1. scrollHeight/scrollTop/clientHeight are fractional on a device with a
+  // non-integer pixel ratio, and a long card could settle a pixel and a half short of its
+  // own bottom — leaving atBottom() permanently false and the story impossible to swipe
+  // past however many times you tried. Short cards were never affected: they don't scroll,
+  // so the sum is zero and the edge is trivially true. That is why this only ever showed up
+  // on big stories.
+  const EDGE_SLOP = 4;
+  const atTop = () => { const el = contentRef.current; return !el || el.scrollTop <= EDGE_SLOP; };
+  const atBottom = () => { const el = contentRef.current; return !el || (el.scrollHeight - el.scrollTop - el.clientHeight) <= EDGE_SLOP; };
   const navBlocked = () => summaryOpen || recapOpen;
 
   // "Scroll to see the full story, then a harder swipe turns the page" is only discoverable
@@ -527,34 +534,53 @@ export default function StoryReader({
     if (committingRef.current) { touchY.current = null; return; } // let the commit finish undisturbed
     if (draggingRef.current) { draggingRef.current = false; applyOffset(0, false); } // stuck from a missed end/cancel
     touchY.current = e.touches[0].clientY;
-    touchEdge.current = { top: atTop(), bottom: atBottom() };
+    dragBase.current = null;
   };
+  // The edges are read live, every move — not once at touchstart.
+  //
+  // Captured at touchstart only, a card taller than the screen took two separate gestures:
+  // one to scroll to the bottom, then finger off, then another to swipe. Within a single
+  // motion the edge flags were still whatever they had been at the top of the story, so
+  // continuing to pull did nothing and the card felt stuck. Now reaching the bottom mid-pull
+  // hands the same motion over to the drag.
+  //
+  // dragBase is where that handover happened, and the offset is measured from there rather
+  // than from the start of the gesture — otherwise the card would jump by however far you
+  // had already scrolled, and the 70px commit threshold would already be spent.
   const onTouchMove = (e) => {
     if (navBlocked() || touchY.current == null || committingRef.current) return;
-    const dy = e.touches[0].clientY - touchY.current;
-    const draggingUp = dy < 0 && touchEdge.current.bottom && hasNext;
-    const draggingDown = dy > 0 && touchEdge.current.top && hasPrev;
+    const y = e.touches[0].clientY;
+    const travel = y - touchY.current;
+    const draggingUp = travel < 0 && atBottom() && hasNext;
+    const draggingDown = travel > 0 && atTop() && hasPrev;
     if (draggingUp || draggingDown) {
+      if (dragBase.current == null) dragBase.current = y;
       if (e.cancelable) e.preventDefault();
       draggingRef.current = true;
-      applyOffset(dy, false);
+      applyOffset(y - dragBase.current, false);
     } else if (draggingRef.current) {
       draggingRef.current = false;
+      dragBase.current = null;
       applyOffset(0, false);
     }
   };
   const onTouchEnd = (e) => {
     if (navBlocked() || touchY.current == null || committingRef.current) return;
-    const dy = e.changedTouches[0].clientY - touchY.current;
+    const y = e.changedTouches[0].clientY;
+    // Measured from the handover point when there was one, so the threshold means "pulled
+    // 70px past the end of the story", not "moved 70px in total including the scrolling".
+    const dy = y - (dragBase.current ?? touchY.current);
     touchY.current = null;
+    dragBase.current = null;
     draggingRef.current = false;
     const threshold = 70;
-    if (dy < -threshold && touchEdge.current.bottom && hasNext) commitTo('next');
-    else if (dy > threshold && touchEdge.current.top && hasPrev) commitTo('prev');
+    if (dy < -threshold && atBottom() && hasNext) commitTo('next');
+    else if (dy > threshold && atTop() && hasPrev) commitTo('prev');
     else applyOffset(0, true); // snap back under the same animation as a commit
   };
   const onTouchCancel = () => {
     touchY.current = null;
+    dragBase.current = null;
     if (draggingRef.current) {
       draggingRef.current = false;
       applyOffset(0, true);

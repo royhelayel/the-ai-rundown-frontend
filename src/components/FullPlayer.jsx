@@ -222,6 +222,25 @@ export default function FullPlayer({
   const excerpt  = bullets[0] || '';
   const outlets  = (story?.storySources || []).filter(so => so.outlet);
 
+  // How long this story takes to hear. Estimated from the narration text at 150 wpm rather
+  // than measured, because the number has to be there before you press play — that is the
+  // whole point of it. Once playing, the elapsed side is driven by real progress.
+  const clock = (sec) => {
+    const s = Math.max(0, Math.round(sec));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const spokenWords = [headline, ...(story?.allBullets || story?.tightBullets || [])]
+    .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length;
+  const estSeconds = Math.max(20, Math.round((spokenWords / 150) * 60));
+  const elapsedSeconds = estSeconds * ((narrationProgress || 0) / 100);
+
+  // A fixed bar pattern, not random: it must not reshuffle on every render, and a waveform
+  // here is a signifier rather than a reading of the audio — the honest version of it is a
+  // shape that says "sound", filled up to where you have got to.
+  const WAVE = [38, 62, 30, 78, 44, 56, 34, 70, 48, 84, 36, 52, 66, 40, 58, 32, 74, 46,
+                60, 36, 80, 42, 54, 30, 68, 50, 76, 38, 62, 34, 56, 72, 44, 64, 32, 58];
+
+
   // bg color as rgb for gradient stop
   const bgColor = colors.bg || '#0a0a14';
 
@@ -417,7 +436,10 @@ export default function FullPlayer({
                The sheet keeps the looser overlay: it's a panel over a card you came from. ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem 0.5rem' : '0 1.5rem 0.75rem' }}>
         <div style={asPage && storyCount > 0
-          ? { padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)', border: '1px solid rgba(255,255,255,0.08)' }
+          ? { padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)', border: '1px solid rgba(255,255,255,0.08)',
+              // Lifted off the ground: a single object that ends, rather than one that
+              // continues past the fold the way a swipeable stack does.
+              boxShadow: '0 12px 34px rgba(0,0,0,0.5)' }
           : undefined}>
           {/* Category left, read status right — the corners Swipe and Scroll both use. */}
           {asPage && storyCount > 0 && !isRecap && (
@@ -459,6 +481,28 @@ export default function FullPlayer({
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {excerpt}
             </p>
+          )}
+
+          {/* ── How long it takes to hear.
+                 Nothing in Swipe looks remotely like a duration, so this is what tells you at
+                 a glance that this screen is about listening rather than another card in a
+                 stack you can flick through. ── */}
+          {storyCount > 0 && !isRecap && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 0' }}>
+              <span style={{ fontSize: '0.66rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {clock(elapsedSeconds)}
+              </span>
+              <span aria-hidden style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1.5, height: 15 }}>
+                {WAVE.map((h, i) => {
+                  const played = (i / WAVE.length) * 100 < (narrationProgress || 0);
+                  return <span key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 1, minWidth: 1.5,
+                    background: played ? color : 'rgba(255,255,255,0.22)', transition: 'background 0.2s' }} />;
+                })}
+              </span>
+              <span style={{ fontSize: '0.66rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {clock(estSeconds)}
+              </span>
+            </div>
           )}
 
           {/* Sources — one muted line, capped at two outlets plus a count, exactly as the

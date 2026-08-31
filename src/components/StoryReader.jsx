@@ -916,6 +916,20 @@ export default function StoryReader({
         <>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, zIndex: 5, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, zIndex: 5, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
+
+          {/* The top edge of the next story, peeking above the dock.
+              A card clipped by the bottom of the screen is how a stack says "there is more
+              below" — the oldest signal in scrolling UI, and one Swipe was relying on a line
+              of text to say instead. It also gives Listen something to differ from: a card
+              that ends inside the screen there, one that runs off it here.
+              Decorative only — pointer-events off, and it lives with the scrims rather than
+              in the story layers, so it can't affect the swipe geometry. */}
+          {hasNext && (
+            <div aria-hidden style={{ position: 'absolute', left: '1rem', right: '1rem', bottom: 86, height: 16, zIndex: 6,
+              pointerEvents: 'none', borderRadius: '16px 16px 0 0',
+              background: 'rgba(8,8,16,0.78)', borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }} />
+          )}
         </>
       )}
 

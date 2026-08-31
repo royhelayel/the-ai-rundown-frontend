@@ -489,7 +489,7 @@ export default function FullPlayer({
                track rather than a filled pill; the play button is the only filled thing down
                here. ── */}
         {!isRecap && storyCount > 0 && (
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem' }}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem 14px' }}>
           <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
             {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
               const on = depthLevel === level;
@@ -500,8 +500,10 @@ export default function FullPlayer({
                   aria-pressed={on}
                   style={{ padding: '3px 11px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
                     fontSize: '0.7rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
-                    background: on ? 'rgba(255,255,255,0.92)' : 'transparent',
-                    color: on ? '#0a0a14' : 'rgba(255,255,255,0.6)' }}>
+                    // The category's colour, not white — white made this the brightest thing
+                    // in the transport block, competing with the play button beside it.
+                    background: on ? color : 'transparent',
+                    color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
                   {label}
                 </button>
               );
@@ -543,7 +545,9 @@ export default function FullPlayer({
         {storyCount > 0 && (
         <div style={{ position: 'relative', zIndex: 10, padding: '0.25rem 1.5rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
           {/* Main controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          {/* Grouped, not spread edge to edge: skip belongs to play, and pinned to the
+              margins the three read as three unrelated controls with a gap in the middle. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginBottom: '1.25rem' }}>
             {/* Skip loses its disc: three filled circles in a row meant the one that matters
                 stopped looking like the one that matters. Same tap target, no chrome. */}
             <button

@@ -750,7 +750,8 @@ export default function StoryReader({
                 label="Listen"
                 variant="filled"
                 theme="dark"
-                iconProps={{ fill: '#0a0a14', color: '#0a0a14', style: { marginLeft: 1 } }}
+                accent={col}
+                iconProps={{ fill: '#fff', color: '#fff', style: { marginLeft: 1 } }}
                 onClick={(e) => { e.stopPropagation(); onPlayFrom(entry.index); }}
                 aria-label={isNarrating ? 'Playing' : 'Listen to story'}
               />

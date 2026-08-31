@@ -30,8 +30,10 @@ export default function CircleAction({
   const idleBorder  = dark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.14)';
 
   const filled = variant === 'filled';
-  const fillBg = dark ? 'rgba(255,255,255,0.92)' : (accent || '#7c3aed');
-  const fillFg = dark ? '#0a0a14' : '#fff';
+  // An accent wins in both themes. Dark used to ignore it and fill with white, so the same
+  // Listen button was the category's colour in Scroll and a white disc in Swipe.
+  const fillBg = accent || (dark ? 'rgba(255,255,255,0.92)' : '#7c3aed');
+  const fillFg = accent ? '#fff' : (dark ? '#0a0a14' : '#fff');
 
   const circle = filled
     ? { border: '1.5px solid transparent', background: fillBg, color: fillFg }

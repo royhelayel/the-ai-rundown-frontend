@@ -59,8 +59,10 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
   // already on screen. Ghost rather than filled for the same reason: this is a secondary
   // offer next to the story, and a filled block competed with the card for first read.
   if (compact) {
-    // Sized and coloured to the mock: 4px/11px padding, a 10px radius and a 22px disc, which
-    // lands the chip at 32px rather than the 36 it had grown to.
+    // Taller than the mock on purpose. Matched to it exactly, the chip measured 32px against
+    // the mock's 31 — the same control — but the mock is viewed at roughly 2x, so what reads as
+    // a confident pill on a design board reads as a thin strip at arm's length. 40px is what
+    // gives it on the phone the presence the mock has on screen.
     //
     // The leading document icon is gone — it said the same thing as the disc on the other end
     // and the words in between. And the disc is the category's own colour with the summary
@@ -74,17 +76,17 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
           title={`Read the ${name} recap`}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '4px 4px 4px 11px', borderRadius: 10, cursor: 'pointer',
+            padding: '6px 6px 6px 14px', borderRadius: 12, cursor: 'pointer',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.16)' : `${accent}40`}`,
             background: dark ? 'rgba(255,255,255,0.04)' : `${accent}0f` }}>
-          <span style={{ fontSize: '0.73rem', fontWeight: 700, whiteSpace: 'nowrap',
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
             Category Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
           </span>
           <span aria-hidden
             style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 22, height: 22, borderRadius: '50%', background: disc }}>
-            <FileText size={11} color="#fff" />
+              width: 26, height: 26, borderRadius: '50%', background: disc }}>
+            <FileText size={13} color="#fff" />
           </span>
         </div>
       </div>

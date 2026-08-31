@@ -76,7 +76,7 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
                 key={cat}
                 ref={act ? activeRef : null}
                 onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
                   background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
                   color: c,
                   fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
@@ -356,7 +356,7 @@ export default function FullPlayer({
         {!isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
-          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, padding: '24px 16px 0', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
             <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
             <RecapBar category={category} storyCount={storyCount} theme="dark" compact
               onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />

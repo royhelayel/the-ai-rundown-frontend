@@ -196,7 +196,7 @@ export default function FeedHeader({
             <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
               {showAllPill && (
                 <button onClick={() => onSelectCategory?.(null)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
                     background: activeCategory === null ? 'rgba(0,0,0,0.08)' : 'transparent', color: activeCategory === null ? '#0a0a0f' : '#9ca3af',
                     fontSize: '0.84rem', fontWeight: activeCategory === null ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer' }}>
                   All
@@ -209,7 +209,7 @@ export default function FeedHeader({
                 const c = act ? (CATEGORY_COLORS[cat] || '#0a0a0f') : '#9ca3af';
                 return (
                   <button key={cat} ref={act ? activePillRef : null} onClick={() => onSelectCategory?.(cat)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
                       background: act ? 'rgba(0,0,0,0.08)' : 'transparent', color: c,
                       fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
                     <CategoryIcon category={cat} size={14} color={c} />

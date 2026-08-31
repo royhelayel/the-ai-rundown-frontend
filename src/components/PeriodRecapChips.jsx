@@ -31,12 +31,12 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, th
         title={`Read the ${label.toLowerCase()} recap`}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-          padding: '4px 4px 4px 11px', borderRadius: 10, cursor: 'pointer',
+          padding: '6px 6px 6px 14px', borderRadius: 12, cursor: 'pointer',
           border: `1px solid ${dark ? 'rgba(167,139,250,0.42)' : 'rgba(124,58,237,0.32)'}`,
           background: dark ? 'rgba(124,58,237,0.20)' : 'rgba(124,58,237,0.07)',
         }}
       >
-        <span style={{ fontSize: '0.73rem', fontWeight: 700, whiteSpace: 'nowrap', color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
+        <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
           {label}{' '}
           <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· {minutesOf(r.text)} min</span>
         </span>
@@ -45,11 +45,11 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, th
           aria-label={`Listen to the ${label.toLowerCase()} recap`}
           style={{
             flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer',
             background: accent,
           }}
         >
-          <Play size={10} fill={dark ? '#241a3d' : '#fff'} color={dark ? '#241a3d' : '#fff'} style={{ marginLeft: 1 }} />
+          <Play size={12} fill={dark ? '#241a3d' : '#fff'} color={dark ? '#241a3d' : '#fff'} style={{ marginLeft: 1 }} />
         </button>
       </div>
     );

@@ -1025,7 +1025,7 @@ export default function StoryReader({
                 // strip stops reading as twelve competing buttons over the photo.
                 <button key={cat} ref={act ? activeCatRef : null}
                   onClick={() => { if (act) return; setScope('category'); navTo(cat, 0); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: 'none',
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
                     background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
                     color: c,
                     fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
@@ -1050,7 +1050,7 @@ export default function StoryReader({
       {asPage && onOpenCategoryRecap && !showAllPill && (
         /* Sits clear of the rule above it: the recap belongs to the story area, not to the
            header block the rule closes, so it needs visible air rather than hugging it. */
-        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, padding: '24px 16px 0', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
           <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
           <RecapBar
             category={category}

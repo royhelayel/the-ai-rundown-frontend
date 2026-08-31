@@ -29,7 +29,7 @@ export default function CorpusToggle({ value = 'all', onChange, theme = 'light' 
         onClick={() => !active && onChange?.(key)}
         aria-pressed={active}
         style={{
-          padding: '5px 13px', borderRadius: 999, border: 'none',
+          padding: '7px 14px', borderRadius: 999, border: 'none',
           background: active ? onBg : 'transparent',
           color: active ? onFg : offFg,
           // The thumb sits on the track rather than being cut into it — a small drop is what

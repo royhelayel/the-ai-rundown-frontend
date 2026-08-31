@@ -7,6 +7,7 @@ import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
 import CircleAction from './CircleAction';
+import RecapBar from './RecapBar';
 import { headlineKey } from './PopularTab';
 
 // ── Topic card — photo banner + two clearly-separate things ──────────────────
@@ -26,36 +27,17 @@ function CategoryImageHeader({ cat, color, image, onBrowse, onPlay, onBriefing, 
         </div>
       </div>
 
-      {/* Footer — story count, recap, Listen.
-          The recap lives in the card, with the category it summarises. In the footer rather
-          than on the photo, where it used to sit: over an image it read as a caption and got
-          skipped, and it's competing with a headline there. Here it's a control among
-          controls, and the two actions sit side by side so the choice is visible. */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', gap: 8 }}>
-        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0a0a0f' }}>{CATEGORY_SHORT[cat] || cat} Category recap · 1 min</span>
-        <span style={{ flex: 1 }} />
-        {/* Same circle-and-caption pair the story cards below use — a category's actions and
-            a story's actions are the same two verbs, so they get the same shape. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          {hasBriefing && onBriefing && (
-            <CircleAction
-              Icon={FileText}
-              label="Read"
-              accent={color}
-              onClick={(e) => { e.stopPropagation(); onBriefing(cat); }}
-              aria-label={`Read the ${CATEGORY_SHORT[cat] || cat} recap`}
-            />
-          )}
-          <CircleAction
-            Icon={Play}
-            label="Listen"
-            variant="filled"
-            accent={color}
-            iconProps={{ fill: '#fff', color: '#fff', style: { marginLeft: 1 } }}
-            onClick={() => onPlay?.(cat)}
-            aria-label={`Listen to the ${CATEGORY_SHORT[cat] || cat} recap`}
-          />
-        </div>
+      {/* Footer — the recap, as the same chip Swipe and Listen use.
+          It was a full-width row of its own: a label plus a Read and a Listen circle, which
+          is a different object from the chip the other two modes show for the same thing.
+          One component now, so the category recap looks and behaves the same wherever you
+          meet it. */}
+      <div style={{ padding: '11px 14px' }}>
+        <RecapBar
+          category={cat}
+          onOpen={() => (hasBriefing && onBriefing) ? onBriefing(cat) : onPlay?.(cat)}
+          compact
+        />
       </div>
     </div>
   );

@@ -2735,6 +2735,7 @@ const TheAIRundown = () => {
   // downstream — colours, the card's category chip, the recap — reads selectedCategory, so
   // tagging plus syncing is all it takes; nothing else has to learn about scope.
   const [playerAllScope, setPlayerAllScope] = useState(false);
+  const [playerSummary, setPlayerSummary] = useState(null);   // Go deeper, opened from the player
   const playerShowAllPill = playerSourcePath.current === '/popular' || playerSourcePath.current === '/important';
 
   const enterAllScope = () => {
@@ -3519,12 +3520,12 @@ const TheAIRundown = () => {
           isStoryRead={sessionSeenRef.current.has(`${selectedCategory}|${storyIndex}`) || readTodaySet.has(`${selectedCategory}|${storyIndex}`)}
           // Summary opens the story in the reader with its sheet already up — the same sheet
           // the Summary button opens from a card, rather than a second copy of it here.
-          onOpenSummary={() => {
-            const from = playerSourcePath.current || '/';
-            narrateFnRef.current.stop();
-            setPlayerVisible(false);
-            navigate(`/category/${encodeURIComponent(selectedCategory)}/story/${storyIndex}`, { state: { from, openSummary: true } });
-          }}
+          // Go deeper opens the sheet over the player. It used to navigate to the story's
+          // own route, which dropped you out of Listen entirely — and because the state it
+          // passed had no `asPage`, that route rendered as the Scroll view rather than even
+          // Swipe. Nothing about wanting the detail of a story means wanting to leave the
+          // player, and it keeps playing underneath.
+          onOpenSummary={() => setPlayerSummary({ story: currentStory, category: selectedCategory, index: storyIndex })}
           showAllPill={playerShowAllPill}
           allScope={playerAllScope}
           onSelectAll={enterAllScope}
@@ -3637,6 +3638,20 @@ const TheAIRundown = () => {
           onPlay={() => handlePlayStory(catFromUrl, storyIdxFromUrl)}
           isInteresting={!!(viewStories[storyIdxFromUrl] && savedStories.some(s => headlineKey(s.headline || '') === headlineKey(viewStories[storyIdxFromUrl].headline || '')))}
           onToggleInteresting={() => viewStories[storyIdxFromUrl] && handleToggleSaved(viewStories[storyIdxFromUrl], catFromUrl, storyIdxFromUrl)}
+        />
+      )}
+
+      {/* ── Go deeper, from the player. Same sheet, over the top, so Listen is never left. ── */}
+      {playerSummary && (
+        <StorySummarySheet
+          fixed
+          open
+          story={playerSummary.story}
+          category={playerSummary.category}
+          onClose={() => setPlayerSummary(null)}
+          onPlay={() => { setPlayerSummary(null); onPlayFrom(playerSummary.index); }}
+          isInteresting={savedStories.some(x => headlineKey(x.headline || '') === headlineKey(playerSummary.story?.headline || ''))}
+          onToggleInteresting={() => handleToggleSaved(playerSummary.story, playerSummary.category, playerSummary.index)}
         />
       )}
 

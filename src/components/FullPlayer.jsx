@@ -476,12 +476,10 @@ export default function FullPlayer({
                could act on. The depth toggle and the transport stay below it.
                The sheet keeps the looser overlay: it's a panel over a card you came from. ── */}
         <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem 0.5rem' : '0 1.5rem 0.75rem' }}>
-        <div style={asPage && storyCount > 0
-          ? { padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)', border: '1px solid rgba(255,255,255,0.08)',
-              // Lifted off the ground: a single object that ends, rather than one that
-              // continues past the fold the way a swipeable stack does.
-              boxShadow: '0 12px 34px rgba(0,0,0,0.5)' }
-          : undefined}>
+        {/* No panel on the page any more — no border, no fill, no shadow. The story and the
+            player sit straight on the ground, the way they do in the sheet, which is what
+            makes the two read as one design rather than a card version and a sheet version. */}
+        <div style={asPage && storyCount > 0 ? { padding: '13px 15px 11px' } : undefined}>
           {/* Category left, read status right — the corners Swipe and Scroll both use. */}
           {asPage && storyCount > 0 && !isRecap && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
@@ -490,23 +488,9 @@ export default function FullPlayer({
                 {CATEGORY_SHORT[category] || category}
               </span>
               <span style={{ flex: 1 }} />
-              {/* Takeaways / Full takes the corner the read status had. It changes what this
-                  card shows as much as what gets read aloud, so up here it reads as a switch
-                  on the content — which is what it is — rather than as a playback setting
-                  sitting on top of the transport. */}
-              {!isRecap && (
-                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
-                  {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
-                    const on = depthLevel === level;
-                    return (
-                      <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                        style={{ padding: '2px 9px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                          fontSize: '0.62rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
-                          background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
-                        {label}
-                      </button>
-                    );
-                  })}
+              {user && (
+                <span style={{ fontSize: '0.66rem', fontWeight: 700, flexShrink: 0, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
                 </span>
               )}
             </div>
@@ -555,17 +539,6 @@ export default function FullPlayer({
                   </React.Fragment>
                 ))}
                 {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
-                {/* Read status moves down here, beside the sources — still on the card, still
-                    on its own line's right edge, but no longer holding a corner the depth
-                    switch makes better use of. */}
-                {user && (
-                  <>
-                    <span style={{ flex: 1 }} />
-                    <span style={{ fontSize: '0.62rem', fontWeight: 700, flexShrink: 0, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
-                    </span>
-                  </>
-                )}
               </div>
             );
           })()}
@@ -573,7 +546,22 @@ export default function FullPlayer({
           {/* Interesting and Go deeper, on the right — the same corner the Swipe card gives
               them. */}
           {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+              {/* Takeaways / Deeper on the left, the story's actions on the right. */}
+              <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
+                {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
+                  const on = depthLevel === level;
+                  return (
+                    <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
+                      style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                        fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                        background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </span>
+              <span style={{ flex: 1 }} />
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               <CircleAction
                 Icon={FileText}
@@ -597,11 +585,8 @@ export default function FullPlayer({
                  division of one panel rather than a second panel laid on top. ── */}
           {asPage && storyCount > 0 && (
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
-              margin: '14px -15px -11px', padding: '11px 15px 13px',
-              display: 'flex', flexDirection: 'column', gap: 12,
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(8,8,16,0.92)',
-              borderRadius: '0 0 15px 15px' }}>
+              margin: '16px 0 0',
+              display: 'flex', flexDirection: 'column', gap: 12 }}>
               {playback}
             </div>
           )}
@@ -614,7 +599,7 @@ export default function FullPlayer({
         {!asPage && !isRecap && storyCount > 0 && (
           <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem 14px' }}>
             <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
-              {[['takeaways', 'Takeaways'], ['deep', 'Full']].map(([level, label]) => {
+              {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
                 const on = depthLevel === level;
                 return (
                   <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}

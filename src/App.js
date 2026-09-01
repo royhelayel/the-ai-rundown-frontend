@@ -687,10 +687,18 @@ const TheAIRundown = () => {
 
   // Browser Web Speech API fallback — used when Fish Audio is unavailable
   // getVoices() is async in Chrome (returns [] until voiceschanged fires); we wait for it.
-  const speakWithBrowser = (text, onDone) => {
+  // `offset` / `fullText` exist so a speed change can restart mid-chunk without the progress
+  // bar jumping back to zero: the new utterance is a slice, but progress is still reported
+  // against the whole thing.
+  const speakWithBrowser = (text, onDone, offset = 0, fullText = null) => {
     if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
     window.speechSynthesis.cancel();
     const isAr = newsLanguage === 'ar';
+    const whole = fullText ?? text;
+    // Kept so the rate can be changed while this is speaking — see applySpeedToBrowserVoice.
+    narrationStateRef.current.browserText = whole;
+    narrationStateRef.current.browserOnDone = onDone;
+    narrationStateRef.current.browserCharIndex = offset;
 
     const doSpeak = (voices) => {
       if (!narrationStateRef.current.active) return;
@@ -707,8 +715,9 @@ const TheAIRundown = () => {
            voices.find(v => v.lang.startsWith('en')));
       if (targetVoice) utter.voice = targetVoice;
       utter.onboundary = (e) => {
-        if (e.name === 'word' && text.length > 0) {
-          setNarrationProgress(Math.min(99, (e.charIndex / text.length) * 100));
+        if (e.name === 'word' && whole.length > 0) {
+          narrationStateRef.current.browserCharIndex = offset + e.charIndex;
+          setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
         }
       };
       utter.onend = () => {
@@ -2181,13 +2190,35 @@ const TheAIRundown = () => {
     narrateFnRef.current.narrateStory(idx);
   };
 
+  // A speech-synthesis utterance fixes its rate when it starts and cannot be re-rated in
+  // flight, so changing speed used to do nothing audible until the next story — which is
+  // every story right now, because with TTS unavailable the browser voice is what plays.
+  // Restarting the current chunk from the word last spoken is the only way to apply it now;
+  // `canceling` swallows the onend that cancel() fires, which would otherwise be mistaken
+  // for the story finishing and skip to the next one.
+  const applySpeedToBrowserVoice = () => {
+    const st = narrationStateRef.current;
+    if (!('speechSynthesis' in window) || !window.speechSynthesis.speaking) return;
+    const { browserText: whole, browserOnDone: onDone } = st;
+    if (!whole || !onDone) return;
+    const from = Math.min(st.browserCharIndex || 0, Math.max(0, whole.length - 1));
+    st.canceling = true;
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+      st.canceling = false;
+      if (st.active && !st.paused) speakWithBrowser(whole.slice(from), onDone, from, whole);
+    }, 40);
+  };
+
   const handleSpeedCycle = () => {
     const SPEEDS_LIST = [0.75, 1, 1.25, 1.5, 2];
     const si = SPEEDS_LIST.indexOf(playbackSpeed);
     const next = SPEEDS_LIST[(si + 1) % SPEEDS_LIST.length];
     playbackSpeedRef.current = next;
     setPlaybackSpeed(next);
+    // The audio element re-rates in place; the browser voice has to be restarted.
     if (narrationStateRef.current.audio) narrationStateRef.current.audio.playbackRate = next;
+    else applySpeedToBrowserVoice();
   };
 
   const handleRepeatToggle = () => {
@@ -2795,9 +2826,15 @@ const TheAIRundown = () => {
   // keeps the promise "this stays in Swipe" — a switch to an empty lens is a no-op, not an
   // exit.
   // Leaving the Listen page for another mode. See the nav handler for why this is needed.
+  // Leaving Listen stops playback outright rather than handing it to the mini player.
+  //
+  // The player on this tab is the screen, not something floating over what you were doing —
+  // so switching to Swipe or Scroll is leaving it, not backgrounding it, and a mini bar
+  // appearing at the bottom of the next screen reads as something you now have to dismiss.
   const leaveListenPlayer = () => {
-    if (isNarrating) { setPlayerMinimized(true); setPlayerVisible(true); }
-    else { setPlayerVisible(false); setPlayerMinimized(false); }
+    narrateFnRef.current.stop();
+    setPlayerVisible(false);
+    setPlayerMinimized(false);
   };
 
   const enterStoriesForTab = (tabPath) => {

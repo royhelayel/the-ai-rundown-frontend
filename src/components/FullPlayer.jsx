@@ -612,35 +612,41 @@ export default function FullPlayer({
 
         </div>
 
-        {/* Sheet only. On the page the depth switch sits in the card's top row and the
-               playback controls are docked inside the card itself — see above. ── */}
-        {!asPage && !isRecap && storyCount > 0 && (
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', padding: '0 1.5rem 14px' }}>
-            <div style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
-              {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
-                const on = depthLevel === level;
-                return (
-                  <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                    style={{ padding: '3px 11px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                      fontSize: '0.7rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
-                      background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
+        {/* Sheet only — the page carries these inside its panel.
+               Same division as the page: the story's own action first, then everything that
+               belongs to playback. Interesting used to sit *below* the transport, which put a
+               control that acts on the story underneath the ones that act on the audio. ── */}
         {!asPage && storyCount > 0 && (
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '1.25rem',
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '1rem',
             padding: '0.6rem 1.5rem 0.25rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
-            {playback}
+
+            {/* The story's own action. */}
             {!isRecap && (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                 <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               </div>
             )}
+
+            {/* How much gets read aloud — a property of the playback, so it sits with it. */}
+            {!isRecap && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+                  {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
+                    const on = depthLevel === level;
+                    return (
+                      <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
+                        style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                          fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                          background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </span>
+              </div>
+            )}
+
+            {playback}
           </div>
         )}
 

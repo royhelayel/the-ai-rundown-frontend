@@ -475,11 +475,17 @@ export default function FullPlayer({
                corners) which read as chrome around a picture rather than as a story you
                could act on. The depth toggle and the transport stay below it.
                The sheet keeps the looser overlay: it's a panel over a card you came from. ── */}
-        <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem 0.5rem' : '0 1.5rem 0.75rem' }}>
-        {/* No panel on the page any more — no border, no fill, no shadow. The story and the
-            player sit straight on the ground, the way they do in the sheet, which is what
-            makes the two read as one design rather than a card version and a sheet version. */}
-        <div style={asPage && storyCount > 0 ? { padding: '13px 15px 11px' } : undefined}>
+        <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' : '0 1.5rem 0.75rem' }}>
+        {/* One panel around the story and the player together — trying whether a single
+            enclosure fixes the page reading as loose parts: headline here, actions there,
+            transport somewhere below, with nothing saying they belong to each other. The
+            wrapper is deliberately quiet: a hairline and the faintest lift off the ground,
+            not the heavy card this had before. */}
+        <div style={asPage && storyCount > 0
+          ? { padding: '14px 15px 12px', borderRadius: 18,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.09)' }
+          : undefined}>
           {/* Category left, read status right — the corners Swipe and Scroll both use. */}
           {asPage && storyCount > 0 && !isRecap && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
@@ -586,11 +592,6 @@ export default function FullPlayer({
           {asPage && storyCount > 0 && (
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
               margin: '16px 0 0',
-              // The slack sits above the story now, not below the transport, and this is the
-              // sheet's own clearance — together they land the controls at the same height in
-              // both shells instead of the page's sitting some eighty pixels higher above a
-              // band of dead space.
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
               display: 'flex', flexDirection: 'column', gap: 12 }}>
               {playback}
             </div>

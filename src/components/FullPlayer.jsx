@@ -556,23 +556,12 @@ export default function FullPlayer({
 
           {/* Interesting and Go deeper, on the right — the same corner the Swipe card gives
               them. */}
+          {/* The story's own actions, on their own line. Takeaways / Deeper used to share it,
+              which put a control that changes the narration in the same row as two that act
+              on the story — one line each keeps the two kinds apart: this row belongs to what
+              you are reading, the row below belongs to what is playing it. */}
           {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-              {/* Takeaways / Deeper on the left, the story's actions on the right. */}
-              <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
-                {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
-                  const on = depthLevel === level;
-                  return (
-                    <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                      style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                        fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
-                        background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </span>
-              <span style={{ flex: 1 }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               <CircleAction
                 Icon={FileText}
@@ -598,6 +587,24 @@ export default function FullPlayer({
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
               margin: '16px 0 0',
               display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* How much gets read aloud — a property of the playback, so it sits with it. */}
+              {!isRecap && (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+                    {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
+                      const on = depthLevel === level;
+                      return (
+                        <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
+                          style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
+                            fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                            background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </span>
+                </div>
+              )}
               {playback}
             </div>
           )}

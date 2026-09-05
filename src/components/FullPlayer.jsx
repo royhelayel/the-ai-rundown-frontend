@@ -465,7 +465,7 @@ export default function FullPlayer({
                controls that scope it. It used to be the flexible one, which parked the card
                in the middle of an empty band once the flat ground removed the photo that had
                been filling that space. Slack now pools *below* the card instead. ── */}
-        <div style={{ flex: asPage ? '0 0 auto' : 1, height: asPage ? 24 : undefined, position: 'relative', zIndex: 10 }} />
+        <div style={{ flex: 1, minHeight: asPage ? 24 : 0, position: 'relative', zIndex: 10 }} />
 
         {/* ── The story, as a card.
                On the page this is Swipe's card, part for part: category and read status on
@@ -586,6 +586,11 @@ export default function FullPlayer({
           {asPage && storyCount > 0 && (
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
               margin: '16px 0 0',
+              // The slack sits above the story now, not below the transport, and this is the
+              // sheet's own clearance — together they land the controls at the same height in
+              // both shells instead of the page's sitting some eighty pixels higher above a
+              // band of dead space.
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
               display: 'flex', flexDirection: 'column', gap: 12 }}>
               {playback}
             </div>

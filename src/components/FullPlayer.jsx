@@ -465,7 +465,12 @@ export default function FullPlayer({
                controls that scope it. It used to be the flexible one, which parked the card
                in the middle of an empty band once the flat ground removed the photo that had
                been filling that space. Slack now pools *below* the card instead. ── */}
-        <div style={{ flex: 1, minHeight: asPage ? 24 : 0, position: 'relative', zIndex: 10 }} />
+        {/* Fixed on the page, flexible in the sheet. Flexible here pinned the panel to the
+            bottom and collected every spare pixel into one 90px void under the lens — with
+            the story and the transport now enclosed in a single box, that gap read as the
+            box having been pushed away from the controls above it. The panel sits up under
+            the lens instead and the slack falls below it. */}
+        <div style={{ flex: asPage ? '0 0 auto' : 1, height: asPage ? 24 : undefined, position: 'relative', zIndex: 10 }} />
 
         {/* ── The story, as a card.
                On the page this is Swipe's card, part for part: category and read status on

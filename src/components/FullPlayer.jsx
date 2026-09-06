@@ -454,7 +454,7 @@ export default function FullPlayer({
         {/* ── Category recap, then the lens: two rows above the story, at Swipe's spacing.
                They were one row with the recap left and the lens right, which is neither
                screen's arrangement and left the lens sharing a line with content. ── */}
-        {!isRecap && storyCount > 0 && onOpenRecap && (
+        {!asPage && !isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
           <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
@@ -742,17 +742,9 @@ export default function FullPlayer({
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>
             </div>
-            {/* ── Trying the nav as one panel. Four rows each started on their own left edge
-                   — 19, 22, 0 — against the story card's 16, close enough to read as a
-                   mistake rather than a rhythm. One enclosure gives them a single edge to
-                   share. Same hairline and same faint lift as the story card, so the page
-                   reads as two objects of the same family rather than a box above a box. ── */}
-            <div style={{ margin: '10px 16px 0', borderRadius: RADIUS.md,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.09)' }}>
             {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
                 pixels lower than the other two modes' — enough to see when switching. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '10px 12px 2px', gap: 10 }}>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
               <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
@@ -779,9 +771,14 @@ export default function FullPlayer({
                 )}
               </div>
             </div>
-            {/* Topics close the header, the same order the other two tabs use: wordmark,
-                scope, topic, rule. The recap moved down onto the artwork — it was the only
-                piece of content sitting in a strip of controls. */}
+            {/* ── The box holds the topics and the recaps: the two things that say what you
+                   are looking at. Scope and day stay above it, bare — those change the whole
+                   page, so they read as the page's own title bar rather than as another
+                   thing in the box. Same hairline and lift as the story card, so the page is
+                   two objects of one family. ── */}
+            <div style={{ margin: '4px 16px 0', borderRadius: RADIUS.md,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.09)' }}>
             {contextCategories.length > 0 && (
               <CatStrip
                 contextCategories={contextCategories}
@@ -797,9 +794,23 @@ export default function FullPlayer({
               />
             )}
 
+            {/* The recaps join the topics inside the box — both answer "what am I looking
+                at", and the recap was the one piece of content stranded on its own line. */}
+            {asPage && !isRecap && storyCount > 0 && onOpenRecap && (
+              <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '2px 12px 12px', overflowX: 'auto', scrollbarWidth: 'none',
+                maskImage: 'linear-gradient(to right, #000 calc(100% - 24px), transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, #000 calc(100% - 24px), transparent)' }}>
+                <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
+                <RecapBar category={category} storyCount={storyCount} theme="dark" compact
+                  onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+                <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
+                  onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+              </div>
+            )}
             </div>
             {/* The progress moved onto the story card, where the thing being progressed
-                through actually is. The panel's own bottom edge now closes the header. */}
+                through actually is. */}
           </div>
         </div>
 

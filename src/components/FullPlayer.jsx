@@ -47,7 +47,7 @@ function tintForDark(hex, amount = 0.45) {
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 // ── Category strip (auto-scrolls active pill into view) ───────────────────────
-function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll }) {
+function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll, gutter = 16 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -71,15 +71,19 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
           onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
           aria-label="Choose your topics"
           title="Choose your topics"
-          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: RADIUS.sm, border: 'none',
+          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: gutter, borderRadius: RADIUS.sm, border: 'none',
             background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <SlidersHorizontal size={ICON.sm} />
         </button>
       )}
 
-      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
+      {/* Fades at the trailing edge instead of ending on a hard cut. Off-screen, a
+          half-pill reads as "there is more"; against a border it just reads as clipped. */}
+      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none',
+        maskImage: `linear-gradient(to right, #000 calc(100% - ${gutter + 12}px), transparent)`,
+        WebkitMaskImage: `linear-gradient(to right, #000 calc(100% - ${gutter + 12}px), transparent)` }}>
+        <div style={{ display: 'flex', gap: 8, padding: `8px ${gutter}px 9px`, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, in rank order across every category. Popular and
               Interesting are cross-category lists, so the whole list is a scope in its own
               right and not just the union of the pills beside it. Same control, same rule as
@@ -503,6 +507,15 @@ export default function FullPlayer({
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.09)' }
           : undefined}>
+          {/* Story progress, on the card's own top edge — it counts stories, so it belongs to
+              the thing showing one. Bled out through the card's padding and given the card's
+              top radius so it sits *in* the edge rather than on a line of its own. */}
+          {asPage && storyCount > 0 && dots.length > 0 && (
+            <div style={{ display: 'flex', gap: '3px', margin: '-14px -15px 14px',
+              borderRadius: '13px 13px 0 0', overflow: 'hidden' }}>
+              {dots}
+            </div>
+          )}
           {/* Category left, read status right — the corners Swipe and Scroll both use. */}
           {asPage && storyCount > 0 && !isRecap && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
@@ -729,9 +742,17 @@ export default function FullPlayer({
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>
             </div>
+            {/* ── Trying the nav as one panel. Four rows each started on their own left edge
+                   — 19, 22, 0 — against the story card's 16, close enough to read as a
+                   mistake rather than a rhythm. One enclosure gives them a single edge to
+                   share. Same hairline and same faint lift as the story card, so the page
+                   reads as two objects of the same family rather than a box above a box. ── */}
+            <div style={{ margin: '10px 16px 0', borderRadius: RADIUS.md,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.09)' }}>
             {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
                 pixels lower than the other two modes' — enough to see when switching. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '10px 12px 2px', gap: 10 }}>
               <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
@@ -772,20 +793,13 @@ export default function FullPlayer({
                 showAllPill={showAllPill}
                 allScope={allScope}
                 onSelectAll={onSelectAll}
+                gutter={12}
               />
             )}
 
-            {/* The rule under the topics IS the story progress — one 3px line doing both
-                jobs, instead of a hairline border and a separate strip of dots twenty
-                pixels apart. Tapping a segment still jumps to that story. Falls back to a
-                plain border when there's nothing to be partway through. */}
-            {dots.length > 0 ? (
-              <div style={{ display: 'flex', gap: '3px' }}>
-                {dots}
-              </div>
-            ) : (
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
-            )}
+            </div>
+            {/* The progress moved onto the story card, where the thing being progressed
+                through actually is. The panel's own bottom edge now closes the header. */}
           </div>
         </div>
 

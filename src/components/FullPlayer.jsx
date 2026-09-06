@@ -586,7 +586,7 @@ export default function FullPlayer({
                  division of one panel rather than a second panel laid on top. ── */}
           {asPage && storyCount > 0 && (
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
-              margin: '16px 0 0',
+              margin: '30px 0 0',
               display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* How much gets read aloud — a property of the playback, so it sits with it. */}
               {!isRecap && (
@@ -623,7 +623,7 @@ export default function FullPlayer({
 
             {/* The story's own action. */}
             {!isRecap && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 14 }}>
                 <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               </div>
             )}

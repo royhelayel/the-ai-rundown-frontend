@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
-         TYPE, WEIGHT, RADIUS, ICON, SEMANTIC } from '../theme';
+         TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -740,7 +740,7 @@ export default function FullPlayer({
             </div>
             {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
                 pixels lower than the other two modes' — enough to see when switching. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
               <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
@@ -770,8 +770,11 @@ export default function FullPlayer({
             {/* One rule, edge to edge, between what scopes the whole page and what picks a
                 topic inside it. A full-bleed line rather than one inset to 16: it is chrome,
                 not content, and at the gutter it read as an underline belonging to the row
-                above rather than as a division between two. */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
+                above rather than as a division between two.
+                SPACE.md clear on both sides — the row above pads to 16, and 8 here plus the
+                strip's own 8 makes 16 below. A divider with unequal air belongs to whichever
+                side it sits closer to. */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
             {contextCategories.length > 0 && (
               <CatStrip
                 contextCategories={contextCategories}

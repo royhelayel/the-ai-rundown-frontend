@@ -78,11 +78,7 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
         </button>
       )}
 
-      {/* Fades at the trailing edge instead of ending on a hard cut. Off-screen, a
-          half-pill reads as "there is more"; against a border it just reads as clipped. */}
-      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none',
-        maskImage: `linear-gradient(to right, #000 calc(100% - ${gutter + 12}px), transparent)`,
-        WebkitMaskImage: `linear-gradient(to right, #000 calc(100% - ${gutter + 12}px), transparent)` }}>
+      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
         <div style={{ display: 'flex', gap: 8, padding: `8px ${gutter}px 9px`, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, in rank order across every category. Popular and
               Interesting are cross-category lists, so the whole list is a scope in its own
@@ -454,7 +450,7 @@ export default function FullPlayer({
         {/* ── Category recap, then the lens: two rows above the story, at Swipe's spacing.
                They were one row with the recap left and the lens right, which is neither
                screen's arrangement and left the lens sharing a line with content. ── */}
-        {!asPage && !isRecap && storyCount > 0 && onOpenRecap && (
+        {!isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
           <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
@@ -771,14 +767,11 @@ export default function FullPlayer({
                 )}
               </div>
             </div>
-            {/* ── The box holds the topics and the recaps: the two things that say what you
-                   are looking at. Scope and day stay above it, bare — those change the whole
-                   page, so they read as the page's own title bar rather than as another
-                   thing in the box. Same hairline and lift as the story card, so the page is
-                   two objects of one family. ── */}
-            <div style={{ margin: '4px 16px 0', borderRadius: RADIUS.md,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.09)' }}>
+            {/* One rule, edge to edge, between what scopes the whole page and what picks a
+                topic inside it. A full-bleed line rather than one inset to 16: it is chrome,
+                not content, and at the gutter it read as an underline belonging to the row
+                above rather than as a division between two. */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
             {contextCategories.length > 0 && (
               <CatStrip
                 contextCategories={contextCategories}
@@ -790,25 +783,9 @@ export default function FullPlayer({
                 showAllPill={showAllPill}
                 allScope={allScope}
                 onSelectAll={onSelectAll}
-                gutter={12}
               />
             )}
 
-            {/* The recaps join the topics inside the box — both answer "what am I looking
-                at", and the recap was the one piece of content stranded on its own line. */}
-            {asPage && !isRecap && storyCount > 0 && onOpenRecap && (
-              <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'flex-start', gap: 8,
-                padding: '2px 12px 12px', overflowX: 'auto', scrollbarWidth: 'none',
-                maskImage: 'linear-gradient(to right, #000 calc(100% - 24px), transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, #000 calc(100% - 24px), transparent)' }}>
-                <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
-                <RecapBar category={category} storyCount={storyCount} theme="dark" compact
-                  onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
-                <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
-                  onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
-              </div>
-            )}
-            </div>
             {/* The progress moved onto the story card, where the thing being progressed
                 through actually is. */}
           </div>

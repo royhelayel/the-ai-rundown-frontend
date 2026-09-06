@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -940,7 +940,7 @@ export default function StoryReader({
               positioned child of this row, so its z-index only wins within this row's own
               stacking context — against the category strip and recap/lens rows below it,
               which tie on 6 and win on DOM order, it painted underneath and got clipped. */}
-          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: '11px 16px 6px', gap: 10 }}>
+          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
             <CorpusToggle
               value={activeTabPath === '/my-feed' ? 'mine' : 'all'}
               onChange={(c) => onSwitchStoriesTab?.(c === 'mine' ? '/my-feed' : '/')}
@@ -998,12 +998,15 @@ export default function StoryReader({
         </div>
       )}
 
+      {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
+          inside it. SPACE.md clear on both sides — the row above pads to 16, and 8 here plus
+          the strip's own 8 makes 16 below. A divider with unequal air belongs to whichever
+          side it sits closer to. Same as Listen. */}
+      <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
+
       {/* ── Category pills — quick jump across topics ── */}
       {contextCategories.length > 1 && (
-        /* Rule sits under the pills rather than over them, so the wordmark, the scope row
-           and the topics read as one header block and the rule separates that block from
-           the story below it — rather than splitting the header's own two halves. */
-        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center' }}>
         {/* Same control, same place as Scroll mode's — outside the scroller, so it holds
             still while the pills move past it. */}
         {onEditCategories && (

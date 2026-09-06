@@ -151,3 +151,56 @@ export const UI_TRIAL = {
   photoBackdrop: false,
   navIcons: true,
 };
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+//
+// Agreed 2026-09. Before this the only shared tokens were the category colours below:
+// everything else was decided inline, 33 components over, which is how the app arrived at 39
+// distinct font sizes and 29 radii — and why the same story headline rendered at three
+// different sizes depending on the mode you were in.
+//
+// Twenty-six values. Every one is already used somewhere in the app; the work was choosing
+// which, not inventing more. If a screen needs a twenty-seventh, that is a conversation.
+
+// Five sizes. There is no separate heading size: a section heading is a `display`, because
+// nothing in this app needs a heading that differs from a headline.
+export const TYPE = {
+  display: '1.2rem',   // every story headline, in every mode, and every section heading
+  body:    '0.92rem',  // takeaways, summaries, prose
+  ui:      '0.84rem',  // pills, toggles, buttons, dates
+  meta:    '0.72rem',  // sources, counts, captions
+  micro:   '0.62rem',  // uppercase labels under icons
+};
+
+// Three. 900 is indistinguishable from 800 at these sizes and the system stack may have no
+// true 900 to render; 700 is a third grade of bold between 600 and 800 that nobody can see.
+// Numbers, never strings — the codebase currently has both.
+export const WEIGHT = { body: 400, ui: 600, strong: 800 };
+
+// Three, plus the circle. `md` covers everything that encloses content, so a chip, a card, a
+// panel and a sheet's top corners are all the same shape.
+export const RADIUS = { sm: 8, md: 14, pill: 999, circle: '50%' };
+
+// Four values — not "a multiple of 4", which still permits 12, 20, 28 and 36, and that is
+// precisely how 39 font sizes happened.
+export const SPACE = { xs: 4, sm: 8, md: 16, lg: 24 };
+
+// Three: inline with text, on a control, and the transport.
+export const ICON = { sm: 14, md: 18, lg: 24 };
+
+// Two. In-place changes, and a sheet arriving or leaving.
+export const MOTION = { quick: '200ms', sheet: '380ms', sheetEase: 'cubic-bezier(0.32,0.72,0,1)' };
+
+// Five. `#0a0a0f` and `#0a0a14` were two names for the same near-black, five hundredths of a
+// percent of luminance apart; one survives and serves as both the dark ground and the ink on
+// light. White had two spellings too.
+export const NEUTRAL = {
+  ink:       '#0a0a14',
+  page:      '#f5f5f7',
+  surface:   '#ffffff',
+  secondary: '#6b7280',
+  muted:     '#9ca3af',
+};
+
+// The only semantic colour. Green means read, and means nothing else.
+export const SEMANTIC = { read: '#4ade80' };

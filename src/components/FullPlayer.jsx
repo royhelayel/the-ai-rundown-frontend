@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
-import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL } from '../theme';
+import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
+         TYPE, WEIGHT, RADIUS, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -59,10 +60,10 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
           onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
           aria-label="Choose your topics"
           title="Choose your topics"
-          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
+          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: RADIUS.sm, border: 'none',
             background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <SlidersHorizontal size={14} />
+          <SlidersHorizontal size={ICON.sm} />
         </button>
       )}
 
@@ -77,10 +78,10 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
             <>
               <button
                 onClick={() => { if (!allScope) onSelectAll?.(); }}
-                style={{ display: 'flex', alignItems: 'center', padding: '8px 13px', borderRadius: 9, border: 'none',
+                style={{ display: 'flex', alignItems: 'center', padding: '8px 13px', borderRadius: RADIUS.sm, border: 'none',
                   background: allScope ? 'rgba(255,255,255,0.20)' : 'transparent',
                   color: allScope ? '#fff' : 'rgba(255,255,255,0.55)',
-                  fontSize: '0.84rem', fontWeight: allScope ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
+                  fontSize: TYPE.ui, fontWeight: allScope ? WEIGHT.strong : WEIGHT.ui, whiteSpace: 'nowrap', flexShrink: 0,
                   cursor: allScope ? 'default' : 'pointer' }}>
                 All
               </button>
@@ -95,13 +96,13 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
                 key={cat}
                 ref={act ? activeRef : null}
                 onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: RADIUS.sm, border: 'none',
                   background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
                   color: c,
-                  fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
+                  fontSize: TYPE.ui, fontWeight: act ? WEIGHT.strong : WEIGHT.ui, whiteSpace: 'nowrap', flexShrink: 0,
                   cursor: act ? 'default' : 'pointer' }}
               >
-                <CategoryIcon category={cat} size={14} color={c} />
+                <CategoryIcon category={cat} size={ICON.sm} color={c} />
                 {CATEGORY_SHORT[cat] || cat}
               </button>
             );
@@ -268,7 +269,7 @@ export default function FullPlayer({
     <button
       key={i}
       onClick={() => onGoToStory?.(i)}
-      style={{ flex: 1, height: '3px', border: 'none', borderRadius: '99px', cursor: 'pointer', padding: 0, background: i === storyIndex ? 'white' : i < storyIndex ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
+      style={{ flex: 1, height: '3px', border: 'none', borderRadius: RADIUS.pill, cursor: 'pointer', padding: 0, background: i === storyIndex ? 'white' : i < storyIndex ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
     />
   ));
 
@@ -285,18 +286,18 @@ export default function FullPlayer({
         <button
           onClick={onSpeedCycle}
           aria-label={`Playback speed ${playbackSpeed}×`}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
           {playbackSpeed}×
         </button>
-        <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: '99px', transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
+        <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: RADIUS.pill, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: RADIUS.pill, transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
         </div>
         <button
           onClick={onRepeatToggle}
           aria-label={repeatMode ? 'Repeat on' : 'Repeat off'}
           aria-pressed={!!repeatMode}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
-          <Repeat size={15} />
+          <Repeat size={ICON.md} />
         </button>
       </div>
 
@@ -309,7 +310,7 @@ export default function FullPlayer({
           onClick={onPrev}
           aria-label="Previous story"
           style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-          <Rewind size={24} />
+          <Rewind size={ICON.lg} />
         </button>
         <button
           onClick={isLoading ? undefined : (isPaused ? onResume : (isNarrating ? onPause : onPlay))}
@@ -326,7 +327,7 @@ export default function FullPlayer({
           onClick={onNext}
           aria-label="Next story"
           style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
-          <FastForward size={24} />
+          <FastForward size={ICON.lg} />
         </button>
       </div>
     </>
@@ -382,7 +383,7 @@ export default function FullPlayer({
             onClick={onClose}
             aria-label="Close player"
             style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
-            <X size={20} />
+            <X size={ICON.md} />
           </button>
           )}
           {/* Absolutely centered breadcrumb — unaffected by button widths. Sheet only: on the
@@ -390,8 +391,8 @@ export default function FullPlayer({
               active pill) the category, so this restated all three over the artwork. */}
           {!asPage && (
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-            <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
-            <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
+            <p style={{ margin: 0, fontSize: TYPE.micro, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
+            <p style={{ margin: '0.1rem 0 0', fontSize: TYPE.ui, fontWeight: WEIGHT.strong, color: 'rgba(255,255,255,0.9)' }}>
               {isRecap ? `${category} Recap` : storyCount === 0 ? category : `${category} · ${storyIndex + 1} of ${storyCount}`}
             </p>
           </div>
@@ -401,7 +402,7 @@ export default function FullPlayer({
             onClick={onMinimize}
             aria-label="Minimize player"
             style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', flexShrink: 0, position: 'relative', zIndex: 1 }}>
-            <ChevronDown size={20} />
+            <ChevronDown size={ICON.md} />
           </button>
           )}
         </div>
@@ -487,20 +488,20 @@ export default function FullPlayer({
             wrapper is deliberately quiet: a hairline and the faintest lift off the ground,
             not the heavy card this had before. */}
         <div style={asPage && storyCount > 0
-          ? { padding: '14px 15px 12px', borderRadius: 18,
+          ? { padding: '14px 15px 12px', borderRadius: RADIUS.md,
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.09)' }
           : undefined}>
           {/* Category left, read status right — the corners Swipe and Scroll both use. */}
           {asPage && storyCount > 0 && !isRecap && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.66rem', fontWeight: 800, color: tintForDark(CATEGORY_COLORS[category]), textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <CategoryIcon category={category} size={11} color={tintForDark(CATEGORY_COLORS[category])} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: TYPE.micro, fontWeight: WEIGHT.strong, color: tintForDark(CATEGORY_COLORS[category]), textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <CategoryIcon category={category} size={ICON.sm} color={tintForDark(CATEGORY_COLORS[category])} />
                 {CATEGORY_SHORT[category] || category}
               </span>
               <span style={{ flex: 1 }} />
               {user && (
-                <span style={{ fontSize: '0.66rem', fontWeight: 700, flexShrink: 0, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: TYPE.micro, fontWeight: WEIGHT.strong, flexShrink: 0, color: isStoryRead ? SEMANTIC.read : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
                 </span>
               )}
@@ -511,7 +512,7 @@ export default function FullPlayer({
               you switch to listening to it. An evening-incremental story reads NEW until
               it's opened, then Read like any other. */}
           {!asPage && user && storyCount > 0 && !isRecap && (
-            <p style={{ margin: '0 0 6px', fontSize: '0.66rem', fontWeight: 700, color: isStoryRead ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <p style={{ margin: '0 0 6px', fontSize: TYPE.micro, fontWeight: WEIGHT.strong, color: isStoryRead ? SEMANTIC.read : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
             </p>
           )}
@@ -519,7 +520,7 @@ export default function FullPlayer({
               date picker — the card would otherwise be blank under a "1 of 0" breadcrumb,
               which reads as a failed load rather than an empty day. Says what the other tabs
               say in the same situation. */}
-          <h2 style={{ margin: '0 0 0.55rem', fontSize: storyCount === 0 ? '1rem' : '1.35rem', fontWeight: storyCount === 0 ? '700' : '900', color: storyCount === 0 ? 'rgba(255,255,255,0.6)' : '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
+          <h2 style={{ margin: '0 0 0.55rem', fontSize: storyCount === 0 ? TYPE.body : TYPE.display, fontWeight: storyCount === 0 ? WEIGHT.ui : WEIGHT.strong, color: storyCount === 0 ? 'rgba(255,255,255,0.6)' : '#ffffff', lineHeight: 1.22, letterSpacing: '-0.025em' }}>
             {storyCount === 0
               ? (lens === 'popular' ? 'Nothing popular yet today.'
                 : lens === 'interesting' ? 'Nothing marked interesting yet today.'
@@ -528,7 +529,7 @@ export default function FullPlayer({
           </h2>
           {/* Excerpt */}
           {excerpt && (
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            <p style={{ margin: 0, fontSize: TYPE.body, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {excerpt}
             </p>
           )}
@@ -538,7 +539,7 @@ export default function FullPlayer({
           {asPage && storyCount > 0 && !isRecap && outlets.length > 0 && (() => {
             const shown = outlets.slice(0, 2);
             const rest = outlets.length - shown.length;
-            const src = { fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
+            const src = { fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '9px 0 0', overflow: 'hidden' }}>
                 {shown.map((so, i) => (
@@ -590,13 +591,13 @@ export default function FullPlayer({
               {/* How much gets read aloud — a property of the playback, so it sits with it. */}
               {!isRecap && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+                  <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.pill, padding: 2 }}>
                     {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
                       const on = depthLevel === level;
                       return (
                         <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                          style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                            fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                          style={{ padding: '3px 10px', borderRadius: RADIUS.pill, border: 'none', cursor: on ? 'default' : 'pointer',
+                            fontSize: TYPE.micro, fontWeight: on ? WEIGHT.strong : WEIGHT.ui, transition: 'all 0.15s',
                             background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
                           {label}
                         </button>
@@ -630,13 +631,13 @@ export default function FullPlayer({
             {/* How much gets read aloud — a property of the playback, so it sits with it. */}
             {!isRecap && (
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: 2 }}>
+                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.pill, padding: 2 }}>
                   {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
                     const on = depthLevel === level;
                     return (
                       <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                        style={{ padding: '3px 10px', borderRadius: 999, border: 'none', cursor: on ? 'default' : 'pointer',
-                          fontSize: '0.66rem', fontWeight: on ? 800 : 600, transition: 'all 0.15s',
+                        style={{ padding: '3px 10px', borderRadius: RADIUS.pill, border: 'none', cursor: on ? 'default' : 'pointer',
+                          fontSize: TYPE.micro, fontWeight: on ? WEIGHT.strong : WEIGHT.ui, transition: 'all 0.15s',
                           background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
                         {label}
                       </button>
@@ -704,7 +705,7 @@ export default function FullPlayer({
         <div style={{ position: 'relative', zIndex: 20, flexShrink: 0 }}>
           <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
             <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: TYPE.meta, fontWeight: WEIGHT.strong, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>
@@ -717,20 +718,20 @@ export default function FullPlayer({
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
                 <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: availableDays.length ? 'pointer' : 'default' }}>
-                  <Calendar size={12} color="rgba(255,255,255,0.6)" />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
-                  {availableDays.length > 0 && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
+                  <Calendar size={ICON.sm} color="rgba(255,255,255,0.6)" />
+                  <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
+                  {availableDays.length > 0 && <ChevronDown size={ICON.sm} color="rgba(255,255,255,0.6)" />}
                 </button>
                 {dayPickerOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: RADIUS.md, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {availableDays.map(day => {
                       const active = day.fullDate === selectedDay;
                       return (
                         <button key={day.fullDate}
                           onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: '0.78rem', fontWeight: active ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: RADIUS.sm, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: TYPE.ui, fontWeight: active ? WEIGHT.strong : WEIGHT.ui, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                           {formatHeaderDate(day.fullDate)}
-                          {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
+                          {active && <span style={{ fontSize: TYPE.micro }}>✓</span>}
                         </button>
                       );
                     })}
@@ -800,7 +801,7 @@ export default function FullPlayer({
           width: '100%', maxWidth: '480px',
           height: '100dvh',
           background: bgColor,
-          borderRadius: '20px 20px 0 0',
+          borderRadius: `${RADIUS.md}px ${RADIUS.md}px 0 0`,
           transform: `translateX(-50%) translateY(${typeof translateY === 'number' ? translateY + 'px' : translateY})`,
           transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
           display: 'flex', flexDirection: 'column',

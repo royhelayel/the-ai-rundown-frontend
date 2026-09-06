@@ -507,12 +507,12 @@ export default function FullPlayer({
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.09)' }
           : undefined}>
-          {/* Story progress, on the card's own top edge — it counts stories, so it belongs to
-              the thing showing one. Bled out through the card's padding and given the card's
-              top radius so it sits *in* the edge rather than on a line of its own. */}
+          {/* Story progress, the first thing inside the card — it counts stories, so it
+              belongs to the thing showing one. Inside the padding rather than bled into the
+              border: on the edge it read as a bar attached to the card, in here it reads as
+              the card's own first line, on the same gutter as the headline under it. */}
           {asPage && storyCount > 0 && dots.length > 0 && (
-            <div style={{ display: 'flex', gap: '3px', margin: '-14px -15px 14px',
-              borderRadius: '13px 13px 0 0', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: '3px', margin: '0 0 12px' }}>
               {dots}
             </div>
           )}

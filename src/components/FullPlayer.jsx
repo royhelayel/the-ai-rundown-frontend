@@ -11,6 +11,17 @@ import LensToggle from './LensToggle';
 import PeriodRecapChips from './PeriodRecapChips';
 import { centrePill } from '../utils';
 
+/* Temporary side-by-side: two ways of dividing the story's action row from the
+   player's, so the choice can be made by looking rather than by argument.
+     ?divider=rule     a hairline above the player block
+     ?divider=surface  the player block on its own, slightly lighter ground
+     (no param)        space only — what is deployed today
+   Reads once at load, so switching means reloading with the new URL. Delete this
+   and the `dividerTrial` branch below once one of them wins. */
+const dividerTrial = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('divider')
+  : null;
+
 function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -586,7 +597,15 @@ export default function FullPlayer({
                  division of one panel rather than a second panel laid on top. ── */}
           {asPage && storyCount > 0 && (
             <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
-              margin: '30px 0 0',
+              ...(dividerTrial === 'rule'
+                ? { margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.09)' }
+                : dividerTrial === 'surface'
+                  /* Bleeds to the card's edges — the card pads 14/15/12 — so the lighter
+                     ground reads as the bottom of one panel, not a tile dropped on it. */
+                  ? { margin: '22px -15px -12px', padding: '14px 15px 12px',
+                      background: 'rgba(255,255,255,0.035)',
+                      borderRadius: '0 0 13px 13px' }
+                  : { margin: '30px 0 0' }),
               display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* How much gets read aloud — a property of the playback, so it sits with it. */}
               {!isRecap && (

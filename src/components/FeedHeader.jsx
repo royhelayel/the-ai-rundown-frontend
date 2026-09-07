@@ -11,7 +11,7 @@ import { Calendar, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import LensToggle from './LensToggle';
 import CorpusToggle from './CorpusToggle';
-import { CATEGORY_SHORT, CATEGORY_COLORS, SPACE } from '../theme';
+import { CATEGORY_SHORT, CATEGORY_COLORS, SPACE, TRIAL } from '../theme';
 import { centrePill } from '../utils';
 import ProgressRail from './ProgressRail';
 import ModeToggle from './ModeToggle';
@@ -113,6 +113,7 @@ export default function FeedHeader({
 
         {/* ── Wordmark. "Radio" carries the weight and "News" recedes, so the mark has a
                stress rather than reading as a flat monotone at this size. ── */}
+        <div style={TRIAL.header === 'band' ? { background: '#ffffff' } : undefined}>
         <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             <span style={{ color: 'rgba(10,10,15,0.46)' }}>Radio</span>
@@ -169,8 +170,13 @@ export default function FeedHeader({
         {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
             inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
             closes, and the wider air underneath separates that pair from the topics.
-            Same as Listen. */}
-        <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', marginBottom: SPACE.sm }} />
+            Same as Listen.
+            ?header=band swaps the rule for a band on the block above it — divides by mass
+            rather than by a line, the way a title bar does. */}
+        </div>
+        {TRIAL.header === 'band'
+          ? <div style={{ height: SPACE.sm }} />
+          : <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', marginBottom: SPACE.sm }} />}
 
         {/* ── Category pills — quick jump across topics ── */}
         {categories.length > 0 && (

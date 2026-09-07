@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE, TRIAL } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -925,6 +925,7 @@ export default function StoryReader({
       {asPage ? (
         <>
           {/* Same wordmark as Scroll mode's header — see FeedHeader. */}
+          <div style={TRIAL.header === 'band' ? { position: 'relative', zIndex: 6, background: 'rgba(255,255,255,0.045)' } : undefined}>
           <div style={{ position: 'relative', zIndex: 6, padding: '9px 16px 0', textAlign: 'center' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
               <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
@@ -979,6 +980,7 @@ export default function StoryReader({
               )}
             </div>
           </div>
+          </div>
         </>
       ) : (
         <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', padding: '0.7rem 1rem 0.4rem', gap: 8 }}>
@@ -1001,7 +1003,9 @@ export default function StoryReader({
       {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
           inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it closes,
           and the wider air underneath separates that pair from the topics. Same as Listen. */}
-      <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
+      {TRIAL.header === 'band'
+        ? <div style={{ height: SPACE.sm }} />
+        : <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />}
 
       {/* ── Category pills — quick jump across topics ── */}
       {contextCategories.length > 1 && (

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
-         TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
+         TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC, TRIAL } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -732,6 +732,7 @@ export default function FullPlayer({
                opaque strip it always reads, and everything below is the sheet untouched. ── */}
         <div style={{ position: 'relative', zIndex: 20, flexShrink: 0 }}>
           <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
+            <div style={TRIAL.header === 'band' ? { background: 'rgba(255,255,255,0.045)' } : undefined}>
             <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
               <span style={{ fontSize: TYPE.meta, fontWeight: WEIGHT.strong, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
@@ -773,7 +774,10 @@ export default function FullPlayer({
                 above rather than as a division between two.
                 SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
                 closes, and the wider air underneath separates that pair from the topics. */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
+            </div>
+            {TRIAL.header === 'band'
+              ? <div style={{ height: SPACE.sm }} />
+              : <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />}
             {contextCategories.length > 0 && (
               <CatStrip
                 contextCategories={contextCategories}

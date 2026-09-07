@@ -65,10 +65,16 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
     // gives it on the phone the presence the mock has on screen.
     //
     // The leading document icon is gone — it said the same thing as the disc on the other end
-    // and the words in between. And the disc is the category's own colour with the summary
-    // glyph, not a white play button: the whole chip does one thing now, which is open the
-    // recap to read.
-    const disc = CATEGORY_COLORS[category] || accent;
+    // and the words in between. The trailing disc keeps the summary glyph, not a white play
+    // button: the whole chip does one thing now, which is open the recap to read.
+    //
+    // The disc used to be a saturated fill in the category's colour, which made this chip the
+    // loudest thing in a band it shares with the topic pills — a secondary shortcut
+    // outshouting the navigation that says where you are. Its colour was redundant anyway:
+    // the active pill sits directly above carrying the same hue, so the disc was saying the
+    // category twice, the way the name used to. Ghost fill, glyph in the accent, and the
+    // border softened to match — the chip still reads as one tappable object, at the weight
+    // a secondary offer deserves.
     return (
       <div style={{ display: 'flex' }}>
         <div onClick={onOpen}
@@ -77,16 +83,17 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
           title={`Read the ${name} recap`}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '6px 6px 6px 14px', borderRadius: 12, cursor: 'pointer',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.16)' : `${accent}40`}`,
-            background: dark ? 'rgba(255,255,255,0.04)' : `${accent}0f` }}>
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.10)' : `${accent}26`}`,
+            background: dark ? 'rgba(255,255,255,0.05)' : `${accent}0f` }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
             Category Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
           </span>
           <span aria-hidden
             style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 26, height: 26, borderRadius: '50%', background: disc }}>
-            <FileText size={13} color="#fff" />
+              width: 26, height: 26, borderRadius: '50%',
+              background: dark ? 'rgba(255,255,255,0.10)' : `${accent}1f` }}>
+            <FileText size={13} color={dark ? 'rgba(255,255,255,0.75)' : accent} />
           </span>
         </div>
       </div>

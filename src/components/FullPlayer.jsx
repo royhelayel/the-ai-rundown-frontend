@@ -79,7 +79,7 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
       )}
 
       <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        <div style={{ display: 'flex', gap: 8, padding: `8px ${gutter}px 9px`, minWidth: 'max-content' }}>
+        <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${gutter}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, in rank order across every category. Popular and
               Interesting are cross-category lists, so the whole list is a scope in its own
               right and not just the union of the pills beside it. Same control, same rule as
@@ -453,7 +453,7 @@ export default function FullPlayer({
         {!isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
-          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: `${SPACE.md}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
             <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
             <RecapBar category={category} storyCount={storyCount} theme="dark" compact
               onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
@@ -468,7 +468,7 @@ export default function FullPlayer({
             empty and, gated on storyCount, the one control that could get you back out would
             disappear with them. */}
         {asPage && !isRecap && onChangeLens && (
-          <div style={{ position: 'relative', zIndex: 20, padding: '32px 16px 0' }}>
+          <div style={{ position: 'relative', zIndex: 20, padding: `${SPACE.md}px ${SPACE.md}px 0` }}>
             <LensToggle value={lens} onChange={onChangeLens} theme="dark" />
           </div>
         )}
@@ -476,13 +476,17 @@ export default function FullPlayer({
         {/* ── Above the card: a fixed gap on the page, so the story stays anchored near the
                controls that scope it. It used to be the flexible one, which parked the card
                in the middle of an empty band once the flat ground removed the photo that had
-               been filling that space. Slack now pools *below* the card instead. ── */}
+               been filling that space. Slack now pools *below* the card instead.
+               SPACE.sm, the tightest step in a gap sequence that descends from the pills:
+               24 to the recap, 16 to the lens, 8 to the card. Even gaps made three unrelated
+               controls read as three equal peers; closing as you go down says the lens
+               belongs to the card and the pills do not. ── */}
         {/* Fixed on the page, flexible in the sheet. Flexible here pinned the panel to the
             bottom and collected every spare pixel into one 90px void under the lens — with
             the story and the transport now enclosed in a single box, that gap read as the
             box having been pushed away from the controls above it. The panel sits up under
             the lens instead and the slack falls below it. */}
-        <div style={{ flex: asPage ? '0 0 auto' : 1, height: asPage ? 24 : undefined, position: 'relative', zIndex: 10 }} />
+        <div style={{ flex: asPage ? '0 0 auto' : 1, height: asPage ? SPACE.sm : undefined, position: 'relative', zIndex: 10 }} />
 
         {/* ── The story, as a card.
                On the page this is Swipe's card, part for part: category and read status on

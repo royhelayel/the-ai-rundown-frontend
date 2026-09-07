@@ -940,7 +940,7 @@ export default function StoryReader({
               positioned child of this row, so its z-index only wins within this row's own
               stacking context — against the category strip and recap/lens rows below it,
               which tie on 6 and win on DOM order, it painted underneath and got clipped. */}
-          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
+          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
             <CorpusToggle
               value={activeTabPath === '/my-feed' ? 'mine' : 'all'}
               onChange={(c) => onSwitchStoriesTab?.(c === 'mine' ? '/my-feed' : '/')}
@@ -999,9 +999,8 @@ export default function StoryReader({
       )}
 
       {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
-          inside it. SPACE.md clear on both sides — the row above pads to 16, and 8 here plus
-          the strip's own 8 makes 16 below. A divider with unequal air belongs to whichever
-          side it sits closer to. Same as Listen. */}
+          inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it closes,
+          and the wider air underneath separates that pair from the topics. Same as Listen. */}
       <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
 
       {/* ── Category pills — quick jump across topics ── */}

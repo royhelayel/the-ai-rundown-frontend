@@ -130,7 +130,7 @@ export default function FeedHeader({
                siblings *within* this row's stacking context — against the strip, which ties
                on the old zIndex 3 and wins on DOM order, the dropdown painted underneath it
                and its lower half was clipped. ── */}
-        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
+        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
           <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="light" />
           <div style={{ flex: 1 }} />
           <div style={{ position: 'relative' }} ref={pickerRef}>
@@ -167,9 +167,9 @@ export default function FeedHeader({
         </div>
 
         {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
-            inside it. SPACE.md clear on both sides — the row above pads to 16, and 8 here
-            plus the strip's own 8 makes 16 below. A divider with unequal air belongs to
-            whichever side it sits closer to. Same as Listen. */}
+            inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
+            closes, and the wider air underneath separates that pair from the topics.
+            Same as Listen. */}
         <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', marginBottom: SPACE.sm }} />
 
         {/* ── Category pills — quick jump across topics ── */}

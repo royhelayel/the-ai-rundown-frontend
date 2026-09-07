@@ -492,7 +492,7 @@ export default function FullPlayer({
                corners) which read as chrome around a picture rather than as a story you
                could act on. The depth toggle and the transport stay below it.
                The sheet keeps the looser overlay: it's a panel over a card you came from. ── */}
-        <div style={{ position: 'relative', zIndex: 10, padding: asPage ? '0 1rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' : '0 1.5rem 0.75rem' }}>
+        <div style={{ position: 'relative', zIndex: 10, padding: asPage ? `0 1rem calc(env(safe-area-inset-bottom, 0px) + ${SPACE.lg}px)` : '0 1.5rem 0.75rem' }}>
         {/* One panel around the story and the player together — trying whether a single
             enclosure fixes the page reading as loose parts: headline here, actions there,
             transport somewhere below, with nothing saying they belong to each other. The
@@ -740,7 +740,7 @@ export default function FullPlayer({
             </div>
             {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
                 pixels lower than the other two modes' — enough to see when switching. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
               <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
@@ -771,9 +771,8 @@ export default function FullPlayer({
                 topic inside it. A full-bleed line rather than one inset to 16: it is chrome,
                 not content, and at the gutter it read as an underline belonging to the row
                 above rather than as a division between two.
-                SPACE.md clear on both sides — the row above pads to 16, and 8 here plus the
-                strip's own 8 makes 16 below. A divider with unequal air belongs to whichever
-                side it sits closer to. */}
+                SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
+                closes, and the wider air underneath separates that pair from the topics. */}
             <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />
             {contextCategories.length > 0 && (
               <CatStrip

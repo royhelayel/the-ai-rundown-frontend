@@ -1029,7 +1029,7 @@ export default function StoryReader({
           </button>
         )}
         <div ref={catStripRef} className="rdr-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
+          <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
             {/* "All" — the ranking itself, in rank order across every category. */}
             {showAllPill && (
               <>
@@ -1073,6 +1073,12 @@ export default function StoryReader({
         </div>
         </div>
       )}
+      {/* A second rule, closing the topics the way the first closes the scope row —
+          trying whether the header reads better as two stated bands than as one block that
+          fades into the content. Same 8 above / 16 below. */}
+      {contextCategories.length > 1 && (
+        <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)' }} />
+      )}
 
       {/* Full-width recap, lens on its own line beneath — the arrangement that read best.
           The saving comes from the recap itself: one line instead of two stacked, which is
@@ -1085,7 +1091,7 @@ export default function StoryReader({
       {asPage && onOpenCategoryRecap && !showAllPill && (
         /* Sits clear of the rule above it: the recap belongs to the story area, not to the
            header block the rule closes, so it needs visible air rather than hugging it. */
-        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, flexShrink: 0, padding: '24px 16px 0', display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, flexShrink: 0, padding: `${SPACE.md}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
           <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
           <RecapBar
             category={category}

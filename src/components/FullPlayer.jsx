@@ -795,6 +795,12 @@ export default function FullPlayer({
                 onSelectAll={onSelectAll}
               />
             )}
+            {/* A second rule, closing the topics the way the first closes the scope row —
+                trying whether the header reads better as two stated bands than as one
+                block that fades into the content. Same 8 above / 16 below. */}
+            {contextCategories.length > 0 && (
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
+            )}
 
             {/* The progress moved onto the story card, where the thing being progressed
                 through actually is. */}

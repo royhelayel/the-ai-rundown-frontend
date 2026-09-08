@@ -203,7 +203,7 @@ export default function FeedHeader({
             )}
 
             <div ref={stripRef} className="fh-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-            <div style={{ display: 'flex', gap: 8, padding: '8px 16px 9px', minWidth: 'max-content' }}>
+            <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
               {showAllPill && (
                 <button onClick={() => onSelectCategory?.(null)}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
@@ -232,12 +232,19 @@ export default function FeedHeader({
           </div>
         )}
 
+        {/* A second rule, closing the topics the way the first closes the scope row — trying
+            whether the header reads better as two stated bands than as one block that fades
+            into the content. Same 8 above / 16 below. */}
+        {categories.length > 0 && (
+          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)' }} />
+        )}
+
         {/* Right-aligned, last in the header, so it lands directly above the first story
             and reads as a property of the list rather than another piece of scope. */}
         {showLens && (
           /* Clear of the rule above it: butted straight against the pills' underline, the
              control read as part of that row rather than as a property of the list below. */
-          <div style={{ padding: '12px 16px 12px' }}>
+          <div style={{ padding: `${SPACE.md}px ${SPACE.md}px 12px` }}>
             <LensToggle value={lens} onChange={onChangeLens} theme="light" />
           </div>
         )}

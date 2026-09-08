@@ -88,9 +88,12 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
     </button>
   );
 
+  // Trying it with no rule under the topics: the active tab's underline is left as the only
+  // mark, and the SPACE.lg below the row does the closing. Revert that commit to put the
+  // hairline back — it is the borderBottom on the row below.
   return (
     <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'stretch',
-      paddingTop: SPACE.sm, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+      paddingTop: SPACE.sm }}>
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Pinned: the scope holds still while the topics move past it.
@@ -107,13 +110,11 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
         <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
       )}
 
-      {/* Pulled a pixel down so the active underline covers the row's border instead of
-          stacking above it.
-          `position: relative` is load-bearing: centrePill measures the active tab with
+      {/* `position: relative` is load-bearing: centrePill measures the active tab with
           offsetLeft, which is relative to the nearest *positioned* ancestor. Without it that
           is the outer row, so the pinned scope's 164px got added to every target and the
           strip scrolled clean past the tab it was trying to centre. */}
-      <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: -1, display: 'flex', alignItems: 'flex-end' }}>
+      <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: gutter, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, across every category, on the tabs that show one. */}
           {showAllPill && (

@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, FileText } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
-import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -48,16 +47,21 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 // ── Scope + topics, as one row ────────────────────────────────────────────────
 //
-// Option B. The corpus toggle is pinned at the left of the strip it filters, behind a
-// divider — the pattern the "All" pill already used — and the categories scroll past it.
-// That is the actual relationship: Mine/All governs which topics exist, so the layout now
-// states it instead of implying it across a gap.
+// Option B, without the mode. There is no Me/All: you see every topic until you edit them,
+// and after that you see yours. So the pinned slot holds the one control that changes what
+// the strip contains — the editor — rather than a switch between two lists. Getting back to
+// the full set is "Restore default" in Settings, which is a deliberate act rather than a
+// tap you can make by accident while reaching for a topic.
+//
+// "Me" read as nothing anyone has seen in an app, and "My" begs "my what"; only "All" worked,
+// because it stands alone. Rather than hunt for a partner word that also stands alone, the
+// mode goes.
 //
 // The pills are text, not chips. Weight and colour carry the state, and the active one is
 // marked by a heavy underline that overlaps the closing hairline: one line saying both
 // "you are here" and "the header ends here", where the old header spent three unrelated
 // marks — a filled rectangle, a rule above it and a rule below it.
-function CatStrip({ contextCategories, category, onSelectCategory, showAllPill = false, allScope = false, onSelectAll, corpus, onChangeCorpus, gutter = 16 }) {
+function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll, gutter = 16 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -96,13 +100,18 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
       paddingTop: SPACE.sm }}>
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Pinned: the scope holds still while the topics move past it.
-          The track clears the rule by SPACE.sm — sitting on it, a solid pill read as welded
-          to the line. The tabs then carry SPACE.md of descender space instead of 9, which
-          lifts their labels to meet the track's while leaving the underline itself on the
-          rule. Baselines land within 2.5px of each other. */}
-      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, paddingBottom: SPACE.sm, flexShrink: 0 }}>
-        <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
+      {/* Pinned: the editor holds still while the topics move past it. Bottom-padded so its
+          box centres on the tab labels rather than on the row. */}
+      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, paddingBottom: 11, flexShrink: 0 }}>
+        <button
+          onClick={() => (user ? onEditCategories?.() : onGuestEdit?.())}
+          aria-label="Choose your topics"
+          title="Choose your topics"
+          style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: RADIUS.sm,
+            background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <SlidersHorizontal size={ICON.sm} />
+        </button>
       </span>
       {/* Spans the track exactly, top and bottom. Floating between the two heights it read
           as a stray tick rather than the boundary between scope and topic. */}
@@ -181,10 +190,8 @@ export default function FullPlayer({
   onToggleInteresting,
   // Switch to the reader (silent) for the current story / briefing
   onRead,
-  // Page-mode header: same scope controls the other two tabs carry, so Listen isn't a
-  // dead end you have to leave to change day or corpus.
-  corpus = 'all',
-  onChangeCorpus,
+  // Page-mode header: the day picker, so Listen isn't a dead end you have to leave to
+  // change which day you are reading.
   selectedDay,
   availableDays = [],
   onSelectDay,
@@ -440,6 +447,9 @@ export default function FullPlayer({
               contextCategories={contextCategories}
               category={category}
               onSelectCategory={onSelectCategory}
+              onEditCategories={onEditCategories}
+              user={user}
+              onGuestEdit={onGuestEdit}
               showAllPill={showAllPill}
               allScope={allScope}
               onSelectAll={onSelectAll}
@@ -797,8 +807,9 @@ export default function FullPlayer({
                 showAllPill={showAllPill}
                 allScope={allScope}
                 onSelectAll={onSelectAll}
-                corpus={corpus}
-                onChangeCorpus={onChangeCorpus}
+                onEditCategories={onEditCategories}
+                user={user}
+                onGuestEdit={onGuestEdit}
               />
             )}
 

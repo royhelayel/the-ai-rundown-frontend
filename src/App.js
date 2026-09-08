@@ -84,6 +84,8 @@ const TheAIRundown = () => {
   const [otpStep, setOtpStep] = useState('email');     // 'email' | 'code' (passwordless OTP)
   const [otpCode, setOtpCode] = useState('');
   const [signOutLoading, setSignOutLoading] = useState(false);
+  // Two-step, because restoring overwrites a list the reader built and ordered by hand.
+  const [restoreArmed, setRestoreArmed] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('World News');
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState('');
@@ -2803,7 +2805,14 @@ const TheAIRundown = () => {
   const enterAudioMode = (tabPath) => {
     rememberReadMode('audio');
     const prev = playerSourcePath.current || '/';
-    const next = tabPath && tabPath !== '/listen' ? tabPath : prev;
+    const base = tabPath && tabPath !== '/listen' ? tabPath : prev;
+    // Listen has no My/All switch. Everyone starts on the full set of topics; once you have
+    // edited them, that edit *is* the choice and the feed follows it. Only the two general
+    // feeds are decided this way — Popular and Interesting are different lists, not a
+    // narrower view of this one, so they pass through untouched.
+    const next = (base === '/' || base === '/my-feed')
+      ? (feedCategories.length ? '/my-feed' : '/')
+      : base;
     playerSourcePath.current = next;
     // Resume where the reader is — but only within the same feed. Switching feed (the lens,
     // or the corpus toggle) kept resuming the remembered story regardless, so picking Popular
@@ -3482,6 +3491,32 @@ const TheAIRundown = () => {
               </div>
               <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Add the categories you want, then drag to rank them — the order sets your story order.</p>
               <FeedCategoryEditor allCategories={myNewsCategories} selected={feedCategories} onChange={saveFeedCategories} />
+              {/* The way back to the full set. Reading screens have no My/All switch any
+                  more — editing this list is what narrows them, so undoing that edit is what
+                  widens them again, and it belongs next to the edit rather than one tap away
+                  on the screen you are reading. */}
+              <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: '#8a8a9a' }}>
+                  {restoreArmed
+                    ? 'This replaces your list and its order with the twelve default topics.'
+                    : 'Your reading screens show these topics. Restore the defaults to see all of them again.'}
+                </p>
+                <button
+                  onClick={() => {
+                    if (!restoreArmed) { setRestoreArmed(true); return; }
+                    saveFeedCategories(defaultCategories);
+                    setRestoreArmed(false);
+                  }}
+                  onBlur={() => setRestoreArmed(false)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                    padding: '0.5rem 1rem', borderRadius: '999px', width: '100%', cursor: 'pointer',
+                    fontWeight: '700', fontSize: '0.83rem',
+                    background: restoreArmed ? 'rgba(239,68,68,0.06)' : '#f5f5f7',
+                    border: `1px solid ${restoreArmed ? 'rgba(239,68,68,0.3)' : 'rgba(0,0,0,0.08)'}`,
+                    color: restoreArmed ? '#dc2626' : '#0a0a0f' }}>
+                  {restoreArmed ? 'Tap again to restore defaults' : 'Restore default topics'}
+                </button>
+              </div>
             </div>
             )}
             {user && (
@@ -3548,8 +3583,6 @@ const TheAIRundown = () => {
               challengeStats={challengeStatsFull} user={user}
               onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
           ) : null}
-          corpus={playerSourcePath.current === '/my-feed' ? 'mine' : 'all'}
-          onChangeCorpus={(c) => enterAudioMode(c === 'mine' ? '/my-feed' : '/')}
           selectedDay={selectedDay}
           availableDays={availableDays}
           onSelectDay={selectDay}

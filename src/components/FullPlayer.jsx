@@ -78,7 +78,7 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
       onClick={onClick}
       aria-current={act ? 'page' : undefined}
       style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
-        padding: `0 0 ${SPACE.sm + 1}px`, whiteSpace: 'nowrap', flexShrink: 0,
+        padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
         fontSize: TYPE.ui, fontWeight: act ? WEIGHT.strong : WEIGHT.ui,
         color: act ? tintForDark(CATEGORY_COLORS[category]) : 'rgba(255,255,255,0.5)',
         // Sits on the row's own border rather than above it, so the mark and the divider
@@ -94,17 +94,17 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Pinned: the scope holds still while the topics move past it.
-          Everything in this row sits on the rule — the tabs because their underline *is*
-          the rule, and the track because that is what puts its label on the tabs' baseline.
-          The track's inner padding and the tabs' descender space are within a pixel and a
-          half of each other, so bottom-aligning both is the whole alignment. */}
-      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, flexShrink: 0 }}>
+          The track clears the rule by SPACE.sm — sitting on it, a solid pill read as welded
+          to the line. The tabs then carry SPACE.md of descender space instead of 9, which
+          lifts their labels to meet the track's while leaving the underline itself on the
+          rule. Baselines land within 2.5px of each other. */}
+      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, paddingBottom: SPACE.sm, flexShrink: 0 }}>
         <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
       </span>
       {/* Spans the track exactly, top and bottom. Floating between the two heights it read
           as a stray tick rather than the boundary between scope and topic. */}
       {contextCategories.length > 0 && (
-        <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px 1px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+        <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
       )}
 
       {/* Pulled a pixel down so the active underline covers the row's border instead of

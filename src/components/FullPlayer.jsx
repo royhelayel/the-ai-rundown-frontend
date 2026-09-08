@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -57,7 +57,7 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 // marked by a heavy underline that overlaps the closing hairline: one line saying both
 // "you are here" and "the header ends here", where the old header spent three unrelated
 // marks — a filled rectangle, a rule above it and a rule below it.
-function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll, corpus, onChangeCorpus, gutter = 16 }) {
+function CatStrip({ contextCategories, category, onSelectCategory, showAllPill = false, allScope = false, onSelectAll, corpus, onChangeCorpus, gutter = 16 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -93,23 +93,15 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
       paddingTop: SPACE.sm, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Pinned: the scope, and the control that edits what "Mine" contains. Both hold
-          still while the topics move past them. */}
-      <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6, paddingLeft: gutter, flexShrink: 0 }}>
+      {/* Pinned: the scope holds still while the topics move past it.
+          Everything in this row sits on the rule — the tabs because their underline *is*
+          the rule, and the track because that is what puts its label on the tabs' baseline.
+          The track's inner padding and the tabs' descender space are within a pixel and a
+          half of each other, so bottom-aligning both is the whole alignment. */}
+      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, flexShrink: 0 }}>
         <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
-        {onEditCategories && (
-          <button
-            onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
-            aria-label="Choose your topics"
-            title="Choose your topics"
-            style={{ flexShrink: 0, width: 26, height: 30, border: 'none', padding: 0,
-              background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <SlidersHorizontal size={ICON.sm} />
-          </button>
-        )}
       </span>
-      <span aria-hidden style={{ width: 1, margin: `2px ${SPACE.sm}px ${SPACE.md}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+      <span aria-hidden style={{ width: 1, margin: `10px ${SPACE.sm}px ${SPACE.sm}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
 
       {/* Pulled a pixel down so the active underline covers the row's border instead of
           stacking above it.
@@ -117,7 +109,7 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
           offsetLeft, which is relative to the nearest *positioned* ancestor. Without it that
           is the outer row, so the pinned scope's 164px got added to every target and the
           strip scrolled clean past the tab it was trying to centre. */}
-      <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: -1 }}>
+      <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: -1, display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: gutter, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, across every category, on the tabs that show one. */}
           {showAllPill && (
@@ -443,9 +435,6 @@ export default function FullPlayer({
               contextCategories={contextCategories}
               category={category}
               onSelectCategory={onSelectCategory}
-              onEditCategories={onEditCategories}
-              user={user}
-              onGuestEdit={onGuestEdit}
               showAllPill={showAllPill}
               allScope={allScope}
               onSelectAll={onSelectAll}
@@ -792,9 +781,6 @@ export default function FullPlayer({
                 contextCategories={contextCategories}
                 category={category}
                 onSelectCategory={onSelectCategory}
-                onEditCategories={onEditCategories}
-                user={user}
-                onGuestEdit={onGuestEdit}
                 showAllPill={showAllPill}
                 allScope={allScope}
                 onSelectAll={onSelectAll}

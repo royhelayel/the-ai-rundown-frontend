@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * CorpusToggle — Mine / All, the outermost scope.
+ * CorpusToggle — Me / All, the outermost scope.
  *
  * It filters the *category strip*, not the stories directly: "My news / All news" named the
  * wrong object, and at 172px it took nearly half the width of the row it now sits inside.
@@ -56,7 +56,7 @@ export default function CorpusToggle({ value = 'all', onChange, theme = 'light' 
 
   return (
     <div style={{ display: 'inline-flex', background: track, borderRadius: 999, padding: 3, gap: 2, flexShrink: 0 }}>
-      {item('mine', 'Mine')}
+      {item('mine', 'Me')}
       {item('all', 'All')}
     </div>
   );

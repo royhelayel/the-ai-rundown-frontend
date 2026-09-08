@@ -746,7 +746,11 @@ export default function FullPlayer({
             {/* ── Identity and day. The wordmark moves off centre to the left edge, where
                    it anchors the same gutter as everything under it; centred, it aligned
                    with nothing and opened the header with an element outside the grid. ── */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
+            {/* The page is viewport-fit=cover, so this row is the first thing under the
+                status bar and nothing above it was reserving the inset — on a notched phone
+                the wordmark sat in it. SPACE.md of its own, plus whatever the device needs. */}
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', gap: 10,
+              padding: `calc(env(safe-area-inset-top, 0px) + ${SPACE.md}px) ${SPACE.md}px ${SPACE.md}px` }}>
               <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.strong, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>

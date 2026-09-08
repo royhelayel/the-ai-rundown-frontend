@@ -103,7 +103,9 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
       </span>
       {/* Spans the track exactly, top and bottom. Floating between the two heights it read
           as a stray tick rather than the boundary between scope and topic. */}
-      <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px 1px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+      {contextCategories.length > 0 && (
+        <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px 1px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+      )}
 
       {/* Pulled a pixel down so the active underline covers the row's border instead of
           stacking above it.
@@ -458,7 +460,7 @@ export default function FullPlayer({
         {!isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
-          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: `${SPACE.md}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: `${SPACE.lg}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
             <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
             <RecapBar category={category} storyCount={storyCount} theme="dark" compact
               onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
@@ -744,7 +746,7 @@ export default function FullPlayer({
             {/* ── Identity and day. The wordmark moves off centre to the left edge, where
                    it anchors the same gutter as everything under it; centred, it aligned
                    with nothing and opened the header with an element outside the grid. ── */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `9px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.md}px`, gap: 10 }}>
               <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.strong, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
@@ -776,9 +778,13 @@ export default function FullPlayer({
             </div>
 
             {/* Scope and topics on one row, closed by the single rule the active tab
-                underlines. Both old rules are gone: Mine/All filters the strip, so there
-                was never a boundary to draw between them. */}
-            {contextCategories.length > 0 && (
+                underlines. Both old rules are gone: Me/All filters the strip, so there was
+                never a boundary to draw between them.
+                Rendered unconditionally, and the topics inside it are what's conditional:
+                gating the row on contextCategories put the scope toggle inside something
+                that disappears when "Me" has nothing in it — taking with it the only
+                control that could switch back to All. */}
+            {(
               <CatStrip
                 contextCategories={contextCategories}
                 category={category}

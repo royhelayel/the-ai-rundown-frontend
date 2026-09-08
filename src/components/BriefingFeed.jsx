@@ -122,15 +122,20 @@ export default function BriefingFeed({
              and it only ever served whichever category you happened to be nearest. What is
              left is the pair that spans categories rather than belonging to one. ── */}
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <PeriodRecapChips
-            recaps={periodRecaps}
-            minutesOf={periodMinutes}
-            theme="light"
-            onOpen={onOpenPeriodRecap}
-            onPlay={onPlayPeriodRecap}
-          />
-        </div>
+        {/* Only when there is something in it. Each chip renders itself away on the days its
+            recap doesn't exist, so with the category recap gone this row was 24px of padding
+            around nothing for most of the week — invisible as a gap, not as a row. */}
+        {(periodRecaps?.week?.text || periodRecaps?.month?.text) && (
+          <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <PeriodRecapChips
+              recaps={periodRecaps}
+              minutesOf={periodMinutes}
+              theme="light"
+              onOpen={onOpenPeriodRecap}
+              onPlay={onPlayPeriodRecap}
+            />
+          </div>
+        )}
         <div style={{ padding: '32px 16px 12px' }}>
           <LensToggle
             value={lens}

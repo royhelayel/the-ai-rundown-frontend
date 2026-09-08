@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackToTop from './BackToTop';
-import RecapBar from './RecapBar';
 import PeriodRecapChips from './PeriodRecapChips';
 import LensToggle from './LensToggle';
 import StoryList from './StoryList';
@@ -117,18 +116,13 @@ export default function BriefingFeed({
         progressTotal={shownCounts[effectiveCat] ?? (allNewsStats.todayProgress?.[effectiveCat]?.total || 0)}
       />
 
-      {/* ── Recap, then the lens — Swipe's order and Swipe's spacing.
-             Both used to sit the other way round, with the lens inside the sticky header and
-             the category's recap further down inside the feed. They live in the scrolling
-             content now so the recap comes first, as it does in the other two modes, and so
-             neither of them is glued to the top of the screen while you read. ── */}
+      {/* ── The week and month, then the lens.
+             The category recap has left this row: every section now opens with its own, so
+             one up here was a second copy of the first section's within a hundred pixels —
+             and it only ever served whichever category you happened to be nearest. What is
+             left is the pair that spans categories rather than belonging to one. ── */}
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <RecapBar
-            category={effectiveCat}
-            onOpen={() => navigate(`/category/${encodeURIComponent(effectiveCat)}/briefing`, { state: { from: '/' } })}
-            compact
-          />
           <PeriodRecapChips
             recaps={periodRecaps}
             minutesOf={periodMinutes}

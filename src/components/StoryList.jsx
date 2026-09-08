@@ -16,13 +16,11 @@ import { headlineKey } from './PopularTab';
 // you had just tapped to reach, and cost 168px of the screen before the first story. Neither
 // Swipe nor Listen shows one, and the point of the chip was that the recap looks the same in
 // all three modes — which it can't while one of them wraps it in a card the others don't have.
-function CategoryImageHeader({ cat, onPlay, onBriefing, hasBriefing }) {
+function CategoryRecapHead({ cat, onOpen, onPlay }) {
   return (
-    <RecapBar
-      category={cat}
-      onOpen={() => (hasBriefing && onBriefing) ? onBriefing(cat) : onPlay?.(cat)}
-      compact
-    />
+    <div style={{ display: 'flex', padding: '0 0 10px' }}>
+      <RecapBar category={cat} compact showName onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
+    </div>
   );
 }
 
@@ -442,11 +440,12 @@ function buildSections({
           return (
             <div key={cat} id={`sl-topic-${cat}`} style={{ scrollMarginTop: 'calc(var(--header-h, 135px) + 10px)' }}>
               {showCategoryImages ? (
-                /* ── Topic card ── */
-                /* The recap now sits once, under the header, as it does in Swipe and Listen
-                   — so a copy at the top of every section would be the same control twice on
-                   one screen for whichever category you happen to be looking at. */
-                null
+                /* ── Each section opens with its own recap ──
+                   Scroll shows every category at once rather than one at a time, so a single
+                   recap under the header only served whichever one you happened to be near.
+                   Per section it heads the group it summarises — and it carries the category
+                   name, because twelve chips all reading "Category Recap" name nothing. */
+                <CategoryRecapHead cat={cat} onOpen={handleOpenBriefing} onPlay={handlePlayRecap} />
               ) : (
                 /* ── Simple text category header ── */
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>

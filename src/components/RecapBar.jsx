@@ -12,7 +12,7 @@ import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
  *
  * Tapping the body opens the recap; tapping play narrates it.
  */
-export default function RecapBar({ category, storyCount = 0, theme = 'light', compact = false, onOpen, onPlay }) {
+export default function RecapBar({ category, storyCount = 0, theme = 'light', compact = false, showName = false, onOpen, onPlay }) {
   const dark = theme === 'dark';
   const accent = dark ? '#a5b4fc' : (CATEGORY_COLORS[category] || '#6366f1');
   const name = CATEGORY_SHORT[category] || category;
@@ -54,9 +54,10 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
   // affordance and the trailing icon is listen, which leaves exactly one pair of labelled
   // buttons on the screen — the card's.
   //
-  // The name goes too. The active category pill sits directly above this, so "Tech Category
-  // recap" said Tech twice within a hundred pixels; "Recap · 1 min" says the part that isn't
-  // already on screen. Ghost rather than filled for the same reason: this is a secondary
+  // The name goes too, where one chip serves one category: the active pill sits directly
+  // above it, so "Tech Category recap" said Tech twice within a hundred pixels. `showName`
+  // puts it back for Scroll, where a chip heads each of twelve sections and nothing else
+  // says which one it belongs to. Ghost rather than filled either way: this is a secondary
   // offer next to the story, and a filled block competed with the card for first read.
   if (compact) {
     // Taller than the mock on purpose. Matched to it exactly, the chip measured 32px against
@@ -87,7 +88,7 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
             background: dark ? 'rgba(255,255,255,0.05)' : `${accent}0f` }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap',
             color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
-            Category Recap <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
+            {showName ? `${name} Recap` : 'Category Recap'} <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
           </span>
           <span aria-hidden
             style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

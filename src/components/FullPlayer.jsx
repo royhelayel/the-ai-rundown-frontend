@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
-         TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC, TRIAL } from '../theme';
+         TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
@@ -46,77 +46,91 @@ function tintForDark(hex, amount = 0.45) {
 // ── Speed cycle helper ─────────────────────────────────────────────────────────
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-// ── Category strip (auto-scrolls active pill into view) ───────────────────────
-function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll, gutter = 16 }) {
+// ── Scope + topics, as one row ────────────────────────────────────────────────
+//
+// Option B. The corpus toggle is pinned at the left of the strip it filters, behind a
+// divider — the pattern the "All" pill already used — and the categories scroll past it.
+// That is the actual relationship: Mine/All governs which topics exist, so the layout now
+// states it instead of implying it across a gap.
+//
+// The pills are text, not chips. Weight and colour carry the state, and the active one is
+// marked by a heavy underline that overlaps the closing hairline: one line saying both
+// "you are here" and "the header ends here", where the old header spent three unrelated
+// marks — a filled rectangle, a rule above it and a rule below it.
+function CatStrip({ contextCategories, category, onSelectCategory, onEditCategories, user, onGuestEdit, showAllPill = false, allScope = false, onSelectAll, corpus, onChangeCorpus, gutter = 16 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
   // Fires when playback crosses into a new category. Strip-local for the same reason as the
   // other two strips — scrollIntoView would also scroll whatever is behind the player.
+  //
+  // Also on the list itself: with the scope pinned beside them the topics get ~211px rather
+  // than the full width, so the active one is off-screen often enough that only re-centring
+  // when `category` changes leaves it stranded whenever the list arrives or changes shape.
   useEffect(() => {
     centrePill(stripRef.current, activeRef.current);
-  }, [category]);
+  }, [category, contextCategories, allScope]);
 
-  // Drawn exactly as Swipe's strip: flat text pills, only the active one carrying a fill,
-  // its colour the category's own tinted for a dark ground. It used to be a row of bordered,
-  // blurred chips — its own dialect on the one screen that should look most like the others.
+  const tab = (label, act, onClick, ref, key) => (
+    <button
+      key={key}
+      ref={ref}
+      onClick={onClick}
+      aria-current={act ? 'page' : undefined}
+      style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
+        padding: `0 0 ${SPACE.sm + 1}px`, whiteSpace: 'nowrap', flexShrink: 0,
+        fontSize: TYPE.ui, fontWeight: act ? WEIGHT.strong : WEIGHT.ui,
+        color: act ? tintForDark(CATEGORY_COLORS[category]) : 'rgba(255,255,255,0.5)',
+        // Sits on the row's own border rather than above it, so the mark and the divider
+        // read as one line thickened where you are.
+        boxShadow: act ? `inset 0 -2px 0 0 ${tintForDark(CATEGORY_COLORS[category])}` : 'none' }}>
+      {label}
+    </button>
+  );
+
   return (
-    <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center' }}>
+    <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'stretch',
+      paddingTop: SPACE.sm, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Same control, same place as Swipe and Scroll — outside the scroller so it holds
-          still while the pills move past it. */}
-      {onEditCategories && (
-        <button
-          onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
-          aria-label="Choose your topics"
-          title="Choose your topics"
-          style={{ flexShrink: 0, width: 26, height: 26, marginLeft: gutter, borderRadius: RADIUS.sm, border: 'none',
-            background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <SlidersHorizontal size={ICON.sm} />
-        </button>
-      )}
+      {/* Pinned: the scope, and the control that edits what "Mine" contains. Both hold
+          still while the topics move past them. */}
+      <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6, paddingLeft: gutter, flexShrink: 0 }}>
+        <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
+        {onEditCategories && (
+          <button
+            onClick={() => (user ? onEditCategories() : onGuestEdit?.())}
+            aria-label="Choose your topics"
+            title="Choose your topics"
+            style={{ flexShrink: 0, width: 26, height: 30, border: 'none', padding: 0,
+              background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <SlidersHorizontal size={ICON.sm} />
+          </button>
+        )}
+      </span>
+      <span aria-hidden style={{ width: 1, margin: `2px ${SPACE.sm}px ${SPACE.md}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
 
-      <div ref={stripRef} className="fp-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${gutter}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
-          {/* "All" — the ranking itself, in rank order across every category. Popular and
-              Interesting are cross-category lists, so the whole list is a scope in its own
-              right and not just the union of the pills beside it. Same control, same rule as
-              Swipe: the divider marks it as a different kind of choice, and in All scope no
-              category pill is selected, because the one you happen to be on is incidental. */}
+      {/* Pulled a pixel down so the active underline covers the row's border instead of
+          stacking above it.
+          `position: relative` is load-bearing: centrePill measures the active tab with
+          offsetLeft, which is relative to the nearest *positioned* ancestor. Without it that
+          is the outer row, so the pinned scope's 164px got added to every target and the
+          strip scrolled clean past the tab it was trying to centre. */}
+      <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: -1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: gutter, minWidth: 'max-content' }}>
+          {/* "All" — the ranking itself, across every category, on the tabs that show one. */}
           {showAllPill && (
             <>
-              <button
-                onClick={() => { if (!allScope) onSelectAll?.(); }}
-                style={{ display: 'flex', alignItems: 'center', padding: '8px 13px', borderRadius: RADIUS.sm, border: 'none',
-                  background: allScope ? 'rgba(255,255,255,0.20)' : 'transparent',
-                  color: allScope ? '#fff' : 'rgba(255,255,255,0.55)',
-                  fontSize: TYPE.ui, fontWeight: allScope ? WEIGHT.strong : WEIGHT.ui, whiteSpace: 'nowrap', flexShrink: 0,
-                  cursor: allScope ? 'default' : 'pointer' }}>
-                All
-              </button>
-              <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '3px 3px', background: 'rgba(255,255,255,0.20)', flexShrink: 0 }} />
+              {tab('Top', allScope, () => { if (!allScope) onSelectAll?.(); }, null, '__all')}
+              <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '2px 0 13px', background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
             </>
           )}
           {contextCategories.map(cat => {
             const act = !allScope && cat === category;
-            const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.55)';
-            return (
-              <button
-                key={cat}
-                ref={act ? activeRef : null}
-                onClick={() => { if (!act && onSelectCategory) onSelectCategory(cat); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: RADIUS.sm, border: 'none',
-                  background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
-                  color: c,
-                  fontSize: TYPE.ui, fontWeight: act ? WEIGHT.strong : WEIGHT.ui, whiteSpace: 'nowrap', flexShrink: 0,
-                  cursor: act ? 'default' : 'pointer' }}
-              >
-                <CategoryIcon category={cat} size={ICON.sm} color={c} />
-                {CATEGORY_SHORT[cat] || cat}
-              </button>
-            );
+            return tab(CATEGORY_SHORT[cat] || cat, act,
+              () => { if (!act && onSelectCategory) onSelectCategory(cat); },
+              act ? activeRef : null, cat);
           })}
         </div>
       </div>
@@ -736,17 +750,14 @@ export default function FullPlayer({
                opaque strip it always reads, and everything below is the sheet untouched. ── */}
         <div style={{ position: 'relative', zIndex: 20, flexShrink: 0 }}>
           <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
-            <div style={TRIAL.header === 'band' ? { background: 'rgba(255,255,255,0.045)' } : undefined}>
-            <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
+            {/* ── Identity and day. The wordmark moves off centre to the left edge, where
+                   it anchors the same gutter as everything under it; centred, it aligned
+                   with nothing and opened the header with an element outside the grid. ── */}
+            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `9px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
               <span style={{ fontSize: TYPE.meta, fontWeight: WEIGHT.strong, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>
-            </div>
-            {/* 6px below, matching Swipe and Scroll. At 10 the player's topic row sat four
-                pixels lower than the other two modes' — enough to see when switching. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
-              <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
               <div style={{ flex: 1 }} />
               <div style={{ position: 'relative' }} ref={dayPickerRef}>
                 <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
@@ -772,16 +783,10 @@ export default function FullPlayer({
                 )}
               </div>
             </div>
-            {/* One rule, edge to edge, between what scopes the whole page and what picks a
-                topic inside it. A full-bleed line rather than one inset to 16: it is chrome,
-                not content, and at the gutter it read as an underline belonging to the row
-                above rather than as a division between two.
-                SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
-                closes, and the wider air underneath separates that pair from the topics. */}
-            </div>
-            {TRIAL.header === 'band'
-              ? <div style={{ height: SPACE.sm }} />
-              : <div style={{ height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />}
+
+            {/* Scope and topics on one row, closed by the single rule the active tab
+                underlines. Both old rules are gone: Mine/All filters the strip, so there
+                was never a boundary to draw between them. */}
             {contextCategories.length > 0 && (
               <CatStrip
                 contextCategories={contextCategories}
@@ -793,13 +798,9 @@ export default function FullPlayer({
                 showAllPill={showAllPill}
                 allScope={allScope}
                 onSelectAll={onSelectAll}
+                corpus={corpus}
+                onChangeCorpus={onChangeCorpus}
               />
-            )}
-            {/* A second rule, closing the topics the way the first closes the scope row —
-                trying whether the header reads better as two stated bands than as one
-                block that fades into the content. Same 8 above / 16 below. */}
-            {contextCategories.length > 0 && (
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
             )}
 
             {/* The progress moved onto the story card, where the thing being progressed

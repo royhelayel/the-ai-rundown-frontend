@@ -1,7 +1,12 @@
 import React from 'react';
 
 /**
- * CorpusToggle — My news / All news, the outermost scope.
+ * CorpusToggle — Mine / All, the outermost scope.
+ *
+ * It filters the *category strip*, not the stories directly: "My news / All news" named the
+ * wrong object, and at 172px it took nearly half the width of the row it now sits inside.
+ * Pinned against the topics it governs, the strip supplies the noun, so the labels don't
+ * have to — 99px for the same choice.
  *
  * It was a pair of bottom tabs. It moved up here because the header carries the rest of the
  * narrowing chain — corpus, day, category, lens — and splitting the first link of that chain
@@ -34,7 +39,7 @@ export default function CorpusToggle({ value = 'all', onChange, theme = 'light' 
         onClick={() => !active && onChange?.(key)}
         aria-pressed={active}
         style={{
-          padding: '7px 14px', borderRadius: 999, border: 'none',
+          padding: '7px 11px', borderRadius: 999, border: 'none',
           background: active ? onBg : 'transparent',
           color: active ? onFg : offFg,
           // The thumb sits on the track rather than being cut into it — a small drop is what
@@ -51,8 +56,8 @@ export default function CorpusToggle({ value = 'all', onChange, theme = 'light' 
 
   return (
     <div style={{ display: 'inline-flex', background: track, borderRadius: 999, padding: 3, gap: 2, flexShrink: 0 }}>
-      {item('mine', 'My news')}
-      {item('all', 'All news')}
+      {item('mine', 'Mine')}
+      {item('all', 'All')}
     </div>
   );
 }

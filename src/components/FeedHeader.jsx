@@ -10,8 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import LensToggle from './LensToggle';
-import CorpusToggle from './CorpusToggle';
-import { CATEGORY_SHORT, CATEGORY_COLORS, SPACE, TRIAL } from '../theme';
+import { CATEGORY_SHORT, CATEGORY_COLORS, SPACE } from '../theme';
 import { centrePill } from '../utils';
 import ProgressRail from './ProgressRail';
 import ModeToggle from './ModeToggle';
@@ -111,28 +110,17 @@ export default function FeedHeader({
     <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 50, background: '#f5f5f7' }}>
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto' }}>
 
-        {/* ── Wordmark. "Radio" carries the weight and "News" recedes, so the mark has a
-               stress rather than reading as a flat monotone at this size. ── */}
-        <div style={TRIAL.header === 'band' ? { background: '#ffffff' } : undefined}>
-        <div style={{ padding: '9px 16px 0', textAlign: 'center' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+        {/* ── Identity and day, on one line. The wordmark moves off centre to the left
+               edge, where it anchors the same gutter as everything under it — centred, it
+               aligned with nothing and opened the header with an element outside the grid.
+               The page is viewport-fit=cover, so this row is the first thing under the
+               status bar: SPACE.md of its own plus whatever the device reserves. ── */}
+        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', gap: 10,
+          padding: `calc(env(safe-area-inset-top, 0px) + ${SPACE.md}px) ${SPACE.md}px ${SPACE.md}px` }}>
+          <span style={{ fontSize: '0.84rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
             <span style={{ color: 'rgba(10,10,15,0.46)' }}>Radio</span>
             <span style={{ color: 'rgba(10,10,15,0.24)' }}>News</span>
           </span>
-        </div>
-
-        {/* ── Scope row: corpus left, day right. The two ends of the same statement —
-               "All news, today" — rather than a title with a subtitle under it.
-               The rule now sits *between* this row and the topics, matching Listen: scope
-               and day change the whole page, a topic picks within it, and those are two
-               kinds of choice rather than one block.
-               zIndex 8, above the category strip below it (zIndex 3): the day picker is an
-               absolutely-positioned child of this row, so its own z-index only outranks
-               siblings *within* this row's stacking context — against the strip, which ties
-               on the old zIndex 3 and wins on DOM order, the dropdown painted underneath it
-               and its lower half was clipped. ── */}
-        <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
-          <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="light" />
           <div style={{ flex: 1 }} />
           <div style={{ position: 'relative' }} ref={pickerRef}>
             <button onClick={() => canPickDay && setPickerOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: canPickDay ? 'pointer' : 'default' }}>
@@ -166,28 +154,19 @@ export default function FeedHeader({
             )}
           </div>
         </div>
+        {/* ── Scope and topics, as one row — Listen's header, part for part.
+               There is no My/All mode any more: you see every topic until you edit them,
+               and after that you see yours. So the pinned slot holds the editor, the one
+               control that changes what this strip contains.
+               The pills are text, not chips: weight and colour carry the state, and the
+               active one is marked by an underline rather than a filled rectangle. ── */}
+        <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'stretch', paddingTop: SPACE.sm }}>
+          <style>{`.fh-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
-        {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
-            inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it
-            closes, and the wider air underneath separates that pair from the topics.
-            Same as Listen.
-            ?header=band swaps the rule for a band on the block above it — divides by mass
-            rather than by a line, the way a title bar does. */}
-        </div>
-        {TRIAL.header === 'band'
-          ? <div style={{ height: SPACE.sm }} />
-          : <div style={{ height: 1, background: 'rgba(0,0,0,0.07)', marginBottom: SPACE.sm }} />}
-
-        {/* ── Category pills — quick jump across topics ── */}
-        {categories.length > 0 && (
-          <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'center' }}>
-            <style>{`.fh-cat-strip::-webkit-scrollbar { display: none; }`}</style>
-
-            {/* Outside the scroller, so it stays put while the pills move. Icon rather than a
-                labelled pill: the strip is the most contested row on the screen, and a word
-                here cost more width than the control is worth. It opens the place where the
-                topics actually live rather than duplicating that list in a sheet. */}
-            {onEditCategories && (
+          {/* Pinned, so it holds still while the topics move past it. Bottom-padded so its
+              box centres on the tab labels rather than on the row. */}
+          {onEditCategories && (
+            <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: SPACE.md, paddingBottom: 11, flexShrink: 0 }}>
               <button
                 // Guests go to My News rather than straight to a sign-in box. That page
                 // explains what a personalised feed is and asks to sign in *for* it — the
@@ -195,49 +174,54 @@ export default function FeedHeader({
                 onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
                 aria-label="Choose your topics"
                 title="Choose your topics"
-                style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
+                style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: 8,
                   background: 'transparent', color: '#6b7280', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <SlidersHorizontal size={14} />
               </button>
-            )}
+            </span>
+          )}
+          {categories.length > 0 && (
+            <span aria-hidden style={{ width: 1, margin: `${SPACE.sm}px ${SPACE.sm}px ${SPACE.md}px`, background: 'rgba(0,0,0,0.12)', flexShrink: 0 }} />
+          )}
 
-            <div ref={stripRef} className="fh-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-            <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
-              {showAllPill && (
-                <button onClick={() => onSelectCategory?.(null)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
-                    background: activeCategory === null ? 'rgba(0,0,0,0.08)' : 'transparent', color: activeCategory === null ? '#0a0a0f' : '#9ca3af',
-                    fontSize: '0.84rem', fontWeight: activeCategory === null ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer' }}>
-                  All
-                </button>
-              )}
+          {/* `position: relative` is load-bearing: centrePill measures the active tab with
+              offsetLeft, which is relative to the nearest *positioned* ancestor. Without it
+              that is the outer row, and the pinned editor's width gets added to every
+              target — the strip then scrolls past the tab it is trying to centre. */}
+          <div ref={stripRef} className="fh-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: SPACE.md, minWidth: 'max-content' }}>
+              {showAllPill && (() => {
+                const act = activeCategory === null;
+                return (
+                  <button onClick={() => onSelectCategory?.(null)}
+                    aria-current={act ? 'page' : undefined}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer',
+                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
+                      fontSize: '0.84rem', fontWeight: act ? 800 : 600,
+                      color: act ? '#0a0a0f' : '#9ca3af',
+                      boxShadow: act ? 'inset 0 -2px 0 0 #0a0a0f' : 'none' }}>
+                    Top
+                  </button>
+                );
+              })()}
               {categories.map(cat => {
                 const act = cat === activeCategory;
-                // Selection carries the category's own colour; deselecting drops straight
-                // back to the neutral grey, so only one pill is ever coloured.
                 const c = act ? (CATEGORY_COLORS[cat] || '#0a0a0f') : '#9ca3af';
                 return (
                   <button key={cat} ref={act ? activePillRef : null} onClick={() => onSelectCategory?.(cat)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
-                      background: act ? 'rgba(0,0,0,0.08)' : 'transparent', color: c,
-                      fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
-                    <CategoryIcon category={cat} size={14} color={c} />
+                    aria-current={act ? 'page' : undefined}
+                    style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
+                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
+                      fontSize: '0.84rem', fontWeight: act ? 800 : 600, color: c,
+                      boxShadow: act ? `inset 0 -2px 0 0 ${c}` : 'none' }}>
                     {CATEGORY_SHORT[cat] || cat}
                   </button>
                 );
               })}
             </div>
-            </div>
           </div>
-        )}
-
-        {/* A second rule, closing the topics the way the first closes the scope row — trying
-            whether the header reads better as two stated bands than as one block that fades
-            into the content. Same 8 above / 16 below. */}
-        {categories.length > 0 && (
-          <div style={{ height: 1, background: 'rgba(0,0,0,0.07)' }} />
-        )}
+        </div>
 
         {/* Right-aligned, last in the header, so it lands directly above the first story
             and reads as a property of the list rather than another piece of scope. */}

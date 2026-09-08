@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE, TRIAL } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -10,7 +10,6 @@ import BottomNav from './BottomNav';
 import StorySummarySheet from './StorySummarySheet';
 import ProgressRail from './ProgressRail';
 import LensToggle from './LensToggle';
-import CorpusToggle from './CorpusToggle';
 import RecapBar from './RecapBar';
 import PeriodRecapChips from './PeriodRecapChips';
 import { centrePill } from '../utils';
@@ -925,28 +924,16 @@ export default function StoryReader({
       {asPage ? (
         <>
           {/* Same wordmark as Scroll mode's header — see FeedHeader. */}
-          <div style={TRIAL.header === 'band' ? { position: 'relative', zIndex: 6, background: 'rgba(255,255,255,0.045)' } : undefined}>
-          <div style={{ position: 'relative', zIndex: 6, padding: '9px 16px 0', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          {/* ── Identity and day, on one line — Listen's header, part for part. The
+                 wordmark moves off centre to the left edge, where it anchors the same gutter
+                 as everything under it. The page is viewport-fit=cover, so this row is the
+                 first thing under the status bar: SPACE.md plus the device's own inset. ── */}
+          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', gap: 10,
+            padding: `calc(env(safe-area-inset-top, 0px) + ${SPACE.md}px) ${SPACE.md}px ${SPACE.md}px` }}>
+            <span style={{ fontSize: '0.84rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
               <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
               <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
             </span>
-          </div>
-
-          {/* Scope row: corpus left, day right — the same statement as Scroll mode's.
-              Tight to the topics below it: with the rule moved under the pills, these two
-              rows are the same header block, so the air between them is grouping, not
-              separation. It used to be padded away from a rule that sat directly beneath it.
-              zIndex 8, above every other zIndex-6 row here: the day picker is an absolutely
-              positioned child of this row, so its z-index only wins within this row's own
-              stacking context — against the category strip and recap/lens rows below it,
-              which tie on 6 and win on DOM order, it painted underneath and got clipped. */}
-          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', padding: `11px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
-            <CorpusToggle
-              value={activeTabPath === '/my-feed' ? 'mine' : 'all'}
-              onChange={(c) => onSwitchStoriesTab?.(c === 'mine' ? '/my-feed' : '/')}
-              theme="dark"
-            />
             <div style={{ flex: 1 }} />
             <div style={{ position: 'relative' }} ref={dayPickerRef}>
               <button onClick={() => canPickDay && setDayPickerOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: canPickDay ? 'pointer' : 'default' }}>
@@ -980,7 +967,6 @@ export default function StoryReader({
               )}
             </div>
           </div>
-          </div>
         </>
       ) : (
         <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', padding: '0.7rem 1rem 0.4rem', gap: 8 }}>
@@ -1000,84 +986,71 @@ export default function StoryReader({
         </div>
       )}
 
-      {/* One rule, edge to edge, between what scopes the whole page and what picks a topic
-          inside it. SPACE.sm above and SPACE.md below: the rule belongs to the scope row it closes,
-          and the wider air underneath separates that pair from the topics. Same as Listen. */}
-      {TRIAL.header === 'band'
-        ? <div style={{ height: SPACE.sm }} />
-        : <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)', marginBottom: SPACE.sm }} />}
+      {/* ── Scope and topics, as one row — Listen's header, part for part.
+             No My/All mode: you see every topic until you edit them, and after that you see
+             yours. The pinned slot holds the editor, the one control that changes what this
+             strip contains. Pills are text; the active one takes an underline rather than a
+             filled rectangle, and no rule closes the row. ── */}
+      {asPage && (
+        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'stretch', paddingTop: SPACE.sm }}>
+          {/* Pinned, so it holds still while the topics move past it. Bottom-padded so its
+              box centres on the tab labels rather than on the row. */}
+          {onEditCategories && (
+            <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: SPACE.md, paddingBottom: 11, flexShrink: 0 }}>
+              <button
+                // Same as Scroll: guests meet the My News page, which makes the case before
+                // asking for an account.
+                onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
+                aria-label="Choose your topics"
+                title="Choose your topics"
+                style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: 8,
+                  background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <SlidersHorizontal size={14} />
+              </button>
+            </span>
+          )}
+          {contextCategories.length > 1 && (
+            <span aria-hidden style={{ width: 1, margin: `${SPACE.sm}px ${SPACE.sm}px ${SPACE.md}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+          )}
 
-      {/* ── Category pills — quick jump across topics ── */}
-      {contextCategories.length > 1 && (
-        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center' }}>
-        {/* Same control, same place as Scroll mode's — outside the scroller, so it holds
-            still while the pills move past it. */}
-        {onEditCategories && (
-          <button
-            // Same as Scroll: guests meet the My News page, which makes the case before
-            // asking for an account.
-            onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
-            aria-label="Choose your topics"
-            title="Choose your topics"
-            style={{ flexShrink: 0, width: 26, height: 26, marginLeft: 16, borderRadius: 8, border: 'none',
-              // The pill strip's padding is 8px top / 9px bottom — near enough symmetric that
-              // its pills sit on the row's true centre, so the icon centres with them and
-              // needs no nudge. (It carried a 3px offset while that padding was 15/9.)
-              background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <SlidersHorizontal size={14} />
-          </button>
-        )}
-        <div ref={catStripRef} className="rdr-cat-strip" style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: 8, padding: `${SPACE.sm}px ${SPACE.md}px ${SPACE.sm}px`, minWidth: 'max-content' }}>
-            {/* "All" — the ranking itself, in rank order across every category. */}
-            {showAllPill && (
-              <>
-                <button onClick={() => { setScope('all'); const p = playlist?.[0]; if (p) navTo(p.category, p.storyIndex); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 8, border: 'none',
-                    background: allScope ? 'rgba(255,255,255,0.20)' : 'transparent',
-                    color: allScope ? '#fff' : 'rgba(255,255,255,0.55)',
-                    fontSize: '0.76rem', fontWeight: allScope ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0,
-                    cursor: allScope ? 'default' : 'pointer' }}>
-                  All
-                </button>
-                {/* All isn't a peer of the categories — it's the whole ranking rather than a
-                    slice of it, and picking it changes what a swipe past the last story
-                    does. The rule reads as a divider between two kinds of choice. */}
-                <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '3px 3px', background: 'rgba(255,255,255,0.20)', flexShrink: 0 }} />
-              </>
-            )}
-            {contextCategories.map(cat => {
-              // In All scope no category is selected — you're reading the ranking, and the
-              // category you happen to be on is incidental to it.
-              const act = !allScope && cat === category;
-              // Same rule as Scroll mode: the selected pill takes the category's colour.
-              // Over a photo the raw hue can sit too dark, so it's mixed toward white —
-              // the hue still reads as the category's, at a weight that survives the scrim.
-              const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.55)';
-              return (
-                // Only the active chip keeps a fill — the rest recede to plain text so the
-                // strip stops reading as twelve competing buttons over the photo.
-                <button key={cat} ref={act ? activeCatRef : null}
-                  onClick={() => { if (act) return; setScope('category'); navTo(cat, 0); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 9, border: 'none',
-                    background: act ? 'rgba(255,255,255,0.20)' : 'transparent',
-                    color: c,
-                    fontSize: '0.84rem', fontWeight: act ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: act ? 'default' : 'pointer' }}>
-                  <CategoryIcon category={cat} size={13} color={c} />
-                  {CATEGORY_SHORT[cat] || cat}
-                </button>
-              );
-            })}
+          {/* `position: relative` is load-bearing: centrePill measures with offsetLeft, which
+              is relative to the nearest *positioned* ancestor — without it the pinned
+              editor's width is added to every target and the strip overshoots. */}
+          <div ref={catStripRef} className="rdr-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: SPACE.md, minWidth: 'max-content' }}>
+              {showAllPill && (() => {
+                const act = allScope;
+                return (
+                  <button onClick={() => { if (allScope) return; setScope('all'); const p = playlist?.[0]; if (p) navTo(p.category, p.storyIndex); }}
+                    aria-current={act ? 'page' : undefined}
+                    style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
+                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
+                      fontSize: '0.84rem', fontWeight: act ? 800 : 600,
+                      color: act ? '#fff' : 'rgba(255,255,255,0.5)',
+                      boxShadow: act ? 'inset 0 -2px 0 0 #fff' : 'none' }}>
+                    Top
+                  </button>
+                );
+              })()}
+              {contextCategories.map(cat => {
+                const act = !allScope && cat === category;
+                const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.5)';
+                return (
+                  <button key={cat} ref={act ? activeCatRef : null}
+                    onClick={() => { if (act) return; setScope('category'); navTo(cat, 0); }}
+                    aria-current={act ? 'page' : undefined}
+                    style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
+                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
+                      fontSize: '0.84rem', fontWeight: act ? 800 : 600, color: c,
+                      boxShadow: act ? `inset 0 -2px 0 0 ${c}` : 'none' }}>
+                    {CATEGORY_SHORT[cat] || cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-        </div>
-      )}
-      {/* A second rule, closing the topics the way the first closes the scope row —
-          trying whether the header reads better as two stated bands than as one block that
-          fades into the content. Same 8 above / 16 below. */}
-      {contextCategories.length > 1 && (
-        <div style={{ position: 'relative', zIndex: 6, height: 1, background: 'rgba(255,255,255,0.10)' }} />
       )}
 
       {/* Full-width recap, lens on its own line beneath — the arrangement that read best.

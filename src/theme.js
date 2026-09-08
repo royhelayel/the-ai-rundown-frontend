@@ -152,12 +152,6 @@ export const UI_TRIAL = {
   navIcons: true,
 };
 
-/* One-off UI trials driven from the URL, so a choice can be made by looking on a real
-   phone rather than by argument: ?header=band. Read once at load — switching means
-   reloading with the new URL. Each entry comes out with the trial it settles. */
-export const TRIAL = typeof window !== 'undefined'
-  ? Object.fromEntries(new URLSearchParams(window.location.search))
-  : {};
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 //

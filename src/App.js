@@ -1217,6 +1217,12 @@ const TheAIRundown = () => {
   }, [slotsLoaded, completedSlots]); // eslint-disable-line react-hooks/exhaustive-deps
   const allCategories = [...defaultCategories, ...customCategories];
 
+  // The topic set the reading screens show. All three lost the My/All toggle, so the edit
+  // itself is the choice: untouched shows the twelve defaults, edited shows yours. Without
+  // this, removing the toggle would strand people on the default set with no way to reach
+  // the topics they picked. "Restore default topics" in Settings is the way back.
+  const topicsForReading = feedCategories.length ? feedCategories : defaultCategories;
+
   const getCurrentTimeSlot = () => getUAEHour() >= 18 ? 'Evening' : 'Morning';
 
   const currentTimeSlot = getCurrentTimeSlot();
@@ -3186,7 +3192,7 @@ const TheAIRundown = () => {
           availableTimes={availableTimes}
           onSelectDay={selectDay}
           onSelectTime={setSelectedTime}
-          defaultCategories={defaultCategories}
+          defaultCategories={topicsForReading}
           customCategories={customCategories}
           onPlayBriefing={handlePlayBriefing}
           onPlayCategory={handlePlayCategory}

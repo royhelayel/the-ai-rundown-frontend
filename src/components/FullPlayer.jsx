@@ -101,7 +101,9 @@ function CatStrip({ contextCategories, category, onSelectCategory, showAllPill =
       <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, flexShrink: 0 }}>
         <CorpusToggle value={corpus} onChange={onChangeCorpus} theme="dark" />
       </span>
-      <span aria-hidden style={{ width: 1, margin: `10px ${SPACE.sm}px ${SPACE.sm}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+      {/* Spans the track exactly, top and bottom. Floating between the two heights it read
+          as a stray tick rather than the boundary between scope and topic. */}
+      <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px 1px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
 
       {/* Pulled a pixel down so the active underline covers the row's border instead of
           stacking above it.
@@ -743,7 +745,7 @@ export default function FullPlayer({
                    it anchors the same gutter as everything under it; centred, it aligned
                    with nothing and opened the header with an element outside the grid. ── */}
             <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', padding: `9px ${SPACE.md}px ${SPACE.sm}px`, gap: 10 }}>
-              <span style={{ fontSize: TYPE.meta, fontWeight: WEIGHT.strong, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.strong, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
                 <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
                 <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
               </span>

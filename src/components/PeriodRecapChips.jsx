@@ -40,8 +40,12 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, ac
         onClick={ready ? () => onOpen?.(period) : undefined}
         title={ready ? `Read the ${label.toLowerCase()} recap` : `${label} recap — not generated yet`}
         style={{ border: 'none', flexShrink: 0,
-          padding: '6px 11px', borderRadius: 999,
-          fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
+          /* 0.72rem/9px, down from 0.78/11. "Last week" and "Last month" cost the row ~70px
+             over the bare nouns they replaced, and this is where it comes back: the chips
+             were also the one thing on the row rendering *larger* than the label they sit
+             beside, which had them out-shouting the phrase that says what they are. */
+          padding: '6px 9px', borderRadius: 999,
+          fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
           cursor: ready ? 'pointer' : 'default',
           background: ready
             ? hexA(accent, dark ? 0.20 : 0.13)
@@ -59,8 +63,14 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, ac
   // row silently changed shape on the days one landed — and nobody could learn the feature was
   // coming, because it only appeared once it had already arrived. Disabled says "this exists,
   // not yet"; absent says nothing at all.
-  // "Week" and "Month", not "Last week" and "Last month". On one line beside the topic's name
-  // the long pair measured 260px of a 319px box, leaving 40 for a phrase that needs 90 — so
-  // the row could not be one line while they kept those labels. At 189px it can.
-  return <>{[chip('Weekly', 'Week'), chip('Monthly', 'Month')]}</>;
+  // "Last week" and "Last month". They were shortened to "Week"/"Month" to keep the recap row
+  // on one line — the long pair measured 260px of a 319px box, leaving 40px for a phrase that
+  // wants 90 — but the bare nouns read as a filter ("show me the week") rather than as the
+  // thing they open, which is the recap covering the week just gone. The pair costs the row
+  // ~70px, and it is paid for twice: these chips dropped to 0.72rem/9px (they were the one
+  // thing on the row rendering *larger* than the label beside them), and the phrase lost the
+  // word "news" — "Tech recap", not "Tech news recap". On a 393px phone the long labels, one
+  // line, the full phrase and right-anchored buttons cannot all hold; "news" was the cheapest
+  // of the four to give up. Shortening it again is the first place to look if the row grows.
+  return <>{[chip('Weekly', 'Last week'), chip('Monthly', 'Last month')]}</>;
 }

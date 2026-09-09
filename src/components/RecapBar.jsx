@@ -83,8 +83,12 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
     return (
       <button onClick={onOpen} title={`Read the ${name} recap`}
         style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
-          padding: '6px 11px', borderRadius: 999,
-          fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
+          /* 0.72rem/9px, down from 0.78/11. "Last week" and "Last month" cost the row ~70px
+             over the bare nouns they replaced, and this is where it comes back: the chips
+             were also the one thing on the row rendering *larger* than the label they sit
+             beside, which had them out-shouting the phrase that says what they are. */
+          padding: '6px 9px', borderRadius: 999,
+          fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
           background: hexA(accent, dark ? 0.20 : 0.13),
           color: accent }}>
         Today

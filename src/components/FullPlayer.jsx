@@ -503,7 +503,7 @@ export default function FullPlayer({
               </span>
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.5)' }}>
-                {CATEGORY_SHORT[category] || category} news recap
+                {CATEGORY_SHORT[category] || category} recap
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <RecapBar category={category} storyCount={storyCount} theme="dark" compact accent={recapTint}

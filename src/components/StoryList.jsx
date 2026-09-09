@@ -35,7 +35,7 @@ function CategoryRecapHead({ cat, onOpen, onPlay }) {
         </span>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           fontSize: '0.72rem', fontWeight: 600, color: '#8b8b98' }}>
-          {CATEGORY_SHORT[cat] || cat} news recap
+          {CATEGORY_SHORT[cat] || cat} recap
         </span>
       {/* Today only, for now. The week and month are still fetched app-wide, with
           category: '__period__' — one weekly row for every topic — so putting them in each of

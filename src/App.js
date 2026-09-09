@@ -19,7 +19,7 @@ import FeedCategoryEditor from './components/FeedCategoryEditor';
 import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
 import OnboardingTour, { ONBOARDING_KEY } from './components/OnboardingTour';
-import { CATEGORY_COLORS, CATEGORY_IMAGES } from './theme';
+import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from './theme';
 import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
@@ -2212,14 +2212,14 @@ const TheAIRundown = () => {
     let cancelled = false;
     const load = async (period) => {
       const day = periodEnds[period];
-      if (!day) return [period, null];
-      const key = `${period}|${day}|${newsLanguage}`;
+      if (!day || !selectedCategory) return [period, null];
+      const key = `${period}|${day}|${selectedCategory}|${newsLanguage}`;
       // The promise is what's cached, not the value. Caching only the resolved value still
       // let every effect run that started before the first one came back miss the cache and
       // fire its own request — which is most of them, since they all start within a frame
       // or two of each other. Sharing the in-flight promise collapses them into one.
       if (!periodCache.current.has(key)) {
-        const params = new URLSearchParams({ mode: 'one', category: '__period__', day, timeSlot: period, language: newsLanguage });
+        const params = new URLSearchParams({ mode: 'one', category: selectedCategory, day, timeSlot: period, language: newsLanguage });
         periodCache.current.set(key, fetch(`/api/news?${params}`)
           .then(res => res.ok ? res.json() : null)
           .then(row => {
@@ -2238,7 +2238,11 @@ const TheAIRundown = () => {
       setPeriodRecaps(prev => (prev.Weekly === next.Weekly && prev.Monthly === next.Monthly) ? prev : next);
     });
     return () => { cancelled = true; };
-  }, [periodEnds, newsLanguage]);
+    // selectedCategory is a dependency now: these are the selected topic's week and month,
+    // not the whole app's, so switching topic has to fetch that topic's pair. The cache key
+    // carries the category for the same reason — without it, the first category's recap
+    // would be served for every other one.
+  }, [periodEnds, newsLanguage, selectedCategory]);
 
   const PERIOD_LABEL = { Weekly: 'Weekly', Monthly: 'Monthly' };
   const periodMinutes = (text) => Math.max(1, Math.round(text.split(/\s+/).length / 150));
@@ -2250,7 +2254,7 @@ const TheAIRundown = () => {
     const r = periodRecaps[period];
     if (!r) return;
     setPeriodReader({
-      headline: period === 'Weekly' ? 'Your week' : 'Your month',
+      headline: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`,
       summary: r.text,
       tightBullets: [], allBullets: [], storySources: [],
       _isBriefing: true,
@@ -2262,7 +2266,7 @@ const TheAIRundown = () => {
     const r = periodRecaps[period];
     if (!r) return;
     if (isNarrating) narrateFnRef.current.stop();
-    const label = period === 'Weekly' ? 'Your week' : 'Your month';
+    const label = `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`;
     const stories = [{ headline: label, tightBullets: [r.text], allBullets: [r.text], storySources: [], _isBriefing: true }];
     snapshotPlayRef.current = { category: label, stories, map: { [label]: { allStories: stories } } };
     playlistCatsRef.current = [label];

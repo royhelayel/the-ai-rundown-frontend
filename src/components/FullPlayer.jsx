@@ -292,6 +292,11 @@ export default function FullPlayer({
     if (dx < 0) onNext?.(); else onPrev?.();
   };
 
+  // The recap row's colour: the category's own tint, and the exact value the active topic tab
+  // is drawn in. One source means the tab and the pills cannot drift apart — which is what
+  // ties the recaps to the topic without naming it a second time.
+  const recapTint = tintForDark(CATEGORY_COLORS[category]);
+
   // The story progress dots, defined once because they render in two different places:
   // floating over the artwork in the sheet, and as the page header's dividing rule.
   const dots = (stories || []).map((_, i) => (
@@ -471,17 +476,26 @@ export default function FullPlayer({
         {!isRecap && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
-          <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: `${SPACE.lg}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
-            {/* One mark for the row, not one per chip: all three recaps are model-written, so
-                repeating it on each of them marks nothing. */}
-            <span aria-hidden style={{ display: 'flex', flexShrink: 0, alignSelf: 'center', color: '#a9abf7' }}>
-              <Sparkles size={16} />
-            </span>
-            <RecapBar category={category} storyCount={storyCount} theme="dark" compact
-              onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
-            <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
-              onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+          <div style={{ position: 'relative', zIndex: 10, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
+            padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
+            {/* The line says what these are for. Three buttons labelled with time spans do not
+                explain themselves — "Today" beside a headline could as easily be a filter. */}
+            <p style={{ margin: '0 0 9px', fontSize: TYPE.meta, fontWeight: WEIGHT.ui, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
+              Short on time? Catch up with a recap
+            </p>
+            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
+              {/* One mark for the row, not one per chip: all three recaps are model-written, so
+                  repeating it on each of them marks nothing. It wears the topic's tint too, so
+                  the whole row changes colour with the tab above it. */}
+              <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
+                <Sparkles size={16} />
+              </span>
+              <RecapBar category={category} storyCount={storyCount} theme="dark" compact accent={recapTint}
+                onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
+              <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
+                onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+            </div>
           </div>
         )}
 

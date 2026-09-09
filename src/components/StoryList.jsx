@@ -7,7 +7,6 @@ import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
 import RecapBar from './RecapBar';
-import { Sparkles } from 'lucide-react';
 import { headlineKey } from './PopularTab';
 
 // ── Category header — the recap chip, and nothing else ───────────────────────
@@ -18,14 +17,32 @@ import { headlineKey } from './PopularTab';
 // Swipe nor Listen shows one, and the point of the chip was that the recap looks the same in
 // all three modes — which it can't while one of them wraps it in a card the others don't have.
 function CategoryRecapHead({ cat, onOpen, onPlay }) {
+  // Scroll runs this row at the head of all twelve sections, so it names its own topic —
+  // "World News recap" — where Listen and Swipe carry the generic line instead. There the
+  // active tab already says which topic; here twelve rows scroll past and nothing else does.
+  //
+  // The tint is the category's own, the same value its story kickers and its topic tab use,
+  // so the three sit in one colour down the page. Colour alone is not identification though —
+  // twelve low-saturation tints are not reliably told apart, and roughly one reader in twelve
+  // sees hue differently — so the category's icon leads the row and carries the same tint.
+  const tint = CATEGORY_COLORS[cat] || '#6366f1';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 10px' }}>
-      {/* One mark ahead of the chip — the recap is model-written, and the glyph says that
-          once rather than riding inside the pill as a second shape. */}
-      <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: '#6366f1' }}>
-        <Sparkles size={16} />
-      </span>
-      <RecapBar category={cat} compact showName onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
+    <div style={{ margin: '0 0 10px', padding: '10px 12px 11px', borderRadius: 12, background: 'rgba(10,10,20,0.04)' }}>
+      <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
+        fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: '#8b8b98' }}>
+        <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: tint }}>
+          <CategoryIcon category={cat} size={13} color={tint} />
+        </span>
+        {cat} recap
+      </p>
+      {/* Today only, for now. The week and month are still fetched app-wide, with
+          category: '__period__' — one weekly row for every topic — so putting them in each of
+          twelve sections would show the same recap twelve times over, each time labelled as
+          that section's. They join this row when the backend generates them per category;
+          until then they stay in the feed's own row above, where app-wide is the truth. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <RecapBar category={cat} compact accent={tint} onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
+      </div>
     </div>
   );
 }

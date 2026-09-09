@@ -215,6 +215,9 @@ export default function StoryReader({
   // Popular and Interesting are ranked cross-category lists — same as Scroll mode, they
   // get an "All" entry. The per-category feeds don't.
   const fromPath = location.state?.from;
+  // The recap row's colour — the exact value the active topic tab is drawn in, so the two
+  // cannot drift and the row is tied to the topic without naming it again.
+  const recapTint = tintForDark(CATEGORY_COLORS[category]);
   const showAllPill = !!playlist?.length && (fromPath === '/popular' || fromPath === '/important');
 
   // Popular and Interesting are ranked lists that happen to span categories, so they have
@@ -1071,23 +1074,26 @@ export default function StoryReader({
       {asPage && onOpenCategoryRecap && !showAllPill && (
         /* Sits clear of the rule above it: the recap belongs to the story area, not to the
            header block the rule closes, so it needs visible air rather than hugging it. */
-        <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, flexShrink: 0, padding: `${SPACE.md}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
-          {/* One mark for the row — all three recaps are model-written, so repeating it on
-              each chip marks nothing. */}
-          <span aria-hidden style={{ display: 'flex', flexShrink: 0, alignSelf: 'center', color: '#a9abf7' }}>
-            <Sparkles size={16} />
-          </span>
-          <RecapBar
-            category={category}
-            storyCount={stories.length}
-            theme="dark"
-            compact
-            onOpen={() => onOpenCategoryRecap(category)}
-            onPlay={onPlayRecap}
-          />
-          <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"
-            onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+        <div style={{ position: 'relative', zIndex: 6, flexShrink: 0, margin: `${SPACE.md}px ${SPACE.md}px 0`,
+          padding: '10px 12px 11px', borderRadius: 12, background: 'rgba(255,255,255,0.04)' }}>
+          {/* The line says what these are for — three buttons labelled with time spans do not
+              explain themselves. Same wording as Listen. */}
+          <p style={{ margin: '0 0 9px', fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
+            Short on time? Catch up with a recap
+          </p>
+          <div className="rdr-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
+            {/* One mark for the row, wearing the topic's tint — the whole row changes colour
+                with the tab above it. */}
+            <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
+              <Sparkles size={16} />
+            </span>
+            <RecapBar category={category} theme="dark" compact accent={recapTint}
+              storyCount={stories.length}
+              onOpen={() => onOpenCategoryRecap(category)} onPlay={onPlayRecap} />
+            <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
+              onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+          </div>
         </div>
       )}
 

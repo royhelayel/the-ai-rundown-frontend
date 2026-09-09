@@ -12,9 +12,22 @@ import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
  *
  * Tapping the body opens the recap; tapping play narrates it.
  */
-export default function RecapBar({ category, storyCount = 0, theme = 'light', compact = false, showName = false, onOpen, onPlay }) {
+// The tint arrives as #rrggbb on light and as rgb(r, g, b) on dark (tintForDark builds it
+// that way), so appending an alpha suffix would only work for one of them.
+function hexA(c, a) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c || '');
+  if (m) return `rgba(${parseInt(m[1],16)}, ${parseInt(m[2],16)}, ${parseInt(m[3],16)}, ${a})`;
+  const r = /rgba?\(([^)]+)\)/.exec(c || '');
+  if (r) return `rgba(${r[1].split(',').slice(0,3).map(v=>v.trim()).join(', ')}, ${a})`;
+  return `rgba(99, 102, 241, ${a})`;
+}
+
+export default function RecapBar({ category, storyCount = 0, theme = 'light', compact = false, showName = false, accent: accentProp, onOpen, onPlay }) {
   const dark = theme === 'dark';
-  const accent = dark ? '#a5b4fc' : (CATEGORY_COLORS[category] || '#6366f1');
+  // The parents already compute the category's tint for the active topic tab — they pass it
+  // down rather than a third copy of tintForDark living here. Falling back keeps the
+  // non-compact variant, and any caller that doesn't tint, working unchanged.
+  const accent = accentProp || (dark ? '#a5b4fc' : (CATEGORY_COLORS[category] || '#6366f1'));
   const name = CATEGORY_SHORT[category] || category;
 
   // The same circle-and-caption pair the story cards carry, so a recap and a story offer
@@ -60,29 +73,22 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
   // says which one it belongs to. Ghost rather than filled either way: this is a secondary
   // offer next to the story, and a filled block competed with the card for first read.
   if (compact) {
-    // A filled pill, not an outlined one. The border was the last hard edge in a band whose
-    // others have all gone, and the fill alone already says "object" — same reasoning that
-    // took the hairline off the story box.
+    // One pill among three, and the shortest label of them: "Today", against "Last week" and
+    // "Last month". The minutes are gone — three durations on one line was the row spending
+    // its width on the least useful thing it could say.
     //
-    // The trailing disc is gone too. It carried a document glyph, then the AI mark, and both
-    // said something the row now says once: a single sparkle leads the whole group, because
-    // all three recaps are model-written and repeating the mark on each of them marks nothing.
+    // The fill is the category's own tint, the same value the active topic tab is drawn in.
+    // That is what ties this row to the topic without naming it again: change topic and the
+    // tab and these pills move together, because both read one source.
     return (
-      <div style={{ display: 'flex' }}>
-        <div onClick={onOpen}
-          role="button" tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
-          title={`Read the ${name} recap`}
-          style={{ display: 'inline-flex', alignItems: 'center',
-            padding: '8px 14px', borderRadius: 12, cursor: 'pointer',
-            background: dark ? 'rgba(255,255,255,0.09)' : '#ffffff',
-            boxShadow: dark ? 'none' : '0 1px 2px rgba(0,0,0,0.07)' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap',
-            color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
-            {showName ? `${name} Recap` : 'Category Recap'} <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· 1 min</span>
-          </span>
-        </div>
-      </div>
+      <button onClick={onOpen} title={`Read the ${name} recap`}
+        style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
+          padding: '6px 13px', borderRadius: 999,
+          fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
+          background: hexA(accent, dark ? 0.20 : 0.13),
+          color: accent }}>
+        Today
+      </button>
     );
   }
 

@@ -1,5 +1,13 @@
 import React from 'react';
-import { Play } from 'lucide-react';
+
+// Same helper as RecapBar's: the tint arrives as #rrggbb on light and rgb(r, g, b) on dark.
+function hexA(c, a) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c || '');
+  if (m) return `rgba(${parseInt(m[1],16)}, ${parseInt(m[2],16)}, ${parseInt(m[3],16)}, ${a})`;
+  const r = /rgba?\(([^)]+)\)/.exec(c || '');
+  if (r) return `rgba(${r[1].split(',').slice(0,3).map(v=>v.trim()).join(', ')}, ${a})`;
+  return `rgba(99, 102, 241, ${a})`;
+}
 
 /**
  * PeriodRecapChips — the week's and the month's recaps, sitting beside the category's.
@@ -14,52 +22,34 @@ import { Play } from 'lucide-react';
  * Each chip renders only when its recap exists, so the row is a category recap alone for
  * most of the week and grows on the days the others land.
  */
-export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, theme = 'dark' }) {
+export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, accent: accentProp, theme = 'dark' }) {
   const dark = theme === 'dark';
-  const accent = dark ? '#c4b5fd' : '#7c3aed';
+  // The category's tint, passed down from the row that already computed it for the topic tab.
+  // These used to be violet on purpose, to say "different kind of thing" — but they summarise
+  // the same topic over a longer span, so wearing its colour is the truer statement, and it is
+  // what makes the whole row read as one group.
+  const accent = accentProp || (dark ? '#c4b5fd' : '#7c3aed');
 
   const chip = (period, label) => {
     const r = recaps?.[period];
     if (!r?.text) return null;
     return (
-      <div
+      <button
         key={period}
         onClick={() => onOpen?.(period)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(period); } }}
         title={`Read the ${label.toLowerCase()} recap`}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-          padding: '5px 5px 5px 14px', borderRadius: 12, cursor: 'pointer',
-          // Same fill as the category recap beside it, and no border. These used to carry a
-          // violet tint and an outline to say "different kind of thing"; with one AI mark now
-          // leading the whole row, the three read as one group and the tint was separating
-          // chips that belong together.
-          background: dark ? 'rgba(255,255,255,0.09)' : '#ffffff',
-          boxShadow: dark ? 'none' : '0 1px 2px rgba(0,0,0,0.07)',
-        }}
+        style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
+          padding: '6px 13px', borderRadius: 999,
+          fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
+          background: hexA(accent, dark ? 0.20 : 0.13),
+          color: accent }}
       >
-        <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>
-          {label}{' '}
-          <span style={{ fontWeight: 600, color: dark ? 'rgba(255,255,255,0.45)' : '#6b7280' }}>· {minutesOf(r.text)} min</span>
-        </span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onPlay?.(period); }}
-          aria-label={`Listen to the ${label.toLowerCase()} recap`}
-          style={{
-            flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: accent,
-          }}
-        >
-          <Play size={12} fill={dark ? '#241a3d' : '#fff'} color={dark ? '#241a3d' : '#fff'} style={{ marginLeft: 1 }} />
-        </button>
-      </div>
+        {label}
+      </button>
     );
   };
 
-  const chips = [chip('Weekly', 'Weekly'), chip('Monthly', 'Monthly')].filter(Boolean);
+  const chips = [chip('Weekly', 'Last week'), chip('Monthly', 'Last month')].filter(Boolean);
   if (!chips.length) return null;
   return <>{chips}</>;
 }

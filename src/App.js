@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Star, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, LogOut, User, Search, Star, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { rankStories } from './utils';
 import BriefingFeed from './components/BriefingFeed';
@@ -95,10 +95,6 @@ const TheAIRundown = () => {
   const [newCategory, setNewCategory] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [emailPreferences, setEmailPreferences] = useState({
-    categories: [],
-    morning: false, evening: false,
-  });
   const [categoryLockedToday, setCategoryLockedToday] = useState(false);
   const [categorySuggestions, setCategorySuggestions] = useState([]);
   const [selectedSharedKey, setSelectedSharedKey] = useState(null);
@@ -1260,7 +1256,6 @@ const TheAIRundown = () => {
       if (savedUser) {
         const userData = JSON.parse(savedUser);
         setUser(userData);
-        setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         const savedFeed = userData.feedCategories || [];
         setFeedCategories(savedFeed);
         if (savedFeed.length > 0) setSelectedCategory(savedFeed[0]);
@@ -1271,20 +1266,17 @@ const TheAIRundown = () => {
         ]).then(([catRes, prefRes]) => {
           const cats = catRes.data?.map(c => c.category_name) || [];
           const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
-          const rawPrefs = prefRes.data?.email_preferences || userData.emailPreferences || {};
-          const prefs = normalizeEmailPrefs(rawPrefs);
           const feed = prefRes.data?.feed_categories || savedFeed;
           // Prefer DB value; fall back to whatever is stored locally (avoids overwriting
           // an Arabic selection made before the user logged in)
           const lang = prefRes.data?.news_language || localStorage.getItem('rundown_news_language') || 'en';
           setCustomCategories(cats);
           setCustomCategoryDescriptions(descs);
-          setEmailPreferences(prefs);
           setFeedCategories(feed);
           setNewsLanguage(lang);
           localStorage.setItem('rundown_news_language', lang);
           if (feed.length > 0) setSelectedCategory(feed[0]);
-          const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
+          const updated = { ...userData, categories: cats, feedCategories: feed };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
         });
@@ -1572,11 +1564,10 @@ const TheAIRundown = () => {
         display_name: socialProfile.display_name || userProfile.display_name || null,
         avatar_color: socialProfile.avatar_color || userProfile.avatar_color || '#6366f1',
         categories,
-        emailPreferences: normalizeEmailPrefs(userProfile.email_preferences || {}),
         feedCategories: feed,
       };
       localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-      setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
+      setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions);
       loadSocialData(authUser.id);
       setFeedCategories(feed);
       if (feed.length > 0) setSelectedCategory(feed[0]);
@@ -1657,39 +1648,7 @@ const TheAIRundown = () => {
     if (selectedCategory === categoryToDelete) setSelectedCategory('World News');
   };
 
-  const normalizeEmailPrefs = (raw) => {
-    const slots = ['morning', 'evening'];
-    const out = {};
-    // Categories: new flat format has raw.categories array; old per-slot format had categories inside each slot
-    if (Array.isArray(raw.categories) && raw.categories.length) {
-      out.categories = raw.categories;
-    } else {
-      const firstSlotWithCats = slots.find(s => raw[s]?.categories?.length);
-      out.categories = firstSlotWithCats ? raw[firstSlotWithCats].categories : [...defaultCategories];
-    }
-    // Slot enabled flags
-    slots.forEach(slot => {
-      const pref = raw[slot];
-      if (typeof pref === 'boolean') out[slot] = pref;
-      else if (pref && typeof pref === 'object') out[slot] = pref.enabled || false;
-      else out[slot] = false;
-    });
-    return out;
-  };
 
-  const saveEmailPrefs = (updated) => {
-    setEmailPreferences(updated);
-    if (user) {
-      const userData = { ...user, emailPreferences: updated };
-      localStorage.setItem('newsdigest_user', JSON.stringify(userData));
-      setUser(userData);
-      fetch(`${BACKEND_URL}/api/user/email-preferences`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, preferences: updated })
-      }).catch(err => console.error('Failed to save email preferences:', err));
-    }
-  };
 
   const saveFeedCategories = (cats) => {
     setFeedCategories(cats);
@@ -1718,16 +1677,6 @@ const TheAIRundown = () => {
     setFeedPickerDraft(prev =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
     );
-  };
-
-  const handleEmailSlotToggle = (slotKey) => {
-    saveEmailPrefs({ ...emailPreferences, [slotKey]: !emailPreferences[slotKey] });
-  };
-
-  const handleCategoryEmailToggle = (category) => {
-    const cats = emailPreferences.categories || [];
-    const newCats = cats.includes(category) ? cats.filter(c => c !== category) : [...cats, category];
-    saveEmailPrefs({ ...emailPreferences, categories: newCats });
   };
 
   const checkScrollPosition = (ref, setLeftArrow, setRightArrow) => {
@@ -3292,6 +3241,36 @@ const TheAIRundown = () => {
 
       {/* StoryReader rendered as bottom sheet — see overlay below */}
 
+      {/* Restoring overwrites a list the reader built and ordered by hand, and there is no
+             undo — so it asks, and says plainly what is lost and that it is not permanent. */}
+      {restoreArmed && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.25rem' }}
+          onClick={() => setRestoreArmed(false)}>
+          <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="restore-title"
+            style={{ background: '#fff', borderRadius: '18px', padding: '1.5rem', maxWidth: '380px', width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+            <h3 id="restore-title" style={{ margin: '0 0 0.6rem', fontSize: '1.05rem', fontWeight: 800, color: '#0a0a0f' }}>
+              Restore default news categories?
+            </h3>
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.88rem', lineHeight: 1.55, color: '#6b7280' }}>
+              Your custom list and the order you put it in will be replaced by the {defaultCategories.length} default
+              news categories. You can customise them again at any time.
+            </p>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button onClick={() => setRestoreArmed(false)}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '999px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
+                  background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', color: '#0a0a0f' }}>
+                Cancel
+              </button>
+              <button onClick={() => { saveFeedCategories(defaultCategories); setRestoreArmed(false); }}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '999px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
+                  background: '#dc2626', border: '1px solid #dc2626', color: '#fff' }}>
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Settings ── */}
       {isSettingsPath && (
         <main style={{ background: '#f5f5f7', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '0 0 4rem' }}>
@@ -3453,60 +3432,16 @@ const TheAIRundown = () => {
                   on the screen you are reading. */}
               <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
                 <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: '#8a8a9a' }}>
-                  {restoreArmed
-                    ? 'This replaces your list and its order with the twelve default topics.'
-                    : 'Your reading screens show these topics. Restore the defaults to see all of them again.'}
+                  Your reading screens show these news categories. Restore the defaults to see all of them again.
                 </p>
                 <button
-                  onClick={() => {
-                    if (!restoreArmed) { setRestoreArmed(true); return; }
-                    saveFeedCategories(defaultCategories);
-                    setRestoreArmed(false);
-                  }}
-                  onBlur={() => setRestoreArmed(false)}
+                  onClick={() => setRestoreArmed(true)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
                     padding: '0.5rem 1rem', borderRadius: '999px', width: '100%', cursor: 'pointer',
-                    fontWeight: '700', fontSize: '0.83rem',
-                    background: restoreArmed ? 'rgba(239,68,68,0.06)' : '#f5f5f7',
-                    border: `1px solid ${restoreArmed ? 'rgba(239,68,68,0.3)' : 'rgba(0,0,0,0.08)'}`,
-                    color: restoreArmed ? '#dc2626' : '#0a0a0f' }}>
-                  {restoreArmed ? 'Tap again to restore defaults' : 'Restore default topics'}
+                    fontWeight: '700', fontSize: '0.83rem', background: '#f5f5f7',
+                    border: '1px solid rgba(0,0,0,0.08)', color: '#0a0a0f' }}>
+                  Restore default news categories
                 </button>
-              </div>
-            </div>
-            )}
-            {user && (
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
-                <Mail size={18} color="#8a8a9a" />
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Email Digest</h3>
-              </div>
-              <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Newsletter selection</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
-                {[['My Rundown', MY_FEED_COLOR], ...defaultCategories.map(c => [c, CATEGORY_COLORS[c] || '#6366f1'])].map(([cat, color]) => {
-                  const active = (emailPreferences.categories || []).includes(cat);
-                  return (
-                    <button key={cat} onClick={() => handleCategoryEmailToggle(cat)} style={{ padding: '0.32rem 0.8rem', fontSize: '0.8rem', fontWeight: active ? '700' : '500', background: active ? color : 'transparent', color: active ? 'white' : '#0a0a0f', border: `1.5px solid ${active ? color : 'rgba(0,0,0,0.08)'}`, borderRadius: '999px', cursor: 'pointer' }}>
-                      {cat === 'My Rundown' ? '★ My Rundown' : cat}
-                    </button>
-                  );
-                })}
-              </div>
-              <hr style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0 0 1rem' }} />
-              <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#8a8a9a', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.55rem' }}>Delivery times</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.55rem' }}>
-                {timesOfDay.map(time => {
-                  const slotKey = time.value.toLowerCase(); const isEnabled = !!emailPreferences[slotKey];
-                  return (
-                    <label key={time.value} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 1rem', background: isEnabled ? 'rgba(99,102,241,0.06)' : '#f5f5f7', border: `1.5px solid ${isEnabled ? '#6366f1' : 'rgba(0,0,0,0.08)'}`, borderRadius: '10px', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={isEnabled} onChange={() => handleEmailSlotToggle(slotKey)} style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0a0a0f' }}>{time.label}</div>
-                        <div style={{ fontSize: '0.73rem', color: '#8a8a9a' }}>{time.time}</div>
-                      </div>
-                    </label>
-                  );
-                })}
               </div>
             </div>
             )}

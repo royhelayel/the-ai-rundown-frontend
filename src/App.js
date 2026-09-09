@@ -384,12 +384,10 @@ const TheAIRundown = () => {
   const myNewsCategories = ['World News','Technology','AI','Crypto','Business','Politics','Sports','Football','Basketball','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
 
   const MY_FEED_COLOR = '#7c3aed';
-  const catColor = selectedCategory === 'My Rundown'
-    ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)
-    : CATEGORY_COLORS[selectedCategory] || '#6366f1';
-  // In My Rundown stories mode, use the current story's per-category color so each card
-  // reflects its source category rather than defaulting to the first feed category.
-  const storyCardColor = (selectedCategory === 'My Rundown' && stories[storyIndex]?.feedCatColor)
+  const catColor = CATEGORY_COLORS[selectedCategory] || '#6366f1';
+  // Each card takes its own category's colour when the list spans categories — the ranked
+  // feeds tag every story with feedCatColor for exactly this.
+  const storyCardColor = (stories[storyIndex]?.feedCatColor)
     ? stories[storyIndex].feedCatColor : catColor;
 
   // Derive the mock-style dark gradient from the category colour.
@@ -1265,7 +1263,7 @@ const TheAIRundown = () => {
         setEmailPreferences(normalizeEmailPrefs(userData.emailPreferences || {}));
         const savedFeed = userData.feedCategories || [];
         setFeedCategories(savedFeed);
-        if (savedFeed.length > 0) setSelectedCategory('My Rundown');
+        if (savedFeed.length > 0) setSelectedCategory(savedFeed[0]);
         // Refresh categories, email preferences, and feed_categories from Supabase
         Promise.all([
           supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
@@ -1285,7 +1283,7 @@ const TheAIRundown = () => {
           setFeedCategories(feed);
           setNewsLanguage(lang);
           localStorage.setItem('rundown_news_language', lang);
-          if (feed.length > 0) setSelectedCategory('My Rundown');
+          if (feed.length > 0) setSelectedCategory(feed[0]);
           const updated = { ...userData, categories: cats, emailPreferences: prefs, feedCategories: feed };
           localStorage.setItem('newsdigest_user', JSON.stringify(updated));
           setUser(updated);
@@ -1340,7 +1338,6 @@ const TheAIRundown = () => {
   }, [fontSize]);
 
   useEffect(() => {
-    if (selectedCategory === 'My Rundown') return;
     if (!newsSummary) { setStories([]); setHasPunchyBullets(false); storiesCategoryRef.current = null; return; }
 
     const { stories: built, hasPunchyBullets: punchy } = buildStories(
@@ -1422,59 +1419,6 @@ const TheAIRundown = () => {
     // and can read partial rows before __completed__ has been written.
     if (!slotsLoaded) return;
 
-    // ── My Rundown: parallel fetch for all selected categories ──
-    if (selectedCategory === 'My Rundown') {
-      if (!user || feedCategories.length === 0) return;
-      // Generation guard: don't show partial My Rundown while slot is still generating
-      if (slotsLoaded && isSlotUnavailable(selectedDay, selectedTime)) {
-        setNewsSummary(null); setNewsNotAvailable(false); return;
-      }
-      // Already loaded for this day/slot — don't re-fetch or interrupt narration
-      if (newsSummary?.category === 'My Rundown' && newsSummary?.day === selectedDay && newsSummary?.time_slot === selectedTime) return;
-      // Content is actually changing — now safe to cancel narration and queue restart
-      if (narrationStateRef.current.active) {
-        narrateFnRef.current.cancelAudioKeepActive?.();
-        narrationStateRef.current.pendingLoad = true;
-        narrationStateRef.current.paused = false;
-        setIsPaused(false);
-      }
-      setNewsLoading(true); setNewsNotAvailable(false); setNewsSummary(null);
-      try {
-        const results = await Promise.all(
-          feedCategories.map(cat =>
-            // Deliberately NOT selecting source_articles: it's a JSONB blob of 150-200 KB
-            // per row (embedded base64 thumbnails), and we only ever read one image URL
-            // out of it. Falling back to the category image costs nothing and saves
-            // megabytes per feed load. See lead_image_url proposal to the backend.
-            supabase.from('news_summaries').select('content, stories_content')
-              .eq('category', cat).eq('day', selectedDay).eq('time_slot', selectedTime)
-              .eq('language', newsLanguage)
-              .is('user_id', null).is('shared_key', null).maybeSingle()
-          )
-        );
-        const merged = [];
-        let anyPunchy = false;
-        results.forEach(({ data }, idx) => {
-          if (!data) return;
-          const cat = feedCategories[idx];
-          const color = CATEGORY_COLORS[cat] || '#6366f1';
-          const storyImage = CATEGORY_IMAGES[cat] || '';
-          const { stories: catStories, hasPunchyBullets: catPunchy } = buildStories(data.content, data.stories_content);
-          if (catPunchy) anyPunchy = true;
-          catStories.forEach(s => merged.push({ ...s, feedCategory: cat, feedCatColor: color, storyImage }));
-        });
-        if (merged.length === 0) { setNewsNotAvailable(true); setNewsSummary(null); return; }
-        setStories(merged);
-        storiesCategoryRef.current = 'My Rundown';
-        setHasPunchyBullets(anyPunchy);
-        setNewsSummary({ category: 'My Rundown', day: selectedDay, time_slot: selectedTime, generated_at: new Date().toISOString() });
-        setNewsNotAvailable(false);
-      } catch (err) {
-        console.error('My Rundown fetch error:', err);
-        setNewsNotAvailable(true); setNewsSummary(null);
-      } finally { setNewsLoading(false); }
-      return;
-    }
 
     const isCustom = customCategories.includes(selectedCategory);
     // For custom, always use 'Daily' time slot
@@ -1635,7 +1579,7 @@ const TheAIRundown = () => {
       setUser(userData); setCustomCategories(categories); setCustomCategoryDescriptions(descriptions); setEmailPreferences(userData.emailPreferences);
       loadSocialData(authUser.id);
       setFeedCategories(feed);
-      if (feed.length > 0) setSelectedCategory('My Rundown');
+      if (feed.length > 0) setSelectedCategory(feed[0]);
       setShowAuth(false); setShowMobileMenu(false); setEmail(''); setOtpCode(''); setOtpStep('email'); setAuthMessage(null);
       navigate('/my-feed');
     } catch (error) {
@@ -1858,8 +1802,7 @@ const TheAIRundown = () => {
     // The [newsSummary] effect runs setStories() but its commit lags one render; without
     // this guard the consumer fired on the newsSummary change with the PREVIOUS category's
     // stories, consumed pendingLoad, and narration silently never started (worked on retry).
-    if (viewMode === 'stories' && selectedCategory !== 'My Rundown'
-        && storiesCategoryRef.current !== selectedCategory) return;
+    if (viewMode === 'stories' && storiesCategoryRef.current !== selectedCategory) return;
     if (viewMode !== 'stories' && !newsSummary?.content && !newsSummary?.stories_content) return;
     narrationStateRef.current.pendingLoad = false;
     const st = narrationStateRef.current;
@@ -2082,7 +2025,9 @@ const TheAIRundown = () => {
   useEffect(() => { if (viewMode !== 'stories') { setViewMode('stories'); localStorage.setItem('rundown_view_mode', 'stories'); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Navigation helpers ────────────────────────────────────────────────────────
-  const navCategories = (user && feedCategories.length > 0) ? ['My Rundown', ...allCategories] : allCategories;
+  // 'My Rundown' — the merged all-my-topics stream — used to lead this list, which is how you
+  // could still page sideways into a category that no strip renders a tab for. It is gone.
+  const navCategories = allCategories;
   const navCatIdx = navCategories.indexOf(selectedCategory);
   const prevCatNav = navCatIdx > 0 ? navCategories[navCatIdx - 1] : null;
   const nextCatNav = navCatIdx < navCategories.length - 1 ? navCategories[navCatIdx + 1] : null;
@@ -2995,7 +2940,7 @@ const TheAIRundown = () => {
   storyNavRef.current = { idx: storyIndex, stories, cats: playlistCatsRef.current || navCategories, cat: selectedCategory };
 
   // ── View-stories: use briefingData for default categories so CategoryView / StoryReader
-  // are never contaminated by the My Rundown merged-stories state.
+  // are never contaminated by a merged-stories state.
   // Custom categories have no briefingData entry, so they still rely on the stories state.
   // Snapshot feeds (My Saves / Interesting) render from their own snapshot maps, chosen
   // by where the reader was opened from (location.state.from).
@@ -3148,7 +3093,7 @@ const TheAIRundown = () => {
           <div onClick={e => e.stopPropagation()} style={{ background: '#18181f', borderRadius: '20px 20px 0 0', padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: '540px', maxHeight: '82vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '0 auto 1.25rem' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>Customize My Rundown</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>Customise my topics</h3>
               <button onClick={() => setShowFeedPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '0.25rem' }}><X size={18} /></button>
             </div>
             <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to select. Numbers show the order stories appear.</p>
@@ -3167,7 +3112,7 @@ const TheAIRundown = () => {
               <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>{feedPickerDraft.length} {feedPickerDraft.length === 1 ? 'category' : 'categories'} selected</span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {feedPickerDraft.length > 0 && <button onClick={() => setFeedPickerDraft([])} style={{ padding: '0.55rem 1rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontWeight: '600' }}>Clear</button>}
-                <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory('My Rundown'); }}
+                <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory(feedPickerDraft[0]); }}
                   style={{ padding: '0.55rem 1.4rem', background: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.25)' : 'white', border: 'none', borderRadius: '999px', cursor: feedPickerDraft.length === 0 ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Save Feed</button>
               </div>
             </div>

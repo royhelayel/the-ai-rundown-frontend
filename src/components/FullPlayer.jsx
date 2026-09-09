@@ -518,12 +518,14 @@ export default function FullPlayer({
         {/* One panel around the story and the player together — trying whether a single
             enclosure fixes the page reading as loose parts: headline here, actions there,
             transport somewhere below, with nothing saying they belong to each other. The
-            wrapper is deliberately quiet: a hairline and the faintest lift off the ground,
-            not the heavy card this had before. */}
+            wrapper is deliberately quiet: no hairline now, just the faintest lift off the
+            ground. The border was the last hard edge on a screen whose other edges have all
+            gone — the header's two rules, the divider under the topics — and one box left
+            outlined read as the odd one out rather than as the frame it was meant to be. The
+            lift alone still groups the story with its player. */}
         <div style={asPage && storyCount > 0
           ? { padding: '14px 15px 12px', borderRadius: RADIUS.md,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.09)' }
+              background: 'rgba(255,255,255,0.03)' }
           : undefined}>
           {/* Story progress, the first thing inside the card — it counts stories, so it
               belongs to the thing showing one. Inside the padding rather than bled into the

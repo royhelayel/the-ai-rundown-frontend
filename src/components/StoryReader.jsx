@@ -659,7 +659,10 @@ export default function StoryReader({
               floating on the photo above a separate card.
               Solid, not backdrop-blurred: live blur layers over a moving photo are what
               made the settle frame stutter. */}
-          <div style={{ padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* No hairline — same as Listen. The panel is already a distinct ground against
+              the page behind it, so the border was drawing an edge that the fill had
+              already drawn. */}
+          <div style={{ padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)' }}>
           {/* Category top-left, read status top-right — the same corners the Scroll-mode
               card uses, so the two line up. Interesting moves to the bottom-left corner,
               next to Summary/Listen; see below. */}

@@ -32,24 +32,32 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, ac
 
   const chip = (period, label) => {
     const r = recaps?.[period];
-    if (!r?.text) return null;
+    const ready = !!r?.text;
     return (
       <button
         key={period}
-        onClick={() => onOpen?.(period)}
-        title={`Read the ${label.toLowerCase()} recap`}
-        style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
+        disabled={!ready}
+        onClick={ready ? () => onOpen?.(period) : undefined}
+        title={ready ? `Read the ${label.toLowerCase()} recap` : `${label} recap — not generated yet`}
+        style={{ border: 'none', flexShrink: 0,
           padding: '6px 13px', borderRadius: 999,
           fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
-          background: hexA(accent, dark ? 0.20 : 0.13),
-          color: accent }}
+          cursor: ready ? 'pointer' : 'default',
+          background: ready
+            ? hexA(accent, dark ? 0.20 : 0.13)
+            : (dark ? 'rgba(255,255,255,0.045)' : 'rgba(10,10,20,0.04)'),
+          color: ready
+            ? accent
+            : (dark ? 'rgba(255,255,255,0.28)' : '#a8a8b3') }}
       >
         {label}
       </button>
     );
   };
 
-  const chips = [chip('Weekly', 'Last week'), chip('Monthly', 'Last month')].filter(Boolean);
-  if (!chips.length) return null;
-  return <>{chips}</>;
+  // Both always render. They used to disappear until their recap existed, which meant the
+  // row silently changed shape on the days one landed — and nobody could learn the feature was
+  // coming, because it only appeared once it had already arrived. Disabled says "this exists,
+  // not yet"; absent says nothing at all.
+  return <>{[chip('Weekly', 'Last week'), chip('Monthly', 'Last month')]}</>;
 }

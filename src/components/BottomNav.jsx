@@ -79,10 +79,14 @@ export default function BottomNav({
   // `keepGlyph` survives the icons being switched off: the Challenge cell's glyph is the
   // day's story count, which is information rather than decoration and would simply be
   // deleted along with the icons.
-  const key = (icon, text, onClick, aria, { active = false, width, keepGlyph = false } = {}) => (
+  // Cells share the width rather than carrying fixed ones. Hand-set widths (54/48/48/48/62)
+  // meant the dock was as wide as its longest words happened to be, and the five cells were
+  // five different sizes — so the gaps between labels read as uneven even though each label
+  // was centred in its own cell.
+  const key = (icon, text, onClick, aria, { active = false, keepGlyph = false } = {}) => (
     <button key={aria} onClick={onClick} aria-label={aria} title={aria}
       style={{
-        width, borderRadius: 8, border: 'none',
+        flex: 1, minWidth: 0, borderRadius: 10, border: 'none',
         padding: showIcons || keepGlyph ? '4px 0 3px' : '6px 0',
         cursor: active ? 'default' : 'pointer',
         background: active ? t.activeBg : 'transparent',
@@ -90,7 +94,7 @@ export default function BottomNav({
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
       }}>
       {(showIcons || keepGlyph) && <span style={{ height: 20, display: 'flex', alignItems: 'center' }}>{icon}</span>}
-      <span style={{ fontSize: showIcons || keepGlyph ? '0.64rem' : '0.7rem', fontWeight: showIcons || keepGlyph ? 500 : 600, lineHeight: 1.2 }}>{text}</span>
+      <span style={{ fontSize: showIcons || keepGlyph ? '0.58rem' : '0.7rem', fontWeight: 600, lineHeight: 1.2 }}>{text}</span>
     </button>
   );
 
@@ -114,27 +118,30 @@ export default function BottomNav({
             against the page — same idea as a story card's hairline against the gray page
             behind it. Transparent in dark mode: the track there is already visibly lighter
             than the near-black page, so it doesn't need a second edge. */}
-        <div style={{ display: 'inline-flex', alignItems: 'stretch', background: t.track, border: `1px solid ${t.trackBorder}`, borderRadius: 12, padding: 5 }}>
-          {key(<UserCircle size={19} strokeWidth={1.7} />, 'Settings', goSettings, 'Settings', { width: 54 })}
+        {/* Spans the row rather than hugging its content, capped so it stays a dock and not a
+            banner on a desktop window. Radius 16 to match the story card's family. */}
+        <div style={{ display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: 420,
+          background: t.track, border: `1px solid ${t.trackBorder}`, borderRadius: 16, padding: '8px 6px' }}>
+          {key(<UserCircle size={17} strokeWidth={1.7} />, 'Settings', goSettings, 'Settings')}
           {divider('d1')}
           {/* Listen sits centre of the trio, under the thumb: it's the app's main proposition
               and the tab you land on, so it gets the easiest position of the three. */}
-          {key(<GalleryVerticalEnd size={18} strokeWidth={mode === 'swipe' ? 2.3 : 1.9} />, 'Swipe', () => mode !== 'swipe' && onChangeMode?.('swipe'), 'Swipe', { active: mode === 'swipe', width: 48 })}
-          {key(<Headphones size={18} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => mode !== 'audio' && onChangeMode?.('audio'), 'Listen', { active: mode === 'audio', width: 48 })}
-          {key(<LayoutList size={18} strokeWidth={mode === 'scroll' ? 2.3 : 1.9} />, 'Scroll', () => mode !== 'scroll' && onChangeMode?.('scroll'), 'Scroll', { active: mode === 'scroll', width: 48 })}
+          {key(<GalleryVerticalEnd size={17} strokeWidth={mode === 'swipe' ? 2.3 : 1.9} />, 'Swipe', () => mode !== 'swipe' && onChangeMode?.('swipe'), 'Swipe', { active: mode === 'swipe' })}
+          {key(<Headphones size={17} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => mode !== 'audio' && onChangeMode?.('audio'), 'Listen', { active: mode === 'audio' })}
+          {key(<LayoutList size={17} strokeWidth={mode === 'scroll' ? 2.3 : 1.9} />, 'Scroll', () => mode !== 'scroll' && onChangeMode?.('scroll'), 'Scroll', { active: mode === 'scroll' })}
           {divider('d2')}
           {key(
             // Guests have no count, so show the flame rather than a blank — an empty cell
             // reads as broken or disabled, which it isn't.
             user
               ? <span style={{ fontSize: '0.78rem', fontWeight: 700, lineHeight: 1 }}>{todayCount}</span>
-              : <Flame size={18} strokeWidth={1.9} />,
+              : <Flame size={17} strokeWidth={1.9} />,
             'Challenge',
             () => setSheetOpen(true),
             !user ? 'Reading challenge — sign in to track progress'
               : goalMet ? `Reading challenge complete — ${todayCount} stories today`
               : `Reading challenge — ${todayCount} of ${dailyGoal} stories today`,
-            { width: 62, keepGlyph: !!user },
+            { keepGlyph: !!user },
           )}
         </div>
       </nav>

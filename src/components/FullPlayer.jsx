@@ -289,7 +289,7 @@ export default function FullPlayer({
     const dy = t.clientY - start.y;
     // Ignore anything that reads as vertical, or as a tap that wandered a little.
     if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) return;
-    if (dx < 0) onNext?.(); else onPrev?.();
+    if (dx < 0) { if (!atBatchEnd) onNext?.(); } else onPrev?.();
   };
 
   // The recap row's colour: the category's own tint, and the exact value the active topic tab
@@ -299,7 +299,24 @@ export default function FullPlayer({
 
   // The story progress dots, defined once because they render in two different places:
   // floating over the artwork in the sheet, and as the page header's dividing rule.
-  const dots = (stories || []).map((_, i) => (
+  // ── Story batching, the same shape Swipe uses (see StoryReader's SWIPE_BATCH).
+  // A long category used to arrive as forty progress dots — a rail so finely divided it
+  // stopped reading as progress at all — and a Next button with no visible end. Eight at a
+  // time, then an explicit control to take the rest.
+  // Browsing only: continuous narration runs on its own path (goNextCategoryNarration in
+  // App.js) and is deliberately left alone, so pressing play still listens straight through.
+  const LISTEN_BATCH = 8;
+  const [revealed, setRevealed] = useState(LISTEN_BATCH);
+  useEffect(() => { setRevealed(Math.max(LISTEN_BATCH, storyIndex + 1)); }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
+  const total       = (stories || []).length;
+  const listenLimit = asPage ? Math.min(revealed, total) : total;
+  const remaining   = Math.max(0, total - listenLimit);
+  const atBatchEnd  = asPage && remaining > 0 && storyIndex >= listenLimit - 1;
+  const isExpanded  = asPage && total > LISTEN_BATCH && revealed > LISTEN_BATCH;
+  const showCollapse = isExpanded && storyIndex >= LISTEN_BATCH - 1;
+  const catLabel    = CATEGORY_SHORT[category] || category;
+
+  const dots = (stories || []).slice(0, listenLimit).map((_, i) => (
     <button
       key={i}
       onClick={() => onGoToStory?.(i)}
@@ -357,10 +374,13 @@ export default function FullPlayer({
             )
           }
         </button>
+        {/* Stops at the batch end — the rest of the category is behind the control in the
+            card, so skipping can't quietly walk past the count the rail is showing. */}
         <button
-          onClick={onNext}
-          aria-label="Next story"
-          style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
+          onClick={atBatchEnd ? undefined : onNext}
+          disabled={atBatchEnd}
+          aria-label={atBatchEnd ? 'End of this batch' : 'Next story'}
+          style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'none', border: 'none', color: atBatchEnd ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)', cursor: atBatchEnd ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' }}>
           <FastForward size={ICON.lg} />
         </button>
       </div>
@@ -427,7 +447,7 @@ export default function FullPlayer({
           <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
             <p style={{ margin: 0, fontSize: TYPE.micro, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{feedName || 'Playing Now'}</p>
             <p style={{ margin: '0.1rem 0 0', fontSize: TYPE.ui, fontWeight: WEIGHT.strong, color: 'rgba(255,255,255,0.9)' }}>
-              {isRecap ? `${category} Recap` : storyCount === 0 ? category : `${category} · ${storyIndex + 1} of ${storyCount}`}
+              {isRecap ? `${category} Recap` : storyCount === 0 ? category : `${category} · ${storyIndex + 1} of ${asPage ? listenLimit : storyCount}`}
             </p>
           </div>
           )}
@@ -685,6 +705,35 @@ export default function FullPlayer({
                 </div>
               )}
               {playback}
+              {/* The batch gate, under the transport — the same control and the same wording
+                  Swipe and Scroll use, so the three modes name the pile the same way.
+                  Quiet by design: it's a way out of the batch, not a primary action, and the
+                  play button directly above it is the thing that matters on this screen. */}
+              {(atBatchEnd || showCollapse) && !isRecap && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => {
+                      if (atBatchEnd) setRevealed(total);
+                      else {
+                        // Step off any story about to be hidden, so we're never stranded
+                        // past the end of the rail.
+                        setRevealed(LISTEN_BATCH);
+                        if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1);
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', border: 'none',
+                      background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: TYPE.micro,
+                      fontWeight: WEIGHT.ui, cursor: 'pointer' }}>
+                    {/* No chevron either way. Swipe's gate points down because down is where
+                        the next story literally is — you swipe toward it. Listen has no such
+                        axis: the stories are a horizontal rail of dots at the top of the card,
+                        so neither arrow pointed at anything. Plain text in both states. */}
+                    {atBatchEnd
+                      ? `View ${remaining} more ${catLabel} ${remaining === 1 ? 'story' : 'stories'}`
+                      : `View less ${catLabel} stories`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -519,10 +519,13 @@ function buildSections({
                     cursor: 'pointer', color: '#6b7280', fontSize: '0.78rem', fontWeight: '700',
                   }}
                 >
-                  {/* Same wording as Swipe mode's gate, so the two modes read alike */}
+                  {/* Same wording as Swipe mode's gate, so the two modes read alike — the
+                      category included, which matters more here than anywhere: this button
+                      repeats once per section down a single scrolling page, so without the
+                      name every one of them reads identically. */}
                   {isExpanded
-                    ? 'View less stories'
-                    : `View ${stories.length - shownStories.length} more ${stories.length - shownStories.length === 1 ? 'story' : 'stories'}`}
+                    ? `View less ${CATEGORY_SHORT[cat] || cat} stories`
+                    : `View ${stories.length - shownStories.length} more ${CATEGORY_SHORT[cat] || cat} ${stories.length - shownStories.length === 1 ? 'story' : 'stories'}`}
                   <svg
                     width="13" height="13" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"

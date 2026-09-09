@@ -125,7 +125,7 @@ export default function BriefingFeed({
         {/* Only when there is something in it. Each chip renders itself away on the days its
             recap doesn't exist, so with the category recap gone this row was 24px of padding
             around nothing for most of the week — invisible as a gap, not as a row. */}
-        {(periodRecaps?.week?.text || periodRecaps?.month?.text) && (
+        {(periodRecaps?.Weekly?.text || periodRecaps?.Monthly?.text) && (
           <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
             <PeriodRecapChips
               recaps={periodRecaps}

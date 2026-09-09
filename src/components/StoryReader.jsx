@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Star, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE, TYPE, WEIGHT, RADIUS, ICON } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import CircleAction from './CircleAction';
@@ -947,9 +947,9 @@ export default function StoryReader({
             <div style={{ flex: 1 }} />
             <div style={{ position: 'relative' }} ref={dayPickerRef}>
               <button onClick={() => canPickDay && setDayPickerOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: canPickDay ? 'pointer' : 'default' }}>
-                <Calendar size={12} color="rgba(255,255,255,0.6)" />
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
-                {canPickDay && <ChevronDown size={12} color="rgba(255,255,255,0.6)" />}
+                <Calendar size={ICON.sm} color="rgba(255,255,255,0.6)" />
+                <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
+                {canPickDay && <ChevronDown size={ICON.sm} color="rgba(255,255,255,0.6)" />}
               </button>
               {dayPickerOpen && canPickDay && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 20, width: 160, background: '#fff', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.35)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1021,7 +1021,7 @@ export default function StoryReader({
             </span>
           )}
           {contextCategories.length > 1 && (
-            <span aria-hidden style={{ width: 1, margin: `${SPACE.sm}px ${SPACE.sm}px ${SPACE.md}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+            <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
           )}
 
           {/* `position: relative` is load-bearing: centrePill measures with offsetLeft, which
@@ -1074,8 +1074,8 @@ export default function StoryReader({
       {asPage && onOpenCategoryRecap && !showAllPill && (
         /* Sits clear of the rule above it: the recap belongs to the story area, not to the
            header block the rule closes, so it needs visible air rather than hugging it. */
-        <div style={{ position: 'relative', zIndex: 6, flexShrink: 0, margin: `${SPACE.md}px ${SPACE.md}px 0`,
-          padding: '10px 12px 11px', borderRadius: 12, background: 'rgba(255,255,255,0.04)' }}>
+        <div style={{ position: 'relative', zIndex: 6, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
+          padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
           {/* Names the topic, with the mark saying a model wrote it. Same line as Listen. */}
           <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
             fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>

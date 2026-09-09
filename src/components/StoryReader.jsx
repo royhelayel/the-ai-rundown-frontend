@@ -644,18 +644,20 @@ export default function StoryReader({
     return !!(k && savedStories.some(x => headlineKey(x.headline || '') === k));
   };
 
-  const storyBody = (entry, read, below = null) => {
+  const storyBody = (entry, read) => {
     const col = CATEGORY_COLORS[entry.category] || '#6366f1';
     const entrySaved = savedFor(entry.story);
     const bullets = entry.story.tightBullets?.length ? entry.story.tightBullets : (entry.story.allBullets || []).slice(0, 3);
     const outs = (entry.story.storySources || []).filter(s => s.outlet);
     return (
       <>
-        {/* Uneven spacers: the card sat dead-centre in the band, which left more air above
-            it than below once the actions moved inside. Weighting the lower spacer lifts it
-            without top-pinning, so short stories still sit comfortably rather than clinging
-            to the pills. */}
-        <div style={{ flex: 2, minHeight: '0.5rem' }} />
+        {/* Top-anchored, 8px under the lens row — the exact offset Listen puts between
+            "Relevant" and its own story panel, so the headline starts on the same line in
+            both modes. It used to float: uneven flex spacers (2 above, 3 below) centred the
+            card in the band and weighted it slightly upward, which meant the story began at
+            a different height for every story, and lower than Listen's for most of them.
+            All the slack now goes below, where the pinned hint already lives. */}
+        <div style={{ height: 8, flexShrink: 0 }} />
         <div style={{ position: 'relative', zIndex: 3, padding: '0 1rem', flexShrink: 0 }}>
           {/* One panel behind the whole block — read status, headline, takeaways and
               sources — so the text sits on a single surface rather than the headline
@@ -704,27 +706,6 @@ export default function StoryReader({
               ))}
             </div>
           )}
-          {/* One muted line instead of a row of filled chips — the full list is in the
-              Go deeper sheet under "Sources", so nothing is lost here. */}
-          {outs.length > 0 && (() => {
-            const shown = outs.slice(0, 2);
-            const rest = outs.length - shown.length;
-            const src = { fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, overflow: 'hidden' }}>
-                {shown.map((s, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
-                    {s.url
-                      ? <a href={s.url} target="_blank" rel="noopener noreferrer" title={s.title || s.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.outlet}</a>
-                      : <span style={src}>{s.outlet}</span>}
-                  </React.Fragment>
-                ))}
-                {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
-              </div>
-            );
-          })()}
-
           {/* Docked to the bottom of the SAME panel, not a separate chip floating below it —
               same background, no gap, so the card reads as one piece whether the actions are
               sitting at their natural position (short story) or stuck to the screen's bottom
@@ -733,7 +714,14 @@ export default function StoryReader({
               Solid background, not backdrop-filter: a blurred layer sitting over a scrolling
               photo repaints every frame, the stutter this codebase already removed once from
               the sticky header and the summary sheet. */}
-          <div style={{ position: 'sticky', bottom: 0, zIndex: 5, display: 'flex', alignItems: 'center',
+          {/* bottom: 44, not 0. The hint is pinned to the band's bottom edge now, and this
+              row docks to the same edge — on a story long enough to scroll, the two landed
+              on top of each other and the hint struck through "Interesting"/"Go deeper".
+              A sticky offset is the free way to separate them: it only changes where the row
+              *clamps*, so it costs no height, and on a story short enough that this row never
+              sticks it changes nothing at all. 44 clears the hint at the 1.4× it reaches
+              when the scroll listener grows it at the bottom (see ZONE). */}
+          <div style={{ position: 'sticky', bottom: 44, zIndex: 5, display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', gap: 8, marginTop: 12, padding: '9px 0 0' }}>
             {/* No background of its own. It's the last child of the SAME panel, and the
                 panel's own background already spans this row's natural position whether or
@@ -741,12 +729,34 @@ export default function StoryReader({
                 that produced a visibly harder, more opaque rectangle exactly where the two
                 overlapped, which is the box that showed up behind "Summary / Listen". One
                 layer, not two. */}
-            {/* Interesting anchors the bottom-left corner — the same slot the Scroll-mode
-                card gives it, next to the audience-count text there. */}
-            <div style={{ flex: 1 }} />
+            {/* The outlets, in the slot this row was already holding open. They had a line
+                of their own directly above, which cost the card ~22px to say two words in a
+                strip that was otherwise empty — and the buttons sit on the right, so there
+                was never anything to collide with. One muted line, the full list still in
+                the Go deeper sheet under "Sources". */}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+              {outs.length > 0 && (() => {
+                const shown = outs.slice(0, 2);
+                const rest = outs.length - shown.length;
+                const src = { fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
+                return (
+                  <>
+                    {shown.map((s, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
+                        {s.url
+                          ? <a href={s.url} target="_blank" rel="noopener noreferrer" title={s.title || s.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.outlet}</a>
+                          : <span style={{ ...src, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.outlet}</span>}
+                      </React.Fragment>
+                    ))}
+                    {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
+                  </>
+                );
+              })()}
+            </div>
             {/* All three actions together on the right. Interesting used to hold the opposite
                 corner, which split one set of controls across the width of the card. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <InterestingButton
                 theme="dark"
                 active={entrySaved}
@@ -773,28 +783,18 @@ export default function StoryReader({
           </div>
 
           </div>
-          {/* Sits directly under the card, inside the same block, so it travels with the
-              story instead of anchoring to the bottom of the band.
-
-              The slot is always rendered, at a constant height, and whatever goes in it is
-              absolutely positioned so its own height never feeds back into the layout. Only
-              the live layer gets content here — neighbours pass null — so when this was a
-              plain {below} the incoming card was laid out ~38px shorter than the same card
-              one frame later, once it became live and the hint appeared. The card block sits
-              between flex:2 and flex:3 spacers, so that extra height pushed it up by two
-              fifths of it the instant a swipe landed: the twitch. Reserving the space in
-              every layer means the geometry is identical before and after the handover.
-              This also stops the card jumping when the hint swaps for the batch gate, or
-              hides itself while the summary sheet is open. */}
-          <div style={{ height: 52, position: 'relative', flexShrink: 0 }}>
-            {below && (
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-                {below}
-              </div>
-            )}
-          </div>
+          {/* The "swipe up for next" hint used to live here, in a 52px slot reserved in
+              every layer so the geometry matched before and after a handover. It has moved
+              out of this column entirely — see the pinned row below the band. Being the last
+              child of a column that overflows meant it was, by construction, the first thing
+              pushed below the fold: on every iPhone but the Pro Max a normal three-takeaway
+              story needed ~504px in a ~462px band, so the one affordance telling you the
+              gesture exists was the one you could never see. Reclaiming these 52px is also
+              most of what brings the card back inside the band. The twitch the slot was
+              guarding against can't return: the hint is no longer laid out in any of the
+              three layers, so all three still measure identically. */}
         </div>
-        <div style={{ flex: 3, minHeight: '0.5rem' }} />
+        <div style={{ flex: 1, minHeight: '0.5rem' }} />
       </>
     );
   };
@@ -809,15 +809,26 @@ export default function StoryReader({
     );
   };
 
-  // The gate / hint, rendered under the card rather than under the band.
+  // The gate / hint, pinned to the bottom edge of the band (see the row after it).
   //
-  // It used to sit in a fixed 52px slot below the story band. That kept the band from
-  // resizing — which was the flicker fix — but it also parked the button at the bottom of
-  // the screen, a long way from the card it acts on. Inside the card's own column it stays
-  // next to the story, and the band still can't resize because the layer it lives in is
-  // absolutely positioned and scrolls internally.
+  // Third position for this thing, and the history is worth keeping because each move was
+  // a fix that created the next problem. It began in a fixed 52px slot *below* the band:
+  // that stopped the band resizing — the flicker fix — but parked it at the bottom of the
+  // screen, far from the card it acts on. It then moved into the card's own scrolling
+  // column, which put it next to the story but made it the last child of a column that
+  // routinely overflows, so it was always the first thing below the fold. Pinned to the
+  // band's bottom edge it is both: at the foot of the story area, where it reads as
+  // belonging to the card, and outside the scroll, so nothing can push it off.
+  //
+  // The band still can't resize — this row is zero-height and the hint inside it is
+  // absolutely positioned, so it contributes no layout at all, to the band or to the three
+  // story layers.
+  //
+  // The scroll listener that grows it as you near the bottom (see ZONE above) keeps
+  // working, and reads better here: on a story too short to scroll it settles at full size
+  // immediately, and on a long one it swells as the end comes up.
   const gateOrHint = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, paddingTop: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, paddingBottom: 6 }}>
     {(atBatchEnd || showCollapse) && !summaryOpen ? (
       <>
         {/* Quieter than before: no border, no fill, smaller text. It was styled like a
@@ -850,9 +861,13 @@ export default function StoryReader({
               was revealed) — these were swapped, pointing the opposite way from what each
               button actually does. */}
           {atBatchEnd ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
+          {/* Named, not generic. In Swipe the gate sits at the end of one category's run
+              with the next category's name directly under it ("swipe up for Sports"), so
+              "View 8 more stories" was the one line on screen that didn't say which pile it
+              meant. */}
           {atBatchEnd
-            ? `View ${remaining} more ${remaining === 1 ? 'story' : 'stories'}`
-            : 'View less stories'}
+            ? `View ${remaining} more ${CATEGORY_SHORT[category] || category} ${remaining === 1 ? 'story' : 'stories'}`
+            : `View less ${CATEGORY_SHORT[category] || category} stories`}
         </button>
         {/* Swiping still works here — say where it goes, or it looks like a dead end. */}
         {atBatchEnd && nextCat && (
@@ -1107,7 +1122,7 @@ export default function StoryReader({
           its own top padding rather than by moving the card — the card's vertical position
           is set by the spacers inside it and stays put regardless of lens. */}
       {asPage && (
-        <div style={{ position: 'relative', zIndex: 6, padding: '32px 16px 0' }}>
+        <div style={{ position: 'relative', zIndex: 6, padding: `${SPACE.md}px ${SPACE.md}px 0` }}>
           <LensToggle value={lens} onChange={onChangeLens} theme="dark" />
         </div>
       )}
@@ -1131,8 +1146,32 @@ export default function StoryReader({
         ref={(el) => { contentRef.current = el; registerLayer('text0', 0)(el); }}
         style={{ ...bodyContainer, willChange: 'transform', backfaceVisibility: 'hidden' }}
       >
-        {storyBody({ category, story, index: storyIndex }, readOf(category, storyIndex), gateOrHint)}
+        {storyBody({ category, story, index: storyIndex }, readOf(category, storyIndex))}
       </div>
+      </div>
+
+      {/* ── The hint, pinned to the band's bottom edge rather than trailing the story.
+             A zero-height flex row: it contributes nothing to the column, so the band keeps
+             every pixel, and its absolutely-positioned child hangs upward from the band's
+             bottom edge — where the hint already sat visually on a story short enough to
+             fit. Now it sits there on every story.
+             Outside the band on purpose. The band carries zIndex 3 and is therefore its own
+             stacking context, so a child of it can't be lifted over the bottom scrim at
+             zIndex 5 however high its own z-index goes — pinned in there, the hint would
+             have been read through 0.9 of dark. Out here at zIndex 6 it sits on the scrim,
+             which is also what gives it something to sit on when a long story scrolls
+             underneath. ── */}
+      {/* Both modes. In the Summary sheet the band runs to the bottom of the container, so
+          this lands at the sheet's own foot — where the hint used to scroll away too. */}
+      <div style={{ position: 'relative', zIndex: 6, height: 0, flexShrink: 0 }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex',
+          justifyContent: 'center', paddingTop: 22, pointerEvents: 'none',
+          /* Short and gentle. Page mode already has the 130px scrim under this and needs
+             nothing more — over the ~0.9 that scrim reaches by here, this is invisible.
+             Sheet mode has no scrim, so without it the pill would sit on bare story text. */
+          background: 'linear-gradient(to top, rgba(10,10,20,0.9) 0%, rgba(10,10,20,0.55) 60%, rgba(10,10,20,0) 100%)' }}>
+          <div style={{ pointerEvents: 'auto' }}>{gateOrHint}</div>
+        </div>
       </div>
 
       {/* ── Dark bottom nav — Instagram-Reels-style, stays put in Stories mode ── */}

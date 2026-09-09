@@ -662,10 +662,14 @@ export default function StoryReader({
               floating on the photo above a separate card.
               Solid, not backdrop-blurred: live blur layers over a moving photo are what
               made the settle frame stutter. */}
-          {/* No hairline — same as Listen. The panel is already a distinct ground against
-              the page behind it, so the border was drawing an edge that the fill had
-              already drawn. */}
-          <div style={{ padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(8,8,16,0.78)' }}>
+          {/* Listen's fill, and no hairline. rgba(8,8,16,0.78) was a scrim: it existed to
+              hold down the full-bleed category photo this screen used to carry, and with
+              UI_TRIAL.photoBackdrop off there has been no photo to hold down — so it was
+              darkening a flat ground for nothing, and reading heavier than the same card one
+              mode over. A faint lift off the ground is what Listen uses and what this needs.
+              If the photo backdrop is ever switched back on, this has to become a scrim
+              again — 0.03 of white over an image is unreadable. */}
+          <div style={{ padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(255,255,255,0.03)' }}>
           {/* Category top-left, read status top-right — the same corners the Scroll-mode
               card uses, so the two line up. Interesting moves to the bottom-left corner,
               next to Summary/Listen; see below. */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Sparkles, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
+import { Calendar, Clock, Mail, Plus, Trash2, LogOut, User, Search, Star, Settings, Loader, Menu, ChevronLeft, ChevronRight, ChevronDown, X, Volume2, VolumeX, Pause, Play, RotateCcw, Repeat, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { rankStories } from './utils';
 import BriefingFeed from './components/BriefingFeed';
@@ -3391,7 +3391,7 @@ const TheAIRundown = () => {
                       screen. It belongs with the rest of "things that are mine". */}
                   <button onClick={() => navigate('/saved')}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
-                    <Sparkles size={15} color="#7c3aed" />
+                    <Star size={15} color="#7c3aed" />
                     <span style={{ flex: 1, textAlign: 'left' }}>My Interesting</span>
                     <ChevronRight size={15} color="#8a8a9a" />
                   </button>

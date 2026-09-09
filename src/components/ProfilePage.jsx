@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, UserPlus, UserCheck, Sparkles, Users } from 'lucide-react';
+import { ChevronLeft, UserPlus, UserCheck, Star, Users } from 'lucide-react';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
 
@@ -187,7 +187,7 @@ export default function ProfilePage({
         {/* My Interesting — what this user flagged */}
         <div style={{ padding: '16px 0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px 12px' }}>
-            <Sparkles size={16} color={light.textMuted} />
+            <Star size={16} color={light.textMuted} />
             <span style={{ fontSize: '0.85rem', fontWeight: '700', color: light.textMuted }}>
               {enrichedSaves.length === 0
                 ? 'Nothing marked interesting yet'

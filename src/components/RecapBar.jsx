@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Play } from 'lucide-react';
+import { FileText, Play, Sparkles } from 'lucide-react';
 import CircleAction from './CircleAction';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 
@@ -69,6 +69,11 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
     // and the words in between. The trailing disc keeps the summary glyph, not a white play
     // button: the whole chip does one thing now, which is open the recap to read.
     //
+    // The glyph is the AI mark, not a document. A document said "this is a page", which the
+    // words beside it already say; the recap's one distinguishing fact is that a model wrote
+    // it. Sparkles was Interesting's until Interesting took a plain Star — the two were never
+    // going to share a screen 200px apart without one of them moving.
+    //
     // The disc used to be a saturated fill in the category's colour, which made this chip the
     // loudest thing in a band it shares with the topic pills — a secondary shortcut
     // outshouting the navigation that says where you are. Its colour was redundant anyway:
@@ -94,7 +99,7 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
             style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 26, height: 26, borderRadius: '50%',
               background: dark ? 'rgba(255,255,255,0.10)' : `${accent}1f` }}>
-            <FileText size={13} color={dark ? 'rgba(255,255,255,0.75)' : accent} />
+            <Sparkles size={13} color={dark ? 'rgba(255,255,255,0.75)' : accent} />
           </span>
         </div>
       </div>

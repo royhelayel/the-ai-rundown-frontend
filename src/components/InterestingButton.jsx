@@ -5,13 +5,13 @@
  * Now a thin wrapper over CircleAction, which is the shape all three card actions share.
  */
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Star } from 'lucide-react';
 import CircleAction from './CircleAction';
 
 export default function InterestingButton({ active, onClick, theme = 'light' }) {
   return (
     <CircleAction
-      Icon={Sparkles}
+      Icon={Star}
       label="Interesting"
       active={active}
       onClick={onClick}

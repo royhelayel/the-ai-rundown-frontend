@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Sparkles, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
+import { Play, Star, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
@@ -981,7 +981,7 @@ export default function StoryReader({
             style={{ ...iconBtn, background: isSaved ? `${color}` : 'rgba(0,0,0,0.35)' }}
             aria-label={isSaved ? 'Remove from Interesting' : 'Mark as Interesting'}
           >
-            <Sparkles size={17} fill={isSaved ? '#fff' : 'none'} color="#fff" />
+            <Star size={17} fill={isSaved ? '#fff' : 'none'} color="#fff" />
           </button>
         </div>
       )}

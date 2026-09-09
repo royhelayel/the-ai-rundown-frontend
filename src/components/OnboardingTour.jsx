@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  Play, SkipBack, SkipForward, Sparkles,
+  Play, SkipBack, SkipForward, Star,
   ChevronLeft, ChevronRight, ChevronDown, Headphones, Flame, Newspaper,
   LayoutList, GalleryVerticalEnd, Sun, Moon, ArrowRight, Clock, TrendingUp, SlidersHorizontal, Check,
   UserCircle, ArrowDownUp,
@@ -371,7 +371,7 @@ function FilterMock() {
           <span style={{ position: 'relative', display: 'inline-block', fontSize: 9.5, fontWeight: 700 }}>
             <span className="ob-show3-a" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 3, color: '#9ca3af' }}><Clock size={10} /> 2m ago</span>
             <span className="ob-show3-b" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', color: '#6b7280' }}><TrendingUp size={10} /> 3.2k readers</span>
-            <span className="ob-show3-c" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', color: '#7c3aed' }}><Sparkles size={10} /> Interesting</span>
+            <span className="ob-show3-c" style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap', color: '#7c3aed' }}><Star size={10} /> Interesting</span>
           </span>
         </div>
         <Skel w="92%" h={8} style={{ marginBottom: 6 }} />

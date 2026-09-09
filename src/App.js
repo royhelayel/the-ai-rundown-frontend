@@ -1365,15 +1365,33 @@ const TheAIRundown = () => {
       newsSummary.content,
       newsSummary.stories_content
     );
-    setStories(built);
+    // Two places set `stories`, and they disagreed on how many there are. The feed map
+    // merges a category's stories across time slots (see the briefingData effect: Morning
+    // and Evening are concatenated, or Evening replaces Morning), while this row is a single
+    // slot. cueStory seeds the player from the merged list, then setSelectedCategory triggers
+    // the fetch that lands here and this narrowed it — the player opened showing a pill per
+    // merged story and lost some of them a moment later.
+    //
+    // The merged list wins: it is the array Swipe and Scroll already page through, which is
+    // what cueStory's own comment says the player should walk. Guarded on the day, because
+    // briefingData is rebuilt per selectedDay and there is a window mid-change where it still
+    // describes the previous one.
+    const fromFeed = (!newsSummary.day || newsSummary.day === selectedDay)
+      ? briefingData[newsSummary.category]?.allStories
+      : null;
+    const list = fromFeed?.length ? fromFeed : built;
+    setStories(list);
     setHasPunchyBullets(punchy);
     storiesCategoryRef.current = newsSummary.category; // tag which category these stories are
 
-    if (goToLastStoryRef.current && built.length > 0) {
-      setStoryIndex(built.length - 1);
+    if (goToLastStoryRef.current && list.length > 0) {
+      setStoryIndex(list.length - 1);
       goToLastStoryRef.current = false;
     }
-  }, [newsSummary]); // eslint-disable-line react-hooks/exhaustive-deps
+    // briefingData is a dependency now, not just a read: if the feed map lands *after* the
+    // summary this effect has to run again to pick the merged list up, otherwise the very
+    // load this is meant to fix is the one it misses.
+  }, [newsSummary, briefingData, selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!goToLastStoryRef.current) setStoryIndex(0);

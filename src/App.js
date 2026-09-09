@@ -383,24 +383,6 @@ const TheAIRundown = () => {
   // by its children — FeedCategoryEditor relies on that order to nest their chips visually.
   const myNewsCategories = ['World News','Technology','AI','Crypto','Business','Politics','Sports','Football','Basketball','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
 
-  const CATEGORY_COLORS = {
-    'World News':    '#6366f1',
-    'Technology':    '#0891b2',
-    'Business':      '#d97706',
-    'Politics':      '#e11d48',
-    'Sports':        '#16a34a',
-    'Entertainment': '#9333ea',
-    'Science':       '#2563eb',
-    'Health':        '#db2777',
-    'UAE':           '#0369a1',
-    'KSA':           '#166534',
-    'QAT':           '#86198f',
-    'LEB':           '#c2410c',
-    'AI':            '#7c3aed',
-    'Crypto':        '#b45309',
-    'Football':      '#15803d',
-    'Basketball':    '#ea580c',
-  };
   const MY_FEED_COLOR = '#7c3aed';
   const catColor = selectedCategory === 'My Rundown'
     ? (feedCategories.length > 0 ? CATEGORY_COLORS[feedCategories[0]] || MY_FEED_COLOR : MY_FEED_COLOR)

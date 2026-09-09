@@ -721,8 +721,14 @@ export default function StoryReader({
               *clamps*, so it costs no height, and on a story short enough that this row never
               sticks it changes nothing at all. 44 clears the hint at the 1.4× it reaches
               when the scroll listener grows it at the bottom (see ZONE). */}
+          {/* Sits on the outlets' own line — the buttons came up to them, not the other way
+              round. The row used to add 12 of margin and 9 of padding on top of the 10 the
+              takeaways already leave, which parked it 21px below where the outlets had been
+              and read as a separate footer strip rather than the end of the story.
+              Sticky is kept: it does nothing at this natural position on a story that fits,
+              and on one that doesn't it is the only thing keeping Listen in reach. */}
           <div style={{ position: 'sticky', bottom: 44, zIndex: 5, display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', gap: 8, marginTop: 12, padding: '9px 0 0' }}>
+            justifyContent: 'space-between', gap: 8 }}>
             {/* No background of its own. It's the last child of the SAME panel, and the
                 panel's own background already spans this row's natural position whether or
                 not the row is currently stuck — a second translucent layer painted on top of

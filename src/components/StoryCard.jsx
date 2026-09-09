@@ -153,11 +153,22 @@ export default function StoryCard({
           </div>
         )}
 
-        {/* Sources row — horizontally scrollable, all sources shown */}
+        {/* Sources and actions on one line — the buttons come up to the outlets rather than
+            the outlets going down to the buttons. They were two strips 24px apart (the
+            sources' 10 of margin plus the row's 14), and the left half of the lower one was
+            usually empty, since the reader counts only appear once a story has been read.
+            Aligned centre, not flex-start: the buttons are a circle over a caption, so the
+            outlets should sit against the middle of that, the way the Swipe card does it. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+
+          {/* The outlets keep the left, scrolling within their own slot so a story with six
+              of them can never push the actions off the card. The audience counts follow
+              them, still a caption on the story rather than a label for the buttons. */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
         {sources.length > 0 && (
           <div
             onClick={e => e.stopPropagation()}
-            style={{ overflowX: 'auto', scrollbarWidth: 'none', marginBottom: '10px' }}
+            style={{ flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}
           >
             <style>{`.sc-sources::-webkit-scrollbar { display: none; }`}</style>
             <div className="sc-sources" style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 'max-content' }}>
@@ -186,17 +197,8 @@ export default function StoryCard({
           </div>
         )}
 
-        {/* Actions row — Interesting anchors the bottom-left corner, the same slot it
-            occupies on the Swipe-mode card, so the two line up. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '14px' }}>
-
-          {/* The audience counts keep the left, where they are a caption on the story rather
-              than a label for the buttons. The three actions group on the right — they are
-              the same kind of thing and belong together, and splitting one of them to the
-              opposite corner made the row read as two unrelated halves. */}
-          <div style={{ flex: 1, minWidth: 0 }}>
             {(listenCount > 0 || savedCount > 0) && (
-              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#9ca3af', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 {listenCount > 0 && `${listenCount.toLocaleString()} ${listenCount === 1 ? 'reader' : 'readers'}`}
                 {listenCount > 0 && savedCount > 0 && ' · '}
                 {savedCount > 0 && `${savedCount.toLocaleString()} interested`}

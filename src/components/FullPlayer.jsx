@@ -613,35 +613,34 @@ export default function FullPlayer({
             </p>
           )}
 
-          {/* Sources — one muted line, capped at two outlets plus a count, exactly as the
-              Swipe card renders them. The full list lives in Go deeper. */}
-          {asPage && storyCount > 0 && !isRecap && outlets.length > 0 && (() => {
-            const shown = outlets.slice(0, 2);
-            const rest = outlets.length - shown.length;
-            const src = { fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '9px 0 0', overflow: 'hidden' }}>
-                {shown.map((so, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
-                    {so.url
-                      ? <a href={so.url} target="_blank" rel="noopener noreferrer" title={so.title || so.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</a>
-                      : <span style={src}>{so.outlet}</span>}
-                  </React.Fragment>
-                ))}
-                {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
-              </div>
-            );
-          })()}
-
-          {/* Interesting and Go deeper, on the right — the same corner the Swipe card gives
-              them. */}
-          {/* The story's own actions, on their own line. Takeaways / Deeper used to share it,
-              which put a control that changes the narration in the same row as two that act
-              on the story — one line each keeps the two kinds apart: this row belongs to what
-              you are reading, the row below belongs to what is playing it. */}
+          {/* Outlets and the story's actions on one line — the outlets keep the line they
+              already had and the buttons come up to it, which is 21px of card back and one
+              fewer strip to read. Capped at two outlets plus a count, exactly as the Swipe
+              card renders them; the full list lives in Go deeper.
+              Takeaways / Deeper is deliberately not here: it changes what gets read aloud,
+              so it belongs with the transport, in the player box below. */}
           {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '9px 0 0' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                {outlets.length > 0 && (() => {
+                  const shown = outlets.slice(0, 2);
+                  const rest = outlets.length - shown.length;
+                  const src = { fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
+                  return (
+                    <>
+                      {shown.map((so, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
+                          {so.url
+                            ? <a href={so.url} target="_blank" rel="noopener noreferrer" title={so.title || so.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</a>
+                            : <span style={{ ...src, overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</span>}
+                        </React.Fragment>
+                      ))}
+                      {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
+                    </>
+                  );
+                })()}
+              </div>
               <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
               <CircleAction
                 Icon={FileText}

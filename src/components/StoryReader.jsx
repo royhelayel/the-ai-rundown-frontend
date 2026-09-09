@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Star, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal } from 'lucide-react';
+import { Play, Star, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE } from '../theme';
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
@@ -1073,6 +1073,11 @@ export default function StoryReader({
            header block the rule closes, so it needs visible air rather than hugging it. */
         <div className="rdr-recap-row" style={{ position: 'relative', zIndex: 6, flexShrink: 0, padding: `${SPACE.md}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
           <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
+          {/* One mark for the row — all three recaps are model-written, so repeating it on
+              each chip marks nothing. */}
+          <span aria-hidden style={{ display: 'flex', flexShrink: 0, alignSelf: 'center', color: '#a9abf7' }}>
+            <Sparkles size={16} />
+          </span>
           <RecapBar
             category={category}
             storyCount={stories.length}

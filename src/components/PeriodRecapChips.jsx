@@ -31,9 +31,13 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, th
         title={`Read the ${label.toLowerCase()} recap`}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-          padding: '6px 6px 6px 14px', borderRadius: 12, cursor: 'pointer',
-          border: `1px solid ${dark ? 'rgba(167,139,250,0.42)' : 'rgba(124,58,237,0.32)'}`,
-          background: dark ? 'rgba(124,58,237,0.20)' : 'rgba(124,58,237,0.07)',
+          padding: '5px 5px 5px 14px', borderRadius: 12, cursor: 'pointer',
+          // Same fill as the category recap beside it, and no border. These used to carry a
+          // violet tint and an outline to say "different kind of thing"; with one AI mark now
+          // leading the whole row, the three read as one group and the tint was separating
+          // chips that belong together.
+          background: dark ? 'rgba(255,255,255,0.09)' : '#ffffff',
+          boxShadow: dark ? 'none' : '0 1px 2px rgba(0,0,0,0.07)',
         }}
       >
         <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', color: dark ? 'rgba(255,255,255,0.88)' : '#0a0a0f' }}>

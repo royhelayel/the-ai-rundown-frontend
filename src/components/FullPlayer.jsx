@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -473,6 +473,11 @@ export default function FullPlayer({
              it on the days they exist rather than being budgeted for year-round. */
           <div className="fp-recap-row" style={{ position: 'relative', zIndex: 10, flexShrink: 0, padding: `${SPACE.lg}px ${SPACE.md}px 0`, display: 'flex', alignItems: 'flex-start', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
             <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
+            {/* One mark for the row, not one per chip: all three recaps are model-written, so
+                repeating it on each of them marks nothing. */}
+            <span aria-hidden style={{ display: 'flex', flexShrink: 0, alignSelf: 'center', color: '#a9abf7' }}>
+              <Sparkles size={16} />
+            </span>
             <RecapBar category={category} storyCount={storyCount} theme="dark" compact
               onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
             <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark"

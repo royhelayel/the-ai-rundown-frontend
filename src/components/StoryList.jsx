@@ -7,6 +7,7 @@ import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
 import RecapBar from './RecapBar';
+import { Sparkles } from 'lucide-react';
 import { headlineKey } from './PopularTab';
 
 // ── Category header — the recap chip, and nothing else ───────────────────────
@@ -18,7 +19,12 @@ import { headlineKey } from './PopularTab';
 // all three modes — which it can't while one of them wraps it in a card the others don't have.
 function CategoryRecapHead({ cat, onOpen, onPlay }) {
   return (
-    <div style={{ display: 'flex', padding: '0 0 10px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 10px' }}>
+      {/* One mark ahead of the chip — the recap is model-written, and the glyph says that
+          once rather than riding inside the pill as a second shape. */}
+      <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: '#6366f1' }}>
+        <Sparkles size={16} />
+      </span>
       <RecapBar category={cat} compact showName onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
     </div>
   );

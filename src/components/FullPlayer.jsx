@@ -472,8 +472,12 @@ export default function FullPlayer({
                not scope, and it was the one piece of *reading* stranded in the header. ── */}
         {/* ── Category recap, then the lens: two rows above the story, at Swipe's spacing.
                They were one row with the recap left and the lens right, which is neither
-               screen's arrangement and left the lens sharing a line with content. ── */}
-        {!isRecap && storyCount > 0 && onOpenRecap && (
+               screen's arrangement and left the lens sharing a line with content.
+               Not on Popular or Interesting. Those are rankings that span every category, so
+               a row headed "World News recap" would be offering the recap of whichever
+               category the story you happen to be on belongs to — changing subject as you
+               skip. Swipe has excluded it for that reason; Listen was not. ── */}
+        {!isRecap && !showAllPill && storyCount > 0 && onOpenRecap && (
           /* Scrolls sideways: the category's recap always fits, and the week and month join
              it on the days they exist rather than being budgeted for year-round. */
           <div style={{ position: 'relative', zIndex: 10, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,

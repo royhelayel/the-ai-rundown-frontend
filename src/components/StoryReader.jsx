@@ -692,7 +692,7 @@ export default function StoryReader({
                       step smaller than the other two for the same sentences. Weight 400 to
                       match — 500 is not one of the three weights, and Listen sets its own
                       summary on the same dark ground at 400. */}
-                  <span style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.80)', lineHeight: 1.5, fontWeight: 400 }}>{b}</span>
+                  <span style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, fontWeight: 400 }}>{b}</span>
                 </div>
               ))}
             </div>

@@ -685,7 +685,11 @@ export default function StoryReader({
               {bullets.map((b, i) => (
                 <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: col, flexShrink: 0, marginTop: 7, boxShadow: `0 0 6px ${col}` }} />
-                  <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.80)', lineHeight: 1.5, fontWeight: 500 }}>{b}</span>
+                  {/* 0.92rem, the body size Listen and Scroll both use. Swipe was reading a
+                      step smaller than the other two for the same sentences. Weight 400 to
+                      match — 500 is not one of the three weights, and Listen sets its own
+                      summary on the same dark ground at 400. */}
+                  <span style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.80)', lineHeight: 1.5, fontWeight: 400 }}>{b}</span>
                 </div>
               ))}
             </div>

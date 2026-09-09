@@ -7,6 +7,7 @@ import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
 import RecapBar from './RecapBar';
+import { Sparkles } from 'lucide-react';
 import { headlineKey } from './PopularTab';
 
 // ── Category header — the recap chip, and nothing else ───────────────────────
@@ -31,7 +32,7 @@ function CategoryRecapHead({ cat, onOpen, onPlay }) {
       <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
         fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: '#8b8b98' }}>
         <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: tint }}>
-          <CategoryIcon category={cat} size={13} color={tint} />
+          <Sparkles size={13} />
         </span>
         {cat} recap
       </p>

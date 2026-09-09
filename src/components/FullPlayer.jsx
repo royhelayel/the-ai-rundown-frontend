@@ -478,19 +478,18 @@ export default function FullPlayer({
              it on the days they exist rather than being budgeted for year-round. */
           <div style={{ position: 'relative', zIndex: 10, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
             padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
-            {/* The line says what these are for. Three buttons labelled with time spans do not
-                explain themselves — "Today" beside a headline could as easily be a filter. */}
-            <p style={{ margin: '0 0 9px', fontSize: TYPE.meta, fontWeight: WEIGHT.ui, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
-              Short on time? Catch up with a recap
-            </p>
-            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-              <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
-              {/* One mark for the row, not one per chip: all three recaps are model-written, so
-                  repeating it on each of them marks nothing. It wears the topic's tint too, so
-                  the whole row changes colour with the tab above it. */}
+            {/* The line names the topic and the mark says a model wrote it — one icon, and the
+                words carry the rest. Three buttons labelled with time spans do not explain
+                themselves: "Today" beside a headline could as easily be a filter. */}
+            <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: TYPE.meta, fontWeight: WEIGHT.ui, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
               <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
-                <Sparkles size={16} />
+                <Sparkles size={13} />
               </span>
+              {category} recap
+            </p>
+            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
               <RecapBar category={category} storyCount={storyCount} theme="dark" compact accent={recapTint}
                 onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
               <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}

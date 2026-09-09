@@ -40,7 +40,7 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, ac
         onClick={ready ? () => onOpen?.(period) : undefined}
         title={ready ? `Read the ${label.toLowerCase()} recap` : `${label} recap — not generated yet`}
         style={{ border: 'none', flexShrink: 0,
-          padding: '6px 13px', borderRadius: 999,
+          padding: '6px 11px', borderRadius: 999,
           fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
           cursor: ready ? 'pointer' : 'default',
           background: ready
@@ -59,5 +59,8 @@ export default function PeriodRecapChips({ recaps, minutesOf, onOpen, onPlay, ac
   // row silently changed shape on the days one landed — and nobody could learn the feature was
   // coming, because it only appeared once it had already arrived. Disabled says "this exists,
   // not yet"; absent says nothing at all.
-  return <>{[chip('Weekly', 'Last week'), chip('Monthly', 'Last month')]}</>;
+  // "Week" and "Month", not "Last week" and "Last month". On one line beside the topic's name
+  // the long pair measured 260px of a 319px box, leaving 40 for a phrase that needs 90 — so
+  // the row could not be one line while they kept those labels. At 189px it can.
+  return <>{[chip('Weekly', 'Week'), chip('Monthly', 'Month')]}</>;
 }

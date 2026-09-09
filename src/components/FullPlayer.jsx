@@ -481,19 +481,23 @@ export default function FullPlayer({
             {/* The line names the topic and the mark says a model wrote it — one icon, and the
                 words carry the rest. Three buttons labelled with time spans do not explain
                 themselves: "Today" beside a headline could as easily be a filter. */}
-            <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: TYPE.meta, fontWeight: WEIGHT.ui, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
+            {/* One line: the topic on the left, the buttons anchored right so they hold the
+                same position whatever the topic is called. The phrase takes the slack and
+                ellipses if a long name would otherwise push them — the buttons never move. */}
+            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
                 <Sparkles size={13} />
               </span>
-              {category} recap
-            </p>
-            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-              <style>{`.fp-recap-row::-webkit-scrollbar { display: none; }`}</style>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.5)' }}>
+                {CATEGORY_SHORT[category] || category} news recap
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <RecapBar category={category} storyCount={storyCount} theme="dark" compact accent={recapTint}
                 onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
               <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
                 onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+              </span>
             </div>
           </div>
         )}

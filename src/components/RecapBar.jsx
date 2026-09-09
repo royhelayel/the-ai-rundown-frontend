@@ -83,7 +83,7 @@ export default function RecapBar({ category, storyCount = 0, theme = 'light', co
     return (
       <button onClick={onOpen} title={`Read the ${name} recap`}
         style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
-          padding: '6px 13px', borderRadius: 999,
+          padding: '6px 11px', borderRadius: 999,
           fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap',
           background: hexA(accent, dark ? 0.20 : 0.13),
           color: accent }}>

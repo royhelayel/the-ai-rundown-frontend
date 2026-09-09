@@ -29,20 +29,22 @@ function CategoryRecapHead({ cat, onOpen, onPlay }) {
   const tint = CATEGORY_COLORS[cat] || '#6366f1';
   return (
     <div style={{ margin: '0 0 10px', padding: '10px 12px 11px', borderRadius: 12, background: 'rgba(10,10,20,0.04)' }}>
-      <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
-        fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: '#8b8b98' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: tint }}>
           <Sparkles size={13} />
         </span>
-        {cat} recap
-      </p>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontSize: '0.72rem', fontWeight: 600, color: '#8b8b98' }}>
+          {CATEGORY_SHORT[cat] || cat} news recap
+        </span>
       {/* Today only, for now. The week and month are still fetched app-wide, with
           category: '__period__' — one weekly row for every topic — so putting them in each of
           twelve sections would show the same recap twelve times over, each time labelled as
           that section's. They join this row when the backend generates them per category;
           until then they stay in the feed's own row above, where app-wide is the truth. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <RecapBar category={cat} compact accent={tint} onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <RecapBar category={cat} compact accent={tint} onOpen={() => onOpen?.(cat)} onPlay={onPlay ? () => onPlay(cat) : undefined} />
+        </span>
       </div>
     </div>
   );

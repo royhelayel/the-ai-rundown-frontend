@@ -1077,20 +1077,23 @@ export default function StoryReader({
         <div style={{ position: 'relative', zIndex: 6, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
           padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
           {/* Names the topic, with the mark saying a model wrote it. Same line as Listen. */}
-          <p style={{ margin: '0 0 9px', display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.35, color: 'rgba(255,255,255,0.5)' }}>
+          {/* One line — the topic left, the buttons anchored right so they hold their position
+              whatever the topic is called. Same as Listen. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
               <Sparkles size={13} />
             </span>
-            {category} recap
-          </p>
-          <div className="rdr-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            <style>{`.rdr-recap-row::-webkit-scrollbar { display: none; }`}</style>
-            <RecapBar category={category} theme="dark" compact accent={recapTint}
-              storyCount={stories.length}
-              onOpen={() => onOpenCategoryRecap(category)} onPlay={onPlayRecap} />
-            <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
-              onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.5)' }}>
+              {CATEGORY_SHORT[category] || category} news recap
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <RecapBar category={category} theme="dark" compact accent={recapTint}
+                storyCount={stories.length}
+                onOpen={() => onOpenCategoryRecap(category)} onPlay={onPlayRecap} />
+              <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
+                onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+            </span>
           </div>
         </div>
       )}

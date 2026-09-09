@@ -679,7 +679,7 @@ export default function StoryReader({
               </p>
             )}
           </div>
-          <h1 style={{ margin: '0 0 10px', fontSize: '1.18rem', fontWeight: 900, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.55)' }}>{entry.story.headline}</h1>
+          <h1 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.55)' }}>{entry.story.headline}</h1>
           {bullets.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '2px 0 10px' }}>
               {bullets.map((b, i) => (

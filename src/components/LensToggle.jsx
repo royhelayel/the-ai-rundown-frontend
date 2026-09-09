@@ -52,7 +52,9 @@ export default function LensToggle({ value = 'latest', onChange, theme = 'light'
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
           padding: '2px 2px', border: 'none', background: 'transparent',
-          color: fg, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+          // 0.84rem: the same size as the topic tabs and the day. At 0.78 it was the one
+          // control on the row rendering a step smaller than everything around it.
+          color: fg, fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer',
         }}
       >
         <ArrowDownUp size={13} />

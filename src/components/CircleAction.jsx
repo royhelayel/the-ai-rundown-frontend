@@ -1,4 +1,5 @@
 import React from 'react';
+import { ICON } from '../theme';
 
 /**
  * CircleAction — a round icon button with a caption under it.
@@ -53,8 +54,11 @@ export default function CircleAction({
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0 }}
       {...rest}
     >
-      <span style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', ...circle }}>
-        <Icon size={13} {...iconProps} />
+      {/* 34, not 28. At 28 the pair read as two small marks tucked into a corner rather than
+          as the story's actions; the mock's size is what gives them the presence to be found
+          without hunting. ICON.sm inside — a pixel off the mock's 15, and on the scale. */}
+      <span style={{ width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', ...circle }}>
+        <Icon size={ICON.sm} {...iconProps} />
       </span>
       <span style={{ fontSize: '0.52rem', fontWeight: 700, color: captionColor, whiteSpace: 'nowrap' }}>{label}</span>
     </button>

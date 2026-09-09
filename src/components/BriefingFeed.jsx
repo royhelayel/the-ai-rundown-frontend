@@ -50,7 +50,20 @@ export default function BriefingFeed({
   // The list owns the jump: it sets the category and mutes its own scroll-spy for the
   // duration, so the two can't fight over which category is active mid-scroll.
   const listRef = useRef(null);
-  const scrollToCat = (cat) => listRef.current?.jumpToCategory(cat);
+  // A tap outranks the restore. The restore below waits for the section elements to exist
+  // and only then schedules its jump — which on a slow load can be seconds after the reader
+  // has started tapping, so their choice would be set and then overwritten by wherever they
+  // were last time. Choosing a category ends the restore for this mount, and cancels it if
+  // it is already in flight.
+  const restoreTimerRef = useRef(null);
+  const userPickedRef = useRef(false);
+  const jumpTo = (cat) => listRef.current?.jumpToCategory(cat);
+  const scrollToCat = (cat) => {
+    userPickedRef.current = true;
+    if (restoreTimerRef.current) { clearTimeout(restoreTimerRef.current); restoreTimerRef.current = null; }
+    jumpTo(cat);
+  };
+  useEffect(() => () => { if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current); }, []);
 
   // The remembered category only wins the *first* render — StoryList's own scroll-spy runs
   // its initial check before this component's effects settle (child effects fire before
@@ -61,7 +74,7 @@ export default function BriefingFeed({
   // category wins instead of losing the race, and the strip auto-scrolls to it for free.
   const restoredCatRef = useRef(false);
   useEffect(() => {
-    if (restoredCatRef.current) return;
+    if (restoredCatRef.current || userPickedRef.current) return;
     const remembered = getRememberedCategory('/');
     if (focusStory?.category) return; // focusStory is more specific
     if (!remembered || remembered === visibleCats[0] || !visibleCats.includes(remembered)) return;
@@ -77,7 +90,11 @@ export default function BriefingFeed({
     // short delay lets the instant scroll's own 'scrollend' fire and clear out first, so by
     // the time jumpToCategory attaches its listener, the only 'scrollend' left to catch is
     // its own.
-    setTimeout(() => scrollToCat(remembered), 60);
+    restoreTimerRef.current = setTimeout(() => {
+      restoreTimerRef.current = null;
+      if (userPickedRef.current) return;   // they chose during the delay — leave it alone
+      jumpTo(remembered);
+    }, 60);
   }); // deliberately no deps — cheap no-op once restoredCatRef is set, keeps retrying until the DOM exists
 
   // gamifiedStats (app-wide) is scoped to the user's My Feed categories, not the full

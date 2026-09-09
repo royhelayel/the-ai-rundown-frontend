@@ -10,17 +10,6 @@ import LensToggle from './LensToggle';
 import PeriodRecapChips from './PeriodRecapChips';
 import { centrePill } from '../utils';
 
-/* Temporary side-by-side: two ways of dividing the story's action row from the
-   player's, so the choice can be made by looking rather than by argument.
-     ?divider=rule     a hairline above the player block
-     ?divider=surface  the player block on its own, slightly lighter ground
-     (no param)        space only — what is deployed today
-   Reads once at load, so switching means reloading with the new URL. Delete this
-   and the `dividerTrial` branch below once one of them wins. */
-const dividerTrial = typeof window !== 'undefined'
-  ? new URLSearchParams(window.location.search).get('divider')
-  : null;
-
 function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -663,29 +652,23 @@ export default function FullPlayer({
               />
             </div>
           )}
+        </div>
 
-          {/* ── The player, inside the card.
-                 It sat in the lower third of the screen with nothing tying it to the story
-                 above, which is most of why this screen read as another swipeable card. In
-                 the card it is unmistakably a player: the story and the means of playing it
-                 are one object, sharing one border.
-                 Docked with `position: sticky` on the card's own bottom edge, so a story long
-                 enough to scroll keeps its transport in reach — the same technique the Swipe
-                 card uses for its action row. Bleeds to the card's edges through negative
-                 margins, and takes the card's own background, so the rule above it reads as a
-                 division of one panel rather than a second panel laid on top. ── */}
-          {asPage && storyCount > 0 && (
-            <div style={{ position: 'sticky', bottom: 0, zIndex: 2,
-              ...(dividerTrial === 'rule'
-                ? { margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.09)' }
-                : dividerTrial === 'surface'
-                  /* Bleeds to the card's edges — the card pads 14/15/12 — so the lighter
-                     ground reads as the bottom of one panel, not a tile dropped on it. */
-                  ? { margin: '22px -15px -12px', padding: '14px 15px 12px',
-                      background: 'rgba(255,255,255,0.035)',
-                      borderRadius: '0 0 13px 13px' }
-                  : { margin: '30px 0 0' }),
-              display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* ── The player, its own box.
+               It used to live inside the story's panel, on the reasoning that the story and
+               the means of playing it are one object. Two things it contains argue otherwise:
+               Takeaways/Deeper changes what gets read aloud, and the transport acts on the
+               audio — neither has anything to do with the words above them, and inside one
+               panel the boundary had to be drawn by a hairline, a lighter ground, or 30px of
+               air (the three the `divider` URL trial existed to choose between). Two boxes
+               state it outright, and the trial is gone with them.
+               Same fill, same radius, same padding as the story box, so they read as a pair
+               rather than as a card with an appendix. Still sticky on the bottom, so a story
+               long enough to scroll keeps its transport in reach. ── */}
+        {asPage && storyCount > 0 && (
+          <div style={{ position: 'sticky', bottom: 0, zIndex: 2, marginTop: SPACE.sm,
+            padding: '14px 15px 12px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.03)',
+            display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* How much gets read aloud — a property of the playback, so it sits with it. */}
               {!isRecap && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -734,9 +717,8 @@ export default function FullPlayer({
                   </button>
                 </div>
               )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         </div>
 

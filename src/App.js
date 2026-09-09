@@ -3226,7 +3226,7 @@ const TheAIRundown = () => {
           onFocusStory={setFocus}
           user={user}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          onShowSettings={() => navigate('/settings')}
+          onShowSettings={() => navigate('/settings', { state: { from: location.pathname } })}
           playerVisible={playerVisible}
           newsLanguage={newsLanguage}
           todayProgress={gamifiedStats.todayProgress}
@@ -3376,10 +3376,15 @@ const TheAIRundown = () => {
               // returnTo…) of whatever screen we came from. navigate(back) only had the
               // path string, which meant returning from Swipe mode arrived with no state,
               // and StoryReader — reading state.asPage to decide page vs. sheet — rendered
-              // the Summary sheet instead of the Swipe page. state.from only exists when we
-              // navigated here from inside the app, so a previous entry is guaranteed.
-              if (location.state?.from) navigate(-1);
-              else navigate('/');
+              // the Summary sheet instead of the Swipe page.
+              if (location.state?.from) { navigate(-1); return; }
+              // No `from` meant "opened from outside the app", so this fell back to '/' —
+              // which is Scroll. But most in-app routes here omitted `from` too, so leaving
+              // Settings from Listen or Swipe always landed on Scroll. They all carry it now,
+              // and the remaining fallback — a bookmark, a reload, a shared link — goes to
+              // the remembered read mode rather than assuming one.
+              const m = preferredReadMode();
+              navigate(m === 'audio' ? '/listen' : '/');
             }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#8a8a9a', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
               <ChevronLeft size={16} /> Back
             </button>
@@ -3612,7 +3617,7 @@ const TheAIRundown = () => {
           onSelectDay={selectDay}
           onOpenRecap={(cat) => navigate(`/category/${encodeURIComponent(cat)}/briefing`, { state: { from: playerSourcePath.current || '/' } })}
           onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
-          onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+          onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: location.pathname } })}
           onGuestEdit={() => navigate('/my-feed')}
           user={user}
           isStoryRead={sessionSeenRef.current.has(`${selectedCategory}|${storyIndex}`) || readTodaySet.has(`${selectedCategory}|${storyIndex}`)}
@@ -3866,7 +3871,7 @@ const TheAIRundown = () => {
                 periodMinutes={periodMinutes}
                 onOpenPeriodRecap={openPeriodRecap}
                 onPlayPeriodRecap={playPeriodRecap}
-                onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+                onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: location.pathname } })}
                 // The lens control rendered in Swipe mode but nothing was wired to it, so
                 // tapping Popular or Interesting did nothing. Reuse enterStoriesForTab — the
                 // same switch the mode toggle already uses to move between feeds within

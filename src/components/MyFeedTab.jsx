@@ -110,7 +110,7 @@ export default function MyFeedTab({
             <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: '#0a0a0f' }}>Set Up My News</h2>
             <p style={{ margin: 0, fontSize: '0.88rem', color: '#8a8a9a', lineHeight: 1.55 }}>Choose the categories you want and we'll keep your feed personalised.</p>
           </div>
-          <button onClick={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
             Set Up My News
           </button>
         </div>
@@ -138,7 +138,7 @@ export default function MyFeedTab({
         onSelectCategory={scrollToCat}
         subtitle={subtitle}
         showLens
-        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
         corpus="mine"
         onChangeCorpus={(c) => { if (c === 'all') navigate('/'); }}
         lens={lens}
@@ -169,7 +169,7 @@ export default function MyFeedTab({
           showCategoryImages
           sectionTitle="My News"
           onPlayFeed={onPlayMyFeed}
-          onEditFeed={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+          onEditFeed={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
           markNew
           activeCategory={effectiveCat}
           onCategoryChange={setActiveCat}

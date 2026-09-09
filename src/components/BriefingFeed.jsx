@@ -107,7 +107,7 @@ export default function BriefingFeed({
         activeCategory={effectiveCat}
         onSelectCategory={scrollToCat}
         subtitle={subtitle}
-        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed' } })}
+        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
         corpus="all"
         onChangeCorpus={(c) => { if (c === 'mine') navigate('/my-feed'); }}
         lens={lens}

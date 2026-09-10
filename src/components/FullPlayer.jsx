@@ -325,13 +325,31 @@ export default function FullPlayer({
   const showCollapse = isExpanded && storyIndex >= LISTEN_BATCH - 1;
   const catLabel    = CATEGORY_SHORT[category] || category;
 
-  const dots = (stories || []).slice(0, listenLimit).map((_, i) => (
-    <button
-      key={i}
-      onClick={() => onGoToStory?.(i)}
-      style={{ flex: 1, height: '3px', border: 'none', borderRadius: RADIUS.pill, cursor: 'pointer', padding: 0, background: i === storyIndex ? 'white' : i < storyIndex ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', transition: 'all 0.2s' }}
-    />
-  ));
+  // Dots, not a segmented bar. The three states survive the change — the current story is an
+  // elongated pill, stories behind you are dim, ahead of you dimmer — so the rail still says
+  // how far through you are and not merely which one you are on.
+  //
+  // The visible dot is 5px but the button around it is not: transparent padding gives each a
+  // ~15px tap target, since 5px is well under anything a thumb can hit. That padding is why
+  // the row's bottom margin drops from 12 to 6 below — the buttons now carry their own.
+  const dots = (stories || []).slice(0, listenLimit).map((_, i) => {
+    const current = i === storyIndex;
+    const read    = i < storyIndex;
+    return (
+      <button
+        key={i}
+        onClick={() => onGoToStory?.(i)}
+        aria-label={`Story ${i + 1} of ${listenLimit}`}
+        aria-current={current ? 'true' : undefined}
+        style={{ border: 'none', background: 'transparent', padding: '5px 3px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', flexShrink: 0 }}
+      >
+        <span style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: RADIUS.pill,
+          background: current ? '#fff' : read ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)',
+          transition: 'width 0.2s ease, background 0.2s ease' }} />
+      </button>
+    );
+  });
 
   // The playback controls — the progress line and the transport — as one block, because on
   // the page they live inside the story card and in the sheet they sit under it. One
@@ -591,7 +609,7 @@ export default function FullPlayer({
               border: on the edge it read as a bar attached to the card, in here it reads as
               the card's own first line, on the same gutter as the headline under it. */}
           {asPage && storyCount > 0 && dots.length > 0 && (
-            <div style={{ display: 'flex', gap: '3px', margin: '0 0 12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', margin: '0 0 6px' }}>
               {dots}
             </div>
           )}

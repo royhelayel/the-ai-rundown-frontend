@@ -1259,27 +1259,37 @@ const TheAIRundown = () => {
         const savedFeed = userData.feedCategories || [];
         setFeedCategories(savedFeed);
         if (savedFeed.length > 0) setSelectedCategory(savedFeed[0]);
-        // Refresh categories, email preferences, and feed_categories from Supabase
-        Promise.all([
-          supabase.from('custom_categories').select('category_name, category_description').eq('user_id', userData.id).is('deleted_at', null),
-          supabase.from('users').select('email_preferences, feed_categories, news_language').eq('id', userData.id).single()
-        ]).then(([catRes, prefRes]) => {
-          const cats = catRes.data?.map(c => c.category_name) || [];
-          const descs = Object.fromEntries((catRes.data || []).map(c => [c.category_name, c.category_description || c.category_name]));
-          const feed = prefRes.data?.feed_categories || savedFeed;
-          // Prefer DB value; fall back to whatever is stored locally (avoids overwriting
-          // an Arabic selection made before the user logged in)
-          const lang = prefRes.data?.news_language || localStorage.getItem('rundown_news_language') || 'en';
-          setCustomCategories(cats);
-          setCustomCategoryDescriptions(descs);
-          setFeedCategories(feed);
-          setNewsLanguage(lang);
-          localStorage.setItem('rundown_news_language', lang);
-          if (feed.length > 0) setSelectedCategory(feed[0]);
-          const updated = { ...userData, categories: cats, feedCategories: feed };
-          localStorage.setItem('newsdigest_user', JSON.stringify(updated));
-          setUser(updated);
-        });
+        // Your topics and language, read through the backend rather than straight from
+        // Supabase on the anon key.
+        //
+        // These are per-user settings, so changing them on the phone must show up on the
+        // laptop. The direct read only worked while a Supabase auth session was live, but
+        // the app treats the newsdigest_user blob in localStorage as "signed in" and that
+        // never expires — so once the session lapsed the read came back null and the line
+        // below quietly kept serving that device's own stale copy. The backend reads with
+        // the service role, the same way saving already writes with it.
+        fetch(`${BACKEND_URL}/api/user/preferences?userId=${encodeURIComponent(userData.id)}`)
+          .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+          .then(prefs => {
+            const cats  = (prefs.customCategories || []).map(c => c.name);
+            const descs = Object.fromEntries((prefs.customCategories || []).map(c => [c.name, c.description]));
+            // ?? not ||: the server sends null for "never saved" and [] for "saved an empty
+            // list", and those must not collapse to the same thing.
+            const feed  = prefs.feedCategories ?? savedFeed;
+            const lang  = prefs.newsLanguage || localStorage.getItem('rundown_news_language') || 'en';
+            setCustomCategories(cats);
+            setCustomCategoryDescriptions(descs);
+            setFeedCategories(feed);
+            setNewsLanguage(lang);
+            localStorage.setItem('rundown_news_language', lang);
+            if (feed.length > 0) setSelectedCategory(feed[0]);
+            const updated = { ...userData, categories: cats, feedCategories: feed };
+            localStorage.setItem('newsdigest_user', JSON.stringify(updated));
+            setUser(updated);
+          })
+          // Logged, not swallowed: this failing silently is what made the bug invisible.
+          // The device keeps the list it already had, which is the right offline behaviour.
+          .catch(err => console.error('Could not load your settings from the server:', err.message));
         // Load social data for returning signed-in user
         loadSocialData(userData.id);
       }

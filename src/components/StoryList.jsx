@@ -88,6 +88,9 @@ function StoryListInner({
   loading = false,
   fromPath = '/',
   showCategoryImages = false,
+  // Scroll docks one recap under its header that follows the section you are in, so its
+  // sections must not each carry their own. My Feed has no such row and still does.
+  sectionRecap = true,
   sectionTitle = '',
   onEditFeed,
   markNew = false, // show "New"/"Updated" badges on evening-incremental stories (live feeds only)
@@ -351,12 +354,12 @@ function StoryListInner({
   // card reads it, so the pills can repaint on their own.
   const sections = React.useMemo(
     () => buildSections({
-      visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages,
+      visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap,
       handleBrowse, handleOpenBriefing, handlePlayCat, handlePlayRecap, handleRead, toggleExpanded, observeCard, markRead,
       savedKeySet, handleToggleSaved,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visibleCats.join(','), briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, savedKeySet],
+    [visibleCats.join(','), briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap, savedKeySet],
   );
 
   return (
@@ -448,7 +451,7 @@ const StoryList = forwardRef(StoryListInner);
 export default StoryList;
 
 function buildSections({
-  visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages,
+  visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap,
   handleBrowse, handleOpenBriefing, handlePlayCat, handlePlayRecap, handleRead, toggleExpanded, observeCard, markRead,
   savedKeySet, handleToggleSaved,
 }) {
@@ -467,11 +470,12 @@ function buildSections({
             <div key={cat} id={`sl-topic-${cat}`} style={{ scrollMarginTop: 'calc(var(--header-h, 135px) + 10px)' }}>
               {showCategoryImages ? (
                 /* ── Each section opens with its own recap ──
-                   Scroll shows every category at once rather than one at a time, so a single
-                   recap under the header only served whichever one you happened to be near.
-                   Per section it heads the group it summarises — and it carries the category
-                   name, because twelve chips all reading "Category Recap" name nothing. */
-                <CategoryRecapHead cat={cat} onOpen={handleOpenBriefing} onPlay={handlePlayRecap} />
+                   Only where nothing else carries one. Scroll used to: twelve of these, one
+                   per section, because a single recap under the header only served whichever
+                   category you happened to be near. Its recap is docked now and follows the
+                   scroll-spy, so there the same control had become thirteen copies of itself.
+                   My Feed has no docked row, so it keeps them. */
+                sectionRecap ? <CategoryRecapHead cat={cat} onOpen={handleOpenBriefing} onPlay={handlePlayRecap} /> : null
               ) : (
                 /* ── Simple text category header ── */
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>

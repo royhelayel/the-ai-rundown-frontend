@@ -2207,19 +2207,30 @@ const TheAIRundown = () => {
   // re-requested both periods — and because these rows mostly do not exist yet, each was a
   // miss being fetched again and again: fourteen of the eighteen requests a fresh Listen
   // page made were this. A miss is an answer, so it is cached like any other.
+  // Which topic's week and month are on screen.
+  //
+  // Listen and Swipe show one topic at a time, and that topic is selectedCategory. Scroll
+  // shows twelve on one page: its recap is docked under the header and follows whichever
+  // section you have scrolled into, which is emphatically not selectedCategory — nothing in
+  // the feed sets that. Without a second source the docked row would label itself "Business
+  // recap" while its Last week / Last month opened World News. The feed reports its own and
+  // clears it when it unmounts, so the other two modes keep using selectedCategory.
+  const [feedPeriodCategory, setFeedPeriodCategory] = useState(null);
+  const periodCategory = feedPeriodCategory || selectedCategory;
+
   const periodCache = useRef(new Map());
   useEffect(() => {
     let cancelled = false;
     const load = async (period) => {
       const day = periodEnds[period];
-      if (!day || !selectedCategory) return [period, null];
-      const key = `${period}|${day}|${selectedCategory}|${newsLanguage}`;
+      if (!day || !periodCategory) return [period, null];
+      const key = `${period}|${day}|${periodCategory}|${newsLanguage}`;
       // The promise is what's cached, not the value. Caching only the resolved value still
       // let every effect run that started before the first one came back miss the cache and
       // fire its own request — which is most of them, since they all start within a frame
       // or two of each other. Sharing the in-flight promise collapses them into one.
       if (!periodCache.current.has(key)) {
-        const params = new URLSearchParams({ mode: 'one', category: selectedCategory, day, timeSlot: period, language: newsLanguage });
+        const params = new URLSearchParams({ mode: 'one', category: periodCategory, day, timeSlot: period, language: newsLanguage });
         periodCache.current.set(key, fetch(`/api/news?${params}`)
           .then(res => res.ok ? res.json() : null)
           .then(row => {
@@ -2242,7 +2253,7 @@ const TheAIRundown = () => {
     // not the whole app's, so switching topic has to fetch that topic's pair. The cache key
     // carries the category for the same reason — without it, the first category's recap
     // would be served for every other one.
-  }, [periodEnds, newsLanguage, selectedCategory]);
+  }, [periodEnds, newsLanguage, periodCategory]);
 
   const PERIOD_LABEL = { Weekly: 'Weekly', Monthly: 'Monthly' };
   const periodMinutes = (text) => Math.max(1, Math.round(text.split(/\s+/).length / 150));
@@ -2254,7 +2265,7 @@ const TheAIRundown = () => {
     const r = periodRecaps[period];
     if (!r) return;
     setPeriodReader({
-      headline: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`,
+      headline: `${CATEGORY_SHORT[periodCategory] || periodCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`,
       summary: r.text,
       tightBullets: [], allBullets: [], storySources: [],
       _isBriefing: true,
@@ -2266,7 +2277,7 @@ const TheAIRundown = () => {
     const r = periodRecaps[period];
     if (!r) return;
     if (isNarrating) narrateFnRef.current.stop();
-    const label = `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`;
+    const label = `${CATEGORY_SHORT[periodCategory] || periodCategory} · ${period === 'Weekly' ? 'last week' : 'last month'}`;
     const stories = [{ headline: label, tightBullets: [r.text], allBullets: [r.text], storySources: [], _isBriefing: true }];
     snapshotPlayRef.current = { category: label, stories, map: { [label]: { allStories: stories } } };
     playlistCatsRef.current = [label];
@@ -3082,6 +3093,9 @@ const TheAIRundown = () => {
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
+          /* The feed's docked recap follows the section you scroll into; this is how it
+             tells the period fetch which topic's week and month to go and get. */
+          onActiveCategoryChange={setFeedPeriodCategory}
           briefingData={briefingData}
           briefingLoading={briefingLoading}
           selectedDay={selectedDay}

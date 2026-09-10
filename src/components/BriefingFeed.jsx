@@ -8,7 +8,9 @@ import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { getRememberedCategory, rememberCategory } from '../hooks/useCategoryMemory';
 import { computeGamifiedStats } from '../hooks/useListenHistory';
-import { CATEGORY_SHORT } from '../theme';
+import { Sparkles } from 'lucide-react';
+import RecapBar from './RecapBar';
+import { CATEGORY_SHORT, CATEGORY_COLORS, RADIUS, SPACE, TYPE, WEIGHT } from '../theme';
 
 export default function BriefingFeed({
   briefingData, briefingLoading,
@@ -25,6 +27,7 @@ export default function BriefingFeed({
   onEnterStories, onEnterSummaries, onEnterAudio,
   savedStories, onToggleSaved,
   periodRecaps, periodMinutes = () => 1, onOpenPeriodRecap, onPlayPeriodRecap,
+  onActiveCategoryChange,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/');
@@ -64,6 +67,14 @@ export default function BriefingFeed({
     jumpTo(cat);
   };
   useEffect(() => () => { if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current); }, []);
+
+  // The docked recap's week and month are fetched app-side, keyed on whichever topic is on
+  // screen. Cleared on unmount: leaving the feed hands that key back to selectedCategory,
+  // which is what Listen and Swipe show.
+  useEffect(() => {
+    if (effectiveCat) onActiveCategoryChange?.(effectiveCat);
+  }, [effectiveCat, onActiveCategoryChange]);
+  useEffect(() => () => onActiveCategoryChange?.(null), [onActiveCategoryChange]);
 
   // The remembered category only wins the *first* render — StoryList's own scroll-spy runs
   // its initial check before this component's effects settle (child effects fire before
@@ -133,25 +144,53 @@ export default function BriefingFeed({
         progressTotal={shownCounts[effectiveCat] ?? (allNewsStats.todayProgress?.[effectiveCat]?.total || 0)}
       />
 
-      {/* ── The week and month, then the lens.
-             The category recap has left this row: every section now opens with its own, so
-             one up here was a second copy of the first section's within a hundred pixels —
-             and it only ever served whichever category you happened to be nearest. What is
-             left is the pair that spans categories rather than belonging to one. ── */}
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        {/* Always rendered now. The chips no longer erase themselves when their recap is
-            missing — they show disabled — so the row has content every day and the guard that
-            kept it from being 24px of padding around nothing is no longer needed. */}
-        <div style={{ display: 'flex', gap: 6, padding: '24px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <PeriodRecapChips
-            recaps={periodRecaps}
-            minutesOf={periodMinutes}
-            theme="light"
-            onOpen={onOpenPeriodRecap}
-            onPlay={onPlayPeriodRecap}
-          />
+      {/* ── One recap row, docked under the header — Listen and Swipe's row, part for part.
+             It used to be split in two and in the wrong places: the week and month floated
+             up here with no box while every one of the twelve sections carried its own
+             "{Topic} recap" card, so the same control appeared thirteen times in three
+             different shapes, and only the pair up top was ever visible once you started
+             scrolling.
+             Docked, it is one row that follows you: the scroll-spy already knows which
+             section is under the header (it drives the topic tabs), so the name, the tint and
+             the topic whose week and month are fetched all move with it. `--header-h` is
+             measured by FeedHeader's ResizeObserver, so this sits exactly under the header at
+             whatever height it happens to be.
+             The lens sits below and does *not* dock — it sorts the list you are looking at,
+             and the recap is the thing worth keeping in reach. ── */}
+      <div style={{ position: 'sticky', top: 'var(--header-h, 0px)', zIndex: 40, background: '#f5f5f7' }}>
+        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+          {effectiveCat && (() => {
+            // The category's own colour, undimmed: Scroll's ground is near-white, which is
+            // what CATEGORY_COLORS were picked against. Listen and Swipe lift theirs because
+            // their ground is near-black.
+            const tint = CATEGORY_COLORS[effectiveCat] || '#6366f1';
+            return (
+              <div style={{ margin: `${SPACE.md}px ${SPACE.md}px 0`, padding: '10px 12px 11px',
+                borderRadius: RADIUS.md, background: 'rgba(10,10,20,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: tint }}>
+                    <Sparkles size={13} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: '#8b8b98' }}>
+                    {CATEGORY_SHORT[effectiveCat] || effectiveCat} recap
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <RecapBar category={effectiveCat} theme="light" compact accent={tint}
+                      storyCount={briefingData[effectiveCat]?.storyCount || 0}
+                      onOpen={() => navigate(`/category/${encodeURIComponent(effectiveCat)}/briefing`, { state: { from: '/' } })} />
+                    <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="light" accent={tint}
+                      onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
-        <div style={{ padding: '32px 16px 12px' }}>
+      </div>
+
+      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+        <div style={{ padding: `${SPACE.md}px ${SPACE.md}px 12px` }}>
           <LensToggle
             value={lens}
             onChange={(l) => { if (l === 'popular') navigate('/popular'); else if (l === 'interesting') navigate('/important'); else setLens('latest'); }}
@@ -180,6 +219,7 @@ export default function BriefingFeed({
           loading={briefingLoading}
           fromPath="/"
           showCategoryImages
+          sectionRecap={false}
           sectionTitle="All News"
           onPlayFeed={onPlayBriefing}
           markNew

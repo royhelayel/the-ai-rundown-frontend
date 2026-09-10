@@ -728,7 +728,7 @@ export default function StoryReader({
               Sticky is kept: it does nothing at this natural position on a story that fits,
               and on one that doesn't it is the only thing keeping Listen in reach. */}
           <div style={{ position: 'sticky', bottom: 44, zIndex: 5, display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', gap: 8 }}>
+            justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
             {/* No background of its own. It's the last child of the SAME panel, and the
                 panel's own background already spans this row's natural position whether or
                 not the row is currently stuck — a second translucent layer painted on top of
@@ -1030,7 +1030,11 @@ export default function StoryReader({
         <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'stretch', paddingTop: SPACE.sm }}>
           {/* Pinned, so it holds still while the topics move past it. Bottom-padded so its
               box centres on the tab labels rather than on the row. */}
-          {onEditCategories && (
+          {/* Not on Popular and Interesting. Those are rankings across every category — the
+              strip there is a jump list over a list you did not choose, so an editor for
+              "your topics" acts on something this screen isn't showing. Same reason the
+              category recap is hidden there. */}
+          {onEditCategories && !showAllPill && (
             <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: SPACE.md, paddingBottom: 11, flexShrink: 0 }}>
               <button
                 // Same as Scroll: guests meet the My News page, which makes the case before
@@ -1045,7 +1049,8 @@ export default function StoryReader({
               </button>
             </span>
           )}
-          {contextCategories.length > 1 && (
+          {/* The rule divides the editor from the topics, so it goes when the editor does. */}
+          {contextCategories.length > 1 && !showAllPill && (
             <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
           )}
 
@@ -1053,7 +1058,10 @@ export default function StoryReader({
               is relative to the nearest *positioned* ancestor — without it the pinned
               editor's width is added to every target and the strip overshoots. */}
           <div ref={catStripRef} className="rdr-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: SPACE.md, minWidth: 'max-content' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: SPACE.md,
+              /* The pinned editor supplied the left gutter; without it the first tab would
+                 start hard against the screen edge. */
+              paddingLeft: showAllPill ? SPACE.md : 0, minWidth: 'max-content' }}>
               {showAllPill && (() => {
                 const act = allScope;
                 return (

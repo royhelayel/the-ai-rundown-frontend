@@ -159,7 +159,7 @@ export default function StoryCard({
             usually empty, since the reader counts only appear once a story has been read.
             Aligned centre, not flex-start: the buttons are a circle over a caption, so the
             outlets should sit against the middle of that, the way the Swipe card does it. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
 
           {/* The outlets keep the left, scrolling within their own slot so a story with six
               of them can never push the actions off the card. The audience counts follow

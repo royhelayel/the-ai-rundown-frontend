@@ -28,7 +28,18 @@ export default function CircleAction({
   const activeColor = accent || (dark ? '#c4b5fd' : '#7c3aed');
   const idleColor   = dark ? 'rgba(255,255,255,0.6)'  : '#6b7280';
   const idleCaption = dark ? 'rgba(255,255,255,0.45)' : '#9ca3af';
-  const idleBorder  = dark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.14)';
+
+  // Accents arrive as either '#rrggbb' (CATEGORY_COLORS) or 'rgb(r, g, b)' (tintForDark's
+  // output on the dark grounds), so both have to resolve.
+  const hexA = (c, a) => {
+    if (!c) return null;
+    if (c.startsWith('#')) {
+      const n = parseInt(c.slice(1), 16);
+      return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+    }
+    const m = c.match(/\d+/g);
+    return m ? `rgba(${m[0]}, ${m[1]}, ${m[2]}, ${a})` : null;
+  };
 
   const filled = variant === 'filled';
   // An accent wins in both themes. Dark used to ignore it and fill with white, so the same
@@ -36,11 +47,18 @@ export default function CircleAction({
   const fillBg = accent || (dark ? 'rgba(255,255,255,0.92)' : '#7c3aed');
   const fillFg = accent ? '#fff' : (dark ? '#0a0a14' : '#fff');
 
+  // Every disc is filled, none is outlined. A 1.5px ring on a transparent disc was the last
+  // hard edge left on cards whose own borders have all gone — the story panel, the recap box
+  // and the player box are all fills on a flat ground now, so a ringed circle sitting on one
+  // read as drawn by a different hand. A fill states the target the same way with no edge.
+  // Listen still leads: it takes the accent solid, while the others take it (or the ground)
+  // at a fraction of it, so the hierarchy survives the ring going.
+  const softBg = dark ? 'rgba(255,255,255,0.10)' : 'rgba(10,10,20,0.06)';
   const circle = filled
-    ? { border: '1.5px solid transparent', background: fillBg, color: fillFg }
+    ? { border: 'none', background: fillBg, color: fillFg }
     : {
-        border: `1.5px solid ${active ? activeColor : idleBorder}`,
-        background: active ? (dark ? 'rgba(167,139,250,0.18)' : 'rgba(124,58,237,0.10)') : 'transparent',
+        border: 'none',
+        background: active ? (hexA(activeColor, dark ? 0.22 : 0.13) || softBg) : softBg,
         color: active ? activeColor : idleColor,
       };
 

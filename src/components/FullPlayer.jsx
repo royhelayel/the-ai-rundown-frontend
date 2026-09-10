@@ -90,21 +90,28 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
       <style>{`.fp-cat-strip::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Pinned: the editor holds still while the topics move past it. Bottom-padded so its
-          box centres on the tab labels rather than on the row. */}
-      <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, paddingBottom: 11, flexShrink: 0 }}>
-        <button
-          onClick={() => (user ? onEditCategories?.() : onGuestEdit?.())}
-          aria-label="Choose your topics"
-          title="Choose your topics"
-          style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: RADIUS.sm,
-            background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <SlidersHorizontal size={ICON.sm} />
-        </button>
-      </span>
+          box centres on the tab labels rather than on the row.
+          Not on Popular and Interesting. Those are rankings across every category — the strip
+          there is a jump list over a list you did not choose, so an editor for "your topics"
+          acts on something this screen isn't showing. Same reason the category recap is
+          hidden there. */}
+      {!showAllPill && (
+        <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: gutter, paddingBottom: 11, flexShrink: 0 }}>
+          <button
+            onClick={() => (user ? onEditCategories?.() : onGuestEdit?.())}
+            aria-label="Choose your topics"
+            title="Choose your topics"
+            style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: RADIUS.sm,
+              background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <SlidersHorizontal size={ICON.sm} />
+          </button>
+        </span>
+      )}
       {/* Spans the track exactly, top and bottom. Floating between the two heights it read
-          as a stray tick rather than the boundary between scope and topic. */}
-      {contextCategories.length > 0 && (
+          as a stray tick rather than the boundary between scope and topic.
+          It divides the editor from the topics, so it goes when the editor does. */}
+      {contextCategories.length > 0 && !showAllPill && (
         <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
       )}
 
@@ -113,12 +120,19 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
           is the outer row, so the pinned scope's 164px got added to every target and the
           strip scrolled clean past the tab it was trying to centre. */}
       <div ref={stripRef} className="fp-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', display: 'flex', alignItems: 'flex-end' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: gutter, minWidth: 'max-content' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: gutter,
+          /* The pinned editor supplied the left gutter; without it "Top" would start hard
+             against the screen edge. */
+          paddingLeft: showAllPill ? gutter : 0, minWidth: 'max-content' }}>
           {/* "All" — the ranking itself, across every category, on the tabs that show one. */}
           {showAllPill && (
             <>
               {tab('Top', allScope, () => { if (!allScope) onSelectAll?.(); }, null, '__all')}
-              <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '2px 0 13px', background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+              {/* Divides Top from the topics, so it needs topics to divide it from. On a day
+                  with nothing popular yet the strip is Top alone and this dangled after it. */}
+              {contextCategories.length > 0 && (
+                <span aria-hidden style={{ width: 1, alignSelf: 'stretch', margin: '2px 0 13px', background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
+              )}
             </>
           )}
           {contextCategories.map(cat => {
@@ -285,6 +299,12 @@ export default function FullPlayer({
   // is drawn in. One source means the tab and the pills cannot drift apart — which is what
   // ties the recaps to the topic without naming it a second time.
   const recapTint = tintForDark(CATEGORY_COLORS[category]);
+  // tintForDark returns 'rgb(r, g, b)'; the player needs it at an alpha, the way the recap
+  // chips take theirs.
+  const tintA = (a) => {
+    const m = String(recapTint).match(/\d+/g);
+    return m ? `rgba(${m[0]}, ${m[1]}, ${m[2]}, ${a})` : recapTint;
+  };
 
   // The story progress dots, defined once because they render in two different places:
   // floating over the artwork in the sheet, and as the page header's dividing rule.
@@ -330,7 +350,9 @@ export default function FullPlayer({
           {playbackSpeed}×
         </button>
         <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: RADIUS.pill, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: color, borderRadius: RADIUS.pill, transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
+          {/* Solid, not tinted: a 3px bar at 0.22 is invisible. The tint rather than the raw
+              hex, so it is the same hue as everything else the topic colours. */}
+          <div style={{ height: '100%', width: `${narrationProgress || 0}%`, background: recapTint, borderRadius: RADIUS.pill, transition: isNarrating && !isPaused ? 'width 0.1s linear' : 'width 0.25s ease' }} />
         </div>
         <button
           onClick={onRepeatToggle}
@@ -354,12 +376,14 @@ export default function FullPlayer({
         </button>
         <button
           onClick={isLoading ? undefined : (isPaused ? onResume : (isNarrating ? onPause : onPlay))}
-          style={{ width: '62px', height: '62px', borderRadius: '50%', background: color, border: 'none', color: 'white', cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: UI_TRIAL.photoBackdrop ? `0 8px 28px ${color}60` : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+          style={{ width: '62px', height: '62px', borderRadius: '50%', background: tintA(0.22), border: 'none', color: recapTint, cursor: isLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: UI_TRIAL.photoBackdrop ? `0 8px 28px ${color}60` : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
           {isLoading
             ? <Loader size={26} style={{ animation: 'spin 0.8s linear infinite' }} />
             : (isNarrating && !isPaused
-              ? <Pause size={23} fill="white" />
-              : <Play size={23} fill="white" style={{ marginLeft: '3px' }} />
+              /* currentColor, so the glyph takes the disc's tint. White on a 0.22 tint was
+                 the only white mark left among controls that all carry the topic's colour. */
+              ? <Pause size={23} fill="currentColor" />
+              : <Play size={23} fill="currentColor" style={{ marginLeft: '3px' }} />
             )
           }
         </button>
@@ -620,7 +644,7 @@ export default function FullPlayer({
               Takeaways / Deeper is deliberately not here: it changes what gets read aloud,
               so it belongs with the transport, in the player box below. */}
           {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '9px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 0' }}>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                 {outlets.length > 0 && (() => {
                   const shown = outlets.slice(0, 2);
@@ -678,7 +702,13 @@ export default function FullPlayer({
                         <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
                           style={{ padding: '3px 10px', borderRadius: RADIUS.pill, border: 'none', cursor: on ? 'default' : 'pointer',
                             fontSize: TYPE.micro, fontWeight: on ? WEIGHT.strong : WEIGHT.ui, transition: 'all 0.15s',
-                            background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                            /* The tint at the recap chips' alpha, not the raw category hex.
+                               CATEGORY_COLORS are picked to carry on Scroll's near-white
+                               ground; unlifted on #09090f they came out darker and far more
+                               saturated than every other coloured thing on this screen, so
+                               the one control that was meant to match the topic was the one
+                               that visibly didn't. */
+                            background: on ? tintA(0.22) : 'transparent', color: on ? recapTint : 'rgba(255,255,255,0.6)' }}>
                           {label}
                         </button>
                       );

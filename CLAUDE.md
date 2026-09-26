@@ -53,19 +53,22 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 
 ## Architecture
 
-**Entry point:** `src/App.js` — a single large component (`TheAIRundown`) that owns all global state and passes props down. Routing is handled by react-router-dom; there is only one `<Route path="/*">` entry that renders `TheAIRundown`, plus `/verify-email`.
+**Entry point:** `src/App.js` — a single large component (`TheAIRundown`) that owns all global state and passes props down. Routing uses react-router-dom with a single `<Route path="/*">` that renders `TheAIRundown`; the component matches `location.pathname` itself to decide what to show.
 
 **URL structure:**
-- `/` — All Feed (BriefingFeed + CategoryRow list)
+- `/` — All News (BriefingFeed + CategoryRow list)
 - `/my-feed` — MyFeedTab (personalized feed + reading challenge)
 - `/popular` — PopularTab
-- `/customize` — CustomizeTab
+- `/important` — ImportantTab (the "Interesting" picks)
+- `/saved` — MySavesTab
+- `/listen` — Listen mode
 - `/settings` — settings panel (rendered inline, not a separate page)
+- `/profile/:username` — ProfilePage
 - `/category/:name` — CategoryView
+- `/category/:name/briefing` — CategoryBriefing
 - `/category/:name/story/:index` — StoryReader
-- `/feed/:id` — FeedPage (named user feeds)
 
-**Data flow:** `App.js` fetches all news data from Supabase (`news_summaries` table) and passes `briefingData` (keyed by category name) down to every tab component. Audio narration is also orchestrated in `App.js` via a `<audio>` ref and `/api/tts-stream` on the backend.
+**Data flow:** `App.js` fetches news from the Supabase `news_summaries` table, mostly through `/api/news` (`api/news.js`, a Vercel serverless function that edge-caches the reads), though a few reads still query Supabase directly. It passes `briefingData` (keyed by category name) down to every tab component. Audio narration is also orchestrated in `App.js` via a `<audio>` ref and `/api/tts-stream` on the backend.
 
 **Listening/gamification:** `src/hooks/useListenHistory.js` tracks per-story listen history in `localStorage` (key: `rundown_listen_history[_userId]`). `computeGamifiedStats()` is a pure function that derives streaks, category progress, and badge tiers from that history — it is called in `App.js` via `useMemo` and the results are passed down to tabs as `gamifiedStats`.
 
@@ -75,7 +78,9 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 
 **Design tokens:** `src/theme.js` exports `CATEGORY_COLORS`, `CATEGORY_IMAGES`, and gradient helpers. `src/utils.js` exports `readTime()` and `formatDuration()`. Components define their own local color objects (usually named `light` or `dark`) inline rather than importing a shared design system.
 
-**Wireframes:** `public/wireframes-v3.html` is an interactive HTML mockup used to prototype UI states. It is not part of the React app build — open it directly in a browser for design reference.
+**Mockups:** `category-mock.html`, `panels-mock.html` and `right-pane-mock.html` in the repo root are static HTML mockups used to prototype UI states. They are not part of the React app build — open them directly in a browser for design reference.
+
+**Tests:** unit tests sit next to the code they cover (`src/utils.test.js`, `src/hooks/useListenHistory.test.js`) and exercise the pure helpers. `App.js` has no render test because it needs Supabase and the backend.
 
 ## Current design direction (My Feed)
 
@@ -83,4 +88,3 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 - My Feed has two states:
   - **Default (expanded):** Challenge cards + Today's Briefing progress card, then stories below.
   - **Scrolled (compact sticky bar):** Collapses to a slim bar showing **Today's Briefing only** — a mini ring (X of 8) + segmented progress bar. No challenge badge pills in the compact state.
-- Section B of `public/wireframes-v3.html` shows both states side by side.

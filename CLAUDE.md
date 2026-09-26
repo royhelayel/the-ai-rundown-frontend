@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Before you touch anything: sync
+
+This repo is edited from **two places** — this local clone, and a Claude project with
+GitHub access. Neither one knows about the other's work until git moves it. So at the
+**start of every session, before reading or editing any file**:
+
+```bash
+git fetch --all --prune
+git status -sb
+git branch -r --sort=-committerdate | head
+```
+
+Then report to Roy, before doing the requested work:
+- **Behind origin/main** → `git pull` (fast-forward only; see below) and say what arrived.
+- **A remote branch newer than main** → the web project opens PRs rather than pushing to
+  main, so work can be sitting on a branch while main looks clean. Name the branch and ask
+  whether it should be merged first. Do not start work that might conflict with it.
+- **Diverged, or local uncommitted changes on top of remote ones** → stop and say so. Do
+  not improvise a merge.
+
+`pull.ff = only` is set locally in this repo, so `git pull` **fails loudly** when the
+histories have diverged instead of quietly creating a merge commit. That failure is the
+signal to stop and ask, not something to work around with `--no-ff` or a rebase.
+
+**The rule that prevents the mess:** leave this side clean — committed *and pushed* — at
+the end of a session, so the other side always starts from the truth. Verify the push
+landed (`git status -sb` showing no "ahead"); a commit is not a push.
+
 ## Commands
 
 ```bash

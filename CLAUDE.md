@@ -80,7 +80,7 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 
 **Mockups:** `category-mock.html`, `panels-mock.html` and `right-pane-mock.html` in the repo root are static HTML mockups used to prototype UI states. They are not part of the React app build — open them directly in a browser for design reference.
 
-**Tests:** unit tests sit next to the code they cover (`src/utils.test.js`, `src/hooks/useListenHistory.test.js`) and exercise the pure helpers. `App.js` has no render test because it needs Supabase and the backend.
+**Tests:** unit tests sit next to the code they cover (`src/utils.test.js`, `src/hooks/useListenHistory.test.js`) and exercise the pure helpers. `src/App.test.js` renders the whole app as a guest with Supabase and `fetch` stubbed, as a smoke test. It also maps `react-router-dom` to its CommonJS build, because the Jest in react-scripts 5 can't resolve react-router v7.
 
 ## Current design direction (My Feed)
 

@@ -29,6 +29,31 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <script>
+      // A blank page tells nobody anything. If the app throws before it has drawn a thing
+      // (a missing env var at startup, a render error React could not recover from), put the
+      // error on screen instead so it can be read off a phone without dev tools.
+      (function () {
+        function show(msg) {
+          var root = document.getElementById('root');
+          if (!root || root.childNodes.length) return;
+          root.innerHTML =
+            '<div style="font-family:-apple-system,system-ui,sans-serif;padding:32px 20px;max-width:520px;margin:0 auto;color:#111">' +
+            '<h1 style="font-size:20px;margin:0 0 8px">RadioNews could not load</h1>' +
+            '<p style="margin:0 0 16px;color:#555">Something broke while the app was starting. Reloading usually fixes it.</p>' +
+            '<button onclick="location.reload()" style="font-size:16px;padding:10px 18px;border-radius:10px;border:0;background:#111;color:#fff">Reload</button>' +
+            '<pre style="white-space:pre-wrap;word-break:break-word;margin-top:24px;font-size:12px;color:#888"></pre></div>';
+          root.querySelector('pre').textContent = msg;
+        }
+        function onError(e) {
+          var err = e.error;
+          var msg = (err && (err.stack || err.message)) || e.message || String(err || 'Unknown error');
+          // Let React finish unmounting first; only a root it left empty gets the fallback.
+          setTimeout(function () { show(String(msg).slice(0, 1200)); }, 0);
+        }
+        window.addEventListener('error', onError);
+      })();
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

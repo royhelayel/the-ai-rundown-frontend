@@ -53,7 +53,13 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 
 ## Architecture
 
-**Entry point:** `src/App.js` — a single large component (`TheAIRundown`) that owns all global state and passes props down. Routing uses react-router-dom with a single `<Route path="/*">` that renders `TheAIRundown`; the component matches `location.pathname` itself to decide what to show.
+**Entry point:** `src/App.js` holds only the router: a single `<Route path="/*">` renders `TheAIRundown` (`src/TheAIRundown.jsx`), which owns all global state, passes props down, and matches `location.pathname` itself to decide what to show. Its pieces live alongside it:
+- `src/audio/`: the TTS narration engine (`narrationEngine.js`), player transport (`playbackControls.js`), play-from-a-feed actions (`playActions.js`) and narration text helpers
+- `src/data/`: data-fetching hooks (completed slots, briefing feed, period recaps, saves feeds, heartbeat)
+- `src/lib/`: pure helpers (story parsing, the day cache, UAE time, the Supabase client, `BACKEND_URL`)
+- `src/views/`: large screens split out of the main render (Settings, sign-in modal, Swipe reader, category recap)
+
+The `create*` functions in `src/audio/` are called once per render with that render's state, and the `src/data/` hooks are called where their code used to sit inline, so hook order is unchanged. When one of them needs a new piece of state, add it to both the call site and the function's parameters.
 
 **URL structure:**
 - `/` — All News (BriefingFeed + CategoryRow list)
@@ -68,11 +74,11 @@ REACT_APP_BACKEND_URL=http://localhost:3001
 - `/category/:name/briefing` — CategoryBriefing
 - `/category/:name/story/:index` — StoryReader
 
-**Data flow:** `App.js` fetches news from the Supabase `news_summaries` table, mostly through `/api/news` (`api/news.js`, a Vercel serverless function that edge-caches the reads), though a few reads still query Supabase directly. It passes `briefingData` (keyed by category name) down to every tab component. Audio narration is also orchestrated in `App.js` via a `<audio>` ref and `/api/tts-stream` on the backend.
+**Data flow:** `TheAIRundown` and the hooks in `src/data/` fetch news from the Supabase `news_summaries` table, mostly through `/api/news` (`api/news.js`, a Vercel serverless function that edge-caches the reads), though a few reads still query Supabase directly. It passes `briefingData` (keyed by category name) down to every tab component. Audio narration (`src/audio/`) plays through `Audio` elements fed by `/api/tts-stream` on the backend.
 
-**Listening/gamification:** `src/hooks/useListenHistory.js` tracks per-story listen history in `localStorage` (key: `rundown_listen_history[_userId]`). `computeGamifiedStats()` is a pure function that derives streaks, category progress, and badge tiers from that history — it is called in `App.js` via `useMemo` and the results are passed down to tabs as `gamifiedStats`.
+**Listening/gamification:** `src/hooks/useListenHistory.js` tracks per-story listen history in `localStorage` (key: `rundown_listen_history[_userId]`). `computeGamifiedStats()` is a pure function that derives streaks, category progress, and badge tiers from that history — it is called in `TheAIRundown.jsx` via `useMemo` and the results are passed down to tabs as `gamifiedStats`.
 
-**Read tracking:** `handleMarkRead` in `App.js` fires when a user opens a story card. It posts to `/api/metrics/track` with `eventType: 'story_read'` for analytics, separate from the listen history.
+**Read tracking:** `handleMarkRead` in `TheAIRundown.jsx` fires when a user opens a story card. It posts to `/api/metrics/track` with `eventType: 'story_read'` for analytics, separate from the listen history.
 
 **Auth:** Magic-link / password auth via Supabase. User object is stored in `localStorage` as `newsdigest_user` and rehydrated on load. Guest users (no auth) can access all tabs; some features (custom categories, saved feeds) require login.
 

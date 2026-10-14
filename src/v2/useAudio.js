@@ -74,7 +74,7 @@ export default function useAudio(speed, onComplete) {
               .toLowerCase()
               .startsWith(item.language === "ar" ? "ar" : "en"),
           );
-        if (!synth || !voice || !window.SpeechSynthesisUtterance) {
+        if (!synth || (item.language === "ar" && !voice) || !window.SpeechSynthesisUtterance) {
           setState((s) => ({
             ...s,
             status: "error",
@@ -93,8 +93,8 @@ export default function useAudio(speed, onComplete) {
         p.browserStarted = false;
         p.charIndex = offset;
         p.deviceVoice = true;
-        utterance.voice = voice;
-        utterance.lang = voice.lang;
+        if (voice) utterance.voice = voice;
+        utterance.lang = voice?.lang || "en-US";
         utterance.rate = p.speed;
         utterance.onboundary = (e) => {
           if (p.generation === gen) p.charIndex = offset + e.charIndex;
@@ -208,7 +208,9 @@ export default function useAudio(speed, onComplete) {
           }
         } else setState((s) => ({ ...s, status: "paused" }));
       } catch (e) {
-        if (p.generation === gen)
+        if (p.generation === gen && e.providerUnavailable && window.speechSynthesis && window.SpeechSynthesisUtterance) {
+          load(queue, index, true, true);
+        } else if (p.generation === gen)
           setState((s) => ({
             ...s,
             status: "error",

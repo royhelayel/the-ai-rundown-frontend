@@ -112,13 +112,25 @@ test("provider credit exhaustion offers device narration without another paid re
   window.speechSynthesis = {getVoices:()=>[{lang:"en-US"}],cancel:jest.fn(),speak:jest.fn(u=>{utterances.push(u);u.onstart();})};
   const { result, unmount } = renderHook(() => useAudio(1, () => {}));
   await act(() => result.current.start(items,0));
-  expect(result.current.error).toContain("Online narration is temporarily unavailable");
-  await act(() => result.current.useDeviceVoice());
+  expect(result.current.status).toBe("playing");
   expect(result.current.status).toBe("playing");
   expect(fetch).toHaveBeenCalledTimes(1);
   await act(() => utterances[0].onend());
   expect(result.current.item.id).toBe("b");
   expect(fetch).toHaveBeenCalledTimes(1);
+  unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
+test("English device narration uses system default when voices load late", async () => {
+  window.SpeechSynthesisUtterance = function(text) { this.text = text; };
+  window.speechSynthesis = {getVoices:()=>[],cancel:jest.fn(),speak:jest.fn(u=>u.onstart())};
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(() => result.current.start(items,0,true,true));
+  expect(result.current.status).toBe("playing");
+  expect(window.speechSynthesis.speak).toHaveBeenCalledTimes(1);
+  expect(fetch).not.toHaveBeenCalled();
   unmount();
   delete window.speechSynthesis;
   delete window.SpeechSynthesisUtterance;

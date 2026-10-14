@@ -218,3 +218,13 @@ test("date input is limited to today and seven previous days", async () => {
   fireEvent.change(input, { target: { value: "2020-01-01" } });
   expect(screen.getByRole("button", { name: "Show news" })).toBeDisabled();
 });
+
+test("topic recap opens the daily text immediately without a date selection", async () => {
+  mockNews.data.Technology.briefing = "The daily technology recap is ready.";
+  await mount();
+  await act(async () => userEvent.click(screen.getByRole("button", { name: "Topic recap" })));
+  const recap = screen.getByText("The daily technology recap is ready.");
+  expect(recap).toBeVisible();
+  expect(recap.closest("details")).toBeNull();
+  expect(screen.getByRole("heading", { name: /Daily recap/ })).toBeVisible();
+});

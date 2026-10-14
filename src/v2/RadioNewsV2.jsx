@@ -1254,46 +1254,50 @@ export default function RadioNewsV2() {
                   generated.
                 </p>
               )}
-              {recap.items.map((r) => (
-                <details key={r.kind}>
-                  <summary>
-                    {r.kind === "Daily"
-                      ? "Today’s recap"
-                      : r.kind === "Weekly"
-                        ? "Weekly digest"
-                        : "Monthly digest"}{" "}
-                    · {dateLabel(r.day)}
-                  </summary>
-                  <p dir={prefs.language === "ar" ? "rtl" : "ltr"}>
-                    {cleanForTTS(r.text)}
-                  </p>
-                  <Sources story={{ storySources: recapSources(r.text) }} />
-                  <button
-                    className="v2-primary"
-                    onClick={() => {
-                      const item = {
-                        id: `recap|${recap.category}|${day}|${r.kind}`,
-                        category: recap.category,
-                        day,
-                        language: prefs.language,
-                        headline: `${recap.category} ${r.kind.toLowerCase()} recap`,
-                        summary: r.text,
-                        storySources: recapSources(r.text),
-                        recap: true,
-                      };
-                      const queue = all
-                        .filter((s) => s.category === recap.category)
-                        .concat(
-                          all.filter((s) => s.category !== recap.category),
-                        );
-                      audio.start([item, ...queue], 0);
-                      setPanel(null);
-                    }}
-                  >
-                    Listen to recap, then stories
-                  </button>
-                </details>
-              ))}
+              {recap.items.map((r) => {
+                const Container = r.kind === "Daily" ? "section" : "details";
+                const Heading = r.kind === "Daily" ? "h3" : "summary";
+                return (
+                  <Container key={r.kind}>
+                    <Heading>
+                      {r.kind === "Daily"
+                        ? "Daily recap"
+                        : r.kind === "Weekly"
+                          ? "Weekly digest"
+                          : "Monthly digest"}{" "}
+                      · {dateLabel(r.day)}
+                    </Heading>
+                    <p dir={prefs.language === "ar" ? "rtl" : "ltr"}>
+                      {cleanForTTS(r.text)}
+                    </p>
+                    <Sources story={{ storySources: recapSources(r.text) }} />
+                    <button
+                      className="v2-primary"
+                      onClick={() => {
+                        const item = {
+                          id: `recap|${recap.category}|${day}|${r.kind}`,
+                          category: recap.category,
+                          day,
+                          language: prefs.language,
+                          headline: `${recap.category} ${r.kind.toLowerCase()} recap`,
+                          summary: r.text,
+                          storySources: recapSources(r.text),
+                          recap: true,
+                        };
+                        const queue = all
+                          .filter((s) => s.category === recap.category)
+                          .concat(
+                            all.filter((s) => s.category !== recap.category),
+                          );
+                        audio.start([item, ...queue], 0);
+                        setPanel(null);
+                      }}
+                    >
+                      Listen to recap, then stories
+                    </button>
+                  </Container>
+                );
+              })}
             </div>
           )}
           {panel === "challenge" && (

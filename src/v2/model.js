@@ -97,7 +97,23 @@ export function paragraphs(story) {
       ).map(cleanForTTS);
 }
 export function narration(story) {
-  return cleanForTTS([story.headline, ...paragraphs(story)].join(". "));
+  if (story.recap) return cleanForTTS([story.headline, ...paragraphs(story)].join(". "));
+  // Match v1's deep story script exactly: the server cache is keyed by this text.
+  const parts = [cleanForTTS(story.headline) + "."];
+  (story.tightBullets || story.allBullets || []).forEach((bullet) =>
+    parts.push(cleanForTTS(bullet) + "."),
+  );
+  if (story.perspectives)
+    parts.push(
+      (story.language === "ar" ? "وجهات النظر تتباين. " : "On the other hand, ") +
+        cleanForTTS(story.perspectives) + ".",
+    );
+  if (story.why)
+    parts.push(
+      (story.language === "ar" ? "لماذا هذا مهم. " : "Here is why this matters. ") +
+        cleanForTTS(story.why) + ".",
+    );
+  return parts.filter(Boolean).join(" ");
 }
 export function normalizeRows(rows, category, day, language) {
   const order = ["Evening", "Daily", "Morning"];

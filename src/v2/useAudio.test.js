@@ -109,7 +109,7 @@ test("provider credit exhaustion offers device narration without another paid re
   fetch.mockResolvedValueOnce({ok:false,status:500,json:async()=>({detail:"Unreal Speech 402: Insufficient tokens"})});
   const utterances = [];
   window.SpeechSynthesisUtterance = function(text) { this.text = text; };
-  window.speechSynthesis = {getVoices:()=>[{lang:"en-US"}],cancel:jest.fn(),speak:jest.fn(u=>{utterances.push(u);u.onstart();})};
+  window.speechSynthesis = {getVoices:()=>[{lang:"en-US"}],cancel:jest.fn(),speak:jest.fn(u=>{if (u.text) utterances.push(u);u.onstart?.();})};
   const { result, unmount } = renderHook(() => useAudio(1, () => {}));
   await act(() => result.current.start(items,0));
   expect(result.current.status).toBe("playing");
@@ -134,7 +134,7 @@ test("interrupted device narration retries on the device without contacting the 
   window.speechSynthesis = {
     getVoices: () => [{ lang: "en-US" }],
     cancel: jest.fn(),
-    speak: jest.fn((u) => { utterances.push(u); u.onstart(); }),
+    speak: jest.fn((u) => { if (u.text) utterances.push(u); u.onstart?.(); }),
   };
   const { result, unmount } = renderHook(() => useAudio(1, () => {}));
   await act(() => result.current.start(items, 0));
@@ -158,6 +158,77 @@ test("English device narration uses system default when voices load late", async
   expect(window.speechSynthesis.speak).toHaveBeenCalledTimes(1);
   expect(fetch).not.toHaveBeenCalled();
   unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
+test("preloaded audio is reused on Play and speech is unlocked during the tap", async () => {
+  const events = [];
+  window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  window.speechSynthesis = {
+    cancel: jest.fn(),
+    speak: jest.fn((u) => events.push(`speech:${u.text}`)),
+  };
+  fetch.mockImplementation(() => {
+    events.push("fetch");
+    return Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(["sound"])) });
+  });
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(async () => result.current.prewarm(items, 0));
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(() => {
+    const started = result.current.start(items, 0);
+    expect(audios[0].play).toHaveBeenCalledTimes(1);
+    return started;
+  });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(events.filter((e) => e === "speech:")).toHaveLength(1);
+  expect(result.current.status).toBe("playing");
+  unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
+test("a preloaded credit failure starts device narration without a second request", async () => {
+  fetch.mockResolvedValue({
+    ok: false,
+    status: 500,
+    json: async () => ({ detail: "Unreal Speech 402: Insufficient tokens" }),
+  });
+  window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  window.speechSynthesis = {
+    getVoices: () => [],
+    cancel: jest.fn(),
+    speak: jest.fn((u) => u.onstart?.()),
+  };
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(async () => result.current.prewarm(items.slice(0, 1), 0));
+  await act(() => result.current.start(items.slice(0, 1), 0));
+  expect(result.current.status).toBe("playing");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
+test("playback uses the iPhone media audio session and restores it on stop", async () => {
+  Object.defineProperty(navigator, "audioSession", {
+    configurable: true,
+    value: { type: "auto" },
+  });
+  window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  window.speechSynthesis = {
+    getVoices: () => [{ lang: "en-US" }],
+    cancel: jest.fn(),
+    speak: jest.fn((u) => u.onstart?.()),
+  };
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(() => result.current.start(items, 0, true, true));
+  expect(navigator.audioSession.type).toBe("playback");
+  act(() => result.current.stop());
+  expect(navigator.audioSession.type).toBe("auto");
+  unmount();
+  delete navigator.audioSession;
   delete window.speechSynthesis;
   delete window.SpeechSynthesisUtterance;
 });

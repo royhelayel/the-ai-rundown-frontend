@@ -336,6 +336,11 @@ export default function RadioNewsV2() {
   const displayedDay =
     mode === "listen" && followAudio && audio.item ? audio.item.day : day;
   const playingOther = audio.item && audio.item.id !== current?.id;
+  const { prewarm } = audio;
+  useEffect(() => {
+    if (mode === "listen" && !news.loading && currentIndex >= 0)
+      prewarm(displayList, currentIndex);
+  }, [mode, news.loading, displayList, currentIndex, prewarm]);
   const isInterested = (s) =>
     interested.some(
       (i) =>

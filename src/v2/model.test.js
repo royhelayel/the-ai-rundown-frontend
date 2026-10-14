@@ -4,6 +4,7 @@ import {
   daysFrom,
   normalizePrefs,
   normalizeRows,
+  narration,
   periodDates,
   pillWindow,
   sources,
@@ -91,6 +92,15 @@ test("outlet links reject unsafe protocols and remove duplicates", () => {
       ],
     }),
   ).toHaveLength(1);
+});
+test("story narration matches the v1 audio cache script", () => {
+  expect(narration({
+    headline: "A new study",
+    tightBullets: ["Finding one", "Finding two"],
+    perspectives: "Researchers disagree",
+    why: "It may change care",
+    language: "en",
+  })).toBe("A new study. Finding one. Finding two. On the other hand, Researchers disagree. Here is why this matters. It may change care.");
 });
 function luminance(hex) {
   const rgb = hex

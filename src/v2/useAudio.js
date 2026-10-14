@@ -4,13 +4,17 @@ import { narration } from "./model";
 
 // The queue is a snapshot. Browsing another date, topic or collection never mutates it.
 export default function useAudio(speed, onComplete) {
+  const ttsPromises = useRef(new Map());
+  const readyBlobs = useRef(new Map());
+  const speechUnlocked = useRef(false);
+  const priorAudioSessionType = useRef(null);
   const player = useRef({
     generation: 0,
     queue: [],
     index: 0,
     audio: null,
     url: null,
-    controller: null,
+    providerUnavailable: false,
     speed,
     onComplete,
   });
@@ -28,7 +32,6 @@ export default function useAudio(speed, onComplete) {
   const release = useCallback(() => {
     const p = player.current;
     p.generation++;
-    p.controller?.abort();
     if (p.utterance) {
       window.speechSynthesis?.cancel();
       p.utterance = null;
@@ -44,9 +47,80 @@ export default function useAudio(speed, onComplete) {
       p.url = null;
     }
   }, []);
+  const enablePlaybackSession = useCallback(() => {
+    try {
+      if (!navigator.audioSession) return;
+      if (priorAudioSessionType.current === null)
+        priorAudioSessionType.current = navigator.audioSession.type;
+      navigator.audioSession.type = "playback";
+    } catch {}
+  }, []);
+  const restoreAudioSession = useCallback(() => {
+    try {
+      if (navigator.audioSession && priorAudioSessionType.current !== null)
+        navigator.audioSession.type = priorAudioSessionType.current;
+    } catch {}
+    priorAudioSessionType.current = null;
+  }, []);
+  // iOS needs speech synthesis unlocked by the user's tap; the provider may fail later.
+  const unlockSpeech = useCallback(() => {
+    if (speechUnlocked.current) return;
+    try {
+      if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+      const utterance = new window.SpeechSynthesisUtterance("");
+      utterance.volume = 0;
+      window.speechSynthesis.speak(utterance);
+      speechUnlocked.current = true;
+    } catch {}
+  }, []);
+  // Preloading and playback share the same request, so pressing Play never repeats a fetch.
+  const getAudioBlob = useCallback((text) => {
+    const cache = ttsPromises.current;
+    if (cache.has(text)) return cache.get(text);
+    const request = (async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/tts-stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}));
+          if (response.status === 402 || /insufficient tokens|insufficient credits/i.test(detail.detail || ""))
+            player.current.providerUnavailable = true;
+          throw new Error("Audio unavailable");
+        }
+        const blob = await response.blob();
+        if (!blob.size) throw new Error("Empty audio");
+        if (cache.get(text) === request) readyBlobs.current.set(text, blob);
+        return blob;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    cache.set(text, request);
+    request.catch(() => cache.delete(text));
+    if (cache.size > 10) {
+      const oldest = cache.keys().next().value;
+      cache.delete(oldest);
+      readyBlobs.current.delete(oldest);
+    }
+    return request;
+  }, []);
+  const prewarm = useCallback((queue, index) => {
+    if (player.current.providerUnavailable) return;
+    [queue[index], queue[index + 1]].forEach((item) => {
+      if (item && item.language !== "ar")
+        getAudioBlob(narration(item)).catch(() => {});
+    });
+  }, [getAudioBlob]);
   const load = useCallback(
     async (queue, index, autoplay = true, deviceVoice = false, offset = 0) => {
       release();
+      enablePlaybackSession();
       const p = player.current;
       p.queue = queue;
       p.index = index;
@@ -65,7 +139,11 @@ export default function useAudio(speed, onComplete) {
         duration: 0,
         error: "",
       });
-      if (item.language === "ar" || deviceVoice) {
+      const script = narration(item);
+      const useDevice = item.language === "ar" || deviceVoice ||
+        (p.providerUnavailable && !ttsPromises.current.has(script));
+      if (autoplay && !useDevice) unlockSpeech();
+      if (useDevice) {
         const synth = window.speechSynthesis;
         const voice = synth
           ?.getVoices()
@@ -86,7 +164,7 @@ export default function useAudio(speed, onComplete) {
           return;
         }
         const utterance = new window.SpeechSynthesisUtterance(
-          narration(item).slice(offset),
+          script.slice(offset),
         );
         p.utterance = utterance;
         p.browserPaused = !autoplay;
@@ -131,25 +209,10 @@ export default function useAudio(speed, onComplete) {
         return;
       }
       p.deviceVoice = false;
-      const controller = new AbortController();
-      p.controller = controller;
-      const timer = setTimeout(() => controller.abort(), 30000);
       try {
-        const response = await fetch(`${BACKEND_URL}/api/tts-stream`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: narration(item) }),
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          const detail = await response.json().catch(() => ({}));
-          const error = new Error("Audio unavailable");
-          error.providerUnavailable = response.status === 402 || /insufficient tokens|insufficient credits/i.test(detail.detail || "");
-          throw error;
-        }
-        const blob = await response.blob();
+        // A preloaded Blob reaches play() on the original tap, without an async gap.
+        const blob = readyBlobs.current.get(script) || await getAudioBlob(script);
         if (p.generation !== gen) return;
-        if (!blob.size) throw new Error("Empty audio");
         const url = URL.createObjectURL(blob);
         p.url = url;
         const audio = new Audio(url);
@@ -208,21 +271,17 @@ export default function useAudio(speed, onComplete) {
           }
         } else setState((s) => ({ ...s, status: "paused" }));
       } catch (e) {
-        if (p.generation === gen && e.providerUnavailable && window.speechSynthesis && window.SpeechSynthesisUtterance) {
+        if (p.generation === gen && window.speechSynthesis && window.SpeechSynthesisUtterance) {
           load(queue, index, true, true);
         } else if (p.generation === gen)
           setState((s) => ({
             ...s,
             status: "error",
-            error: e.providerUnavailable
-              ? "Online narration is temporarily unavailable. Use your device voice to keep listening."
-              : "Audio is unavailable. Retry or use your device voice.",
+            error: "Online narration is unavailable and this browser has no device voice. You can still read this story.",
           }));
-      } finally {
-        clearTimeout(timer);
       }
     },
-    [release],
+    [enablePlaybackSession, getAudioBlob, release, unlockSpeech],
   );
   const toggle = useCallback(() => {
     const p = player.current;
@@ -255,6 +314,7 @@ export default function useAudio(speed, onComplete) {
   }, [load]);
   const stop = useCallback(() => {
     release();
+    restoreAudioSession();
     player.current.queue = [];
     setState({
       status: "idle",
@@ -265,7 +325,7 @@ export default function useAudio(speed, onComplete) {
       duration: 0,
       error: "",
     });
-  }, [release]);
+  }, [release, restoreAudioSession]);
   const step = useCallback(
     (dir) => {
       const p = player.current;
@@ -292,7 +352,10 @@ export default function useAudio(speed, onComplete) {
       load(p.queue, p.index, !p.browserPaused, true, p.charIndex || 0);
     }
   }, [speed, load]);
-  useEffect(() => () => release(), [release]);
+  useEffect(() => () => {
+    release();
+    restoreAudioSession();
+  }, [release, restoreAudioSession]);
   useEffect(() => {
     if (!navigator.mediaSession) return;
     const m = navigator.mediaSession;
@@ -329,6 +392,7 @@ export default function useAudio(speed, onComplete) {
     stop,
     step,
     seek,
+    prewarm,
     useDeviceVoice: () =>
       load(player.current.queue, player.current.index, true, true),
   };

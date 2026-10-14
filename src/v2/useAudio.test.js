@@ -104,3 +104,22 @@ test("Arabic never uses the English TTS endpoint when no device voice exists", a
   expect(result.current.status).toBe("error");
   expect(result.current.error).toContain("Arabic device voice");
 });
+
+test("provider credit exhaustion offers device narration without another paid request", async () => {
+  fetch.mockResolvedValueOnce({ok:false,status:500,json:async()=>({detail:"Unreal Speech 402: Insufficient tokens"})});
+  const utterances = [];
+  window.SpeechSynthesisUtterance = function(text) { this.text = text; };
+  window.speechSynthesis = {getVoices:()=>[{lang:"en-US"}],cancel:jest.fn(),speak:jest.fn(u=>{utterances.push(u);u.onstart();})};
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(() => result.current.start(items,0));
+  expect(result.current.error).toContain("Online narration is temporarily unavailable");
+  await act(() => result.current.useDeviceVoice());
+  expect(result.current.status).toBe("playing");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await act(() => utterances[0].onend());
+  expect(result.current.item.id).toBe("b");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});

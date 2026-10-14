@@ -1006,6 +1006,9 @@ export default function RadioNewsV2() {
             <button onClick={() => audio.start(audio.queue, audio.index)}>
               Retry
             </button>
+            <button onClick={() => audio.useDeviceVoice()}>
+              Use device voice
+            </button>
           </div>
         )}
         {audio.item && (mode !== "listen" || playingOther) && (

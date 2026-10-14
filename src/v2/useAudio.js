@@ -141,7 +141,12 @@ export default function useAudio(speed, onComplete) {
           body: JSON.stringify({ text: narration(item) }),
           signal: controller.signal,
         });
-        if (!response.ok) throw new Error("Audio unavailable");
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}));
+          const error = new Error("Audio unavailable");
+          error.providerUnavailable = response.status === 402 || /insufficient tokens|insufficient credits/i.test(detail.detail || "");
+          throw error;
+        }
         const blob = await response.blob();
         if (p.generation !== gen) return;
         if (!blob.size) throw new Error("Empty audio");
@@ -207,8 +212,9 @@ export default function useAudio(speed, onComplete) {
           setState((s) => ({
             ...s,
             status: "error",
-            error:
-              "Audio is unavailable. Check your connection, then retry or skip.",
+            error: e.providerUnavailable
+              ? "Online narration is temporarily unavailable. Use your device voice to keep listening."
+              : "Audio is unavailable. Retry or use your device voice.",
           }));
       } finally {
         clearTimeout(timer);

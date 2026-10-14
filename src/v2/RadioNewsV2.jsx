@@ -1003,7 +1003,7 @@ export default function RadioNewsV2() {
         {audio.error && (
           <div className="v2-banner" role="alert">
             {audio.error}
-            <button onClick={() => audio.start(audio.queue, audio.index)}>
+            <button onClick={() => audio.retry()}>
               Retry
             </button>
             <button onClick={() => audio.useDeviceVoice()}>

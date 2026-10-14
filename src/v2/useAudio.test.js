@@ -123,6 +123,32 @@ test("provider credit exhaustion offers device narration without another paid re
   delete window.SpeechSynthesisUtterance;
 });
 
+test("interrupted device narration retries on the device without contacting the exhausted provider", async () => {
+  fetch.mockResolvedValueOnce({
+    ok: false,
+    status: 500,
+    json: async () => ({ detail: "Unreal Speech 402: Insufficient tokens" }),
+  });
+  const utterances = [];
+  window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  window.speechSynthesis = {
+    getVoices: () => [{ lang: "en-US" }],
+    cancel: jest.fn(),
+    speak: jest.fn((u) => { utterances.push(u); u.onstart(); }),
+  };
+  const { result, unmount } = renderHook(() => useAudio(1, () => {}));
+  await act(() => result.current.start(items, 0));
+  act(() => utterances[0].onerror());
+  expect(result.current.status).toBe("error");
+  await act(() => result.current.retry());
+  expect(result.current.status).toBe("playing");
+  expect(utterances).toHaveLength(2);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  unmount();
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
 test("English device narration uses system default when voices load late", async () => {
   window.SpeechSynthesisUtterance = function(text) { this.text = text; };
   window.speechSynthesis = {getVoices:()=>[],cancel:jest.fn(),speak:jest.fn(u=>u.onstart())};

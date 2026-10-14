@@ -242,7 +242,7 @@ export default function useAudio(speed, onComplete) {
       }
       return;
     }
-    if (!p.audio) return load(p.queue, p.index);
+    if (!p.audio) return load(p.queue, p.index, true, p.deviceVoice);
     if (p.audio.paused) {
       p.audio.play().catch(() =>
         setState((s) => ({
@@ -323,6 +323,8 @@ export default function useAudio(speed, onComplete) {
   return {
     ...state,
     start: load,
+    retry: () =>
+      load(player.current.queue, player.current.index, true, player.current.deviceVoice),
     toggle,
     stop,
     step,

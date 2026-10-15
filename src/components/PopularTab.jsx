@@ -174,9 +174,9 @@ export default function PopularTab({
 
         {/* Empty-state banner: no listens yet (everyone view) */}
         {scope === 'everyone' && hasAnyData && !hasAnyListens && (
-          <div style={{ padding: '0.9rem 1.1rem', background: `rgba(99,102,241,0.06)`, borderRadius: '12px', border: `1px solid rgba(99,102,241,0.15)`, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ padding: '0.9rem 1.1rem', background: 'var(--panel)', borderRadius: '14px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{ fontSize: '1.1rem', lineHeight: 1, flexShrink: 0 }}>⏳</span>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#6366f1', fontWeight: '600', lineHeight: 1.45 }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink)', fontWeight: '600', lineHeight: 1.45 }}>
               We're compiling the list, check back soon.
             </p>
           </div>

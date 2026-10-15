@@ -61,7 +61,9 @@ export default function usePeriodRecaps({
           .then(res => res.ok ? res.json() : null)
           .then(row => {
             const text = (row?.briefing || row?.content || '').trim();
-            return text ? { day, text } : null;
+            let sources = row?.briefing_sources || null;
+            if (typeof sources === 'string') { try { sources = JSON.parse(sources); } catch { sources = null; } }
+            return text ? { day, text, sources } : null;
           })
           .catch(() => { periodCache.current.delete(key); return null; }));  // a network failure isn't an answer
       }

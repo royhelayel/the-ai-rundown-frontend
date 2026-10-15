@@ -66,8 +66,14 @@ export default function useBriefingData({
         // on the backend. Showing Morning's row alongside it would duplicate every story
         // that Evening didn't touch, so once Evening exists it fully replaces Morning.
         if (sorted.some(r => r.time_slot === 'Evening')) sorted = sorted.filter(r => r.time_slot !== 'Morning');
-        // Category briefing — prefer the newest slot's summary (Evening over Morning)
-        const briefing = sorted.find(r => r.briefing && r.briefing.trim())?.briefing || null;
+        // Category recap — the newest slot that has one (Evening over Morning). Looked up
+        // before the Morning row is dropped above: an Evening run that wrote no recap used
+        // to hide Morning's, so the topic showed no recap at all.
+        const recapRow = [...data].sort((a, b) => slotOrder.indexOf(a.time_slot) - slotOrder.indexOf(b.time_slot))
+          .find(r => r.briefing && r.briefing.trim());
+        const briefing = recapRow?.briefing || null;
+        let briefingSources = recapRow?.briefing_sources || null;
+        if (typeof briefingSources === 'string') { try { briefingSources = JSON.parse(briefingSources); } catch { briefingSources = null; } }
         // Merge stories across slots, tagging each with its source slot
         const s = sorted.flatMap(row => {
           const { stories } = buildStories(row.content, row.stories_content);
@@ -84,7 +90,7 @@ export default function useBriefingData({
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
         }, 0);
         const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
-        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s, briefing }];
+        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s, briefing, briefingSources }];
       } catch { return [cat, null]; }
     })).then(results => {
       const out = {};

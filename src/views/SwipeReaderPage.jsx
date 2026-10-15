@@ -8,7 +8,7 @@ export default function SwipeReaderPage({
   openPeriodRecap, playPeriodRecap, handleNarrateBriefing, handleMarkRead, catFromUrl,
   storyIdxFromUrl, isStoriesPage, feedNameForPath, miniPlayerVisible, enterAudioMode,
   enterStoriesForTab, openFeedSummary, enterSummariesMode, readerClose, snapshotBriefing,
-  viewStories,
+  viewStories, isReadStory, recapView, setRecapView, recapPeriod, setRecapPeriod, isTodaySelected,
 }) {
   const readerTranslateY = (readerMounted && !readerExiting) ? '0px' : '100%';
   const contextCats = (() => {
@@ -49,7 +49,7 @@ export default function SwipeReaderPage({
         style={{
           position: 'absolute', left: '50%', bottom: 0,
           width: '100%', maxWidth: '560px', height: '100dvh',
-          background: '#ffffff', borderRadius: isStoriesPage ? 0 : '20px 20px 0 0',
+          background: 'var(--paper)', borderRadius: isStoriesPage ? 0 : '20px 20px 0 0',
           transform: isStoriesPage ? 'translateX(-50%)' : `translateX(-50%) translateY(${readerTranslateY})`,
           transition: isStoriesPage ? 'none' : 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -102,7 +102,10 @@ export default function SwipeReaderPage({
               ? snapshotBriefing[cat].allStories
               : (briefingData[cat]?.allStories || [])
           )}
-          isStoryRead={(cat, idx) => sessionSeenRef.current.has(`${cat}|${idx}`) || readTodaySet.has(`${cat}|${idx}`)}
+          isStoryRead={(cat, idx) => {
+            const list = (snapshotBriefing && snapshotBriefing[cat]?.allStories?.length) ? snapshotBriefing[cat].allStories : (briefingData[cat]?.allStories || []);
+            return isReadStory ? isReadStory(list[idx], cat, idx) : (sessionSeenRef.current.has(`${cat}|${idx}`) || readTodaySet.has(`${cat}|${idx}`));
+          }}
           onFocusStory={setFocus}
           periodRecaps={periodRecaps}
           periodMinutes={periodMinutes}
@@ -122,6 +125,18 @@ export default function SwipeReaderPage({
           onChangeLens={(l) => {
             const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
             enterStoriesForTab(tabPath);
+          }}
+          recapView={recapView}
+          onChangeRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={setRecapPeriod}
+          periodReady={{ Daily: !!(briefingData[catFromUrl]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
+          recapText={(recapPeriod === 'Daily' ? briefingData[catFromUrl]?.briefing : periodRecaps?.[recapPeriod]?.text) || null}
+          recapSources={recapPeriod === 'Daily' ? briefingData[catFromUrl]?.briefingSources : periodRecaps?.[recapPeriod]?.sources}
+          isTodaySelected={isTodaySelected}
+          onOpenRecapStory={(cat, idx) => {
+            setRecapView(false);
+            navigate(`/category/${encodeURIComponent(cat)}/story/${idx}`, { replace: true, state: location.state });
           }}
         />
       </div>

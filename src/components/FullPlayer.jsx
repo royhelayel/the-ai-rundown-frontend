@@ -1,25 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, Calendar, SlidersHorizontal, FileText, Sparkles } from 'lucide-react';
+import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
-import RecapBar from './RecapBar';
 import InterestingButton from './InterestingButton';
-import CircleAction from './CircleAction';
-import LensToggle from './LensToggle';
-import PeriodRecapChips from './PeriodRecapChips';
+import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
+import { StoryTopRow, SourcesRow, StarButton } from './StoryBits';
+import { topicVars } from '../design';
 import { centrePill } from '../utils';
-
-function formatHeaderDate(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    const today = new Date();
-    if (y === today.getFullYear() && m === today.getMonth() + 1 && d === today.getDate()) return 'Today';
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch { return dateStr; }
-}
 
 // Lift a category colour toward white so it stays legible over the dark photo — the same
 // helper Swipe mode uses for its pills, copied so the two strips tint identically.
@@ -30,9 +18,6 @@ function tintForDark(hex, amount = 0.45) {
   const mix = (ch) => Math.round(ch + (255 - ch) * amount);
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
-
-// ── Speed cycle helper ─────────────────────────────────────────────────────────
-const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 // ── Scope + topics, as one row ────────────────────────────────────────────────
 //
@@ -214,6 +199,17 @@ export default function FullPlayer({
   periodMinutes = () => 1,
   onOpenPeriodRecap,
   onPlayPeriodRecap,
+  // The tabs
+  recapView = false,
+  onChangeRecapView,
+  recapPeriod = 'Daily',
+  onChangeRecapPeriod,
+  periodReady,
+  recapText,
+  onPlayRecapPeriod,
+  topicStoryCount,
+  narrationDuration = 0,
+  isTodaySelected = true,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -518,55 +514,6 @@ export default function FullPlayer({
           </>
         )}
 
-        {/* ── Category recap, page only. It sits against the artwork, directly above the
-               story it summarises, rather than up among the scope controls — it's content,
-               not scope, and it was the one piece of *reading* stranded in the header. ── */}
-        {/* ── Category recap, then the lens: two rows above the story, at Swipe's spacing.
-               They were one row with the recap left and the lens right, which is neither
-               screen's arrangement and left the lens sharing a line with content.
-               Not on Popular or Interesting. Those are rankings that span every category, so
-               a row headed "World News recap" would be offering the recap of whichever
-               category the story you happen to be on belongs to — changing subject as you
-               skip. Swipe has excluded it for that reason; Listen was not. ── */}
-        {!isRecap && !showAllPill && storyCount > 0 && onOpenRecap && (
-          /* Scrolls sideways: the category's recap always fits, and the week and month join
-             it on the days they exist rather than being budgeted for year-round. */
-          <div style={{ position: 'relative', zIndex: 10, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
-            padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
-            {/* The line names the topic and the mark says a model wrote it — one icon, and the
-                words carry the rest. Three buttons labelled with time spans do not explain
-                themselves: "Today" beside a headline could as easily be a filter. */}
-            {/* One line: the topic on the left, the buttons anchored right so they hold the
-                same position whatever the topic is called. The phrase takes the slack and
-                ellipses if a long name would otherwise push them — the buttons never move. */}
-            <div className="fp-recap-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
-                <Sparkles size={13} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.5)' }}>
-                {CATEGORY_SHORT[category] || category} recap
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <RecapBar category={category} storyCount={storyCount} theme="dark" compact accent={recapTint}
-                onOpen={() => onOpenRecap(category)} onPlay={onPlayRecap} />
-              <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
-                onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* zIndex above the story card's 10, not level with it. The card is later in the DOM,
-            so at equal z-index it won every tie — which is why the open menu was drawn
-            underneath it. It also outlives the stories: switch to a feed that happens to be
-            empty and, gated on storyCount, the one control that could get you back out would
-            disappear with them. */}
-        {asPage && !isRecap && onChangeLens && (
-          <div style={{ position: 'relative', zIndex: 20, padding: `${SPACE.md}px ${SPACE.md}px 0` }}>
-            <LensToggle value={lens} onChange={onChangeLens} theme="dark" />
-          </div>
-        )}
 
         {/* ── Above the card: a fixed gap on the page, so the story stays anchored near the
                controls that scope it. It used to be the flexible one, which parked the card
@@ -623,7 +570,7 @@ export default function FullPlayer({
               <span style={{ flex: 1 }} />
               {user && (
                 <span style={{ fontSize: TYPE.micro, fontWeight: WEIGHT.strong, flexShrink: 0, color: isStoryRead ? SEMANTIC.read : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+                  {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : 'Unread'}
                 </span>
               )}
             </div>
@@ -634,7 +581,7 @@ export default function FullPlayer({
               it's opened, then Read like any other. */}
           {!asPage && user && storyCount > 0 && !isRecap && (
             <p style={{ margin: '0 0 6px', fontSize: TYPE.micro, fontWeight: WEIGHT.strong, color: isStoryRead ? SEMANTIC.read : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : story?.status === 'Updated' ? 'Updated' : 'Unread'}
+              {isStoryRead ? '✓ Read' : story?.status === 'New' ? 'New' : 'Unread'}
             </p>
           )}
           {/* Headline. With nothing to play — a day that was never generated, reached from the
@@ -655,117 +602,7 @@ export default function FullPlayer({
             </p>
           )}
 
-          {/* Outlets and the story's actions on one line — the outlets keep the line they
-              already had and the buttons come up to it, which is 21px of card back and one
-              fewer strip to read. Capped at two outlets plus a count, exactly as the Swipe
-              card renders them; the full list lives in Go deeper.
-              Takeaways / Deeper is deliberately not here: it changes what gets read aloud,
-              so it belongs with the transport, in the player box below. */}
-          {asPage && storyCount > 0 && !isRecap && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 0' }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                {outlets.length > 0 && (() => {
-                  const shown = outlets.slice(0, 2);
-                  const rest = outlets.length - shown.length;
-                  const src = { fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
-                  return (
-                    <>
-                      {shown.map((so, i) => (
-                        <React.Fragment key={i}>
-                          {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
-                          {so.url
-                            ? <a href={so.url} target="_blank" rel="noopener noreferrer" title={so.title || so.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</a>
-                            : <span style={{ ...src, overflow: 'hidden', textOverflow: 'ellipsis' }}>{so.outlet}</span>}
-                        </React.Fragment>
-                      ))}
-                      {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
-                    </>
-                  );
-                })()}
-              </div>
-              <InterestingButton theme="dark" active={!!isInteresting} onClick={onToggleInteresting} />
-              <CircleAction
-                Icon={FileText}
-                label="Go deeper"
-                theme="dark"
-                onClick={onOpenSummary}
-                aria-label="Go deeper"
-              />
-            </div>
-          )}
         </div>
-
-        {/* ── The player, its own box.
-               It used to live inside the story's panel, on the reasoning that the story and
-               the means of playing it are one object. Two things it contains argue otherwise:
-               Takeaways/Deeper changes what gets read aloud, and the transport acts on the
-               audio — neither has anything to do with the words above them, and inside one
-               panel the boundary had to be drawn by a hairline, a lighter ground, or 30px of
-               air (the three the `divider` URL trial existed to choose between). Two boxes
-               state it outright, and the trial is gone with them.
-               Same fill, same radius, same padding as the story box, so they read as a pair
-               rather than as a card with an appendix. Still sticky on the bottom, so a story
-               long enough to scroll keeps its transport in reach. ── */}
-        {asPage && storyCount > 0 && (
-          <div style={{ position: 'sticky', bottom: 0, zIndex: 2, marginTop: SPACE.sm,
-            padding: '14px 15px 12px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.03)',
-            display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* How much gets read aloud — a property of the playback, so it sits with it. */}
-              {!isRecap && (
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.pill, padding: 2 }}>
-                    {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
-                      const on = depthLevel === level;
-                      return (
-                        <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                          style={{ padding: '3px 10px', borderRadius: RADIUS.pill, border: 'none', cursor: on ? 'default' : 'pointer',
-                            fontSize: TYPE.micro, fontWeight: on ? WEIGHT.strong : WEIGHT.ui, transition: 'all 0.15s',
-                            /* The tint at the recap chips' alpha, not the raw category hex.
-                               CATEGORY_COLORS are picked to carry on Scroll's near-white
-                               ground; unlifted on #09090f they came out darker and far more
-                               saturated than every other coloured thing on this screen, so
-                               the one control that was meant to match the topic was the one
-                               that visibly didn't. */
-                            background: on ? tintA(0.22) : 'transparent', color: on ? recapTint : 'rgba(255,255,255,0.6)' }}>
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </span>
-                </div>
-              )}
-              {playback}
-              {/* The batch gate, under the transport — the same control and the same wording
-                  Swipe and Scroll use, so the three modes name the pile the same way.
-                  Quiet by design: it's a way out of the batch, not a primary action, and the
-                  play button directly above it is the thing that matters on this screen. */}
-              {(atBatchEnd || showCollapse) && !isRecap && (
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => {
-                      if (atBatchEnd) setRevealed(total);
-                      else {
-                        // Step off any story about to be hidden, so we're never stranded
-                        // past the end of the rail.
-                        setRevealed(LISTEN_BATCH);
-                        if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1);
-                      }
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', border: 'none',
-                      background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: TYPE.micro,
-                      fontWeight: WEIGHT.ui, cursor: 'pointer' }}>
-                    {/* No chevron either way. Swipe's gate points down because down is where
-                        the next story literally is — you swipe toward it. Listen has no such
-                        axis: the stories are a horizontal rail of dots at the top of the card,
-                        so neither arrow pointed at anything. Plain text in both states. */}
-                    {atBatchEnd
-                      ? `View ${remaining} more ${catLabel} ${remaining === 1 ? 'story' : 'stories'}`
-                      : `View less ${catLabel} stories`}
-                  </button>
-                </div>
-              )}
-          </div>
-        )}
 
         </div>
 
@@ -784,24 +621,6 @@ export default function FullPlayer({
               </div>
             )}
 
-            {/* How much gets read aloud — a property of the playback, so it sits with it. */}
-            {!isRecap && (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ display: 'inline-flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: RADIUS.pill, padding: 2 }}>
-                  {[['takeaways', 'Takeaways'], ['deep', 'Deeper']].map(([level, label]) => {
-                    const on = depthLevel === level;
-                    return (
-                      <button key={level} onClick={() => onSetDepth(level)} aria-pressed={on}
-                        style={{ padding: '3px 10px', borderRadius: RADIUS.pill, border: 'none', cursor: on ? 'default' : 'pointer',
-                          fontSize: TYPE.micro, fontWeight: on ? WEIGHT.strong : WEIGHT.ui, transition: 'all 0.15s',
-                          background: on ? color : 'transparent', color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </span>
-              </div>
-            )}
 
             {playback}
           </div>
@@ -817,123 +636,164 @@ export default function FullPlayer({
   // transform: there's nothing behind it to dim, and a page that slid up every time you
   // tapped Listen would read as a modal you're supposed to dismiss.
   if (asPage) {
-    return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 150,
-        background: bgColor,
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
-        {/* The photo runs behind the header, not below it — Swipe's arrangement. On its own
-            flat black strip the header read as a separate black bar bolted above the
-            artwork; over the photo with Swipe's own top scrim it belongs to the same screen,
-            and the scrim still guarantees the toggle and the date have something to sit on
-            whatever image loads. Full width, while the content column above stays at
-            PAGE_MAX, so the artwork fills the window the way it does in Swipe. */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {UI_TRIAL.photoBackdrop ? (
-            <>
-              {image
-                ? <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${color} 0%, ${color}66 100%)` }} />}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.28) 20%, rgba(0,0,0,0.28) 56%, rgba(10,10,20,0.88) 90%, rgba(10,10,20,0.98) 100%), rgba(0,0,0,0.5)' }} />
-              {/* Chrome scrims, same as Swipe's: the header fades out of the photo at the top
-                  and the transport fades in at the bottom. */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
-            </>
+    // ── Listen, as a page ────────────────────────────────────────────────────────────
+    // The shared header, then the story as a tinted card of fixed height — fixed so the
+    // player under it doesn't jump between stories with longer and shorter headlines — and
+    // the player directly beneath it, with the slack left above the bottom bar rather than
+    // inside the card (Codex, 2026-10-15). On "World recap" the card holds the recap and
+    // Play plays it.
+    const recapPlaying = isRecap;
+    const recapCat = category;
+    const topicName = CATEGORY_SHORT[recapCat] || recapCat;
+    const words = (recapView
+      ? (recapText || '')
+      : [headline, ...(story?.tightBullets || story?.allBullets || [])].join(' ')).split(/\s+/).filter(Boolean).length;
+    const totalSec = narrationDuration > 0 && (recapView ? recapPlaying : !recapPlaying)
+      ? narrationDuration
+      : Math.round((words / 150) * 60 / (playbackSpeed || 1));
+    const playingThis = recapView ? recapPlaying : !recapPlaying;
+    const pct = playingThis ? (narrationProgress || 0) : 0;
+    const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+    const isPlaying = playingThis && isNarrating && !isPaused;
+    const onPlayButton = () => {
+      if (isLoading && playingThis) return;
+      if (recapView && !recapPlaying) { onPlayRecapPeriod?.(recapPeriod); return; }
+      if (!recapView && recapPlaying) { onPlay?.(); return; }
+      if (isPaused) onResume?.(); else if (isNarrating) onPause?.(); else onPlay?.();
+    };
+
+    const pageDots = (stories || []).slice(0, listenLimit).map((_, i) => {
+      const current = i === storyIndex;
+      return (
+        <button key={i} className="rn-btn" onClick={() => onGoToStory?.(i)}
+          aria-label={`Story ${i + 1} of ${listenLimit}`} aria-current={current ? 'true' : undefined}
+          style={{ padding: '6px 2.5px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
+            opacity: current ? 1 : i < storyIndex ? 0.45 : 0.2, transition: 'width 0.2s ease' }} />
+        </button>
+      );
+    });
+
+    const cardFrame = { ...topicVars(recapCat), flex: '0 1 380px', minHeight: 250, background: 'var(--tp-card)', color: 'var(--card-ink)',
+      borderRadius: 19, padding: '18px 20px 14px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' };
+    const h1 = { margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 };
+
+    const storyCard = storyCount === 0 ? (
+      <article className="rn-tp" style={{ ...cardFrame, justifyContent: 'center' }}>
+        <p style={{ margin: 0, fontSize: 17, fontWeight: 600, textAlign: 'center' }}>
+          {lens === 'popular' ? 'Nothing popular yet today.' : lens === 'interesting' ? 'Nothing marked interesting yet today.' : 'No stories available for this day.'}
+        </p>
+      </article>
+    ) : (
+      <article className="rn-tp" style={cardFrame} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+          <h1 style={h1}>{headline}</h1>
+          {excerpt && (
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {excerpt}
+            </p>
+          )}
+          <SourcesRow sources={outlets} onCard bleed
+            star={<StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />} />
+        </div>
+        {pageDots.length > 1 && <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', marginLeft: -2.5 }}>{pageDots}</div>}
+      </article>
+    );
+
+    const recapCard = (
+      <article className="rn-tp" style={cardFrame}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
+        </div>
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+          <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} this week` : `${topicName} this month`}</h1>
+          {recapText ? (
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 9, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{recapText}</p>
           ) : (
-            /* Flat ground. The photo was the loudest thing on a screen whose subject is a
-               headline and a play button, and every scrim on top of it existed to hold it
-               down. One faint wash of the category's colour keeps the screen from reading as
-               a black rectangle and still says which section you're in. */
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${color}1f 0%, transparent 62%), ${bgColor}` }} />
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
+              {recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
+            </p>
           )}
         </div>
-        {/* ── Page header: wordmark, then scope — the same statement the other two tabs open
-               with, so Listen isn't a dead end you must leave to change day or feed.
+      </article>
+    );
 
-               It sits *above* the body rather than inside it. Inside, it was painted over the
-               top of the full-bleed image: the toggle's translucent track and the muted date
-               had no contrast against whatever photo happened to load, and it displaced the
-               player's own spacing so the page and the sheet no longer matched. On its own
-               opaque strip it always reads, and everything below is the sheet untouched. ── */}
-        <div style={{ position: 'relative', zIndex: 20, flexShrink: 0 }}>
-          <div style={{ maxWidth: PAGE_MAX, margin: '0 auto' }}>
-            {/* ── Identity and day. The wordmark moves off centre to the left edge, where
-                   it anchors the same gutter as everything under it; centred, it aligned
-                   with nothing and opened the header with an element outside the grid. ── */}
-            {/* The page is viewport-fit=cover, so this row is the first thing under the
-                status bar and nothing above it was reserving the inset — on a notched phone
-                the wordmark sat in it. SPACE.md of its own, plus whatever the device needs. */}
-            <div style={{ position: 'relative', zIndex: 12, display: 'flex', alignItems: 'center', gap: 10,
-              padding: `calc(env(safe-area-inset-top, 0px) + ${SPACE.md}px) ${SPACE.md}px ${SPACE.md}px` }}>
-              <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.strong, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
-                <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
-              </span>
-              <div style={{ flex: 1 }} />
-              <div style={{ position: 'relative' }} ref={dayPickerRef}>
-                <button onClick={() => availableDays.length > 0 && setDayPickerOpen(o => !o)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: availableDays.length ? 'pointer' : 'default' }}>
-                  <Calendar size={ICON.sm} color="rgba(255,255,255,0.6)" />
-                  <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(selectedDay)}</span>
-                  {availableDays.length > 0 && <ChevronDown size={ICON.sm} color="rgba(255,255,255,0.6)" />}
-                </button>
-                {dayPickerOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 30, width: 160, background: '#15151f', borderRadius: RADIUS.md, boxShadow: '0 12px 36px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.10)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {availableDays.map(day => {
-                      const active = day.fullDate === selectedDay;
-                      return (
-                        <button key={day.fullDate}
-                          onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: RADIUS.sm, border: 'none', background: active ? 'rgba(165,180,252,0.16)' : 'transparent', color: active ? '#a5b4fc' : 'rgba(255,255,255,0.8)', fontSize: TYPE.ui, fontWeight: active ? WEIGHT.strong : WEIGHT.ui, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                          {formatHeaderDate(day.fullDate)}
-                          {active && <span style={{ fontSize: TYPE.micro }}>✓</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+    const canPlay = recapView ? !!recapText : storyCount > 0;
+    const navBtn = (onClick, label, Icon, disabled) => (
+      <button className="rn-btn" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label}
+        style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.3 : 1 }}>
+        <Icon size={24} strokeWidth={1.9} />
+      </button>
+    );
 
-            {/* Scope and topics on one row, closed by the single rule the active tab
-                underlines. Both old rules are gone: Me/All filters the strip, so there was
-                never a boundary to draw between them.
-                Rendered unconditionally, and the topics inside it are what's conditional:
-                gating the row on contextCategories put the scope toggle inside something
-                that disappears when "Me" has nothing in it — taking with it the only
-                control that could switch back to All. */}
-            {(
-              <CatStrip
-                contextCategories={contextCategories}
-                category={category}
-                onSelectCategory={onSelectCategory}
-                showAllPill={showAllPill}
-                allScope={allScope}
-                onSelectAll={onSelectAll}
-                onEditCategories={onEditCategories}
-                user={user}
-                onGuestEdit={onGuestEdit}
-              />
-            )}
-
-            {/* The progress moved onto the story card, where the thing being progressed
-                through actually is. */}
-          </div>
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
+          <AppHeader
+            selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
+            categories={contextCategories} activeCategory={allScope ? null : category}
+            onSelectCategory={onSelectCategory}
+            showAllPill={showAllPill} allActive={allScope} onSelectAll={onSelectAll}
+            onEditCategories={onEditCategories} user={user}
+            storyCount={topicStoryCount ?? storyCount}
+            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!showAllPill && !!onChangeRecapView}
+            lens={lens} onChangeLens={onChangeLens}
+            period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
+          />
         </div>
 
-        {/* Wrapped to the sheet's width — see PAGE_MAX. Unconstrained, this stretched the
-            image and the controls edge to edge on a desktop window while every other tab
-            stayed in its column. Below this the layout is the sheet's, untouched. */}
-        <div
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {body}
+        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
+          display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
+          {recapView ? recapCard : storyCard}
+
+          {/* The player: speed and repeat ride the progress line, the three buttons you press
+              most sit under it, and Play is the one coloured thing on the screen. */}
+          {(canPlay || isNarrating) && (
+            <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
+                <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`}
+                  style={{ width: 40, height: 40, fontSize: 13.5, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0 }}>
+                  {playbackSpeed}×
+                </button>
+                <span>{fmt((totalSec * pct) / 100)}</span>
+                <div aria-hidden style={{ position: 'relative', flex: 1, height: 4, borderRadius: 4, background: 'var(--line)' }}>
+                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, borderRadius: 4, background: 'var(--accent)', transition: isPlaying ? 'width 0.1s linear' : 'width 0.25s ease' }} />
+                  <div style={{ position: 'absolute', left: `calc(${pct}% - 6px)`, top: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--accent)', transition: isPlaying ? 'left 0.1s linear' : 'left 0.25s ease' }} />
+                </div>
+                <span>{fmt(totalSec)}</span>
+                <button className="rn-btn" onClick={onRepeatToggle} aria-label={repeatMode ? 'Repeat on' : 'Repeat off'} aria-pressed={!!repeatMode}
+                  style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: repeatMode ? 'var(--accent)' : 'var(--sub)', flexShrink: 0 }}>
+                  <Repeat size={20} strokeWidth={1.8} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
+                {navBtn(onPrev, 'Previous story', Rewind, recapView)}
+                <button className="rn-btn" onClick={onPlayButton} aria-label={isPlaying ? 'Pause' : 'Play'}
+                  style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {isLoading && playingThis
+                    ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
+                    : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
+                </button>
+                {navBtn(onNext, atBatchEnd ? 'End of this batch' : 'Next story', FastForward, recapView || atBatchEnd)}
+              </div>
+              {!recapView && (atBatchEnd || showCollapse) && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <button className="rn-btn" style={{ minHeight: 32, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}
+                    onClick={() => {
+                      if (atBatchEnd) setRevealed(total);
+                      else { setRevealed(LISTEN_BATCH); if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1); }
+                    }}>
+                    {atBatchEnd ? `View ${remaining} more ${catLabel} ${remaining === 1 ? 'story' : 'stories'}` : `View less ${catLabel} stories`}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+          <div style={{ flex: 1, minHeight: 12 }} />
         </div>
         {footer}
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

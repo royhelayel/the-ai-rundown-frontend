@@ -1,16 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackToTop from './BackToTop';
-import PeriodRecapChips from './PeriodRecapChips';
-import LensToggle from './LensToggle';
 import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { getRememberedCategory, rememberCategory } from '../hooks/useCategoryMemory';
 import { computeGamifiedStats } from '../hooks/useListenHistory';
-import { Sparkles } from 'lucide-react';
-import RecapBar from './RecapBar';
-import { CATEGORY_SHORT, CATEGORY_COLORS, RADIUS, SPACE, TYPE, WEIGHT } from '../theme';
+import { TopicRecapArticle } from './TopicRecap';
 
 export default function BriefingFeed({
   briefingData, briefingLoading,
@@ -28,6 +24,7 @@ export default function BriefingFeed({
   savedStories, onToggleSaved,
   periodRecaps, periodMinutes = () => 1, onOpenPeriodRecap, onPlayPeriodRecap,
   onActiveCategoryChange,
+  recapView = false, onChangeRecapView, recapPeriod = 'Daily', onChangeRecapPeriod, onFocusStoryRequest, isReadStory,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/');
@@ -49,7 +46,6 @@ export default function BriefingFeed({
   const [railPos, setRailPos] = useState({ cat: null, idx: -1 });
   const [shownCounts, setShownCounts] = useState({}); // cards rendered per category — the rail matches the list
   const effectiveCat = activeCat || visibleCats[0] || null;
-  const subtitle = effectiveCat ? `${CATEGORY_SHORT[effectiveCat] || effectiveCat} · ${briefingData[effectiveCat]?.storyCount || 0} stories` : undefined;
   // The list owns the jump: it sets the category and mutes its own scroll-spy for the
   // duration, so the two can't fight over which category is active mid-scroll.
   const listRef = useRef(null);
@@ -116,90 +112,52 @@ export default function BriefingFeed({
     [listenHistory, perfectDays, briefingData, allCats.join(','), selectedTime, selectedDay] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  const goLens = (l) => { if (l === 'popular') navigate('/popular'); else if (l === 'interesting') navigate('/important'); else setLens('latest'); };
+  const recapText = !effectiveCat ? null
+    : recapPeriod === 'Daily' ? (briefingData[effectiveCat]?.briefing || '').trim() || null
+    : periodRecaps?.[recapPeriod]?.text || null;
+
   return (
-    <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
+    <div style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`* { box-sizing: border-box; } ::-webkit-scrollbar { display: none; }`}</style>
 
       <FeedHeader
-        feedName="All News"
         user={user}
-        onShowAuth={onShowAuth}
         selectedDay={selectedDay}
         availableDays={availableDays}
         onSelectDay={onSelectDay}
-        challengeStats={challengeStats}
-        viewMode="feed"
-        onChangeViewMode={(m) => { if (m === 'stories') onEnterStories?.(); else if (m === 'summaries') onEnterSummaries?.(); }}
-        onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
         categories={visibleCats}
         activeCategory={effectiveCat}
-        onSelectCategory={scrollToCat}
-        subtitle={subtitle}
+        onSelectCategory={(cat) => { if (recapView) setActiveCat(cat); else scrollToCat(cat); }}
         onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
-        corpus="all"
-        onChangeCorpus={(c) => { if (c === 'mine') navigate('/my-feed'); }}
         lens={lens}
-        onChangeLens={(l) => { if (l === 'popular') navigate('/popular'); else if (l === 'interesting') navigate('/important'); else setLens('latest'); }}
+        onChangeLens={goLens}
+        storyCount={briefingData[effectiveCat]?.storyCount || 0}
+        recapView={recapView}
+        onChangeRecapView={onChangeRecapView}
+        recapPeriod={recapPeriod}
+        onChangeRecapPeriod={onChangeRecapPeriod}
+        periodReady={{ Daily: !!(briefingData[effectiveCat]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
         progressListened={railPos.cat === effectiveCat ? railPos.idx + 1 : 0}
         progressTotal={shownCounts[effectiveCat] ?? (allNewsStats.todayProgress?.[effectiveCat]?.total || 0)}
       />
 
-      {/* ── One recap row, docked under the header — Listen and Swipe's row, part for part.
-             It used to be split in two and in the wrong places: the week and month floated
-             up here with no box while every one of the twelve sections carried its own
-             "{Topic} recap" card, so the same control appeared thirteen times in three
-             different shapes, and only the pair up top was ever visible once you started
-             scrolling.
-             Docked, it is one row that follows you: the scroll-spy already knows which
-             section is under the header (it drives the topic tabs), so the name, the tint and
-             the topic whose week and month are fetched all move with it. `--header-h` is
-             measured by FeedHeader's ResizeObserver, so this sits exactly under the header at
-             whatever height it happens to be.
-             The lens sits below and does *not* dock — it sorts the list you are looking at,
-             and the recap is the thing worth keeping in reach. ── */}
-      <div style={{ position: 'sticky', top: 'var(--header-h, 0px)', zIndex: 40, background: '#f5f5f7' }}>
-        <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-          {effectiveCat && (() => {
-            // The category's own colour, undimmed: Scroll's ground is near-white, which is
-            // what CATEGORY_COLORS were picked against. Listen and Swipe lift theirs because
-            // their ground is near-black.
-            const tint = CATEGORY_COLORS[effectiveCat] || '#6366f1';
-            return (
-              <div style={{ margin: `${SPACE.md}px ${SPACE.md}px 0`, padding: '10px 12px 11px',
-                borderRadius: RADIUS.md, background: 'rgba(10,10,20,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: tint }}>
-                    <Sparkles size={13} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: '#8b8b98' }}>
-                    {CATEGORY_SHORT[effectiveCat] || effectiveCat} recap
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    <RecapBar category={effectiveCat} theme="light" compact accent={tint}
-                      storyCount={briefingData[effectiveCat]?.storyCount || 0}
-                      onOpen={() => navigate(`/category/${encodeURIComponent(effectiveCat)}/briefing`, { state: { from: '/' } })} />
-                    <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="light" accent={tint}
-                      onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        <div style={{ padding: `${SPACE.md}px ${SPACE.md}px 12px` }}>
-          <LensToggle
-            value={lens}
-            onChange={(l) => { if (l === 'popular') navigate('/popular'); else if (l === 'interesting') navigate('/important'); else setLens('latest'); }}
-            theme="light"
+      {recapView && effectiveCat && (
+        <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 20px 120px' }}>
+          <TopicRecapArticle
+            category={effectiveCat}
+            period={recapPeriod}
+            text={recapText}
+            sourcesMap={recapPeriod === 'Daily' ? briefingData[effectiveCat]?.briefingSources : periodRecaps?.[recapPeriod]?.sources}
+            dateLabel={selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}
+            isToday={selectedDay === new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date())}
+            storyCount={briefingData[effectiveCat]?.storyCount || 0}
+            onOpenStory={(idx) => { onChangeRecapView?.(false); setTimeout(() => onFocusStoryRequest?.(effectiveCat, idx), 0); }}
           />
         </div>
-      </div>
+      )}
 
-      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      {!recapView && <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <StoryList
           ref={listRef}
           availableDays={availableDays}
@@ -233,8 +191,9 @@ export default function BriefingFeed({
           onShownCounts={setShownCounts}
           savedStories={savedStories}
           onToggleSaved={onToggleSaved}
+          isReadStory={isReadStory}
         />
-      </div>
+      </div>}
 
       <BackToTop />
     </div>

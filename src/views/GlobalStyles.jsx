@@ -1,13 +1,16 @@
+import { DESIGN_CSS } from '../design';
+
 export default function GlobalStyles() {
   return (
       <style>{`
         :root { --body-max: 600px; }
+        ${DESIGN_CSS}
         * { box-sizing: border-box; }
-        html, body { background: #09090f; margin: 0; }
+        html, body { background: var(--paper); color: var(--ink); margin: 0; }
         ::-webkit-scrollbar { display: none; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes sk-shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
-        .sk { background: linear-gradient(90deg, #e8e8eb 25%, #f2f2f5 50%, #e8e8eb 75%); background-size: 1200px 100%; animation: sk-shimmer 1.4s ease-in-out infinite; }
+        .sk { background: linear-gradient(90deg, var(--panel) 25%, var(--line) 50%, var(--panel) 75%); background-size: 1200px 100%; animation: sk-shimmer 1.4s ease-in-out infinite; }
         /* ── Animated gradient buttons ── */
         @keyframes border-flow {
           0%,100% { background-position: 0% 50%; }

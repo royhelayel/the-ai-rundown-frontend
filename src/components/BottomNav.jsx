@@ -1,52 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, UserCircle, LayoutList, GalleryVerticalEnd, Headphones, Flame } from 'lucide-react';
+import { X, UserCircle, Flame } from 'lucide-react';
 import ProgressPill from './ProgressPill';
-import { UI_TRIAL } from '../theme';
-
-const light = {
-  // The nav container now matches the page's own background (#f5f5f7, used everywhere else
-  // in Scroll mode) instead of white — the white bar read as a separate panel sitting on
-  // top of the page rather than the page's own footer. With the container no longer
-  // contrasting against the page, the dock needs its own surface to read as a control: white
-  // with a hairline border, the same relationship every story card has to the page behind it.
-  bg:        '#f5f5f7',
-  border:    'rgba(0,0,0,0.06)',
-  text:      '#0a0a0f',
-  textMuted: '#9ca3af',
-  track:     '#ffffff',
-  trackBorder: 'rgba(0,0,0,0.07)',
-  divider:   'rgba(0,0,0,0.10)',
-  activeBg:  'rgba(99,102,241,0.12)',
-  activeFg:  '#6366f1',
-};
-
-const dark = {
-  bg:        '#0a0a14',
-  border:    'rgba(255,255,255,0.08)',
-  text:      '#ffffff',
-  textMuted: 'rgba(255,255,255,0.55)',
-  track:     'rgba(255,255,255,0.12)',
-  trackBorder: 'transparent',
-  divider:   'rgba(255,255,255,0.18)',
-  activeBg:  'rgba(165,180,252,0.22)',
-  activeFg:  '#c7d2fe',
-};
 
 /**
- * BottomNav — Settings · View · Challenge.
+ * BottomNav — [Settings] [Swipe | Listen | Scroll] [Challenge].
  *
- * It used to be four destinations plus an action, mixing two kinds of thing on one row.
- * Now the corpus (My news / All news) lives in the header where the rest of the scope
- * controls are, which leaves this bar holding exactly three items and no ambiguity about
- * what a tap does.
+ * The three modes are the one choice people make here every session, so they share one
+ * rounded block in the middle, as words. Settings and the challenge are places rather than
+ * modes, so they sit apart in squares of the same height and corners — icons, not words, which
+ * is what tells the two kinds apart (Roy and Codex, 2026-10-15; Uber's button pair was the
+ * reference). Calm on purpose: the play button is the one strong colour on a screen, and a
+ * loud bar competed with it.
  *
- * View is the one control people touch every session — mode is chosen on open and then left
- * alone — so it sits centre, under the thumb, as a single segmented control rather than
- * three peers that would read as destinations.
+ * The challenge shows today's progress as a ring and "4/5", no label (Roy, 2026-10-15).
  */
 export default function BottomNav({
-  theme = 'light',
   fixed = true,
   mode = 'scroll',
   onChangeMode,
@@ -56,112 +25,83 @@ export default function BottomNav({
 }) {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const t = theme === 'dark' ? dark : light;
 
   const todayCount = challengeStats?.todayCount || 0;
   const dailyGoal  = challengeStats?.dailyGoal  || 10;
-  const goalMet    = todayCount >= dailyGoal;
+  const frac = Math.min(1, dailyGoal ? todayCount / dailyGoal : 0);
 
-  // ── One dock, every button named ───────────────────────────────────────────
-  //
-  // A group label told you what the trio was for but nothing about what each icon does, so
-  // you still had to decode a stack, a list and a pair of headphones. Naming each button
-  // removes the guesswork, and the dividers keep the grouping without needing a caption.
-  //
-  // The tint wraps icon and label together, so the selected cell is one object rather than
-  // a highlighted icon with a caption loose underneath it.
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  // Labels alone, unless UI_TRIAL.navIcons is on. The icons were carrying no meaning the
-  // word underneath didn't already carry — three of the five needed the label to be read at
-  // all — and dropping them lets the dock sit shorter and stop competing with the screen.
-  const showIcons = UI_TRIAL.navIcons;
-  // `keepGlyph` survives the icons being switched off: the Challenge cell's glyph is the
-  // day's story count, which is information rather than decoration and would simply be
-  // deleted along with the icons.
-  // Cells share the width rather than carrying fixed ones. Hand-set widths (54/48/48/48/62)
-  // meant the dock was as wide as its longest words happened to be, and the five cells were
-  // five different sizes — so the gaps between labels read as uneven even though each label
-  // was centred in its own cell.
-  const key = (icon, text, onClick, aria, { active = false, keepGlyph = false } = {}) => (
-    <button key={aria} onClick={onClick} aria-label={aria} title={aria}
-      style={{
-        flex: 1, minWidth: 0, borderRadius: 10, border: 'none',
-        padding: showIcons || keepGlyph ? '4px 0 3px' : '6px 0',
-        cursor: active ? 'default' : 'pointer',
-        background: active ? t.activeBg : 'transparent',
-        color: active ? t.activeFg : t.textMuted,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-      }}>
-      {(showIcons || keepGlyph) && <span style={{ height: 20, display: 'flex', alignItems: 'center' }}>{icon}</span>}
-      <span style={{ fontSize: showIcons || keepGlyph ? '0.58rem' : '0.7rem', fontWeight: 600, lineHeight: 1.2 }}>{text}</span>
-    </button>
-  );
+  const square = { height: 52, borderRadius: 14, background: 'var(--panel)', color: 'var(--ink)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 
-  const divider = (k) => <span key={k} aria-hidden style={{ width: 1, alignSelf: 'stretch', background: t.divider, margin: '3px 5px', flexShrink: 0 }} />;
+  const seg = (label, value) => {
+    const on = mode === value;
+    return (
+      <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
+        onClick={() => !on && onChangeMode?.(value)}
+        style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 10, fontSize: 13.5,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: on ? 'default' : 'pointer',
+          background: on ? 'var(--raised)' : 'transparent', boxShadow: on ? 'var(--raised-shadow)' : 'none',
+          color: on ? 'var(--ink)' : 'var(--sub)', fontWeight: on ? 650 : 500 }}>
+        {label}
+      </button>
+    );
+  };
+
+  const R = 11.5, C = 2 * Math.PI * R;
+  const ring = (
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx="13" cy="13" r={R} fill="none" stroke="var(--line)" strokeWidth="3" />
+      {frac > 0 && <circle cx="13" cy="13" r={R} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />}
+    </svg>
+  );
 
   return (
     <>
       <nav style={{
         ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
-        zIndex: 45, flexShrink: 0,
-        background: t.bg,
-        padding: '12px 16px',
-        // Clearance above env(safe-area-inset-bottom) — the inset itself already reserves
-        // the home-indicator's gesture area, so this is on top of that, not instead of it.
-        // Was 12px, which read as a second, unexplained gap once the inset was already
-        // padding it out; 6px still keeps the dock clear of the gesture area.
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
+        zIndex: 45, flexShrink: 0, background: 'var(--paper)',
+        padding: '6px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
         display: 'flex', justifyContent: 'center',
       }}>
-        {/* The dock carries its own border now that the nav container no longer contrasts
-            against the page — same idea as a story card's hairline against the gray page
-            behind it. Transparent in dark mode: the track there is already visibly lighter
-            than the near-black page, so it doesn't need a second edge. */}
-        {/* Spans the row rather than hugging its content, capped so it stays a dock and not a
-            banner on a desktop window. Radius 16 to match the story card's family. */}
-        <div style={{ display: 'flex', alignItems: 'stretch', width: '100%', maxWidth: 420,
-          background: t.track, border: `1px solid ${t.trackBorder}`, borderRadius: 16, padding: '8px 6px' }}>
-          {key(<UserCircle size={17} strokeWidth={1.7} />, 'Settings', goSettings, 'Settings')}
-          {divider('d1')}
-          {/* Listen sits centre of the trio, under the thumb: it's the app's main proposition
-              and the tab you land on, so it gets the easiest position of the three. */}
-          {key(<GalleryVerticalEnd size={17} strokeWidth={mode === 'swipe' ? 2.3 : 1.9} />, 'Swipe', () => mode !== 'swipe' && onChangeMode?.('swipe'), 'Swipe', { active: mode === 'swipe' })}
-          {key(<Headphones size={17} strokeWidth={mode === 'audio' ? 2.3 : 1.9} />, 'Listen', () => mode !== 'audio' && onChangeMode?.('audio'), 'Listen', { active: mode === 'audio' })}
-          {key(<LayoutList size={17} strokeWidth={mode === 'scroll' ? 2.3 : 1.9} />, 'Scroll', () => mode !== 'scroll' && onChangeMode?.('scroll'), 'Scroll', { active: mode === 'scroll' })}
-          {divider('d2')}
-          {key(
-            // Guests have no count, so show the flame rather than a blank — an empty cell
-            // reads as broken or disabled, which it isn't.
-            user
-              ? <span style={{ fontSize: '0.78rem', fontWeight: 700, lineHeight: 1 }}>{todayCount}</span>
-              : <Flame size={17} strokeWidth={1.9} />,
-            'Challenge',
-            () => setSheetOpen(true),
-            !user ? 'Reading challenge — sign in to track progress'
-              : goalMet ? `Reading challenge complete — ${todayCount} stories today`
-              : `Reading challenge — ${todayCount} of ${dailyGoal} stories today`,
-            { keepGlyph: !!user },
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 420 }}>
+          <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={{ ...square, width: 52 }}>
+            <UserCircle size={22} strokeWidth={1.8} />
+          </button>
+          <div role="group" aria-label="How you take in the news"
+            style={{ flex: 1, minWidth: 0, display: 'flex', gap: 4, padding: 4, background: 'var(--panel)', borderRadius: 14 }}>
+            {seg('Swipe', 'swipe')}
+            {seg('Listen', 'audio')}
+            {seg('Scroll', 'scroll')}
+          </div>
+          <button className="rn-btn" onClick={() => setSheetOpen(true)}
+            aria-label={!user ? 'Reading challenge — sign in to track progress' : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
+            style={{ ...square, padding: '0 12px 0 10px', gap: 8 }}>
+            {user ? ring : <Flame size={20} strokeWidth={1.9} />}
+            {user && <span style={{ fontSize: 14, fontWeight: 750, fontVariantNumeric: 'tabular-nums' }}>{todayCount}/{dailyGoal}</span>}
+          </button>
         </div>
       </nav>
 
-      {/* Challenge bottom sheet */}
+      {/* Challenge sheet */}
       <div onClick={() => setSheetOpen(false)}
-        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.5)', opacity: sheetOpen ? 1 : 0, pointerEvents: sheetOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }} />
+        style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--overlay)', opacity: sheetOpen ? 1 : 0, pointerEvents: sheetOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }} />
       <div style={{
         position: 'fixed', left: '50%', bottom: 0, zIndex: 301,
         width: '100%', maxWidth: 560, transform: `translateX(-50%) translateY(${sheetOpen ? '0' : '100%'})`,
         transition: 'transform 0.34s cubic-bezier(0.32,0.72,0,1)',
-        background: '#fff', borderRadius: '20px 20px 0 0',
+        background: 'var(--paper)', color: 'var(--ink)', borderRadius: '24px 24px 0 0',
         maxHeight: '85dvh', overflowY: 'auto', overscrollBehavior: 'contain',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         <div style={{ padding: '10px 18px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.15)', position: 'absolute', left: '50%', top: 10, transform: 'translateX(-50%)' }} />
-          <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Reading Challenge</span>
-          <button onClick={() => setSheetOpen(false)} style={{ width: 28, height: 28, borderRadius: '50%', background: '#f5f5f7', border: 'none', color: '#8a8a9a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Close">
-            <X size={15} />
+          <div style={{ width: 38, height: 5, borderRadius: 5, background: 'var(--line)', position: 'absolute', left: '50%', top: 10, transform: 'translateX(-50%)' }} />
+          <span style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--sub)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Reading challenge</span>
+          <button className="rn-btn" onClick={() => setSheetOpen(false)} aria-label="Close"
+            style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--panel)', color: 'var(--sub)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={16} />
           </button>
         </div>
         <div style={{ padding: '4px 0 18px' }}>

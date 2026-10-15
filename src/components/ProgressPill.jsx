@@ -98,15 +98,15 @@ function MiniRing({ size = 72, strokeW = 5, pct = 0, count, total, caption, colo
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, padding: '0 6px' }}>
         {exceeded ? (
-          <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0a0a0f', lineHeight: 1 }}>{count}</span>
+          <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--ink)', lineHeight: 1 }}>{count}</span>
         ) : (
           <div style={{ display: 'flex', alignItems: 'baseline', lineHeight: 1, gap: 1 }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0a0a0f' }}>{count}</span>
-            <span style={{ fontSize: '0.56rem', fontWeight: 500, color: '#9ca3af' }}>/</span>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0a0a0f' }}>{total}</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--ink)' }}>{count}</span>
+            <span style={{ fontSize: '0.56rem', fontWeight: 500, color: 'var(--sub)' }}>/</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--ink)' }}>{total}</span>
           </div>
         )}
-        <span style={{ fontSize: '0.48rem', fontWeight: 700, color: '#9ca3af', textAlign: 'center', lineHeight: 1.05 }}>
+        <span style={{ fontSize: '0.48rem', fontWeight: 700, color: 'var(--sub)', textAlign: 'center', lineHeight: 1.05 }}>
           {caption}
         </span>
       </div>
@@ -126,11 +126,11 @@ function ChallengeRow({ pct, count, total, caption, awardTitle, awardColor, awar
           <span style={{ width: 17, height: 17, borderRadius: 6, background: `${awardColor}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <AwardIcon awardId={awardId} size={9} color={awardColor} />
           </span>
-          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: earned ? awardColor : '#0a0a0f' }}>
+          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: earned ? awardColor : 'var(--ink)' }}>
             {awardTitle}
           </span>
         </div>
-        <p style={{ margin: 0, fontSize: '0.74rem', color: '#8a8a9a', lineHeight: 1.45 }}>{description}</p>
+        <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--sub)', lineHeight: 1.45 }}>{description}</p>
       </div>
     </div>
   );
@@ -292,8 +292,8 @@ function GuestPromo({ onShowAuth }) {
       style={{
         display: 'flex', alignItems: 'center', gap: '14px',
         margin: '0 16px 12px', width: 'calc(100% - 32px)',
-        background: '#fff',
-        border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18,
+        background: 'var(--surface)',
+        border: '1px solid var(--line)', borderRadius: 18,
         padding: '15px 16px', cursor: 'pointer', textAlign: 'left',
         boxShadow: '0 6px 18px rgba(20,20,40,0.05)',
       }}
@@ -313,10 +313,10 @@ function GuestPromo({ onShowAuth }) {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0a0a0f', marginBottom: '3px', letterSpacing: '-0.01em' }}>
+        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: 'var(--ink)', marginBottom: '3px', letterSpacing: '-0.01em' }}>
           Sign In to Track Progress
         </div>
-        <div style={{ fontSize: '0.72rem', color: '#9ca3af', lineHeight: 1.5 }}>
+        <div style={{ fontSize: '0.72rem', color: 'var(--sub)', lineHeight: 1.5 }}>
           Customise your feed, complete reading challenges and access popular &amp; interesting stories in your circle.
         </div>
       </div>
@@ -431,14 +431,14 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
     <>
       {(
         /* ── Rings card ──────────────────────────────────────────────────── */
-        <div style={{ margin: '0 16px 12px', width: 'calc(100% - 32px)', background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 18, boxShadow: '0 6px 18px rgba(20,20,40,0.05)', overflow: 'hidden', ...style }}>
+        <div style={{ margin: '0 16px 12px', width: 'calc(100% - 32px)', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 18, boxShadow: '0 6px 18px rgba(20,20,40,0.05)', overflow: 'hidden', ...style }}>
           {/* Where you stand, in a sentence, above the rings that qualify it. Sections are
               separated by a soft fading rule rather than a flat edge-to-edge line — a hard
               hairline the full width of the card read as a seam cutting the card in two; a
               rule that fades out toward both edges reads as a break between chapters of the
               same card instead. */}
           <div style={{ padding: '16px 16px 14px' }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: '#6b7280', lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'var(--sub)', lineHeight: 1.55 }}>
               {!nextAward ? (
                 <>You achieved <BadgeLabel award={topAward} /> — top rank this week 🎉</>
               ) : topAward ? (
@@ -466,8 +466,8 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
           <SoftDivider />
           <div style={{ padding: '16px 16px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af' }}>This week</span>
-              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#9ca3af' }}>goal {dailyGoal}/day</span>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--sub)' }}>This week</span>
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--sub)' }}>goal {dailyGoal}/day</span>
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {weekDays.map(d => {
@@ -496,7 +496,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
                         color: d.met ? '#fff' : d.count ? col : '#d2d5dc',
                       }}>{d.count}</span>
                     </span>
-                    <span style={{ fontSize: '0.58rem', fontWeight: d.isToday ? 900 : 600, color: d.isToday ? '#6366f1' : '#9ca3af' }}>{d.letter}</span>
+                    <span style={{ fontSize: '0.58rem', fontWeight: d.isToday ? 900 : 600, color: d.isToday ? '#6366f1' : 'var(--sub)' }}>{d.letter}</span>
                   </div>
                 );
               })}

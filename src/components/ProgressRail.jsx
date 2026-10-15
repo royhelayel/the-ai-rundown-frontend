@@ -27,10 +27,10 @@ export default function ProgressRail({
 }) {
   if (total < 2) return null;
 
-  const dark = theme === 'dark';
-  const on   = dark ? '#ffffff' : '#0a0a0f';
-  const read = dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.42)';
-  const off  = dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.14)';
+  // Colours follow the app's light/dark tokens now; `theme` is kept for older callers.
+  const on   = 'var(--ink)';
+  const read = 'var(--sub)';
+  const off  = 'var(--line)';
 
   // `filled` counts stories up to and including the current one, so the current index is
   // filled - 1 and everything below it has been passed.

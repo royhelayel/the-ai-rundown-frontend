@@ -17,7 +17,7 @@ export default function CategoryBriefingView({
       <div style={{
         position: 'absolute', left: '50%', bottom: 0,
         width: '100%', maxWidth: '560px', height: '100dvh',
-        background: '#fff', borderRadius: isSummariesPage ? 0 : '20px 20px 0 0',
+        background: 'var(--surface)', borderRadius: isSummariesPage ? 0 : '20px 20px 0 0',
         transform: 'translate(-50%, 0)',
         animation: isSummariesPage ? 'none' : 'briefingIn 0.38s cubic-bezier(0.32,0.72,0,1)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',

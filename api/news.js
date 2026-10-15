@@ -21,6 +21,16 @@ function todayUAE() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date());
 }
 
+// `briefing_sources` records which story each recap sentence came from (the "Sources · N"
+// triggers). It is a newer column: until it exists in a database the read falls back to the
+// old column list rather than failing the whole request.
+const EXTRA = ', briefing_sources';
+async function select(build, cols) {
+  const first = await build(cols + EXTRA);
+  if (first.error && /briefing_sources/.test(first.error.message || '')) return build(cols);
+  return first;
+}
+
 module.exports = async function handler(req, res) {
   const { mode = 'list', day, language = 'en', category, timeSlot, slots } = req.query;
   if (!day || !category) return res.status(400).json({ error: 'day and category are required' });
@@ -32,12 +42,12 @@ module.exports = async function handler(req, res) {
   try {
     if (mode === 'one') {
       if (!timeSlot) return res.status(400).json({ error: 'timeSlot is required for mode=one' });
-      const { data, error } = await supabase
+      const { data, error } = await select((cols) => supabase
         .from('news_summaries')
-        .select('category, day, time_slot, language, content, stories_content, generated_at, briefing')
+        .select(cols)
         .eq('category', category).eq('day', day).eq('time_slot', timeSlot)
         .eq('language', language).is('user_id', null).is('shared_key', null)
-        .maybeSingle();
+        .maybeSingle(), 'category, day, time_slot, language, content, stories_content, generated_at, briefing');
       if (error) throw error;
       res.setHeader('Cache-Control', cacheControl);
       return res.status(200).json(data);
@@ -45,12 +55,12 @@ module.exports = async function handler(req, res) {
 
     const slotList = (slots || '').split(',').filter(Boolean);
     if (!slotList.length) return res.status(400).json({ error: 'slots is required for mode=list' });
-    const { data, error } = await supabase
+    const { data, error } = await select((cols) => supabase
       .from('news_summaries')
-      .select('content, stories_content, time_slot, briefing')
+      .select(cols)
       .eq('category', category).eq('day', day)
       .in('time_slot', slotList)
-      .eq('language', language).is('user_id', null).is('shared_key', null);
+      .eq('language', language).is('user_id', null).is('shared_key', null), 'content, stories_content, time_slot, briefing');
     if (error) throw error;
     res.setHeader('Cache-Control', cacheControl);
     return res.status(200).json(data || []);

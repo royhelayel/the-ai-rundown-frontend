@@ -92,12 +92,10 @@ const TheAIRundown = () => {
   // 'headlines' was removed from the player's toggle, but it persists in localStorage for
   // anyone who last used it — migrate on read, or they'd load into a depth the UI no longer
   // offers and couldn't tell why the narration was so short.
-  const [depthLevel, setDepthLevel] = useState(() => {
-    const saved = localStorage.getItem('rundown_depth_level');
-    if (!saved || saved === 'summary') return 'deep';
-    if (saved === 'headlines') return 'takeaways';
-    return saved;
-  });
+  // Narration reads the headline and the short summary only. The Takeaways/Deeper switch is
+  // gone: "Deeper" added the perspectives and why-it-matters lines, which the summaries no
+  // longer carry (Roy, 2026-10-15).
+  const [depthLevel, setDepthLevel] = useState('takeaways');
   const depthLevelRef = useRef(depthLevel);
   useEffect(() => { depthLevelRef.current = depthLevel; }, [depthLevel]);
   const handleSetDepth = (level) => {
@@ -165,6 +163,11 @@ const TheAIRundown = () => {
   // Switching tabs should just restore where you left that tab — which useScrollRestore
   // already does — and nothing more.
   const [pendingFocus, setPendingFocus] = useState(null);
+  // The tabs under the topics: the topic story by story, or "World recap" — the whole topic
+  // in one piece — at the period chosen beside them. Shared by all three modes, so switching
+  // from Scroll to Listen keeps you on the recap if that's what you were reading.
+  const [recapView, setRecapView] = useState(false);
+  const [recapPeriod, setRecapPeriod] = useState('Daily');
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
   // ── Listen tracking (for Popular tab) ────────────────────────────────────────
@@ -192,7 +195,26 @@ const TheAIRundown = () => {
   const [readerMounted, setReaderMounted] = useState(false);
   const [briefingData, setBriefingData] = useState({});
   const [briefingLoading, setBriefingLoading] = useState(true);
-  const { history: listenHistory, perfectDays, addToHistory, markPerfectDay } = useListenHistory(user?.id ?? null);
+  const { history: listenHistory, perfectDays, addToHistory, markPerfectDay, mergeServerReads } = useListenHistory(user?.id ?? null);
+  // Read is a property of the story, saved on the server, not of a list position on this phone
+  // (Roy, 2026-10-15). The server's reads are loaded at sign-in and merged into history; the
+  // badge then asks "has this headline been read", from any device and whatever the order.
+  const [serverReadKeys, setServerReadKeys] = useState(() => new Set());
+  useEffect(() => {
+    if (!user?.id) { setServerReadKeys(new Set()); return; }
+    const since = new Date(Date.now() - 40 * 864e5).toISOString().slice(0, 10);
+    fetch(`${BACKEND_URL}/api/reads?user_id=${encodeURIComponent(user.id)}&since=${since}`)
+      .then(r => (r.ok ? r.json() : []))
+      .then(rows => { setServerReadKeys(new Set((rows || []).map(r => r.story_key))); mergeServerReads(rows); })
+      .catch(() => {});
+  }, [user?.id, mergeServerReads]);
+  const readKeySet = useMemo(() => {
+    const s = new Set(serverReadKeys);
+    (listenHistory || []).forEach(h => s.add(headlineKey(h.headline)));
+    return s;
+  }, [serverReadKeys, listenHistory]);
+  const isReadStory = (story, cat, idx) => !!(story && readKeySet.has(headlineKey(story.headline)))
+    || sessionSeenRef.current.has(`${cat}|${idx}`);
   const [selectedProgressDay, setSelectedProgressDay] = useState(null); // null = today
   const gamifiedStats = useMemo(
     // viewDay priority: explicit progress-day picker > content date being viewed > today
@@ -1174,6 +1196,36 @@ const TheAIRundown = () => {
   };
 
 
+  // Listen's "World recap" tab: play the topic's recap at the chosen period. Same pseudo-story
+  // path as handleNarrateBriefing, but the topic stays the selected category — the period
+  // recap used to swap it for a label like "World · last week", which the header has no chip
+  // for — and the topic strip keeps every topic rather than shrinking to this one.
+  const playTopicRecap = (cat, period) => {
+    const text = period === 'Daily' ? briefingData[cat]?.briefing : periodRecaps[period]?.text;
+    if (!cat || !text || !text.trim()) return;
+    if (isNarrating) narrateFnRef.current.stop();
+    const pseudo = [{ headline: `${CATEGORY_SHORT[cat] || cat} recap`, tightBullets: [text], allBullets: [text], storySources: [], _isBriefing: true, _recapPeriod: period }];
+    snapshotPlayRef.current = { category: cat, stories: pseudo, map: { [cat]: { allStories: pseudo } } };
+    playlistCatsRef.current = [cat];
+    const st = narrationStateRef.current;
+    st.active = true; st.paused = false; st.pendingLoad = false;
+    unlockSpeech();
+    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+    setPlayerVisible(true); setPlayerMinimized(false);
+    setStories(pseudo);
+    setStoryIndex(0);
+    storyNavRef.current = { idx: 0, stories: pseudo, cats: [cat], cat };
+    setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+  };
+  // Back to the stories after a recap played: stop it and put the topic's stories back.
+  const leaveRecapPlayback = (cat = selectedCategory) => {
+    if (!stories[0]?._isBriefing) return;
+    narrateFnRef.current.stop();
+    snapshotPlayRef.current = null;
+    setStories(briefingData[cat]?.allStories || []);
+    setStoryIndex(0);
+  };
+
   // ── Social helpers ────────────────────────────────────────────────────────────
   const loadSocialData = (userId) => {
     if (!userId) return;
@@ -1225,7 +1277,7 @@ const TheAIRundown = () => {
       if (story?.headline) {
         fetch(`${BACKEND_URL}/api/reads/sync`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, category: cat, story_index: idx, headline: story.headline }),
+          body: JSON.stringify({ user_id: user.id, category: cat, story_index: idx, headline: story.headline, day: selectedDay || null }),
         }).catch(() => {});
       }
     }, 0);
@@ -1688,7 +1740,7 @@ const TheAIRundown = () => {
       : newsLoading;
 
   return (
-    <div style={{ background: '#09090f', minHeight: '100dvh' }}>
+    <div style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh' }}>
       <GlobalStyles />
 
       {/* ── Onboarding Tour ── */}
@@ -1775,6 +1827,12 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
+          recapView={recapView}
+          onChangeRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={setRecapPeriod}
+          onFocusStoryRequest={(cat, idx) => setPendingFocus({ category: cat, index: idx })}
+          isReadStory={isReadStory}
         />
       )}
 
@@ -1811,6 +1869,14 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/my-feed')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
+          recapView={recapView}
+          onChangeRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={setRecapPeriod}
+          periodRecaps={periodRecaps}
+          onFocusStoryRequest={(cat, idx) => setPendingFocus({ category: cat, index: idx })}
+          onActiveCategoryChange={setFeedPeriodCategory}
+          isReadStory={isReadStory}
         />
       )}
 
@@ -1977,7 +2043,7 @@ const TheAIRundown = () => {
           onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: location.pathname } })}
           onGuestEdit={() => navigate('/my-feed')}
           user={user}
-          isStoryRead={sessionSeenRef.current.has(`${selectedCategory}|${storyIndex}`) || readTodaySet.has(`${selectedCategory}|${storyIndex}`)}
+          isStoryRead={isReadStory(currentStory, selectedCategory, storyIndex)}
           // Summary opens the story in the reader with its sheet already up — the same sheet
           // the Summary button opens from a card, rather than a second copy of it here.
           // Go deeper opens the sheet over the player. It used to navigate to the story's
@@ -1993,6 +2059,16 @@ const TheAIRundown = () => {
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
+          recapView={recapView}
+          onChangeRecapView={(v) => { if (!v) leaveRecapPlayback(); setRecapView(v); }}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={(p) => { leaveRecapPlayback(); setRecapPeriod(p); }}
+          periodReady={{ Daily: !!briefingData[selectedCategory]?.briefing?.trim(), Weekly: !!periodRecaps.Weekly?.text, Monthly: !!periodRecaps.Monthly?.text }}
+          recapText={(recapPeriod === 'Daily' ? briefingData[selectedCategory]?.briefing : periodRecaps[recapPeriod]?.text) || null}
+          onPlayRecapPeriod={(p) => playTopicRecap(selectedCategory, p)}
+          topicStoryCount={stories[0]?._isBriefing ? (briefingData[selectedCategory]?.storyCount || 0) : undefined}
+          narrationDuration={narrationDurationRef.current}
+          isTodaySelected={selectedDay === today}
           lens={playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
           onChangeLens={(l) => {
             const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
@@ -2038,10 +2114,15 @@ const TheAIRundown = () => {
             if (isNarrating && !isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); scheduleNarrate(idx); }
             else if (isNarrating && isPaused) { narrateFnRef.current.cancelAudioKeepActive?.(); setNarrationProgress(0); narrationDurationRef.current = 0; }
           }}
-          contextCategories={playerContextCategories}
+          // A cold load straight onto /listen never runs cueStory, which is what fills the
+          // topic list — so the header had no topics. Fall back to the feed's own.
+          contextCategories={playerContextCategories.length ? playerContextCategories
+            : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories).filter(c => briefingData[c]?.storyCount > 0)}
           onSelectCategory={(cat) => {
+            // A recap was playing: stop it and go back to live stories for the new topic.
+            if (stories[0]?._isBriefing) { narrateFnRef.current.stop(); snapshotPlayRef.current = null; setStories(briefingData[cat]?.allStories || []); }
             // Snapshot feeds: switch category within the snapshot, don't drop to live news
-            if (snapshotPlayRef.current) { goToSnapshotCategory(cat, 0); return; }
+            else if (snapshotPlayRef.current) { goToSnapshotCategory(cat, 0); return; }
             setSelectedCategory(cat);
             setStoryIndex(0);
             setNarrationProgress(0);
@@ -2146,6 +2227,7 @@ const TheAIRundown = () => {
           briefingData={briefingData}
           gamifiedStats={gamifiedStats}
           readTodaySet={readTodaySet}
+          isReadStory={isReadStory}
           savedStories={savedStories}
           handleToggleSaved={handleToggleSaved}
           navigate={navigate}
@@ -2174,6 +2256,11 @@ const TheAIRundown = () => {
           readerClose={readerClose}
           snapshotBriefing={snapshotBriefing}
           viewStories={viewStories}
+          recapView={recapView}
+          setRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          setRecapPeriod={setRecapPeriod}
+          isTodaySelected={selectedDay === today}
         />
       )}
 

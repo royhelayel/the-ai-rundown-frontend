@@ -54,13 +54,6 @@ function CategoryRecapHead({ cat, onOpen, onPlay }) {
 // count and the collapse scroll target all have to agree on it.
 const COLLAPSED_CAP = 6;
 
-// Breathing room above the first category card, matching the gaps between the header rows.
-//
-// This used to be padded out to 49px so Scroll opened at exactly the same height as Swipe.
-// That number was calibrated to the old chrome and is not worth chasing: Swipe centres its
-// story card in whatever band is left, so its top moves with the length of the story. Any
-// fixed value here is only ever right for one story. A normal gap beats a void.
-const FIRST_CARD_TOP = 20;
 
 // The sticky header's measured height, published by FeedHeader as --header-h. Read rather
 // than assumed: every offset that has to clear the header used to carry its own copy of
@@ -105,6 +98,7 @@ function StoryListInner({
   focusStory,     // { category, index } — where Swipe mode left off; scroll there on arrival
   onFocusStory,   // reports the story currently under the header, for mode continuity
   onFocusRestored, // called once the handoff from Swipe mode has been consumed
+  isReadStory,    // (story, category, index) => boolean — read on any device, keyed by the story
 }, ref) {
   const [localCatFilter, setLocalCatFilter] = useState(null);
   const catFilter = onCategoryChange ? activeCategory : localCatFilter;
@@ -356,10 +350,10 @@ function StoryListInner({
     () => buildSections({
       visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap,
       handleBrowse, handleOpenBriefing, handlePlayCat, handlePlayRecap, handleRead, toggleExpanded, observeCard, markRead,
-      savedKeySet, handleToggleSaved,
+      savedKeySet, handleToggleSaved, isReadStory,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visibleCats.join(','), briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap, savedKeySet],
+    [visibleCats.join(','), briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap, savedKeySet, isReadStory],
   );
 
   return (
@@ -371,12 +365,12 @@ function StoryListInner({
           {/* Topics section label */}
           {sectionTitle && (
             <div style={{ padding: '4px 20px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '0.72rem', fontWeight: '800', color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <h2 style={{ margin: 0, fontSize: '0.72rem', fontWeight: '800', color: 'var(--sub)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 News categories
               </h2>
               {onEditFeed && (
                 <button onClick={onEditFeed}
-                  style={{ display: 'flex', alignItems: 'center', padding: '2px', borderRadius: '6px', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ display: 'flex', alignItems: 'center', padding: '2px', borderRadius: '6px', background: 'none', border: 'none', color: 'var(--sub)', cursor: 'pointer', flexShrink: 0 }}>
                   <Pencil size={13} />
                 </button>
               )}
@@ -388,8 +382,8 @@ function StoryListInner({
             position: 'sticky', top: 54, zIndex: 40,
             display: 'flex', gap: '5px',
             padding: '8px 16px 10px', overflowX: 'auto', scrollbarWidth: 'none',
-            background: '#f5f5f7',   // opaque; see FeedHeader — blur on sticky costs a repaint per frame
-            borderBottom: '1px solid rgba(0,0,0,0.05)',
+            background: 'var(--paper)',   // opaque; see FeedHeader — blur on sticky costs a repaint per frame
+            borderBottom: '1px solid var(--line)',
           }}>
             {categories.filter(c => briefingData[c]?.storyCount > 0).map(cat => {
               const active = catFilter === cat;
@@ -404,11 +398,11 @@ function StoryListInner({
                     padding: '5px 13px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: active ? '800' : '600',
                     whiteSpace: 'nowrap', cursor: 'pointer',
                     background: active ? `${color}12` : 'transparent',
-                    border: `1px solid ${active ? `${color}55` : 'rgba(0,0,0,0.1)'}`,
-                    color: active ? color : '#6b7280',
+                    border: `1px solid ${active ? `${color}55` : 'var(--line)'}`,
+                    color: active ? color : 'var(--sub)',
                   }}
                 >
-                  <CategoryIcon category={cat} size={15} color={active ? color : '#6b7280'} />
+                  <CategoryIcon category={cat} size={15} color={active ? color : 'var(--sub)'} />
                   {CATEGORY_SHORT[cat] || cat}
                 </button>
               );
@@ -427,16 +421,13 @@ function StoryListInner({
       <div style={{
         display: loading ? 'none' : 'flex',
         flexDirection: 'column',
-        gap: showCategoryImages ? '24px' : '8px',
-        // Opens at the same height as Swipe mode. Swipe carries a Category Recap row that
-        // Scroll doesn't — Scroll keeps its recap inside the category card — so without this
-        // the two modes started their content ~41px apart, and switching between them jumped.
-        // Matched to the measured offset rather than eyeballed; see FIRST_CARD_TOP.
-        padding: showCategoryImages ? `${FIRST_CARD_TOP}px 16px 0` : '0 16px',
+        gap: showCategoryImages ? '8px' : '8px',
+        // 20px gutters, the same as the header above and every other mode.
+        padding: showCategoryImages ? '8px 20px 0' : '0 20px',
         paddingBottom: playerVisible ? '9rem' : '5rem',
       }}>
         {visibleCats.length === 0 && (
-          <div style={{ padding: '3rem 0', textAlign: 'center', color: '#8a8a9a', fontSize: '0.88rem' }}>
+          <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--sub)', fontSize: '0.88rem' }}>
             No stories available for this day.
           </div>
         )}
@@ -453,7 +444,7 @@ export default StoryList;
 function buildSections({
   visibleCats, briefingData, gamifiedStats, expandedCats, user, markNew, showCategoryImages, sectionRecap,
   handleBrowse, handleOpenBriefing, handlePlayCat, handlePlayRecap, handleRead, toggleExpanded, observeCard, markRead,
-  savedKeySet, handleToggleSaved,
+  savedKeySet, handleToggleSaved, isReadStory,
 }) {
   return visibleCats.map(cat => {
           const catData     = briefingData[cat];
@@ -481,26 +472,25 @@ function buildSections({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 2px 8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color }}>
                     <CategoryIcon category={cat} size={16} color={color} />
-                    <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.01em' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '900', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
                       {cat}
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--sub)' }}>
                     {stories.length} {stories.length === 1 ? 'story' : 'stories'}
                   </span>
                 </div>
               )}
 
               {/* Story cards — always shown under each topic (capped at 6, expandable) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {shownStories.map((story, idx) => (
                   <div key={idx} id={`sl-story-${cat}-${idx}`} ref={observeCard(cat, idx, story)} style={{ scrollMarginTop: 'calc(var(--header-h, 135px) + 56px)' }}>
                     <StoryCard
                       story={story}
                       category={cat}
-                      isRead={user ? listenedSet.has(idx) : undefined}
+                      isRead={user ? (isReadStory ? isReadStory(story, cat, idx) : listenedSet.has(idx)) : undefined}
                       isNew={markNew && story.status === 'New'}
-                      isUpdated={markNew && story.status === 'Updated'}
                       isSaved={savedKeySet.has(headlineKey(story.headline || ''))}
                       onToggleSaved={() => handleToggleSaved(story, cat, idx)}
                       onRead={() => handleRead(cat, idx)}
@@ -518,9 +508,9 @@ function buildSections({
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                     width: '100%', marginTop: '6px', marginBottom: '6px',
-                    padding: '10px', border: '1px solid rgba(0,0,0,0.07)',
-                    borderRadius: '12px', background: 'rgba(0,0,0,0.02)',
-                    cursor: 'pointer', color: '#6b7280', fontSize: '0.78rem', fontWeight: '700',
+                    minHeight: 44, padding: '10px', border: '1px solid var(--line)',
+                    borderRadius: 10, background: 'transparent',
+                    cursor: 'pointer', color: 'var(--sub)', fontSize: 13, fontWeight: 600,
                   }}
                 >
                   {/* Same wording as Swipe mode's gate, so the two modes read alike — the

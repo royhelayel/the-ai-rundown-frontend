@@ -102,9 +102,9 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   userEvent.click(picker);
 
   // The picker lists the week ending on that day.
-  expect(screen.getByRole('button', { name: 'Mon, Sep 14' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Sat, Sep 19' }));
+  expect(screen.getByRole('menuitemradio', { name: 'Mon, Sep 14' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('menuitemradio', { name: 'Sat, Sep 19' }));
 
   expect(await screen.findByRole('button', { name: 'Sat, Sep 19' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('menuitemradio', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
 });

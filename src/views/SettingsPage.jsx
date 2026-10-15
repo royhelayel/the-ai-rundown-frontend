@@ -10,10 +10,9 @@ export default function SettingsPage({
   saveFeedCategories, saveNewsLanguage, preferredReadMode,
 }) {
   return (
-    <main style={{ background: '#f5f5f7', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '0 0 4rem' }}>
-      <style>{`html, body { background: #ffffff !important; }`}</style>
+    <main style={{ background: 'var(--paper)', minHeight: '100dvh', maxWidth: '680px', margin: '0 auto', padding: '0 0 4rem' }}>
       {/* Sticky header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--paper)', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem' }}>
         <button onClick={() => {
           // Prefer real history back: it restores the full state (asPage, playlist,
           // returnTo…) of whatever screen we came from. navigate(back) only had the
@@ -28,16 +27,16 @@ export default function SettingsPage({
           // the remembered read mode rather than assuming one.
           const m = preferredReadMode();
           navigate(m === 'audio' ? '/listen' : '/');
-        }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#8a8a9a', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
+        }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '999px', color: 'var(--sub)', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
           <ChevronLeft size={16} /> Back
         </button>
-        <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0a0a0f', flex: 1 }}>Settings</h2>
+        <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: 'var(--ink)', flex: 1 }}>Settings</h2>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem 1rem 0' }}>
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.1rem' }}>
             <User size={18} color="#8a8a9a" />
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Account</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Account</h3>
           </div>
           {user ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -47,8 +46,8 @@ export default function SettingsPage({
                   {(user.display_name || user.email || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0a0a0f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.display_name || user.email}</div>
-                  {user.username && <div style={{ fontSize: '0.75rem', color: '#8a8a9a', marginTop: '1px' }}>@{user.username}</div>}
+                  <div style={{ fontSize: '0.88rem', fontWeight: '700', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.display_name || user.email}</div>
+                  {user.username && <div style={{ fontSize: '0.75rem', color: 'var(--sub)', marginTop: '1px' }}>@{user.username}</div>}
                 </div>
               </div>
               {/* My Interesting — the stories this user flagged. It used to hang off the
@@ -56,7 +55,7 @@ export default function SettingsPage({
                   interesting; a personal shortcut at the top of it put two scopes on one
                   screen. It belongs with the rest of "things that are mine". */}
               <button onClick={() => navigate('/saved')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '999px', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
                 <Star size={15} color="#7c3aed" />
                 <span style={{ flex: 1, textAlign: 'left' }}>My Interesting</span>
                 <ChevronRight size={15} color="#8a8a9a" />
@@ -64,7 +63,7 @@ export default function SettingsPage({
               {/* View profile link */}
               {user.username && (
                 <button onClick={() => navigate(`/profile/${user.username}`)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0.5rem 1rem', background: '#f5f5f7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '999px', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0.5rem 1rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '999px', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
                   View My Profile
                 </button>
               )}
@@ -86,20 +85,20 @@ export default function SettingsPage({
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: 'white', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Sign In</button>
-              <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1.5px solid rgba(0,0,0,0.08)', color: '#0a0a0f', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
+              <button onClick={() => { setShowAuth(true); setAuthMode('signin'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'var(--play-bg)', color: 'var(--play-fg)', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Sign In</button>
+              <button onClick={() => { setShowAuth(true); setAuthMode('signup'); }} style={{ flex: 1, minWidth: '120px', padding: '0.6rem 1.2rem', background: 'none', border: '1.5px solid rgba(0,0,0,0.08)', color: 'var(--ink)', borderRadius: '999px', cursor: 'pointer', fontWeight: '600', fontSize: '0.88rem' }}>Create Account</button>
             </div>
           )}
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🌐</span>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>News Language</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>News Language</h3>
             </div>
-            <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+            <div style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
               {[['en', 'English'], ['ar', 'عربي']].map(([val, label]) => (
-                <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? '#0a0a0f' : 'transparent', color: newsLanguage === val ? 'white' : '#8a8a9a', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                <button key={val} onClick={() => saveNewsLanguage(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: newsLanguage === val ? 'var(--ink)' : 'transparent', color: newsLanguage === val ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                   {label}
                 </button>
               ))}
@@ -107,18 +106,18 @@ export default function SettingsPage({
           </div>
         </div>
         {user && (
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🎯</span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Daily Goal</h3>
-                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: '#8a8a9a' }}>Stories to read or listen to each day</p>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Daily Goal</h3>
+                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: 'var(--sub)' }}>Stories to read or listen to each day</p>
               </div>
             </div>
-            <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+            <div style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
               {[5, 10, 15, 20].map(g => (
-                <button key={g} onClick={() => handleSetDailyGoal(g)} style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: dailyGoal === g ? '#0a0a0f' : 'transparent', color: dailyGoal === g ? 'white' : '#8a8a9a', transition: 'all 0.15s' }}>
+                <button key={g} onClick={() => handleSetDailyGoal(g)} style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: dailyGoal === g ? 'var(--ink)' : 'transparent', color: dailyGoal === g ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s' }}>
                   {g}
                 </button>
               ))}
@@ -126,57 +125,57 @@ export default function SettingsPage({
           </div>
         </div>
         )}
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🔤</span>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Font Size</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Font Size</h3>
             </div>
-            <div style={{ display: 'flex', background: '#f5f5f7', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+            <div style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
               {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
-                <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? '#0a0a0f' : 'transparent', color: fontSize === val ? 'white' : '#8a8a9a', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'var(--ink)' : 'transparent', color: fontSize === val ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                   {label}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>✨</span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>Intro Tour</h3>
-                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: '#8a8a9a' }}>Replay the walkthrough of the app's features</p>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Intro Tour</h3>
+                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: 'var(--sub)' }}>Replay the walkthrough of the app's features</p>
               </div>
             </div>
-            <button onClick={openOnboarding} style={{ flexShrink: 0, padding: '0.45rem 1.1rem', borderRadius: '999px', border: '1px solid rgba(0,0,0,0.08)', background: '#f5f5f7', color: '#0a0a0f', cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem' }}>
+            <button onClick={openOnboarding} style={{ flexShrink: 0, padding: '0.45rem 1.1rem', borderRadius: '999px', border: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem' }}>
               Replay
             </button>
           </div>
         </div>
         {user && (
-        <div id="settings-myfeed" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', position: 'relative', overflow: 'hidden', scrollMarginTop: '72px' }}>
+        <div id="settings-myfeed" style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem', position: 'relative', overflow: 'hidden', scrollMarginTop: '72px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MY_FEED_COLOR} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#0a0a0f' }}>My News</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>My News</h3>
           </div>
-          <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: '#8a8a9a' }}>Add the categories you want, then drag to rank them — the order sets your story order.</p>
+          <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'var(--sub)' }}>Add the categories you want, then drag to rank them — the order sets your story order.</p>
           <FeedCategoryEditor allCategories={myNewsCategories} selected={feedCategories} onChange={saveFeedCategories} />
           {/* The way back to the full set. Reading screens have no My/All switch any
               more — editing this list is what narrows them, so undoing that edit is what
               widens them again, and it belongs next to the edit rather than one tap away
               on the screen you are reading. */}
-          <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-            <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: '#8a8a9a' }}>
+          <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid var(--line)' }}>
+            <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--sub)' }}>
               Your reading screens show these news categories. Restore the defaults to see all of them again.
             </p>
             <button
               onClick={() => setRestoreArmed(true)}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
                 padding: '0.5rem 1rem', borderRadius: '999px', width: '100%', cursor: 'pointer',
-                fontWeight: '700', fontSize: '0.83rem', background: '#f5f5f7',
-                border: '1px solid rgba(0,0,0,0.08)', color: '#0a0a0f' }}>
+                fontWeight: '700', fontSize: '0.83rem', background: 'var(--paper)',
+                border: '1px solid var(--line)', color: 'var(--ink)' }}>
               Restore default news categories
             </button>
           </div>

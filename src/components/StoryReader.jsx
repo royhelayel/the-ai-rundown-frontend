@@ -1,40 +1,19 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Star, ChevronDown, ChevronUp, FileText, Newspaper, X, Calendar, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL, SPACE, TYPE, WEIGHT, RADIUS, ICON } from '../theme';
-import CategoryIcon from './CategoryIcon';
-import InterestingButton from './InterestingButton';
-import CircleAction from './CircleAction';
+import { Play, Star, ChevronDown, ChevronUp, Newspaper, X } from 'lucide-react';
+import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL } from '../theme';
 import { headlineKey } from './PopularTab';
 import BottomNav from './BottomNav';
 import StorySummarySheet from './StorySummarySheet';
 import ProgressRail from './ProgressRail';
-import LensToggle from './LensToggle';
-import RecapBar from './RecapBar';
-import PeriodRecapChips from './PeriodRecapChips';
+import AppHeader from './AppHeader';
+import { StoryTopRow, SourcesRow, StarButton } from './StoryBits';
+import { TopicRecapPages } from './TopicRecap';
+import { topicVars } from '../design';
 import { centrePill } from '../utils';
-
-function formatHeaderDate(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date  = new Date(y, m - 1, d);
-    const today = new Date();
-    if (y === today.getFullYear() && m === today.getMonth() + 1 && d === today.getDate()) return 'Today';
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch { return dateStr; }
-}
 
 // Lift a category colour toward white so it stays legible on the dark photo behind the
 // Swipe-mode pills, without losing which category it is.
-function tintForDark(hex, amount = 0.45) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return '#ffffff';
-  const n = parseInt(m[1], 16);
-  const mix = (ch) => Math.round(ch + (255 - ch) * amount);
-  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
-}
-
 const light = {
   bg:        '#ffffff',
   bgSub:     '#f5f5f7',
@@ -91,9 +70,18 @@ export default function StoryReader({
   periodMinutes = () => 1,
   onOpenPeriodRecap,
   onPlayPeriodRecap,
+  // The tabs
+  recapView = false,
+  onChangeRecapView,
+  recapPeriod = 'Daily',
+  onChangeRecapPeriod,
+  periodReady,
+  recapText,
+  recapSources,
+  isTodaySelected = true,
+  onOpenRecapStory,
 }) {
   const navigate = useNavigate();
-  const modeLinkStyle = { padding: '2px 8px', border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' };
   const location = useLocation();
   // Arriving from "Go deeper" in Scroll mode opens the summary straight away.
   const [summaryOpen, setSummaryOpen] = useState(!!location.state?.openSummary);
@@ -114,25 +102,7 @@ export default function StoryReader({
   // the session-seen set), so one function answers for the live story and its neighbours
   // alike and the two can't disagree at the handover.
   const readOf = (cat, idx) => !!isStoryRead?.(cat, idx);
-  const [dayPickerOpen, setDayPickerOpen] = useState(false);
-  const dayPickerRef = useRef(null);
-  const effectiveDay = selectedDay || new Date().toISOString().split('T')[0];
-  const canPickDay = availableDays.length > 0;
-
-  useEffect(() => {
-    if (!dayPickerOpen) return;
-    const handler = (e) => {
-      if (dayPickerRef.current && !dayPickerRef.current.contains(e.target)) setDayPickerOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, [dayPickerOpen]);
   const color = CATEGORY_COLORS[category] || '#6366f1';
-  const image = CATEGORY_IMAGES[category];
 
   // Tell the app where we are, so Scroll mode can continue from the same story.
   useEffect(() => { if (asPage) onFocusStory?.(category, storyIndex); }, [asPage, category, storyIndex]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -194,8 +164,6 @@ export default function StoryReader({
     : -1;
   const inPlaylist  = !!playlist && playlistPos !== -1;
 
-  const totalCount = inPlaylist ? playlist.length : stories.length;
-  const currentPos = inPlaylist ? playlistPos    : storyIndex;
 
   // Swipe mode reveals the category in batches: you get SWIPE_BATCH stories, then a button
   // offering the rest. Stops an endless strip and gives a natural stopping point.
@@ -215,9 +183,6 @@ export default function StoryReader({
   // Popular and Interesting are ranked cross-category lists — same as Scroll mode, they
   // get an "All" entry. The per-category feeds don't.
   const fromPath = location.state?.from;
-  // The recap row's colour — the exact value the active topic tab is drawn in, so the two
-  // cannot drift and the row is tied to the topic without naming it again.
-  const recapTint = tintForDark(CATEGORY_COLORS[category]);
   const showAllPill = !!playlist?.length && (fromPath === '/popular' || fromPath === '/important');
 
   // Popular and Interesting are ranked lists that happen to span categories, so they have
@@ -619,14 +584,6 @@ export default function StoryReader({
 
   if (!story) return null;
 
-  // Takeaway bullets for the story body come from storyBody(), which derives them per entry.
-  const summaryBullets  = story.allBullets?.length ? story.allBullets : (story.tightBullets || []);
-  // For the Go deeper sheet: only worth repeating the takeaways when they're distinct from
-  // the full picture below — i.e. punchy bullets exist, or the full picture is prose.
-  const sheetTakeaways = story.tightBullets?.length
-    ? story.tightBullets
-    : (story.summary ? (story.allBullets || []).slice(0, 3) : []);
-  const outlets = (story.storySources || []).filter(s => s.outlet);
 
   const iconBtn = { width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
@@ -644,163 +601,39 @@ export default function StoryReader({
     return !!(k && savedStories.some(x => headlineKey(x.headline || '') === k));
   };
 
+  // The story as a tinted card that fills the band — Swipe is the reading mode, so the card
+  // stays tall (Codex, 2026-10-15). Topic and status, headline, the takeaways, then every
+  // source and the Interesting star on one row. No Go deeper and no Listen: the bottom bar is
+  // how you choose to listen.
   const storyBody = (entry, read) => {
-    const col = CATEGORY_COLORS[entry.category] || '#6366f1';
     const entrySaved = savedFor(entry.story);
     const bullets = entry.story.tightBullets?.length ? entry.story.tightBullets : (entry.story.allBullets || []).slice(0, 3);
     const outs = (entry.story.storySources || []).filter(s => s.outlet);
     return (
       <>
-        {/* Top-anchored, 8px under the lens row — the exact offset Listen puts between
-            "Relevant" and its own story panel, so the headline starts on the same line in
-            both modes. It used to float: uneven flex spacers (2 above, 3 below) centred the
-            card in the band and weighted it slightly upward, which meant the story began at
-            a different height for every story, and lower than Listen's for most of them.
-            All the slack now goes below, where the pinned hint already lives. */}
-        <div style={{ height: 8, flexShrink: 0 }} />
-        <div style={{ position: 'relative', zIndex: 3, padding: '0 1rem', flexShrink: 0 }}>
-          {/* One panel behind the whole block — read status, headline, takeaways and
-              sources — so the text sits on a single surface rather than the headline
-              floating on the photo above a separate card.
-              Solid, not backdrop-blurred: live blur layers over a moving photo are what
-              made the settle frame stutter. */}
-          {/* Listen's fill, and no hairline. rgba(8,8,16,0.78) was a scrim: it existed to
-              hold down the full-bleed category photo this screen used to carry, and with
-              UI_TRIAL.photoBackdrop off there has been no photo to hold down — so it was
-              darkening a flat ground for nothing, and reading heavier than the same card one
-              mode over. A faint lift off the ground is what Listen uses and what this needs.
-              If the photo backdrop is ever switched back on, this has to become a scrim
-              again — 0.03 of white over an image is unreadable. */}
-          <div style={{ padding: '13px 15px 11px', borderRadius: 16, background: 'rgba(255,255,255,0.03)' }}>
-          {/* Category top-left, read status top-right — the same corners the Scroll-mode
-              card uses, so the two line up. Interesting moves to the bottom-left corner,
-              next to Summary/Listen; see below. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', minHeight: 20 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.66rem', fontWeight: 800, color: col, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              <CategoryIcon category={entry.category} size={11} color={col} />
-              {CATEGORY_SHORT[entry.category] || entry.category}
-            </span>
-            <span style={{ flex: 1 }} />
-            {/* Same three states as the story card in Scroll mode: an evening-incremental
-                story reads NEW until it's opened, then Read like any other. Swipe mode only
-                had Read/Unread, so a story added in the evening was indistinguishable from
-                one you'd simply not got to yet. */}
-            {user && (
-              <p style={{ margin: 0, fontSize: '0.66rem', fontWeight: 700, color: read ? '#4ade80' : 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {read ? '✓ Read' : entry.story.status === 'New' ? 'New' : entry.story.status === 'Updated' ? 'Updated' : 'Unread'}
-              </p>
+        <div style={{ height: 4, flexShrink: 0 }} />
+        <div style={{ position: 'relative', zIndex: 3, padding: '0 20px', flex: '1 0 auto', display: 'flex' }}>
+          <article className="rn-tp" style={{ ...topicVars(entry.category), flex: 1, minWidth: 0, background: 'var(--tp-card)', color: 'var(--card-ink)',
+            borderRadius: 19, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <StoryTopRow category={entry.category} onCard read={user ? read : undefined} isNew={entry.story.status === 'New'} />
+            <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 }}>{entry.story.headline}</h1>
+            {bullets.length > 0 && (
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 15.5, lineHeight: 1.5, color: 'var(--card-body)' }}>
+                {bullets.map((b, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 9 }}>
+                    <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', opacity: 0.7, marginTop: 9, flexShrink: 0 }} />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-          <h1 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.55)' }}>{entry.story.headline}</h1>
-          {bullets.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '2px 0 10px' }}>
-              {bullets.map((b, i) => (
-                <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: col, flexShrink: 0, marginTop: 7, boxShadow: `0 0 6px ${col}` }} />
-                  {/* 0.92rem, the body size Listen and Scroll both use. Swipe was reading a
-                      step smaller than the other two for the same sentences. Weight 400 to
-                      match — 500 is not one of the three weights, and Listen sets its own
-                      summary on the same dark ground at 400. */}
-                  <span style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, fontWeight: 400 }}>{b}</span>
-                </div>
-              ))}
+            <div style={{ marginTop: 'auto' }}>
+              <SourcesRow sources={outs} onCard
+                star={<StarButton onCard active={entrySaved} onClick={() => onToggleSaved?.(entry.story, entry.category, entry.index)} />} />
             </div>
-          )}
-          {/* Docked to the bottom of the SAME panel, not a separate chip floating below it —
-              same background, no gap, so the card reads as one piece whether the actions are
-              sitting at their natural position (short story) or stuck to the screen's bottom
-              edge (long story, scrolled). `position: sticky` is what does the docking: it
-              clamps here once the panel's own flow would otherwise carry it off-screen.
-              Solid background, not backdrop-filter: a blurred layer sitting over a scrolling
-              photo repaints every frame, the stutter this codebase already removed once from
-              the sticky header and the summary sheet. */}
-          {/* bottom: 44, not 0. The hint is pinned to the band's bottom edge now, and this
-              row docks to the same edge — on a story long enough to scroll, the two landed
-              on top of each other and the hint struck through "Interesting"/"Go deeper".
-              A sticky offset is the free way to separate them: it only changes where the row
-              *clamps*, so it costs no height, and on a story short enough that this row never
-              sticks it changes nothing at all. 44 clears the hint at the 1.4× it reaches
-              when the scroll listener grows it at the bottom (see ZONE). */}
-          {/* Sits on the outlets' own line — the buttons came up to them, not the other way
-              round. The row used to add 12 of margin and 9 of padding on top of the 10 the
-              takeaways already leave, which parked it 21px below where the outlets had been
-              and read as a separate footer strip rather than the end of the story.
-              Sticky is kept: it does nothing at this natural position on a story that fits,
-              and on one that doesn't it is the only thing keeping Listen in reach. */}
-          <div style={{ position: 'sticky', bottom: 44, zIndex: 5, display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
-            {/* No background of its own. It's the last child of the SAME panel, and the
-                panel's own background already spans this row's natural position whether or
-                not the row is currently stuck — a second translucent layer painted on top of
-                that produced a visibly harder, more opaque rectangle exactly where the two
-                overlapped, which is the box that showed up behind "Summary / Listen". One
-                layer, not two. */}
-            {/* The outlets, in the slot this row was already holding open. They had a line
-                of their own directly above, which cost the card ~22px to say two words in a
-                strip that was otherwise empty — and the buttons sit on the right, so there
-                was never anything to collide with. One muted line, the full list still in
-                the Go deeper sheet under "Sources". */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-              {outs.length > 0 && (() => {
-                const shown = outs.slice(0, 2);
-                const rest = outs.length - shown.length;
-                const src = { fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', textDecoration: 'none', whiteSpace: 'nowrap' };
-                return (
-                  <>
-                    {shown.map((s, i) => (
-                      <React.Fragment key={i}>
-                        {i > 0 && <span style={{ ...src, opacity: 0.5 }}>·</span>}
-                        {s.url
-                          ? <a href={s.url} target="_blank" rel="noopener noreferrer" title={s.title || s.outlet} onClick={e => e.stopPropagation()} style={{ ...src, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.outlet}</a>
-                          : <span style={{ ...src, overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.outlet}</span>}
-                      </React.Fragment>
-                    ))}
-                    {rest > 0 && <span style={{ ...src, opacity: 0.75, flexShrink: 0 }}>· +{rest}</span>}
-                  </>
-                );
-              })()}
-            </div>
-            {/* All three actions together on the right. Interesting used to hold the opposite
-                corner, which split one set of controls across the width of the card. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-              <InterestingButton
-                theme="dark"
-                active={entrySaved}
-                onClick={(e) => { e.stopPropagation(); onToggleSaved?.(entry.story, entry.category, entry.index); }}
-              />
-              <CircleAction
-                Icon={FileText}
-                label="Go deeper"
-                theme="dark"
-                onClick={(e) => { e.stopPropagation(); setRecapOpen(false); setSummaryOpen(true); }}
-                aria-label="Go deeper"
-              />
-              <CircleAction
-                Icon={Play}
-                label="Listen"
-                variant="filled"
-                theme="dark"
-                accent={col}
-                iconProps={{ fill: '#fff', color: '#fff', style: { marginLeft: 1 } }}
-                onClick={(e) => { e.stopPropagation(); onPlayFrom(entry.index); }}
-                aria-label={isNarrating ? 'Playing' : 'Listen to story'}
-              />
-            </div>
-          </div>
-
-          </div>
-          {/* The "swipe up for next" hint used to live here, in a 52px slot reserved in
-              every layer so the geometry matched before and after a handover. It has moved
-              out of this column entirely — see the pinned row below the band. Being the last
-              child of a column that overflows meant it was, by construction, the first thing
-              pushed below the fold: on every iPhone but the Pro Max a normal three-takeaway
-              story needed ~504px in a ~462px band, so the one affordance telling you the
-              gesture exists was the one you could never see. Reclaiming these 52px is also
-              most of what brings the card back inside the band. The twitch the slot was
-              guarding against can't return: the hint is no longer laid out in any of the
-              three layers, so all three still measure identically. */}
+          </article>
         </div>
-        <div style={{ flex: 1, minHeight: '0.5rem' }} />
+        <div style={{ height: 40, flexShrink: 0 }} />
       </>
     );
   };
@@ -862,7 +695,7 @@ export default function StoryReader({
               else if (storyIndex > SWIPE_BATCH) requestAnimationFrame(() => navTo(category, SWIPE_BATCH - 1));
             }
           }}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', borderRadius: 999, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: '0.58rem', fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', borderRadius: 999, border: 'none', background: 'transparent', color: 'var(--sub)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           {/* Down reveals more (there's further to go); up collapses back (folding up what
               was revealed) — these were swapped, pointing the opposite way from what each
               button actually does. */}
@@ -877,7 +710,7 @@ export default function StoryReader({
         </button>
         {/* Swiping still works here — say where it goes, or it looks like a dead end. */}
         {atBatchEnd && nextCat && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'rgba(255,255,255,0.45)', fontSize: '0.56rem', fontWeight: 600 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--sub)', fontSize: 11.5, fontWeight: 600 }}>
             <ChevronUp size={9} /> swipe up for {CATEGORY_SHORT[nextCat] || nextCat}
           </span>
         )}
@@ -890,9 +723,9 @@ export default function StoryReader({
         ref={hintRef}
         onClick={() => commitTo('next')}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '6px 12px', borderRadius: 999,
-          border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '0.58rem', cursor: 'pointer',
+          border: 'none', background: 'transparent', color: 'var(--sub)', fontSize: 12, cursor: 'pointer',
           transformOrigin: 'center', transition: 'transform 0.08s ease-out' }}>
-        <ChevronUp size={10} /> swipe up for next
+        <ChevronUp size={14} /> Swipe up for next story
       </button>
     ) : null}
     </div>
@@ -901,12 +734,12 @@ export default function StoryReader({
   return (
     <div
       ref={rootRef}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onTouchCancel={onTouchCancel}
-      onWheel={onWheel}
-      style={{ position: 'relative', flex: 1, minHeight: 0, background: '#0a0a14', overflow: 'hidden', display: 'flex', flexDirection: 'column', overscrollBehavior: 'none', touchAction: 'pan-y' }}
+      onTouchStart={recapView ? undefined : onTouchStart}
+      onTouchMove={recapView ? undefined : onTouchMove}
+      onTouchEnd={recapView ? undefined : onTouchEnd}
+      onTouchCancel={recapView ? undefined : onTouchCancel}
+      onWheel={recapView ? undefined : onWheel}
+      style={{ position: 'relative', flex: 1, minHeight: 0, background: 'var(--paper)', color: 'var(--ink)', overflow: 'hidden', display: 'flex', flexDirection: 'column', overscrollBehavior: 'none', touchAction: 'pan-y' }}
     >
       <style>{`
         * { box-sizing: border-box; }
@@ -938,71 +771,30 @@ export default function StoryReader({
                 /* Flat ground, with one faint wash of the category's colour so the screen
                    still says which section you're in. Each layer keeps its own, so the wash
                    still travels with the story as you swipe. */
-                <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${col}1f 0%, transparent 62%), #0a0a14` }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'var(--paper)' }} />
               )}
             </div>
           );
         })}
       </div>
 
-      {/* ── Chrome scrims: sit above the moving strip but below the controls, so a story
-             sliding past fades out behind the header and the buttons instead of colliding. ── */}
-      {asPage && (
-        <>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, zIndex: 5, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(10,10,20,0.92) 0%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0) 100%)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 130, zIndex: 5, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(10,10,20,0.95) 0%, rgba(10,10,20,0.8) 45%, rgba(10,10,20,0) 100%)' }} />
-
-        </>
-      )}
 
       {/* ── Top: identity row (asPage), or close/breadcrumb/Interesting (sheet) ── */}
       {asPage ? (
-        <>
-          {/* Same wordmark as Scroll mode's header — see FeedHeader. */}
-          {/* ── Identity and day, on one line — Listen's header, part for part. The
-                 wordmark moves off centre to the left edge, where it anchors the same gutter
-                 as everything under it. The page is viewport-fit=cover, so this row is the
-                 first thing under the status bar: SPACE.md plus the device's own inset. ── */}
-          <div style={{ position: 'relative', zIndex: 8, display: 'flex', alignItems: 'center', gap: 10,
-            padding: `calc(env(safe-area-inset-top, 0px) + ${SPACE.md}px) ${SPACE.md}px ${SPACE.md}px` }}>
-            <span style={{ fontSize: '0.84rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              <span style={{ color: 'rgba(255,255,255,0.58)' }}>Radio</span>
-              <span style={{ color: 'rgba(255,255,255,0.32)' }}>News</span>
-            </span>
-            <div style={{ flex: 1 }} />
-            <div style={{ position: 'relative' }} ref={dayPickerRef}>
-              <button onClick={() => canPickDay && setDayPickerOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 0, background: 'transparent', border: 'none', cursor: canPickDay ? 'pointer' : 'default' }}>
-                <Calendar size={ICON.sm} color="rgba(255,255,255,0.6)" />
-                <span style={{ fontSize: TYPE.ui, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
-                {canPickDay && <ChevronDown size={ICON.sm} color="rgba(255,255,255,0.6)" />}
-              </button>
-              {dayPickerOpen && canPickDay && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 20, width: 160, background: '#fff', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.35)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {availableDays.map(day => {
-                    const isActive = day.fullDate === selectedDay;
-                    return (
-                      <button
-                        key={day.fullDate}
-                        onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '7px 10px', borderRadius: 9, border: 'none',
-                          background: isActive ? 'rgba(124,58,237,0.1)' : 'transparent',
-                          color: isActive ? '#7c3aed' : '#374151',
-                          fontSize: '0.78rem', fontWeight: isActive ? 800 : 500,
-                          cursor: 'pointer', textAlign: 'left', width: '100%',
-                        }}
-                      >
-                        {formatHeaderDate(day.fullDate)}
-                        {isActive && <span style={{ fontSize: '0.6rem', color: '#7c3aed' }}>✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+        <div style={{ position: 'relative', zIndex: 8, flexShrink: 0 }}>
+          <AppHeader
+            selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
+            categories={contextCategories} activeCategory={allScope ? null : category}
+            onSelectCategory={(cat) => { if (!allScope && cat === category) return; setScope('category'); navTo(cat, 0); }}
+            showAllPill={showAllPill} allActive={allScope}
+            onSelectAll={() => { if (allScope) return; setScope('all'); const p = playlist?.[0]; if (p) navTo(p.category, p.storyIndex); }}
+            onEditCategories={onEditCategories} user={user}
+            storyCount={allScope ? (playlist?.length || 0) : stories.length}
+            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!showAllPill && !!onChangeRecapView}
+            lens={lens} onChangeLens={onChangeLens}
+            period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
+          />
+        </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'center', padding: '0.7rem 1rem 0.4rem', gap: 8 }}>
           <button onClick={onClose || goBack} style={iconBtn} aria-label="Close"><ChevronDown size={20} /></button>
@@ -1021,126 +813,6 @@ export default function StoryReader({
         </div>
       )}
 
-      {/* ── Scope and topics, as one row — Listen's header, part for part.
-             No My/All mode: you see every topic until you edit them, and after that you see
-             yours. The pinned slot holds the editor, the one control that changes what this
-             strip contains. Pills are text; the active one takes an underline rather than a
-             filled rectangle, and no rule closes the row. ── */}
-      {asPage && (
-        <div style={{ position: 'relative', zIndex: 6, display: 'flex', alignItems: 'stretch', paddingTop: SPACE.sm }}>
-          {/* Pinned, so it holds still while the topics move past it. Bottom-padded so its
-              box centres on the tab labels rather than on the row. */}
-          {/* Not on Popular and Interesting. Those are rankings across every category — the
-              strip there is a jump list over a list you did not choose, so an editor for
-              "your topics" acts on something this screen isn't showing. Same reason the
-              category recap is hidden there. */}
-          {onEditCategories && !showAllPill && (
-            <span style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: SPACE.md, paddingBottom: 11, flexShrink: 0 }}>
-              <button
-                // Same as Scroll: guests meet the My News page, which makes the case before
-                // asking for an account.
-                onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
-                aria-label="Choose your topics"
-                title="Choose your topics"
-                style={{ width: 26, height: 26, border: 'none', padding: 0, borderRadius: 8,
-                  background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <SlidersHorizontal size={14} />
-              </button>
-            </span>
-          )}
-          {/* The rule divides the editor from the topics, so it goes when the editor does. */}
-          {contextCategories.length > 1 && !showAllPill && (
-            <span aria-hidden style={{ width: 1, margin: `0 ${SPACE.sm}px ${SPACE.sm + 1}px`, background: 'rgba(255,255,255,0.16)', flexShrink: 0 }} />
-          )}
-
-          {/* `position: relative` is load-bearing: centrePill measures with offsetLeft, which
-              is relative to the nearest *positioned* ancestor — without it the pinned
-              editor's width is added to every target and the strip overshoots. */}
-          <div ref={catStripRef} className="rdr-cat-strip" style={{ position: 'relative', flex: 1, minWidth: 0, overflowX: 'auto', display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, paddingRight: SPACE.md,
-              /* The pinned editor supplied the left gutter; without it the first tab would
-                 start hard against the screen edge. */
-              paddingLeft: showAllPill ? SPACE.md : 0, minWidth: 'max-content' }}>
-              {showAllPill && (() => {
-                const act = allScope;
-                return (
-                  <button onClick={() => { if (allScope) return; setScope('all'); const p = playlist?.[0]; if (p) navTo(p.category, p.storyIndex); }}
-                    aria-current={act ? 'page' : undefined}
-                    style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
-                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
-                      fontSize: '0.84rem', fontWeight: act ? 800 : 600,
-                      color: act ? '#fff' : 'rgba(255,255,255,0.5)',
-                      boxShadow: act ? 'inset 0 -2px 0 0 #fff' : 'none' }}>
-                    Top
-                  </button>
-                );
-              })()}
-              {contextCategories.map(cat => {
-                const act = !allScope && cat === category;
-                const c = act ? tintForDark(CATEGORY_COLORS[cat]) : 'rgba(255,255,255,0.5)';
-                return (
-                  <button key={cat} ref={act ? activeCatRef : null}
-                    onClick={() => { if (act) return; setScope('category'); navTo(cat, 0); }}
-                    aria-current={act ? 'page' : undefined}
-                    style={{ background: 'none', border: 'none', cursor: act ? 'default' : 'pointer',
-                      padding: `0 0 ${SPACE.md}px`, whiteSpace: 'nowrap', flexShrink: 0,
-                      fontSize: '0.84rem', fontWeight: act ? 800 : 600, color: c,
-                      boxShadow: act ? `inset 0 -2px 0 0 ${c}` : 'none' }}>
-                    {CATEGORY_SHORT[cat] || cat}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Full-width recap, lens on its own line beneath — the arrangement that read best.
-          The saving comes from the recap itself: one line instead of two stacked, which is
-          ~24px handed back to the story card without moving anything else.
-          Not in Popular/Interesting — those are cross-category rankings shown with the "All"
-          pill and the category strip instead, and a one-category recap doesn't fit reading
-          a ranked list that spans every category. The strip above already covers "jump to a
-          category"; the recap here would just be a second, narrower way to do the same thing
-          for whichever one category you happened to land on. */}
-      {asPage && onOpenCategoryRecap && !showAllPill && (
-        /* Sits clear of the rule above it: the recap belongs to the story area, not to the
-           header block the rule closes, so it needs visible air rather than hugging it. */
-        <div style={{ position: 'relative', zIndex: 6, flexShrink: 0, margin: `${SPACE.lg}px ${SPACE.md}px 0`,
-          padding: '10px 12px 11px', borderRadius: RADIUS.md, background: 'rgba(255,255,255,0.04)' }}>
-          {/* Names the topic, with the mark saying a model wrote it. Same line as Listen. */}
-          {/* One line — the topic left, the buttons anchored right so they hold their position
-              whatever the topic is called. Same as Listen. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span aria-hidden style={{ display: 'flex', flexShrink: 0, color: recapTint }}>
-              <Sparkles size={13} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: 'rgba(255,255,255,0.5)' }}>
-              {CATEGORY_SHORT[category] || category} recap
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <RecapBar category={category} theme="dark" compact accent={recapTint}
-                storyCount={stories.length}
-                onOpen={() => onOpenCategoryRecap(category)} onPlay={onPlayRecap} />
-              <PeriodRecapChips recaps={periodRecaps} minutesOf={periodMinutes} theme="dark" accent={recapTint}
-                onOpen={onOpenPeriodRecap} onPlay={onPlayPeriodRecap} />
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Sits low and tight to the card: it sorts the stories, so proximity should say which
-          thing it belongs to. Parked midway it read as more header chrome. Pushed down with
-          its own top padding rather than by moving the card — the card's vertical position
-          is set by the spacers inside it and stays put regardless of lens. */}
-      {asPage && (
-        <div style={{ position: 'relative', zIndex: 6, padding: `${SPACE.md}px ${SPACE.md}px 0` }}>
-          <LensToggle value={lens} onChange={onChangeLens} theme="dark" />
-        </div>
-      )}
-
       {/* ── Summarize category — sheet mode only; page mode has its own Digest toggle ── */}
       {!asPage && categoryBriefing && categoryBriefing.trim() && (
         <div style={{ position: 'relative', zIndex: 6, padding: '4px 1rem 0', display: 'flex', justifyContent: 'flex-end' }}>
@@ -1153,6 +825,12 @@ export default function StoryReader({
 
       {/* ── Middle band: the current story scrolls internally; its two neighbours ride the same
              strip a screen above and below, so text and photo arrive together. ── */}
+      {recapView && asPage ? (
+        <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
+          <TopicRecapPages category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
+            storyCount={stories.length} isToday={isTodaySelected} dateLabel={selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''} onOpenStory={(idx) => onOpenRecapStory?.(category, idx)} />
+        </div>
+      ) : (<>
       <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0 }}>
       {renderNeighbourText(prevEntry, -1)}
       {renderNeighbourText(nextEntry, 1)}
@@ -1179,14 +857,15 @@ export default function StoryReader({
           this lands at the sheet's own foot — where the hint used to scroll away too. */}
       <div style={{ position: 'relative', zIndex: 6, height: 0, flexShrink: 0 }}>
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex',
-          justifyContent: 'center', paddingTop: 22, pointerEvents: 'none',
+          justifyContent: 'center', paddingTop: 6, pointerEvents: 'none',
           /* Short and gentle. Page mode already has the 130px scrim under this and needs
              nothing more — over the ~0.9 that scrim reaches by here, this is invisible.
              Sheet mode has no scrim, so without it the pill would sit on bare story text. */
-          background: 'linear-gradient(to top, rgba(10,10,20,0.9) 0%, rgba(10,10,20,0.55) 60%, rgba(10,10,20,0) 100%)' }}>
+          background: 'linear-gradient(to top, var(--paper) 0%, var(--paper) 70%, transparent 100%)' }}>
           <div style={{ pointerEvents: 'auto' }}>{gateOrHint}</div>
         </div>
       </div>
+      </>)}
 
       {/* ── Dark bottom nav — Instagram-Reels-style, stays put in Stories mode ── */}
       {asPage && (
@@ -1204,7 +883,7 @@ export default function StoryReader({
       {/* ── Progress — vertical rail on the right edge, so position maps to the swipe ── */}
       {/* The rail measures whatever list you're actually in — the ranking in All scope,
           the category's own stories otherwise. */}
-      <ProgressRail
+      {!recapView && <ProgressRail
         filled={allScope ? playlistPos + 1 : storyIndex + 1}
         total={allScope ? playlist.length : swipeLimit}
         theme="dark"
@@ -1214,7 +893,7 @@ export default function StoryReader({
           const p = playlist[i];
           if (p) navTo(p.category, p.storyIndex);
         }}
-      />
+      />}
 
       {/* ── Summary bottom sheet — shared with Scroll mode (see StorySummarySheet) ── */}
       <StorySummarySheet

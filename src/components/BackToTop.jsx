@@ -45,11 +45,11 @@ export default function BackToTop({ bottom = 76 }) {
         zIndex: 40,
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '7px 14px 7px 11px', borderRadius: 999,
-        border: '1px solid rgba(0,0,0,0.08)',
+        border: '1px solid var(--line)',
         background: 'rgba(255,255,255,0.72)',
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         boxShadow: '0 6px 20px rgba(10,10,30,0.14)',
-        color: '#0a0a0f', fontSize: '0.72rem', fontWeight: 700,
+        color: 'var(--ink)', fontSize: '0.72rem', fontWeight: 700,
         cursor: 'pointer',
         // Kept mounted and faded, so it can animate both ways instead of popping in.
         opacity: show ? 1 : 0,

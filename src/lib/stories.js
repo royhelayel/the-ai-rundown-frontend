@@ -131,7 +131,9 @@ export const buildStories = (content, storiesContent) => {
       perspectives: perspMatch?.[1] || null,
       why: whyMatch?.[1] || null,
       summary: punchy?.summary || null,  // elaborate narrative paragraph (new generation cycle only)
-      status: statusMatch?.[1] === 'Updated' || statusMatch?.[1] === 'New' ? statusMatch[1] : null,
+      // Only "New" is shown. The evening run still marks stories it added to as Updated;
+      // the app treats those like any other story (Roy, 2026-10-15).
+      status: statusMatch?.[1] === 'New' ? 'New' : null,
       storySources,
       bodyLines: chunk.bodyLines, // kept for Read mode renderer
     };

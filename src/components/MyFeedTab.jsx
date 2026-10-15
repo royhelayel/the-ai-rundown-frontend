@@ -4,9 +4,9 @@ import BackToTop from './BackToTop';
 import { User } from 'lucide-react';
 import StoryList from './StoryList';
 import FeedHeader from './FeedHeader';
+import { TopicRecapArticle } from './TopicRecap';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { getRememberedCategory, rememberCategory } from '../hooks/useCategoryMemory';
-import { CATEGORY_SHORT } from '../theme';
 
 export default function MyFeedTab({
   briefingData, briefingLoading,
@@ -19,6 +19,7 @@ export default function MyFeedTab({
   selectedTime, availableTimes, onSelectTime,
   onPlayFeed, onPlayMyFeed, onPlayCategory, onEnterStories, onEnterSummaries, onEnterAudio,
   savedStories, onToggleSaved,
+  recapView = false, onChangeRecapView, recapPeriod = 'Daily', onChangeRecapPeriod, periodRecaps, onFocusStoryRequest, onActiveCategoryChange, isReadStory,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/my-feed');
@@ -34,11 +35,16 @@ export default function MyFeedTab({
   const [railPos, setRailPos] = useState({ cat: null, idx: -1 });
   const [shownCounts, setShownCounts] = useState({}); // cards rendered per category — the rail matches the list
   const effectiveCat = activeCat || visibleFeedCats[0] || null;
-  const subtitle = effectiveCat ? `${CATEGORY_SHORT[effectiveCat] || effectiveCat} · ${briefingData[effectiveCat]?.storyCount || 0} stories` : undefined;
   // The list owns the jump: it sets the category and mutes its own scroll-spy for the
   // duration, so the two can't fight over which category is active mid-scroll.
   const listRef = useRef(null);
   const scrollToCat = (cat) => listRef.current?.jumpToCategory(cat);
+  // The recap tab's week and month follow whichever topic is under the header.
+  useEffect(() => { if (effectiveCat) onActiveCategoryChange?.(effectiveCat); }, [effectiveCat, onActiveCategoryChange]);
+  useEffect(() => () => onActiveCategoryChange?.(null), [onActiveCategoryChange]);
+  const recapText = !effectiveCat ? null
+    : recapPeriod === 'Daily' ? (briefingData[effectiveCat]?.briefing || '').trim() || null
+    : periodRecaps?.[recapPeriod]?.text || null;
 
   // See BriefingFeed's identical block for why this is needed: StoryList's own scroll-spy
   // runs its first check before this component's effects settle and overwrites the
@@ -61,8 +67,8 @@ export default function MyFeedTab({
 
   if (!user) {
     return (
-      <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
+      <div style={{ background: 'var(--paper)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+        <style>{`* { box-sizing: border-box; } body { background: var(--paper); margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
         <FeedHeader
           feedName="My News"
           user={user}
@@ -74,15 +80,15 @@ export default function MyFeedTab({
           onChangeCorpus={(c) => { if (c === 'all') navigate('/'); }}
         />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', textAlign: 'center' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fff', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} color="#8a8a9a" />
           </div>
           <div>
-            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: '#0a0a0f', letterSpacing: '-0.02em' }}>Your Personalised Feed</h2>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#8a8a9a', lineHeight: 1.55 }}>Sign in to create your own feed with only the categories you care about.</p>
+            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Your Personalised Feed</h2>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--sub)', lineHeight: 1.55 }}>Sign in to create your own feed with only the categories you care about.</p>
           </div>
           {/* Sign in opens the dialog, not the settings page — see GuestPromo. */}
-          <button onClick={() => onShowAuth?.()} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
+          <button onClick={() => onShowAuth?.()} style={{ padding: '0.7rem 1.8rem', background: 'var(--ink)', color: 'var(--paper)', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
             Sign In
           </button>
         </div>
@@ -92,8 +98,8 @@ export default function MyFeedTab({
 
   if (allFeedCats.length === 0) {
     return (
-      <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
+      <div style={{ background: 'var(--paper)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+        <style>{`* { box-sizing: border-box; } body { background: var(--paper); margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
         <FeedHeader
           feedName="My News"
           user={user}
@@ -107,10 +113,10 @@ export default function MyFeedTab({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', paddingBottom: '6rem', gap: '1rem', textAlign: 'center' }}>
           <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>⭐</div>
           <div>
-            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: '#0a0a0f' }}>Set Up My News</h2>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#8a8a9a', lineHeight: 1.55 }}>Choose the categories you want and we'll keep your feed personalised.</p>
+            <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: 'var(--ink)' }}>Set Up My News</h2>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--sub)', lineHeight: 1.55 }}>Choose the categories you want and we'll keep your feed personalised.</p>
           </div>
-          <button onClick={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })} style={{ padding: '0.7rem 1.8rem', background: '#0a0a0f', color: 'white', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })} style={{ padding: '0.7rem 1.8rem', background: 'var(--ink)', color: 'var(--paper)', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
             Set Up My News
           </button>
         </div>
@@ -119,8 +125,8 @@ export default function MyFeedTab({
   }
 
   return (
-    <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
+    <div style={{ background: 'var(--paper)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`* { box-sizing: border-box; } body { background: var(--paper); margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
 
       <FeedHeader
         feedName="My News"
@@ -135,9 +141,14 @@ export default function MyFeedTab({
         onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
         categories={visibleFeedCats}
         activeCategory={effectiveCat}
-        onSelectCategory={scrollToCat}
-        subtitle={subtitle}
+        onSelectCategory={(cat) => { if (recapView) setActiveCat(cat); else scrollToCat(cat); }}
         showLens
+        storyCount={briefingData[effectiveCat]?.storyCount || 0}
+        recapView={recapView}
+        onChangeRecapView={onChangeRecapView}
+        recapPeriod={recapPeriod}
+        onChangeRecapPeriod={onChangeRecapPeriod}
+        periodReady={{ Daily: !!(briefingData[effectiveCat]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
         onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
         corpus="mine"
         onChangeCorpus={(c) => { if (c === 'all') navigate('/'); }}
@@ -147,7 +158,22 @@ export default function MyFeedTab({
         progressTotal={shownCounts[effectiveCat] ?? (gamifiedStats?.todayProgress?.[effectiveCat]?.total || 0)}
       />
 
-      <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
+      {recapView && effectiveCat && (
+        <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%', padding: '0 20px 120px' }}>
+          <TopicRecapArticle
+            category={effectiveCat}
+            period={recapPeriod}
+            text={recapText}
+            sourcesMap={recapPeriod === 'Daily' ? briefingData[effectiveCat]?.briefingSources : periodRecaps?.[recapPeriod]?.sources}
+            dateLabel={selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}
+            isToday={selectedDay === new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date())}
+            storyCount={briefingData[effectiveCat]?.storyCount || 0}
+            onOpenStory={(idx) => { onChangeRecapView?.(false); setTimeout(() => onFocusStoryRequest?.(effectiveCat, idx), 0); }}
+          />
+        </div>
+      )}
+
+      {!recapView && <div style={{ flex: 1, maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
         <StoryList
           ref={listRef}
           availableDays={availableDays}
@@ -167,6 +193,7 @@ export default function MyFeedTab({
           loading={briefingLoading}
           fromPath="/my-feed"
           showCategoryImages
+          sectionRecap={false}
           sectionTitle="My News"
           onPlayFeed={onPlayMyFeed}
           onEditFeed={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
@@ -181,8 +208,9 @@ export default function MyFeedTab({
           onShownCounts={setShownCounts}
           savedStories={savedStories}
           onToggleSaved={onToggleSaved}
+          isReadStory={isReadStory}
         />
-      </div>
+      </div>}
 
       <BackToTop />
     </div>

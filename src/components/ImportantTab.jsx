@@ -8,11 +8,11 @@ import { CATEGORY_SHORT } from '../theme';
 import { headlineKey } from './PopularTab';
 
 const light = {
-  bg:        '#f5f5f7',
+  bg:        'var(--paper)',
   bgSub:     '#ececef',
   border:    'rgba(0,0,0,0.08)',
-  text:      '#0a0a0f',
-  textMuted: '#8a8a9a',
+  text:      'var(--ink)',
+  textMuted: 'var(--sub)',
 };
 
 // Interesting — the stories marked as interesting (saved) by all users, ranked by

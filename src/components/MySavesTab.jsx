@@ -25,8 +25,8 @@ export default function MySavesTab({
   const hasAny = categories.length > 0;
 
   return (
-    <div style={{ background: '#f5f5f7', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <style>{`* { box-sizing: border-box; } body { background: #f5f5f7; margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
+    <div style={{ background: 'var(--paper)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <style>{`* { box-sizing: border-box; } body { background: var(--paper); margin: 0; } ::-webkit-scrollbar { display: none; }`}</style>
 
       <FeedHeader
         user={user}
@@ -43,7 +43,7 @@ export default function MySavesTab({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '5px',
             padding: '6px 12px', borderRadius: '999px',
-            background: '#ececef', border: '1px solid rgba(0,0,0,0.08)',
+            background: '#ececef', border: '1px solid var(--line)',
             color: '#3a3a4a', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer',
           }}
         >
@@ -53,14 +53,14 @@ export default function MySavesTab({
 
       {!hasAny ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 2rem', gap: '1rem', textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ececef', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ececef', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bookmark size={22} color="#8a8a9a" />
           </div>
           <div>
-            <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: '800', color: '#0a0a0f' }}>
+            <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: '800', color: 'var(--ink)' }}>
               {user ? 'Nothing marked interesting for this day' : 'Sign in to mark stories interesting'}
             </h3>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#8a8a9a', lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--sub)', lineHeight: 1.55 }}>
               {user
                 ? 'Tap the bookmark on any story to mark it as interesting. Use the day picker above to find earlier saves.'
                 : 'Sign in, then tap the bookmark on any story to keep it here.'}

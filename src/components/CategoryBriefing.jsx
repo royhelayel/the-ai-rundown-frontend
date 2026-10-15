@@ -120,12 +120,12 @@ export default function CategoryBriefing({
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{formatHeaderDate(effectiveDay)}</span>
               </button>
               {dayPickerOpen && canPickDay && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 20, width: 160, background: '#fff', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.16)', border: '1px solid rgba(0,0,0,0.08)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 20, width: 160, background: 'var(--surface)', borderRadius: 14, boxShadow: '0 12px 36px rgba(0,0,0,0.16)', border: '1px solid var(--line)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {availableDays.map(day => {
                     const isActive = day.fullDate === selectedDay;
                     return (
                       <button key={day.fullDate} onClick={() => { onSelectDay?.(day.fullDate); setDayPickerOpen(false); }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: isActive ? 'rgba(124,58,237,0.1)' : 'transparent', color: isActive ? '#7c3aed' : '#374151', fontSize: '0.78rem', fontWeight: isActive ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 9, border: 'none', background: isActive ? 'rgba(124,58,237,0.1)' : 'transparent', color: isActive ? '#7c3aed' : 'var(--sub)', fontSize: '0.78rem', fontWeight: isActive ? 800 : 500, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                         {formatHeaderDate(day.fullDate)}
                         {isActive && <span style={{ fontSize: '0.6rem', color: '#7c3aed' }}>✓</span>}
                       </button>
@@ -157,10 +157,10 @@ export default function CategoryBriefing({
                   return (
                     <button key={c} onClick={() => onSelectCat?.(c)} style={{
                       display: 'flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 8, border: 'none',
-                      background: active ? '#0a0a0f' : 'rgba(0,0,0,0.06)', color: active ? '#fff' : '#6b7280',
+                      background: active ? 'var(--ink)' : 'rgba(0,0,0,0.06)', color: active ? '#fff' : 'var(--sub)',
                       fontSize: '0.76rem', fontWeight: active ? 800 : 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: active ? 'default' : 'pointer',
                     }}>
-                      <CategoryIcon category={c} size={13} color={active ? '#fff' : '#6b7280'} />
+                      <CategoryIcon category={c} size={13} color={active ? '#fff' : 'var(--sub)'} />
                       {CATEGORY_SHORT[c] || c}
                     </button>
                   );
@@ -171,7 +171,7 @@ export default function CategoryBriefing({
 
           {/* ── Single way out — returns to the exact mode the recap was opened from ── */}
           <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px 22px' }}>
-            <button onClick={() => onBack?.()} style={{ padding: '2px 8px', border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => onBack?.()} style={{ padding: '2px 8px', border: 'none', background: 'transparent', color: 'var(--sub)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}>
               Back to stories
             </button>
           </div>

@@ -5,11 +5,11 @@ import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 
 const light = {
   bg:        '#ffffff',
-  bgSub:     '#f5f5f7',
+  bgSub:     'var(--paper)',
   border:    'rgba(0,0,0,0.08)',
-  text:      '#0a0a0f',
+  text:      'var(--ink)',
   textSub:   '#3a3a4a',
-  textMuted: '#8a8a9a',
+  textMuted: 'var(--sub)',
 };
 
 /**
@@ -190,9 +190,9 @@ export default function StorySummarySheet({
                 {outlets.map((s, i) => (
                   s.url ? (
                     <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                      style={{ padding: '4px 10px', background: light.bgSub, borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textDecoration: 'none' }}>{s.outlet}</a>
+                      style={{ padding: '4px 10px', background: light.bgSub, borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: 'var(--sub)', textDecoration: 'none' }}>{s.outlet}</a>
                   ) : (
-                    <span key={i} style={{ padding: '4px 10px', background: light.bgSub, borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>{s.outlet}</span>
+                    <span key={i} style={{ padding: '4px 10px', background: light.bgSub, borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: 'var(--sub)' }}>{s.outlet}</span>
                   )
                 ))}
               </div>

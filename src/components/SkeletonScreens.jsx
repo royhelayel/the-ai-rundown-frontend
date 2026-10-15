@@ -2,7 +2,7 @@ import React from 'react';
 
 const border = 'rgba(0,0,0,0.08)';
 const bg     = '#ffffff';
-const bgSub  = '#f5f5f7';
+const bgSub  = 'var(--paper)';
 
 // A single shimmer block — use className="sk" (CSS defined in App.js global style)
 function S({ w = '100%', h, r = '6px', style = {} }) {

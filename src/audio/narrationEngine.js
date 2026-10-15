@@ -347,7 +347,8 @@ export function createNarrationEngine({
     const story = stories[idx];
     setStoryIndex(idx);
     currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
-    addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
+    // A recap is not a story: playing one must not tick off whichever story sits at index 0.
+    if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
     // Takeaways = headline + the short bullets, nothing else. The spoken twin of the
@@ -410,8 +411,7 @@ export function createNarrationEngine({
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
     (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-    if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
-    if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
+    // Takeaways only, exactly as narrateStoryFrom reads it — the cache key has to match.
     return parts.filter(Boolean).join(' ');
   };
 

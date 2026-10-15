@@ -8,12 +8,12 @@ import useScrollRestore from '../hooks/useScrollRestore';
 import { rankStories } from '../utils';
 import { CATEGORY_SHORT } from '../theme';
 
-const bg = '#f5f5f7';
+const bg = 'var(--paper)';
 const light = {
   bgSub: '#ececef',
-  border: 'rgba(0,0,0,0.08)',
-  textMuted: '#8a8a9a',
-  text: '#0a0a0f',
+  border: 'var(--line)',
+  textMuted: 'var(--sub)',
+  text: 'var(--ink)',
 };
 
 // Normalize a headline to a stable key for listen counting

@@ -327,6 +327,28 @@ export default function useListenHistory(userId = null) {
     };
   }, [writeHistory]);
 
+  // Reads saved on the server from any device. Each becomes a history entry unless this
+  // device already has it, so the Read badges and the challenge agree across devices.
+  const mergeServerReads = useCallback((rows) => {
+    const usable = (rows || []).filter(r => r && r.headline && r.category);
+    if (!usable.length) return;
+    const norm = (h) => (h || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().slice(0, 50);
+    setHistory(prev => {
+      const have = new Set(prev.map(h => norm(h.headline)));
+      const added = [];
+      for (const r of usable) {
+        const k = norm(r.headline);
+        if (have.has(k)) continue;
+        have.add(k);
+        const ts = Date.parse(r.read_at) || Date.now();
+        added.push({ id: Math.random().toString(36).slice(2, 10), headline: r.headline, category: r.category,
+          storyIndex: r.story_index ?? 0, timeSlot: null, timestamp: ts, date: r.day || dayKey(ts) });
+      }
+      if (!added.length) return prev;
+      return [...prev, ...added].sort((a, b) => b.timestamp - a.timestamp).slice(0, MAX_HISTORY);
+    });
+  }, []);
+
   const markPerfectDay = useCallback(() => {
     const today = dayKey(Date.now());
     setPerfectDays(prev => {
@@ -337,5 +359,5 @@ export default function useListenHistory(userId = null) {
     });
   }, [userId]);
 
-  return { history, perfectDays, addToHistory, markPerfectDay };
+  return { history, perfectDays, addToHistory, markPerfectDay, mergeServerReads };
 }

@@ -7,13 +7,13 @@ import FeedHeader from './FeedHeader';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 const light = {
-  bg: '#f5f5f7',
-  bgCard: '#ffffff',
+  bg: 'var(--paper)',
+  bgCard: 'var(--surface)',
   bgSub: '#ececef',
-  border: 'rgba(0,0,0,0.08)',
-  text: '#0a0a0f',
+  border: 'var(--line)',
+  text: 'var(--ink)',
   textSub: '#3a3a4a',
-  textMuted: '#8a8a9a',
+  textMuted: 'var(--sub)',
 };
 
 function Avatar({ displayName, avatarColor, size = 64 }) {
@@ -129,7 +129,7 @@ export default function ProfilePage({
 
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(245,245,247,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: `1px solid ${light.border}`, display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', maxWidth: 'var(--body-max)', margin: '0 auto', width: '100%' }}>
-        <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: '#fff', border: `1px solid ${light.border}`, borderRadius: '999px', color: light.textMuted, cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
+        <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', background: 'var(--surface)', border: `1px solid ${light.border}`, borderRadius: '999px', color: light.textMuted, cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
           <ChevronLeft size={16} /> Back
         </button>
         <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: light.text, flex: 1 }}>@{profile.username}</h2>
@@ -170,7 +170,7 @@ export default function ProfilePage({
                 padding: '0.65rem 1.4rem', borderRadius: '999px', fontWeight: '700', fontSize: '0.9rem',
                 cursor: followLoading ? 'default' : 'pointer', width: '100%',
                 border: following ? `1.5px solid ${light.border}` : 'none',
-                background: following ? light.bgCard : '#0a0a0f',
+                background: following ? light.bgCard : 'var(--ink)',
                 color: following ? light.text : '#fff',
                 transition: 'all 0.15s',
               }}

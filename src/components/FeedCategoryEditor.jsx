@@ -85,7 +85,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                   padding: '10px 12px', borderRadius: '12px',
                   position: 'relative',
                   zIndex: isDragging ? 5 : 1,
-                  background: isDragging ? '#fff' : '#f5f5f7',
+                  background: isDragging ? '#fff' : 'var(--paper)',
                   border: `1px solid ${isDragging ? color : 'rgba(0,0,0,0.06)'}`,
                   boxShadow: isDragging ? `0 14px 32px rgba(20,20,40,0.22), 0 0 0 1px ${color}55` : 'none',
                   transform: isDragging ? `translateY(${dragY}px) scale(1.035)` : 'none',
@@ -103,11 +103,11 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                 <span style={{ width: 18, height: 18, borderRadius: '6px', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
                 </span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: '0.9rem', fontWeight: 700, color: '#0a0a0f' }}>{cat}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>{cat}</span>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#b0b0bc', flexShrink: 0 }}>{idx + 1}</span>
                 <button
                   onClick={() => remove(cat)}
-                  style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--sub)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                   aria-label={`Remove ${cat}`}
                 >
                   <X size={15} />
@@ -117,7 +117,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
           })}
         </div>
       ) : (
-        <p style={{ margin: '0 0 1.1rem', fontSize: '0.82rem', color: '#9ca3af', padding: '14px', background: '#f5f5f7', borderRadius: '12px', textAlign: 'center' }}>
+        <p style={{ margin: '0 0 1.1rem', fontSize: '0.82rem', color: 'var(--sub)', padding: '14px', background: 'var(--paper)', borderRadius: '12px', textAlign: 'center' }}>
           No categories yet — add some below to build your feed.
         </p>
       )}
@@ -130,7 +130,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
           just falls back to a normal-size pill — it has nothing to nest under here. */}
       {available.length > 0 && (
         <>
-          <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Add categories</p>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--sub)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Add categories</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
             {available.map(cat => {
               const color = CATEGORY_COLORS[cat] || '#6366f1';
@@ -145,7 +145,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                     border: `1px solid ${color}33`, background: `${color}0d`, color: '#3a3a4a',
                     fontSize: '0.74rem', fontWeight: 500, cursor: 'pointer',
                   } : {
-                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.38rem 0.7rem 0.38rem 0.6rem', borderRadius: '999px', border: '1px solid rgba(0,0,0,0.1)', background: '#fff', color: '#3a3a4a', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer'
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.38rem 0.7rem 0.38rem 0.6rem', borderRadius: '999px', border: '1px solid var(--line)', background: 'var(--surface)', color: '#3a3a4a', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer'
                   }}>
                   <Plus size={isChild ? 11 : 13} color={color} />
                   <span style={{ width: isChild ? 6 : 7, height: isChild ? 6 : 7, borderRadius: '50%', background: color, flexShrink: 0 }} />

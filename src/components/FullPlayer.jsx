@@ -210,6 +210,7 @@ export default function FullPlayer({
   topicStoryCount,
   narrationDuration = 0,
   isTodaySelected = true,
+  phoneVoice = false,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -777,6 +778,11 @@ export default function FullPlayer({
                 </button>
                 {navBtn(onNext, atBatchEnd ? 'End of this batch' : 'Next story', FastForward, recapView || atBatchEnd)}
               </div>
+              {phoneVoice && (
+                <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.45 }}>
+                  The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
+                </p>
+              )}
               {!recapView && (atBatchEnd || showCollapse) && (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <button className="rn-btn" style={{ minHeight: 32, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}

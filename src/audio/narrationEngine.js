@@ -13,6 +13,7 @@ export function createNarrationEngine({
   ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
   newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
   setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
+  setPhoneVoice,
 }) {
   // Sync mutable player state into refs so narration callbacks can read latest values
   repeatModeRef.current = repeatMode;
@@ -122,6 +123,8 @@ export function createNarrationEngine({
   // against the whole thing.
   const speakWithBrowser = (text, onDone, offset = 0, fullText = null) => {
     if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
+    // The phone's own voice obeys the silent switch; the narration voice doesn't. Say so.
+    setPhoneVoice?.(true);
     window.speechSynthesis.cancel();
     const isAr = newsLanguage === 'ar';
     const whole = fullText ?? text;
@@ -179,6 +182,7 @@ export function createNarrationEngine({
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
   const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;
+    if (!isTransition) setPhoneVoice?.(false);
     // Capture generation so stale onended callbacks from prior sessions can't fire.
     // stop() / cancelAudioKeepActive() both increment narrationGenRef, so any audio
     // element left over from a previous session will bail when its onended fires.
@@ -407,7 +411,6 @@ export function createNarrationEngine({
   // Build the exact TTS script for a story (mirrors narrateStoryFrom so cache keys align)
   const buildStoryScript = (story) => {
     if (!story) return '';
-    const isAr = newsLanguage === 'ar';
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
     (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));

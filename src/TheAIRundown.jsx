@@ -166,6 +166,9 @@ const TheAIRundown = () => {
   // The tabs under the topics: the topic story by story, or "World recap" — the whole topic
   // in one piece — at the period chosen beside them. Shared by all three modes, so switching
   // from Scroll to Listen keeps you on the recap if that's what you were reading.
+  // True while narration falls back to the phone's built-in voice (the narration service
+  // failed). That voice is muted by the silent switch, so the player says so.
+  const [phoneVoice, setPhoneVoice] = useState(false);
   const [recapView, setRecapView] = useState(false);
   const [recapPeriod, setRecapPeriod] = useState('Daily');
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
@@ -401,6 +404,7 @@ const TheAIRundown = () => {
     ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
     newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
     setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
+    setPhoneVoice,
   });
 
   // ── Story reader sheet: mount / exit animations ──────────────────────────
@@ -2068,6 +2072,7 @@ const TheAIRundown = () => {
           onPlayRecapPeriod={(p) => playTopicRecap(selectedCategory, p)}
           topicStoryCount={stories[0]?._isBriefing ? (briefingData[selectedCategory]?.storyCount || 0) : undefined}
           narrationDuration={narrationDurationRef.current}
+          phoneVoice={phoneVoice && isNarrating}
           isTodaySelected={selectedDay === today}
           lens={playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
           onChangeLens={(l) => {

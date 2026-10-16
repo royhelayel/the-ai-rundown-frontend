@@ -2,7 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { applyTheme, storedTheme } from './design';
 import reportWebVitals from './reportWebVitals';
+
+// Before the first paint, so a chosen Light or Dark doesn't flash the phone's own setting.
+applyTheme(storedTheme());
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

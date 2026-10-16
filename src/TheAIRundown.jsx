@@ -11,11 +11,11 @@ import BottomNav from './components/BottomNav';
 import MyFeedTab from './components/MyFeedTab';
 import PopularTab from './components/PopularTab';
 import ImportantTab from './components/ImportantTab';
-import MySavesTab from './components/MySavesTab';
 import ProfilePage from './components/ProfilePage';
 import { headlineKey } from './components/PopularTab';
 import OnboardingTour, { ONBOARDING_KEY } from './components/OnboardingTour';
 import { CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT } from './theme';
+import { applyTheme, storedTheme, THEME_KEY } from './design';
 import useListenHistory, { computeGamifiedStats, computeChallengeStats } from './hooks/useListenHistory';
 import { buildStories, buildSnapshotBriefing } from './lib/stories';
 import { readDayCache, writeDayCache } from './lib/dayCache';
@@ -28,6 +28,7 @@ import AuthModal from './views/AuthModal';
 import FeedPickerModal from './views/FeedPickerModal';
 import RestoreTopicsDialog from './views/RestoreTopicsDialog';
 import SettingsPage from './views/SettingsPage';
+import ReadingHistoryPage from './views/ReadingHistoryPage';
 import SwipeReaderPage from './views/SwipeReaderPage';
 import CategoryBriefingView from './views/CategoryBriefingView';
 import { createNarrationEngine } from './audio/narrationEngine';
@@ -240,13 +241,14 @@ const TheAIRundown = () => {
   }, [listenHistory, selectedDay, selectedProgressDay]);
 
   // ── Daily goal + challenge stats ──────────────────────────────────────────
-  const [dailyGoal, setDailyGoal] = useState(() => {
-    const saved = parseInt(localStorage.getItem('rundown_daily_goal'), 10);
-    return [5, 10, 15, 20].includes(saved) ? saved : 10;
-  });
-  const handleSetDailyGoal = (g) => {
-    setDailyGoal(g);
-    localStorage.setItem('rundown_daily_goal', String(g));
+  // Ten stories a day, the same for everyone — the goal is no longer a setting (Roy, 2026-10-16).
+  const dailyGoal = 10;
+  // Appearance: System follows the phone; Light and Dark override it. Per device.
+  const [theme, setThemeState] = useState(storedTheme);
+  const setTheme = (t) => {
+    setThemeState(t);
+    applyTheme(t);
+    try { if (t === 'system') localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, t); } catch {}
   };
   const challengeStats = useMemo(
     () => computeChallengeStats(listenHistory, dailyGoal, selectedDay || null),
@@ -1305,6 +1307,7 @@ const TheAIRundown = () => {
   const isPopularPath   = location.pathname === '/popular';
   const isImportantPath = location.pathname === '/important';
   const isSavedPath     = location.pathname === '/saved';
+  const isHistoryPath   = location.pathname === '/history';
   // The Listen tab — the player as a page rather than a sheet over a feed.
   const isListenPath    = location.pathname === '/listen';
   const profileRouteMatch = location.pathname.match(/^\/profile\/([^/]+)$/);
@@ -1353,7 +1356,7 @@ const TheAIRundown = () => {
     ? catsForFrom(location.state?.from)
         .filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim())
     : [];
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath && !isListenPath;
+  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath && !isListenPath && !isHistoryPath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
   // Opened via the Feed/Stories toggle: the reader IS the page, not a sheet over a tab.
@@ -1369,7 +1372,6 @@ const TheAIRundown = () => {
   const showMyFeedBg    = isStoryView && !isStoriesPage && storyFrom === '/my-feed';
   const showPopularBg   = isStoryView && !isStoriesPage && storyFrom === '/popular';
   const showImportantBg = isStoryView && !isStoriesPage && storyFrom === '/important';
-  const showSavedBg     = isStoryView && !isStoriesPage && storyFrom === '/saved';
 
   const currentStory    = stories[storyIdxFromUrl ?? storyIndex] || null;
   // Map a source path (handles both '/popular' and 'popular' style values) to the feed's display name.
@@ -1386,7 +1388,7 @@ const TheAIRundown = () => {
   // The summary sheet sits over a live tab, so that tab keeps its nav.
   // Listen is excluded for the same reason Swipe is: it's a full page that renders its own
   // dark nav inside its container, so the global one would be a second bar underneath it.
-  const showBottomNav   = !isSettingsPath && !isStoriesPage && !isBriefingView && !isListenPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
+  const showBottomNav   = !isSettingsPath && !isHistoryPath && !isStoriesPage && !isBriefingView && !isListenPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
 
   // ── Feed / Stories toggle — flatten a tab's stories into a swipeable playlist ──
   // Mirrors the ordering each tab already uses for its card list.
@@ -1616,6 +1618,20 @@ const TheAIRundown = () => {
     if (mode === 'audio') enterAudioMode(location.pathname);
     else enterStoriesMode(location.pathname, playlist);
   }, [authReady, location.pathname, briefingData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // /saved was the "My Interesting" feed; it now lives in Reading history.
+  useEffect(() => { if (isSavedPath) navigate('/history', { replace: true }); }, [isSavedPath]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The player sheet must never cover another page. Leaving Listen for Settings or Reading
+  // history while something plays used to open the full dark player over that page, because
+  // the player was "visible" and not minimised. Leaving Listen now hands playback to the mini
+  // player; coming back puts it on the page again.
+  const wasListenRef = useRef(isListenPath);
+  useEffect(() => {
+    if (wasListenRef.current && !isListenPath && playerVisible && !playerMinimized) setPlayerMinimized(true);
+    if (!wasListenRef.current && isListenPath && playerMinimized) setPlayerMinimized(false);
+    wasListenRef.current = isListenPath;
+  }, [isListenPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Landing on /listen without a cued story — a reload, a bookmark, or a shared link. The
   // page renders off selectedCategory/storyIndex, so without this it shows "1 of 0" and an
@@ -1935,24 +1951,25 @@ const TheAIRundown = () => {
         />
       )}
 
-      {(isSavedPath || showSavedBg) && (
-        <MySavesTab
-          briefingData={savesBriefingData}
-          selectedDay={selectedDay}
-          availableDays={availableDays}
-          onSelectDay={selectDay}
-          onSelectCategory={handleSelectCategory}
-          onPlayStory={handlePlayStory}
-          onPlayCategory={handlePlayCategory}
-          onPlayFeed={() => { const cats = Object.keys(savesBriefingData); if (cats[0]) handlePlayStory(cats[0], 0); }}
-          gamifiedStats={gamifiedStats}
+      {isHistoryPath && (
+        <ReadingHistoryPage
           user={user}
+          listenHistory={listenHistory}
+          mySaves={mySaves}
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
-          isNarrating={isNarrating}
-          selectedCategory={selectedCategory}
-          currentStoryIndex={storyIndex}
-          playerVisible={playerVisible}
-          challengeStats={challengeStatsFull}
+          onToggleSaved={handleToggleSaved}
+          onBack={() => {
+            if (location.state?.from) { navigate(-1); return; }
+            navigate('/settings');
+          }}
+          onOpenRead={(entry) => {
+            // Open the summary where it was read: that day, that story, in Scroll.
+            if (entry.date && entry.date !== selectedDay) selectDay(entry.date);
+            setFocus(entry.category, entry.storyIndex ?? 0);
+            setPendingFocus({ category: entry.category, index: entry.storyIndex ?? 0 });
+            autoModeDoneRef.current = true;
+            navigate('/');
+          }}
         />
       )}
 
@@ -1999,8 +2016,8 @@ const TheAIRundown = () => {
           setFeedCategories={setFeedCategories}
           feedCategories={feedCategories}
           newsLanguage={newsLanguage}
-          dailyGoal={dailyGoal}
-          handleSetDailyGoal={handleSetDailyGoal}
+          theme={theme}
+          setTheme={setTheme}
           setFollowing={setFollowing}
           setCircleSaves={setCircleSaves}
           setCirclePopular={setCirclePopular}
@@ -2139,7 +2156,7 @@ const TheAIRundown = () => {
       </div>{/* end .main-content-offset */}
 
       {/* ── MiniPlayer bar ── */}
-      {miniPlayerVisible && (
+      {miniPlayerVisible && !isListenPath && (
         <MiniPlayer
           category={selectedCategory}
           storyHeadline={stories[storyIndex]?.headline || ''}

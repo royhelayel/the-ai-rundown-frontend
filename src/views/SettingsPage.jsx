@@ -1,11 +1,11 @@
-import { LogOut, User, Star, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, User, Loader, ChevronLeft, ChevronRight, History, SunMoon } from 'lucide-react';
 import FeedCategoryEditor from '../components/FeedCategoryEditor';
 import { supabase } from '../lib/supabaseClient';
 
 export default function SettingsPage({
   user, setUser, openOnboarding, setShowAuth, setAuthMode, setSignOutLoading, signOutLoading,
   setRestoreArmed, setCustomCategories, setCustomCategoryDescriptions, setFontSize, fontSize,
-  setFeedCategories, feedCategories, newsLanguage, dailyGoal, handleSetDailyGoal, setFollowing,
+  setFeedCategories, feedCategories, newsLanguage, theme, setTheme, setFollowing,
   setCircleSaves, setCirclePopular, navigate, location, myNewsCategories, MY_FEED_COLOR,
   saveFeedCategories, saveNewsLanguage, preferredReadMode,
 }) {
@@ -50,23 +50,14 @@ export default function SettingsPage({
                   {user.username && <div style={{ fontSize: '0.75rem', color: 'var(--sub)', marginTop: '1px' }}>@{user.username}</div>}
                 </div>
               </div>
-              {/* My Interesting — the stories this user flagged. It used to hang off the
-                  Interesting tab, which is the *shared* view of what readers found
-                  interesting; a personal shortcut at the top of it put two scopes on one
-                  screen. It belongs with the rest of "things that are mine". */}
-              <button onClick={() => navigate('/saved')}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '999px', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
-                <Star size={15} color="#7c3aed" />
-                <span style={{ flex: 1, textAlign: 'left' }}>My Interesting</span>
-                <ChevronRight size={15} color="#8a8a9a" />
+              {/* Reading history: the summaries you read and the ones you marked Interesting —
+                  your own record, not a public profile (Roy, 2026-10-16). */}
+              <button onClick={() => navigate('/history', { state: { from: location.pathname } })}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: 44, padding: '0.5rem 1rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '14px', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>
+                <History size={16} />
+                <span style={{ flex: 1, textAlign: 'left' }}>Reading history</span>
+                <ChevronRight size={15} color="var(--sub)" />
               </button>
-              {/* View profile link */}
-              {user.username && (
-                <button onClick={() => navigate(`/profile/${user.username}`)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0.5rem 1rem', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '999px', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700', fontSize: '0.83rem', width: '100%' }}>
-                  View My Profile
-                </button>
-              )}
               {/* Sign out */}
               <button onClick={async () => {
                 setSignOutLoading(true);
@@ -105,26 +96,6 @@ export default function SettingsPage({
             </div>
           </div>
         </div>
-        {user && (
-        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🎯</span>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Daily Goal</h3>
-                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: 'var(--sub)' }}>Stories to read or listen to each day</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
-              {[5, 10, 15, 20].map(g => (
-                <button key={g} onClick={() => handleSetDailyGoal(g)} style={{ padding: '0.3rem 0.7rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: dailyGoal === g ? 'var(--ink)' : 'transparent', color: dailyGoal === g ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s' }}>
-                  {g}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        )}
         <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -134,6 +105,24 @@ export default function SettingsPage({
             <div style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
               {[['normal', 'Normal'], ['large', 'Large']].map(([val, label]) => (
                 <button key={val} onClick={() => setFontSize(val)} style={{ padding: '0.3rem 0.9rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: fontSize === val ? 'var(--ink)' : 'transparent', color: fontSize === val ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span aria-hidden style={{ display: 'flex', color: 'var(--ink)' }}><SunMoon size={18} /></span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>Appearance</h3>
+                <p style={{ margin: '1px 0 0', fontSize: '0.72rem', color: 'var(--sub)' }}>System follows your phone's setting</p>
+              </div>
+            </div>
+            <div role="group" aria-label="Appearance" style={{ display: 'flex', background: 'var(--paper)', borderRadius: '999px', padding: '3px', gap: '2px' }}>
+              {[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([val, label]) => (
+                <button key={val} aria-pressed={theme === val} onClick={() => setTheme(val)} style={{ padding: '0.3rem 0.8rem', borderRadius: '999px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', background: theme === val ? 'var(--ink)' : 'transparent', color: theme === val ? 'var(--paper)' : 'var(--sub)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
                   {label}
                 </button>
               ))}

@@ -108,12 +108,29 @@ export function topicVars(category) {
 const cssBlock = (vars) => Object.entries(vars).map(([k, v]) => `${k}: ${v};`).join(' ');
 
 // The variables and the few rules that can't be inline styles. Rendered by GlobalStyles.
+// Appearance is System (follow the phone), Light or Dark: `data-theme` on <html> overrides the
+// phone's setting when it is "light" or "dark", and is absent for System.
+const DARK_ROOT = `${cssBlock(DARK)} color-scheme: dark;`;
+const DARK_TOPIC = '--tp-chip: var(--tp-chip-d); --tp-card: var(--tp-card-d);';
 export const DESIGN_CSS = `
   :root { ${cssBlock(LIGHT)} color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { ${cssBlock(DARK)} color-scheme: dark; } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ${DARK_ROOT} } }
+  :root[data-theme="dark"] { ${DARK_ROOT} }
   .rn-tp { --tp-chip: var(--tp-chip-l); --tp-card: var(--tp-card-l); }
-  @media (prefers-color-scheme: dark) { .rn-tp { --tp-chip: var(--tp-chip-d); --tp-card: var(--tp-card-d); } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rn-tp { ${DARK_TOPIC} } }
+  :root[data-theme="dark"] .rn-tp { ${DARK_TOPIC} }
   .rn-hscroll { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }
   .rn-hscroll::-webkit-scrollbar { display: none; }
   .rn-btn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 `;
+
+export const THEME_KEY = 'rundown_theme';
+// Read once at start-up (before the first paint, from index.js) and on every change.
+export function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
+  else root.removeAttribute('data-theme');
+}
+export function storedTheme() {
+  try { const t = localStorage.getItem(THEME_KEY); return t === 'light' || t === 'dark' ? t : 'system'; } catch { return 'system'; }
+}

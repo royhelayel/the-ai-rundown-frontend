@@ -6,10 +6,11 @@ import { headlineKey } from './PopularTab';
 import BottomNav from './BottomNav';
 import StorySummarySheet from './StorySummarySheet';
 import ProgressRail from './ProgressRail';
-import AppHeader from './AppHeader';
+import AppHeader, { formatHeaderDate } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { TopicRecapPages } from './TopicRecap';
 import { storyParagraph } from '../lib/stories';
+import NewsLoader from './NewsLoader';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -82,6 +83,7 @@ export default function StoryReader({
   // (category) → { text, sources } for a neighbouring topic's recap, or undefined when it
   // isn't loaded here, so the recap pages can carry a swipe on into the next topic.
   recapFor,
+  loading = false,   // the day's news is on its way: the loader takes the card's place
   isTodaySelected = true,
   onOpenRecapStory,
 }) {
@@ -599,7 +601,37 @@ export default function StoryReader({
   const isSaved = (savedKey && savedStories.some(s => headlineKey(s.headline || '') === savedKey))
     || savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
 
-  if (!story) return null;
+  const swipeBar = asPage ? (
+    <BottomNav theme="dark" fixed={false} mode="swipe"
+      onChangeMode={(m) => {
+        if (m === 'scroll') (onClose ? onClose() : goBack());
+        // Listen is a tab now, not a sheet over this one: hand off to the Listen page,
+        // which picks up the same story from the shared cursor. Falls back to the old
+        // play-in-place behaviour if the page isn't wired up.
+        else if (m === 'audio') (onEnterAudio ? onEnterAudio() : onPlayFrom(storyIndex));
+      }}
+      challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
+  ) : null;
+
+  // A day with no news, or one still loading into an empty list. This used to render nothing
+  // at all — header included — so on a date without news there was no way to pick another.
+  if (!story) {
+    if (!asPage) return null;
+    return (
+      <div ref={rootRef} style={{ position: 'relative', flex: 1, minHeight: 0, background: 'var(--paper)', color: 'var(--ink)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'relative', zIndex: 8, flexShrink: 0 }}>
+          <AppHeader selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
+            categories={[]} showTabs={false} onEditCategories={onEditCategories} user={user} />
+        </div>
+        {loading ? <NewsLoader day={selectedDay} /> : (
+          <div role="status" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 36px', textAlign: 'center', color: 'var(--sub)', fontSize: 15, lineHeight: 1.5 }}>
+            {formatHeaderDate(selectedDay) === 'Today' ? 'No stories yet today.' : `No stories for ${formatHeaderDate(selectedDay)}.`} Pick another date above.
+          </div>
+        )}
+        {swipeBar}
+      </div>
+    );
+  }
 
 
   const iconBtn = { width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
@@ -830,7 +862,11 @@ export default function StoryReader({
 
       {/* ── Middle band: the current story scrolls internally; its two neighbours ride the same
              strip a screen above and below, so text and photo arrive together. ── */}
-      {recapView && asPage ? (
+      {loading && asPage ? (
+        <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <NewsLoader day={selectedDay} />
+        </div>
+      ) : recapView && asPage ? (
         <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
           <TopicRecapPages key={`${category}|${recapPeriod}`} category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
             nextTopic={recapTopic(nextCat)} prevTopic={recapTopic(prevCat)} onLeave={leaveRecap} startAtEnd={recapLandLast === category}
@@ -874,22 +910,12 @@ export default function StoryReader({
       </>)}
 
       {/* ── Dark bottom nav — Instagram-Reels-style, stays put in Stories mode ── */}
-      {asPage && (
-        <BottomNav theme="dark" fixed={false} mode="swipe"
-          onChangeMode={(m) => {
-            if (m === 'scroll') (onClose ? onClose() : goBack());
-            // Listen is a tab now, not a sheet over this one: hand off to the Listen page,
-            // which picks up the same story from the shared cursor. Falls back to the old
-            // play-in-place behaviour if the page isn't wired up.
-            else if (m === 'audio') (onEnterAudio ? onEnterAudio() : onPlayFrom(storyIndex));
-          }}
-          challengeStats={challengeStats} user={user} onShowAuth={onShowAuth} />
-      )}
+      {swipeBar}
 
       {/* ── Progress — vertical rail on the right edge, so position maps to the swipe ── */}
       {/* The rail measures whatever list you're actually in — the ranking in All scope,
           the category's own stories otherwise. */}
-      {!recapView && <ProgressRail
+      {!recapView && !loading && <ProgressRail
         filled={allScope ? playlistPos + 1 : storyIndex + 1}
         total={allScope ? playlist.length : swipeLimit}
         theme="dark"

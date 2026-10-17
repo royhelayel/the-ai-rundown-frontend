@@ -126,6 +126,7 @@ export const DESIGN_CSS = `
   .rn-hscroll { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }
   .rn-hscroll::-webkit-scrollbar { display: none; }
   .rn-btn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  @keyframes rn-spin { to { transform: rotate(360deg); } }
 `;
 
 export const THEME_KEY = 'rundown_theme';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } f
 import { useNavigate } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
-import { SkeletonCategoryRows } from './SkeletonScreens';
+import NewsLoader from './NewsLoader';
 import { centrePill } from '../utils';
 import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
@@ -415,7 +415,7 @@ function StoryListInner({
       {/* Story list */}
       {loading && (
         <div style={{ padding: '0.5rem 0' }}>
-          <SkeletonCategoryRows count={4} />
+          <NewsLoader day={selectedDay} />
         </div>
       )}
 

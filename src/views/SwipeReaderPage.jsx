@@ -8,7 +8,7 @@ export default function SwipeReaderPage({
   openPeriodRecap, playPeriodRecap, handleNarrateBriefing, handleMarkRead, catFromUrl,
   storyIdxFromUrl, isStoriesPage, feedNameForPath, miniPlayerVisible, enterAudioMode,
   enterStoriesForTab, openFeedSummary, enterSummariesMode, readerClose, snapshotBriefing,
-  viewStories, isReadStory, recapView, setRecapView, recapPeriod, setRecapPeriod, isTodaySelected,
+  viewStories, isReadStory, recapView, setRecapView, recapPeriod, setRecapPeriod, isTodaySelected, loading,
 }) {
   const readerTranslateY = (readerMounted && !readerExiting) ? '0px' : '100%';
   const contextCats = (() => {
@@ -58,6 +58,7 @@ export default function SwipeReaderPage({
       >
         {/* Reader content */}
         <StoryReader
+          loading={loading}
           category={catFromUrl}
           story={viewStories[storyIdxFromUrl] || null}
           storyIndex={storyIdxFromUrl}

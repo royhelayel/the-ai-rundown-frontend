@@ -1585,6 +1585,23 @@ const TheAIRundown = () => {
     if (!playlist.length) return;
     enterStoriesMode(tabPath, playlist);
   };
+  // Swipe keeps its playlist in the route's state, built from the day showing when Swipe
+  // opened. Picking another date loaded that day's stories but kept the old list, so the
+  // topic row and the swipe order stayed on the first day's topics (Roy, 2026-10-17). Rebuild
+  // it whenever the feed's data changes; on a new day, start that topic from its first story.
+  const playlistDayRef = useRef(selectedDay);
+  useEffect(() => {
+    const st = location.state;
+    if (!isStoryView || !st?.asPage || !Array.isArray(st.playlist) || briefingLoading) return;
+    const dayChanged = playlistDayRef.current !== selectedDay;
+    playlistDayRef.current = selectedDay;
+    const fresh = playlistForTab(st.from || '/');
+    const sig = (l) => l.map(p => `${p.category}:${p.storyIndex}`).join('|');
+    if (!fresh.length || (!dayChanged && sig(fresh) === sig(st.playlist))) return;
+    const here = (!dayChanged && fresh.find(p => p.category === catFromUrl && p.storyIndex === storyIdxFromUrl))
+      || fresh.find(p => p.category === catFromUrl) || fresh[0];
+    navigate(`/category/${encodeURIComponent(here.category)}/story/${here.storyIndex}`, { replace: true, state: { ...st, playlist: fresh } });
+  }, [briefingData, briefingLoading, selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
   const playlistForTab = (tabPath) => (
     tabPath === '/my-feed'   ? buildMyFeedStoriesPlaylist()
     : tabPath === '/popular'   ? buildPopularStoriesPlaylist()
@@ -2035,6 +2052,7 @@ const TheAIRundown = () => {
           everywhere else it's the sheet, which only exists while something is playing. */}
       {(isListenPath || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
+          loading={isListenPath && briefingLoading && !snapshotPlayRef.current}
           asPage={isListenPath}
           visible={isListenPath ? true : !fullPlayerExiting}
           isExiting={isListenPath ? false : fullPlayerExiting}
@@ -2138,8 +2156,15 @@ const TheAIRundown = () => {
           }}
           // A cold load straight onto /listen never runs cueStory, which is what fills the
           // topic list — so the header had no topics. Fall back to the feed's own.
-          contextCategories={playerContextCategories.length ? playerContextCategories
-            : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories).filter(c => briefingData[c]?.storyCount > 0)}
+          // Live news shows only the topics with stories on the day showing. The list is set
+          // when the player opens and kept every topic, so a day with five showed twelve.
+          contextCategories={(() => {
+            const base = playerContextCategories.length ? playerContextCategories
+              : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
+            if (snapshotPlayRef.current) return base;
+            const live = base.filter(c => briefingData[c]?.storyCount > 0);
+            return live.length ? live : base;
+          })()}
           onSelectCategory={(cat) => {
             // A recap was playing: stop it and go back to live stories for the new topic.
             if (stories[0]?._isBriefing) { narrateFnRef.current.stop(); snapshotPlayRef.current = null; setStories(briefingData[cat]?.allStories || []); }
@@ -2234,6 +2259,7 @@ const TheAIRundown = () => {
       {/* ── Story Reader — full-page Swipe mode ── */}
       {(isStoriesPage || (readerExiting && isStoriesPage)) && (
         <SwipeReaderPage
+          loading={briefingLoading}
           user={user}
           setShowAuth={setShowAuth}
           setAuthMode={setAuthMode}

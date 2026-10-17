@@ -7,6 +7,7 @@ import InterestingButton from './InterestingButton';
 import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
+import NewsLoader from './NewsLoader';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -138,6 +139,7 @@ export default function FullPlayer({
   visible,
   isExiting,
   asPage = false,
+  loading = false,   // the day's news is on its way: the loader takes the card's place
   // Rendered at the bottom of the page shell (the dark BottomNav). Page mode only — the
   // sheet covers the nav rather than carrying one.
   footer = null,
@@ -746,11 +748,11 @@ export default function FullPlayer({
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
-          {recapView ? recapCard : storyCard}
+          {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : storyCard}
 
           {/* The player: speed and repeat ride the progress line, the three buttons you press
               most sit under it, and Play is the one coloured thing on the screen. */}
-          {(canPlay || isNarrating) && (
+          {!loading && (canPlay || isNarrating) && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                 <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`}
@@ -783,7 +785,7 @@ export default function FullPlayer({
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
                 </p>
               )}
-              {!recapView && (atBatchEnd || showCollapse) && (
+              {!loading && !recapView && (atBatchEnd || showCollapse) && (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <NextLink dir={atBatchEnd ? 'down' : 'up'}
                     onClick={() => {

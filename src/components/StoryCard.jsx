@@ -1,7 +1,8 @@
 /**
  * StoryCard — a story in Scroll mode (All News, My News, Popular, Interesting).
  *
- * A flat item on the page, separated by a line rather than boxed: topic and status, headline,
+ * A white panel on the page (Roy, 2026-10-17 — back from the flat, line-separated version,
+ * which read as one long column of text): topic and status, headline,
  * the short summary, then every source and the Interesting star on one row. The summary ends
  * in "… view more" on its own last line, and "view less" when open — no separate Takeaways
  * line. There is no Go deeper and no Listen: summaries are short now, and the bottom bar is
@@ -44,7 +45,8 @@ export default function StoryCard({
 
   return (
     <article className="rn-tp" onClick={() => !expanded && expand()}
-      style={{ ...topicVars(category), borderBottom: '1px solid var(--line)', padding: '4px 0 16px', marginBottom: 14, cursor: expanded ? 'default' : 'pointer', color: 'var(--ink)' }}>
+      style={{ ...topicVars(category), background: 'var(--story-panel)', border: '1px solid var(--story-panel-edge)', borderRadius: 16,
+        padding: '14px 16px 14px', marginBottom: 12, cursor: expanded ? 'default' : 'pointer', color: 'var(--ink)' }}>
       <StoryTopRow category={category} read={isRead} isNew={isNew} right={removeButton || undefined} />
 
       <h2 style={{ margin: '6px 0 8px', fontSize: 21, lineHeight: 1.18, letterSpacing: '-0.025em', fontWeight: 700 }}>
@@ -74,7 +76,7 @@ export default function StoryCard({
             <div style={{ maxHeight: '4.8em', overflow: 'hidden' }}>
               <div style={{ float: 'right', width: 0, height: '3.2em' }} />
               <button className="rn-btn" aria-expanded="false" onClick={(e) => { e.stopPropagation(); expand(); }}
-                style={{ ...toggleLink, float: 'right', clear: 'right', paddingLeft: 6, lineHeight: 1.6, background: 'var(--paper)' }}>
+                style={{ ...toggleLink, float: 'right', clear: 'right', paddingLeft: 6, lineHeight: 1.6, background: 'var(--story-panel)' }}>
                 <span style={{ color: 'var(--sub)', fontWeight: 400 }}>… </span>view more
               </button>
               {excerpt}

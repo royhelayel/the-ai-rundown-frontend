@@ -78,6 +78,9 @@ export default function StoryReader({
   periodReady,
   recapText,
   recapSources,
+  // (category) → { text, sources } for a neighbouring topic's recap, or undefined when it
+  // isn't loaded here, so the recap pages can carry a swipe on into the next topic.
+  recapFor,
   isTodaySelected = true,
   onOpenRecapStory,
 }) {
@@ -244,6 +247,19 @@ export default function StoryReader({
 
   const navTo = (cat, idx) =>
     navigate(`/category/${encodeURIComponent(cat)}/story/${idx}`, { state: location.state, replace: true });
+
+  // Recap pages run on into the neighbouring topics' recaps, as stories do. Coming back
+  // into a topic from the one after lands on its last page, as a story would.
+  const [recapLandLast, setRecapLandLast] = useState(null);
+  const recapTopic = (c) => {
+    if (!c || lenOf(c) === 0) return null;
+    const r = recapFor?.(c);
+    return { category: c, text: r ? (r.text || null) : undefined, sourcesMap: r?.sources };
+  };
+  const leaveRecap = (dir) => {
+    if (dir === 'next' && nextCat) { setRecapLandLast(null); navTo(nextCat, 0); }
+    if (dir === 'prev' && prevCat) { setRecapLandLast(prevCat); navTo(prevCat, prevCatEntry()?.index ?? 0); }
+  };
 
   const navDirRef = useRef('next'); // direction of last nav → picks the slide animation
   const contentRef = useRef(null);  // scrollable headline region
@@ -822,7 +838,8 @@ export default function StoryReader({
              strip a screen above and below, so text and photo arrive together. ── */}
       {recapView && asPage ? (
         <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
-          <TopicRecapPages category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
+          <TopicRecapPages key={`${category}|${recapPeriod}`} category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
+            nextTopic={recapTopic(nextCat)} prevTopic={recapTopic(prevCat)} onLeave={leaveRecap} startAtEnd={recapLandLast === category}
             storyCount={stories.length} isToday={isTodaySelected} dateLabel={selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''} onOpenStory={(idx) => onOpenRecapStory?.(category, idx)} />
         </div>
       ) : (<>

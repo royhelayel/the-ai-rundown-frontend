@@ -133,6 +133,7 @@ export default function SwipeReaderPage({
           periodReady={{ Daily: !!(briefingData[catFromUrl]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
           recapText={(recapPeriod === 'Daily' ? briefingData[catFromUrl]?.briefing : periodRecaps?.[recapPeriod]?.text) || null}
           recapSources={recapPeriod === 'Daily' ? briefingData[catFromUrl]?.briefingSources : periodRecaps?.[recapPeriod]?.sources}
+          recapFor={(c) => (recapPeriod === 'Daily' ? { text: (briefingData[c]?.briefing || '').trim() ? briefingData[c].briefing : null, sources: briefingData[c]?.briefingSources } : undefined)}
           isTodaySelected={isTodaySelected}
           onOpenRecapStory={(cat, idx) => {
             setRecapView(false);

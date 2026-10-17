@@ -10,7 +10,7 @@
  * row). Recaps written before that existed have no record, so they show as plain paragraphs
  * with no trigger rather than a guessed attribution.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { NextLink } from './StoryBits';
 import { CATEGORY_SHORT } from '../theme';
@@ -139,55 +139,223 @@ export function TopicRecapArticle({ category, period = 'Daily', text, sourcesMap
   );
 }
 
-// Swipe: pages that break only between whole paragraphs.
-export function TopicRecapPages({ category, period = 'Daily', text, sourcesMap, storyCount, onOpenStory, perPage = 2, isToday = true, dateLabel }) {
-  const [page, setPage] = useState(0);
-  const [part, setPart] = useState(null);
-  useEffect(() => { setPage(0); }, [category, period, text]);
-  const touch = useRef(null);
-  if (!text) return <div style={{ padding: '0 20px' }}><RecapEmpty category={category} period={period} /></div>;
-  const name = CATEGORY_SHORT[category] || category;
+// Swipe: pages that break only between whole paragraphs, moved exactly the way story cards
+// move (Roy, 2026-10-17). The page follows the finger with the next one already underneath,
+// a 70px pull turns it with the same 260ms slide, a long page scrolls first and only then
+// pulls, and past the last page the swipe carries on into the next topic's recap, as stories
+// carry on into the next topic. It used to jump on finger-up with nothing following the
+// finger, and a trackpad fling turned a page per wheel tick.
+const SLIDE = 'transform 0.26s cubic-bezier(0.22,0.61,0.36,1)';
+const PAGE_GAP = 16;      // between two pages while they slide
+const PULL = 70;          // the same commit distance as a story
+const EDGE_SLOP = 4;      // fractional scroll positions never quite reach the edge
+const WHEEL_QUIET_MS = 180;
+// Outside the component: crossing into the next topic mounts a fresh recap, and a lock that
+// lived inside it let the rest of the same fling turn a second topic.
+const wheel = { locked: false, quiet: null };
+
+const splitPages = (text, sourcesMap, perPage) => {
   const parts = recapParts(text, sourcesMap);
   const pages = [];
   for (let i = 0; i < parts.length; i += perPage) pages.push(parts.slice(i, i + perPage));
-  const last = pages.length - 1;
-  const go = (d) => setPage(p => Math.max(0, Math.min(last, p + d)));
+  return pages.length ? pages : [[]];
+};
+
+// One page as a tinted card. `text` undefined means a neighbouring topic whose recap isn't
+// loaded yet (weekly and monthly load per topic): its heading shows, the words follow on arrival.
+function RecapCard({ category, period, text, pages, idx, isToday, dateLabel, onCite }) {
+  const name = CATEGORY_SHORT[category] || category;
   return (
-    <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
-      onTouchStart={(e) => { touch.current = e.touches[0]?.clientY; }}
-      onTouchEnd={(e) => { const y0 = touch.current; touch.current = null; const y1 = e.changedTouches[0]?.clientY; if (y0 == null || y1 == null) return; if (y0 - y1 > 50) go(1); else if (y1 - y0 > 50) go(-1); }}
-      onWheel={(e) => { if (Math.abs(e.deltaY) > 30) go(e.deltaY > 0 ? 1 : -1); }}>
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', padding: '0 20px' }}>
-        <article className="rn-tp" style={{ ...topicVars(category), flex: 1, minWidth: 0, background: 'var(--tp-card)', color: 'var(--card-ink)',
-          borderRadius: 19, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 14, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              <Sparkles size={14} strokeWidth={1.8} />{name} · {LABEL[period]}
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Page {page + 1} of {pages.length}</span>
-          </div>
-          {page === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 }}>{TITLE[period](name, isToday, dateLabel)}</h1>
-              <span style={{ fontSize: 12.5, color: 'var(--card-sub)' }}>{readMinutes(text)} min read</span>
-            </div>
-          )}
-          {(pages[page] || []).map((p, i) => (
-            <p key={i} style={{ margin: 0, fontSize: 18, lineHeight: 1.55, color: 'var(--card-body)' }}>
-              {p.text}<Cite stories={p.stories} onOpen={() => setPart(p)} onCard />
-            </p>
-          ))}
-        </article>
-        <div aria-hidden style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-          {pages.map((_, i) => (
-            <span key={i} style={{ width: 5, height: i === page ? 16 : 5, borderRadius: 5, background: i === page ? 'var(--ink)' : 'var(--line)' }} />
-          ))}
-        </div>
+    <article className="rn-tp" style={{ ...topicVars(category), flex: '1 0 auto', minWidth: 0, background: 'var(--tp-card)', color: 'var(--card-ink)',
+      borderRadius: 19, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <Sparkles size={14} strokeWidth={1.8} />{name} · {LABEL[period]}
+        </span>
+        {text && pages.length > 1 && <span style={{ fontSize: 12, fontWeight: 600 }}>Page {idx + 1} of {pages.length}</span>}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', minHeight: 30, alignItems: 'center' }}>
-        {page < last && (
-          <NextLink dir="up" onClick={() => go(1)}>Swipe up for page {page + 2}</NextLink>
+      {idx === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 }}>{TITLE[period](name, isToday, dateLabel)}</h1>
+          {text && <span style={{ fontSize: 12.5, color: 'var(--card-sub)' }}>{readMinutes(text)} min read</span>}
+        </div>
+      )}
+      {text === undefined ? null : !text ? (
+        <div style={{ color: 'var(--card-sub)' }}><RecapEmpty category={category} period={period} /></div>
+      ) : (pages[idx] || []).map((p, i) => (
+        <p key={i} style={{ margin: 0, fontSize: 18, lineHeight: 1.55, color: 'var(--card-body)' }}>
+          {p.text}<Cite stories={p.stories} onOpen={() => onCite(p)} onCard />
+        </p>
+      ))}
+    </article>
+  );
+}
+
+export function TopicRecapPages({ category, period = 'Daily', text, sourcesMap, storyCount, onOpenStory, perPage = 2, isToday = true, dateLabel,
+  nextTopic = null, prevTopic = null, onLeave, startAtEnd = false }) {
+  const pages = text ? splitPages(text, sourcesMap, perPage) : [[]];
+  const last = pages.length - 1;
+  const [page, setPage] = useState(() => (startAtEnd ? last : 0));
+  // A recap that arrives after the page opened starts where you came in: the top, or the
+  // last page when you swiped back into it from the topic after.
+  const seenText = useRef(text);
+  useEffect(() => {
+    if (seenText.current === text) return;
+    seenText.current = text;
+    setPage(startAtEnd ? last : 0);
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cur = Math.min(page, last);
+  const [part, setPart] = useState(null);
+
+  const hasPrev = cur > 0 || !!prevTopic;
+  const hasNext = cur < last || !!nextTopic;
+
+  // ── The strip: the drag offset is written straight to the layers, never through React
+  // state, so following the finger costs no renders (StoryReader explains why at length). ──
+  const stripRef = useRef(null);
+  const stripH = useRef(typeof window !== 'undefined' ? window.innerHeight : 800);
+  const layers = useRef(new Map());
+  const curRef = useRef(null);
+  const dragging = useRef(false);
+  const committing = useRef(false);
+  const register = (key, slot) => (el) => {
+    if (el) layers.current.set(key, { el, slot });
+    else layers.current.delete(key);
+  };
+  const applyOffset = (dy, animate) => {
+    const transition = animate ? SLIDE : 'none';
+    const step = stripH.current + PAGE_GAP;
+    layers.current.forEach(({ el, slot }) => {
+      const transform = `translate3d(0, ${dy + slot * step}px, 0)`;
+      if (el.style.transform === transform && el.style.transition === transition) return;
+      el.style.transition = transition;
+      el.style.transform = transform;
+    });
+  };
+  // Measure before the first paint, then seat the layers before every paint.
+  useLayoutEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.clientHeight;
+      if (!h || h === stripH.current) return;
+      stripH.current = h;
+      if (!dragging.current && !committing.current) applyOffset(0, false);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!dragging.current && !committing.current) applyOffset(0, false);
+  });
+
+  const commitTo = (dir) => {
+    if (committing.current || (dir === 'next' ? !hasNext : !hasPrev)) return;
+    committing.current = true;
+    const step = stripH.current + PAGE_GAP;
+    applyOffset(dir === 'next' ? -step : step, true);
+    setTimeout(() => {
+      committing.current = false;
+      if (dir === 'next') { if (cur < last) setPage(cur + 1); else onLeave?.('next'); }
+      else if (cur > 0) setPage(cur - 1);
+      else onLeave?.('prev');
+    }, 260);
+  };
+
+  // ── Touch and wheel: the same rules as a story card ──
+  const touchY = useRef(null);
+  const dragBase = useRef(null);
+  const atTop = () => { const el = curRef.current; return !el || el.scrollTop <= EDGE_SLOP; };
+  const atBottom = () => { const el = curRef.current; return !el || (el.scrollHeight - el.scrollTop - el.clientHeight) <= EDGE_SLOP; };
+  const blocked = () => !!part;
+
+  const onTouchStart = (e) => {
+    if (blocked()) return;
+    if (committing.current) { touchY.current = null; return; }
+    if (dragging.current) { dragging.current = false; applyOffset(0, false); }
+    touchY.current = e.touches[0].clientY;
+    dragBase.current = null;
+  };
+  const onTouchMove = (e) => {
+    if (blocked() || touchY.current == null || committing.current) return;
+    const y = e.touches[0].clientY;
+    const travel = y - touchY.current;
+    if ((travel < 0 && atBottom() && hasNext) || (travel > 0 && atTop() && hasPrev)) {
+      if (dragBase.current == null) dragBase.current = y;
+      if (e.cancelable) e.preventDefault();
+      dragging.current = true;
+      applyOffset(y - dragBase.current, false);
+    } else if (dragging.current) {
+      dragging.current = false;
+      dragBase.current = null;
+      applyOffset(0, false);
+    }
+  };
+  const onTouchEnd = (e) => {
+    if (blocked() || touchY.current == null || committing.current) return;
+    const dy = e.changedTouches[0].clientY - (dragBase.current ?? touchY.current);
+    touchY.current = null;
+    dragBase.current = null;
+    dragging.current = false;
+    if (dy < -PULL && atBottom() && hasNext) commitTo('next');
+    else if (dy > PULL && atTop() && hasPrev) commitTo('prev');
+    else applyOffset(0, true);
+  };
+  const onTouchCancel = () => {
+    touchY.current = null;
+    dragBase.current = null;
+    if (dragging.current) { dragging.current = false; applyOffset(0, true); }
+  };
+  const onWheel = (e) => {
+    if (blocked() || Math.abs(e.deltaY) < 14) return;
+    // One fling is dozens of wheel events; the lock only lifts once they stop.
+    if (wheel.quiet) clearTimeout(wheel.quiet);
+    wheel.quiet = setTimeout(() => { wheel.locked = false; }, WHEEL_QUIET_MS);
+    if (wheel.locked) return;
+    if (e.deltaY > 0 && (!atBottom() || !hasNext)) return;
+    if (e.deltaY < 0 && (!atTop() || !hasPrev)) return;
+    wheel.locked = true;
+    commitTo(e.deltaY > 0 ? 'next' : 'prev');
+  };
+
+  // The page before, this page and the page after — across into the neighbouring topic at
+  // either end, so what slides in is what you land on.
+  const topicPages = (t) => (t.text ? splitPages(t.text, t.sourcesMap, perPage) : [[]]);
+  const slots = [];
+  if (cur > 0) slots.push([-1, `${category}:${cur - 1}`, { category, text, pages, idx: cur - 1 }]);
+  else if (prevTopic) { const pp = topicPages(prevTopic); slots.push([-1, `${prevTopic.category}:end`, { category: prevTopic.category, text: prevTopic.text, pages: pp, idx: pp.length - 1 }]); }
+  slots.push([0, `${category}:${cur}`, { category, text, pages, idx: cur }]);
+  if (cur < last) slots.push([1, `${category}:${cur + 1}`, { category, text, pages, idx: cur + 1 }]);
+  else if (nextTopic) slots.push([1, `${nextTopic.category}:start`, { category: nextTopic.category, text: nextTopic.text, pages: topicPages(nextTopic), idx: 0 }]);
+
+  return (
+    <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', touchAction: 'pan-y' }}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchCancel} onWheel={onWheel}>
+      <div ref={stripRef} style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {slots.map(([slot, key, c]) => (
+          <div key={key}
+            ref={(el) => { register(key, slot)(el); if (slot === 0) curRef.current = el; }}
+            style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', willChange: 'transform', backfaceVisibility: 'hidden',
+              display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
+            <RecapCard {...c} period={period} isToday={isToday} dateLabel={dateLabel} onCite={setPart} />
+          </div>
+        ))}
+        {pages.length > 1 && (
+          <div aria-hidden style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, pointerEvents: 'none' }}>
+            {pages.map((_, i) => (
+              <span key={i} style={{ width: 5, height: i === cur ? 16 : 5, borderRadius: 5, background: i === cur ? 'var(--ink)' : 'var(--line)' }} />
+            ))}
+          </div>
         )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 44 }}>
+        {cur < last ? (
+          <NextLink dir="up" onClick={() => commitTo('next')}>Swipe up for page {cur + 2}</NextLink>
+        ) : nextTopic ? (
+          <NextLink dir="up" onClick={() => commitTo('next')}>Swipe up for {CATEGORY_SHORT[nextTopic.category] || nextTopic.category} recap</NextLink>
+        ) : null}
       </div>
       <SourcesSheet part={part} category={category} storyCount={storyCount} onClose={() => setPart(null)} onOpenStory={onOpenStory} />
     </div>

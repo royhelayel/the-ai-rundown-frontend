@@ -36,6 +36,8 @@ export const LIGHT = {
   '--soft-btn': 'rgba(23,32,21,0.06)',
   '--cite-bg': 'rgba(23,32,21,0.07)',
   '--cite-ink': '#3d4637',
+  '--story-panel': '#ffffff',              // Scroll's white panel behind each story
+  '--story-panel-edge': 'rgba(23,32,21,0.07)',
 };
 
 // Codex's dark-mode pass: off-white rather than white headlines, grey secondary text, softer
@@ -66,6 +68,8 @@ export const DARK = {
   '--soft-btn': 'rgba(232,234,225,0.06)',
   '--cite-bg': 'rgba(232,234,225,0.08)',
   '--cite-ink': '#c9cfc2',
+  '--story-panel': '#191b19',
+  '--story-panel-edge': 'rgba(232,234,225,0.06)',
 };
 
 const toRgb = (hex) => {

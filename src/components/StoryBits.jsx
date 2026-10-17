@@ -10,18 +10,14 @@ import CategoryIcon from './CategoryIcon';
 
 // Read, New or Unread — nothing else (Roy dropped "Updated", 2026-10-15). New means the
 // headline arrived in the evening run; it turns into Read once opened. Signed-in users only:
-// pass `read` as undefined for guests and nothing renders. Read sits on a green pill so it can
-// be told apart at a glance in every mode (Roy, 2026-10-17); it was green text, which on the
-// tinted cards was barely there.
+// pass `read` as undefined for guests and nothing renders. Read is a bright green so it can be
+// told apart at a glance in every mode (Roy, 2026-10-17): the old dark green all but vanished on
+// the tinted cards, and a pill behind it was more than it needed.
 export function StatusBadge({ read, isNew }) {
   if (read === undefined) return null;
   const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
     letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 };
-  if (read) return (
-    <span style={{ ...base, gap: 4, padding: '3px 9px 3px 7px', borderRadius: 999, background: 'var(--read-bg)', color: 'var(--read)' }}>
-      <Check size={12} strokeWidth={2.8} />Read
-    </span>
-  );
+  if (read) return <span style={{ ...base, color: 'var(--read)' }}><Check size={13} strokeWidth={3} />Read</span>;
   if (isNew) return <span style={{ ...base, color: 'inherit' }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />New</span>;
   return <span style={{ ...base, color: 'var(--sub)' }}>Unread</span>;
 }

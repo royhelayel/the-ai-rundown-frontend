@@ -21,8 +21,7 @@ export const LIGHT = {
   '--accent': '#31451b',      // tab underline, progress, challenge ring
   '--play-bg': '#31451b',     // the one strong colour on a screen
   '--play-fg': '#d5fa64',
-  '--read': '#1d6a2b',
-  '--read-bg': '#d9eed3',             // the Read pill
+  '--read': '#16a34a',               // Read: a bright green, so it shows on the panels and cards
   '--wordmark-dim': '#8a9284',
   '--card-ink': '#142016',
   '--card-body': '#142016',
@@ -54,8 +53,7 @@ export const DARK = {
   '--accent': '#b3be8f',
   '--play-bg': '#d5fa64',
   '--play-fg': '#101113',
-  '--read': '#a8dca2',
-  '--read-bg': 'rgba(168,220,162,0.15)',
+  '--read': '#4ade80',
   '--wordmark-dim': '#6f776a',
   '--card-ink': '#e8eae1',
   '--card-body': '#cfd3c8',

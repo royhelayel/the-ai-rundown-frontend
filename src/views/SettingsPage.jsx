@@ -1,5 +1,4 @@
 import { LogOut, User, Loader, ChevronLeft, ChevronRight, History, SunMoon } from 'lucide-react';
-import FeedCategoryEditor from '../components/FeedCategoryEditor';
 import { supabase } from '../lib/supabaseClient';
 
 export default function SettingsPage({
@@ -143,33 +142,7 @@ export default function SettingsPage({
             </button>
           </div>
         </div>
-        {user && (
-        <div id="settings-myfeed" style={{ background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--line)', padding: '1.5rem', position: 'relative', overflow: 'hidden', scrollMarginTop: '72px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MY_FEED_COLOR} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: 'var(--ink)' }}>My News</h3>
-          </div>
-          <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.78rem', color: 'var(--sub)' }}>Add the categories you want, then drag to rank them — the order sets your story order.</p>
-          <FeedCategoryEditor allCategories={myNewsCategories} selected={feedCategories} onChange={saveFeedCategories} />
-          {/* The way back to the full set. Reading screens have no My/All switch any
-              more — editing this list is what narrows them, so undoing that edit is what
-              widens them again, and it belongs next to the edit rather than one tap away
-              on the screen you are reading. */}
-          <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid var(--line)' }}>
-            <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--sub)' }}>
-              Your reading screens show these news categories. Restore the defaults to see all of them again.
-            </p>
-            <button
-              onClick={() => setRestoreArmed(true)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                padding: '0.5rem 1rem', borderRadius: '999px', width: '100%', cursor: 'pointer',
-                fontWeight: '700', fontSize: '0.83rem', background: 'var(--paper)',
-                border: '1px solid var(--line)', color: 'var(--ink)' }}>
-              Restore default news categories
-            </button>
-          </div>
-        </div>
-        )}
+
         </div>
     </main>
   );

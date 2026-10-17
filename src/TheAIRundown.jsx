@@ -356,16 +356,6 @@ const TheAIRundown = () => {
     if (showAuth) { setOtpStep('email'); setOtpCode(''); setAuthMessage(null); }
   }, [showAuth]);
 
-  // When navigated to Settings asking to edit My Feed, scroll that section into view.
-  useEffect(() => {
-    if (location.pathname === '/settings' && location.state?.scrollTo === 'myfeed') {
-      const t = setTimeout(() => {
-        document.getElementById('settings-myfeed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 120);
-      return () => clearTimeout(t);
-    }
-  }, [location.pathname, location.state]);
-
   const CUSTOM_CATEGORIES_ENABLED = false;
 
   const defaultCategories = ['World News','Technology','Business','Politics','Sports','Entertainment','Science','Health','UAE','KSA','QAT','LEB'];
@@ -995,16 +985,33 @@ const TheAIRundown = () => {
 
 
 
-  const saveFeedCategories = (cats) => {
+  const saveFeedCategories = async (cats) => {
+    if (!user) throw new Error('Sign in required');
+    const response = await fetch(`${BACKEND_URL}/api/user/feed-categories`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, categories: cats })
+    });
+    if (!response.ok) throw new Error('Failed to save categories');
     setFeedCategories(cats);
     const userData = { ...user, feedCategories: cats };
     localStorage.setItem('newsdigest_user', JSON.stringify(userData));
     setUser(userData);
-    fetch(`${BACKEND_URL}/api/user/feed-categories`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, categories: cats })
-    }).catch(err => console.error('Failed to save feed categories:', err));
   };
+  const pendingCategorySignIn = useRef(false);
+  const openCategoryPicker = () => {
+    setFeedPickerDraft([...(feedCategories?.length ? feedCategories : defaultCategories)]);
+    setShowFeedPicker(true);
+  };
+  useEffect(() => {
+    if (user && pendingCategorySignIn.current) {
+      pendingCategorySignIn.current = false;
+      setFeedPickerDraft([...(user.feedCategories?.length ? user.feedCategories : defaultCategories)]);
+      setShowFeedPicker(true);
+    } else if (!showAuth && !user) {
+      pendingCategorySignIn.current = false;
+    }
+  }, [user, showAuth]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
 
   const saveNewsLanguage = (lang) => {
@@ -1808,8 +1815,10 @@ const TheAIRundown = () => {
           setShowFeedPicker={setShowFeedPicker}
           feedPickerDraft={feedPickerDraft}
           setFeedPickerDraft={setFeedPickerDraft}
-          defaultCategories={defaultCategories}
-          handleSelectCategory={handleSelectCategory}
+          defaultCategories={myNewsCategories}
+          restoreCategories={defaultCategories}
+          user={user}
+          onSignIn={() => { pendingCategorySignIn.current = true; setShowFeedPicker(false); setAuthMode('signin'); setShowAuth(true); }}
           saveFeedCategories={saveFeedCategories}
           toggleFeedPickerCat={toggleFeedPickerCat}
         />
@@ -1820,6 +1829,7 @@ const TheAIRundown = () => {
       <div className="main-content-offset">
       {(isLatestHome || showHomeBg) && !isSummariesPage && (
         <BriefingFeed
+          onEditCategories={openCategoryPicker}
           periodRecaps={periodRecaps}
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
@@ -1875,6 +1885,7 @@ const TheAIRundown = () => {
 
       {(isMyFeedPath || showMyFeedBg) && !isSummariesPage && (
         <MyFeedTab
+          onEditCategories={openCategoryPicker}
           briefingData={briefingData}
           briefingLoading={briefingLoading}
           feedCategories={feedCategories}
@@ -2097,8 +2108,8 @@ const TheAIRundown = () => {
           onSelectDay={selectDay}
           onOpenRecap={(cat) => navigate(`/category/${encodeURIComponent(cat)}/briefing`, { state: { from: playerSourcePath.current || '/' } })}
           onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
-          onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: location.pathname } })}
-          onGuestEdit={() => navigate('/my-feed')}
+          onEditCategories={openCategoryPicker}
+          onGuestEdit={openCategoryPicker}
           user={user}
           isStoryRead={isReadStory(currentStory, selectedCategory, storyIndex)}
           // Summary opens the story in the reader with its sheet already up — the same sheet
@@ -2277,6 +2288,7 @@ const TheAIRundown = () => {
       {/* ── Story Reader — full-page Swipe mode ── */}
       {(isStoriesPage || (readerExiting && isStoriesPage)) && (
         <SwipeReaderPage
+          onEditCategories={openCategoryPicker}
           loading={briefingLoading}
           user={user}
           setShowAuth={setShowAuth}

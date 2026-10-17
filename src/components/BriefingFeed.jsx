@@ -9,6 +9,7 @@ import { computeGamifiedStats } from '../hooks/useListenHistory';
 import { TopicRecapArticle } from './TopicRecap';
 
 export default function BriefingFeed({
+  onEditCategories,
   briefingData, briefingLoading,
   selectedDay, availableDays, onSelectDay,
   defaultCategories, customCategories,
@@ -129,7 +130,7 @@ export default function BriefingFeed({
         categories={visibleCats}
         activeCategory={effectiveCat}
         onSelectCategory={(cat) => { if (recapView) setActiveCat(cat); else scrollToCat(cat); }}
-        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
+        onEditCategories={onEditCategories}
         lens={lens}
         onChangeLens={goLens}
         storyCount={briefingData[effectiveCat]?.storyCount || 0}

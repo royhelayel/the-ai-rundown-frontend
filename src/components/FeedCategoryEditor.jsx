@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { GripVertical, X, Plus } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { GripVertical, X, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_PARENT } from '../theme';
 
 /**
@@ -18,10 +18,17 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
   const [dragY, setDragY] = useState(0);            // translateY of the lifted row
   const drag = useRef({ idx: null, startIdx: null, startY: 0, startOrder: null, order: null, rowStep: 52 });
   const rowsRef = useRef({});
+  const dragCleanup = useRef(() => {});
+  useEffect(() => () => dragCleanup.current(), []);
 
   const list = dragOrder || selected;
   const available = allCategories.filter(c => !list.includes(c));
 
+  const move = (index, delta) => {
+    const next = [...selected];
+    [next[index], next[index + delta]] = [next[index + delta], next[index]];
+    onChange(next);
+  };
   const add    = (cat) => onChange([...selected, cat]);
   const remove = (cat) => onChange(selected.filter(c => c !== cat));
 
@@ -37,6 +44,12 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
     setDragY(0);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+    dragCleanup.current = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
+    };
   };
 
   // Deterministic follow: target slot from pointer delta / row height — no DOM reads,
@@ -59,8 +72,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
   };
 
   const endDrag = () => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', endDrag);
+    dragCleanup.current();
     const finalOrder = drag.current.order;
     drag.current = { idx: null, startIdx: null, startY: 0, startOrder: null, order: null, rowStep: 52 };
     setDragOrder(null);
@@ -81,12 +93,12 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                 key={cat}
                 ref={el => { rowsRef.current[idx] = el; }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 12px', borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 8px', borderRadius: '12px',
                   position: 'relative',
                   zIndex: isDragging ? 5 : 1,
-                  background: isDragging ? '#fff' : 'var(--paper)',
-                  border: `1px solid ${isDragging ? color : 'rgba(0,0,0,0.06)'}`,
+                  background: isDragging ? 'var(--raised)' : 'var(--panel)',
+                  border: `1px solid ${isDragging ? color : 'var(--line)'}`,
                   boxShadow: isDragging ? `0 14px 32px rgba(20,20,40,0.22), 0 0 0 1px ${color}55` : 'none',
                   transform: isDragging ? `translateY(${dragY}px) scale(1.035)` : 'none',
                   opacity: isDragging ? 0.97 : 1,
@@ -95,7 +107,7 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
               >
                 <span
                   onPointerDown={e => startDrag(e, idx, e.currentTarget.parentElement)}
-                  style={{ display: 'flex', alignItems: 'center', color: isDragging ? color : '#b8b8c4', cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', flexShrink: 0, padding: '2px' }}
+                  style={{ display: 'flex', alignItems: 'center', color: isDragging ? color : 'var(--sub)', cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', flexShrink: 0, padding: '2px' }}
                   aria-label="Drag to reorder"
                 >
                   <GripVertical size={18} />
@@ -103,8 +115,12 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                 <span style={{ width: 18, height: 18, borderRadius: '6px', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
                 </span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>{cat}</span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#b0b0bc', flexShrink: 0 }}>{idx + 1}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: '0.82rem', fontWeight: 700, color: 'var(--ink)' }}>{cat}</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--sub)', flexShrink: 0 }}>{idx + 1}</span>
+                <button type="button" aria-label={`Move ${cat} up`} disabled={idx === 0} onClick={() => move(idx, -1)}
+                  style={{ border: 0, background: 'none', color: 'var(--sub)', width: 30, padding: 0, opacity: idx === 0 ? .3 : 1 }}><ChevronUp size={16} /></button>
+                <button type="button" aria-label={`Move ${cat} down`} disabled={idx === list.length - 1} onClick={() => move(idx, 1)}
+                  style={{ border: 0, background: 'none', color: 'var(--sub)', width: 30, padding: 0, opacity: idx === list.length - 1 ? .3 : 1 }}><ChevronDown size={16} /></button>
                 <button
                   onClick={() => remove(cat)}
                   style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--sub)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
@@ -142,10 +158,10 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                     display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                     marginLeft: '0.5rem',
                     padding: '0.3rem 0.6rem 0.3rem 0.5rem', borderRadius: '999px',
-                    border: `1px solid ${color}33`, background: `${color}0d`, color: '#3a3a4a',
+                    border: `1px solid ${color}33`, background: `${color}0d`, color: 'var(--ink)',
                     fontSize: '0.74rem', fontWeight: 500, cursor: 'pointer',
                   } : {
-                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.38rem 0.7rem 0.38rem 0.6rem', borderRadius: '999px', border: '1px solid var(--line)', background: 'var(--surface)', color: '#3a3a4a', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer'
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.38rem 0.7rem 0.38rem 0.6rem', borderRadius: '999px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer'
                   }}>
                   <Plus size={isChild ? 11 : 13} color={color} />
                   <span style={{ width: isChild ? 6 : 7, height: isChild ? 6 : 7, borderRadius: '50%', background: color, flexShrink: 0 }} />

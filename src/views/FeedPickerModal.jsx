@@ -1,39 +1,53 @@
-import { X } from 'lucide-react';
-import { CATEGORY_COLORS } from '../theme';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, UserRound } from 'lucide-react';
+import FeedCategoryEditor from '../components/FeedCategoryEditor';
 
-export default function FeedPickerModal({
-  setShowFeedPicker, feedPickerDraft, setFeedPickerDraft, defaultCategories, handleSelectCategory,
-  saveFeedCategories, toggleFeedPickerCat,
-}) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowFeedPicker(false)}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#18181f', borderRadius: '20px 20px 0 0', padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: '540px', maxHeight: '82vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ width: '36px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '0 auto 1.25rem' }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>Customise my topics</h3>
-          <button onClick={() => setShowFeedPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: '0.25rem' }}><X size={18} /></button>
+export default function FeedPickerModal({ setShowFeedPicker, feedPickerDraft, setFeedPickerDraft,
+  defaultCategories, saveFeedCategories, user, onSignIn, restoreCategories }) {
+  const dialog = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const node = dialog.current, focus = document.activeElement, overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    if (node.showModal) node.showModal(); else node.setAttribute('open', '');
+    return () => { document.body.style.overflow = overflow; node.close?.(); if (focus?.isConnected) focus.focus?.(); };
+  }, []);
+  const close = () => { if (!saving) setShowFeedPicker(false); };
+  const save = async () => {
+    if (!user || !feedPickerDraft.length || saving) return;
+    setSaving(true); setError('');
+    try { await saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); }
+    catch { setError('Your categories couldn’t be saved. Please try again.'); setSaving(false); }
+  };
+  return createPortal(<dialog ref={dialog} aria-labelledby="topics-title" onCancel={e => { e.preventDefault(); close(); }}
+    onClick={e => { if (e.target === e.currentTarget) close(); }}
+    style={{ border: 0, padding: 0, margin: 0, background: 'transparent', width: '100%', maxWidth: 'none', height: '100dvh', maxHeight: 'none', color: 'var(--ink)' }}>
+    <style>{`dialog[aria-labelledby="topics-title"]::backdrop { background: var(--overlay); } .topic-sheet button { min-height: 44px; }`}</style>
+    <div className="topic-sheet" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 560, maxHeight: '88dvh', display: 'flex', flexDirection: 'column', background: 'var(--paper)', borderRadius: '24px 24px 0 0', padding: '12px 20px 0' }}>
+      <div aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 4, background: 'var(--line)', margin: '0 auto 10px' }} />
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <h2 id="topics-title" style={{ fontSize: 22, margin: 0 }}>Your news categories</h2>
+        <button className="rn-btn" aria-label="Close categories" disabled={saving} onClick={close} style={{ width: 44, flexShrink: 0 }}><X size={18} /></button>
+      </header>
+      {user ? <>
+        <p style={{ fontSize: 13, color: 'var(--sub)', margin: '8px 0 16px' }}>Choose what you follow. Drag or use the arrows to set your news order.</p>
+        <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 16, pointerEvents: saving ? 'none' : undefined }}>
+          <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}><FeedCategoryEditor allCategories={defaultCategories} selected={feedPickerDraft} onChange={setFeedPickerDraft} /></fieldset>
+          <button className="rn-btn" onClick={() => setFeedPickerDraft([...restoreCategories])} disabled={saving} style={{ fontSize: 13, color: 'var(--sub)', marginTop: 16 }}>Restore default categories</button>
         </div>
-        <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Tap to select. Numbers show the order stories appear.</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {defaultCategories.map(cat => {
-            const pos = feedPickerDraft.indexOf(cat); const isSel = pos !== -1; const color = CATEGORY_COLORS[cat] || '#6366f1';
-            return (
-              <button key={cat} onClick={() => toggleFeedPickerCat(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: isSel ? '0.38rem 0.75rem 0.38rem 0.45rem' : '0.38rem 0.85rem', borderRadius: '999px', background: isSel ? color : 'transparent', color: isSel ? 'white' : 'rgba(255,255,255,0.7)', border: `1.5px solid ${isSel ? color : 'rgba(255,255,255,0.15)'}`, cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
-                {isSel && <span style={{ background: 'rgba(255,255,255,0.28)', borderRadius: '999px', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.63rem', fontWeight: '900', flexShrink: 0 }}>{pos + 1}</span>}
-                {cat}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>{feedPickerDraft.length} {feedPickerDraft.length === 1 ? 'category' : 'categories'} selected</span>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {feedPickerDraft.length > 0 && <button onClick={() => setFeedPickerDraft([])} style={{ padding: '0.55rem 1rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontWeight: '600' }}>Clear</button>}
-            <button disabled={feedPickerDraft.length === 0} onClick={() => { saveFeedCategories(feedPickerDraft); setShowFeedPicker(false); handleSelectCategory(feedPickerDraft[0]); }}
-              style={{ padding: '0.55rem 1.4rem', background: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)', color: feedPickerDraft.length === 0 ? 'rgba(255,255,255,0.25)' : 'white', border: 'none', borderRadius: '999px', cursor: feedPickerDraft.length === 0 ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.88rem' }}>Save Feed</button>
-          </div>
-        </div>
-      </div>
+        <footer style={{ borderTop: '1px solid var(--line)', padding: '12px 0 calc(16px + env(safe-area-inset-bottom, 0px))', flexShrink: 0 }}>
+          <p aria-live="polite" style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--sub)' }}>{feedPickerDraft.length ? `${feedPickerDraft.length} categories selected` : 'Choose at least one category to save.'}</p>
+          {error && <p role="alert" style={{ fontSize: 13, color: 'var(--ink)' }}>{error}</p>}
+          <button className="rn-btn" disabled={!feedPickerDraft.length || saving} onClick={save} style={{ width: '100%', background: 'var(--ink)', color: 'var(--paper)', borderRadius: 12, fontWeight: 700, opacity: !feedPickerDraft.length || saving ? .5 : 1 }}>{saving ? 'Saving…' : 'Save categories'}</button>
+        </footer>
+      </> : <div style={{ padding: '22px 0 calc(22px + env(safe-area-inset-bottom, 0px))' }}>
+        <UserRound size={28} color="var(--sub)" />
+        <h3 style={{ fontSize: 20, margin: '14px 0 10px' }}>Make your news mix yours.</h3>
+        <p style={{ fontSize: 14, color: 'var(--sub)', lineHeight: 1.6 }}>Sign in to choose your categories and keep your preferences across devices.</p>
+        <button className="rn-btn" onClick={onSignIn} style={{ width: '100%', background: 'var(--ink)', color: 'var(--paper)', borderRadius: 12, fontWeight: 700 }}>Sign in to choose categories</button>
+      </div>}
     </div>
-  );
+  </dialog>, document.body);
 }

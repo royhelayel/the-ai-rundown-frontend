@@ -12,7 +12,6 @@
  * / Monthly) for the recap. The header date stays the news date in both.
  */
 import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Calendar, SlidersHorizontal } from 'lucide-react';
 import { CATEGORY_SHORT } from '../theme';
 import { topicVars } from '../design';
@@ -58,7 +57,6 @@ export default function AppHeader({
   period = 'Daily', onChangePeriod, periodReady = {},
   gutter = 20,
 }) {
-  const navigate = useNavigate();
   const stripRef = useRef(null);
   const activeRef = useRef(null);
   useEffect(() => { centrePill(stripRef.current, activeRef.current); }, [activeCategory, categories.length, allActive]);
@@ -108,11 +106,11 @@ export default function AppHeader({
       </div>
 
       {/* ── Topics ── */}
-      {(categories.length > 0 || showAllPill) && (
+      {(categories.length > 0 || showAllPill || onEditCategories) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: onEditCategories && !showAllPill ? gutter - 10 : gutter }}>
           {onEditCategories && !showAllPill && (
             <button className="rn-btn" aria-label="Choose your topics" title="Choose your topics"
-              onClick={() => (user ? onEditCategories() : navigate('/my-feed'))}
+              onClick={onEditCategories}
               style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <SlidersHorizontal size={20} strokeWidth={1.8} />
             </button>

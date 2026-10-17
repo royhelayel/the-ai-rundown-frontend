@@ -9,6 +9,7 @@ import useScrollRestore from '../hooks/useScrollRestore';
 import { getRememberedCategory, rememberCategory } from '../hooks/useCategoryMemory';
 
 export default function MyFeedTab({
+  onEditCategories,
   briefingData, briefingLoading,
   feedCategories,
   selectedDay, availableDays, onSelectDay,
@@ -116,7 +117,7 @@ export default function MyFeedTab({
             <h2 style={{ margin: '0 0 0.4rem', fontSize: '1.3rem', fontWeight: '900', color: 'var(--ink)' }}>Set Up My News</h2>
             <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--sub)', lineHeight: 1.55 }}>Choose the categories you want and we'll keep your feed personalised.</p>
           </div>
-          <button onClick={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })} style={{ padding: '0.7rem 1.8rem', background: 'var(--ink)', color: 'var(--paper)', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
+          <button onClick={onEditCategories} style={{ padding: '0.7rem 1.8rem', background: 'var(--ink)', color: 'var(--paper)', border: 'none', borderRadius: '999px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}>
             Set Up My News
           </button>
         </div>
@@ -149,7 +150,7 @@ export default function MyFeedTab({
         recapPeriod={recapPeriod}
         onChangeRecapPeriod={onChangeRecapPeriod}
         periodReady={{ Daily: !!(briefingData[effectiveCat]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
-        onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
+        onEditCategories={onEditCategories}
         corpus="mine"
         onChangeCorpus={(c) => { if (c === 'all') navigate('/'); }}
         lens={lens}
@@ -196,7 +197,7 @@ export default function MyFeedTab({
           sectionRecap={false}
           sectionTitle="My News"
           onPlayFeed={onPlayMyFeed}
-          onEditFeed={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: window.location.pathname } })}
+          onEditFeed={onEditCategories}
           markNew
           activeCategory={effectiveCat}
           onCategoryChange={setActiveCat}

@@ -1,6 +1,7 @@
 import StoryReader from '../components/StoryReader';
 
 export default function SwipeReaderPage({
+  onEditCategories,
   user, setShowAuth, setAuthMode, selectedDay, storyIndex, isNarrating, isPaused, feedCategories,
   sessionSeenRef, setFocus, miniPlayerDock, readerMounted, briefingData, gamifiedStats,
   readTodaySet, savedStories, handleToggleSaved, navigate, location, readerExiting, allCategories,
@@ -112,7 +113,7 @@ export default function SwipeReaderPage({
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
-          onEditCategories={() => navigate('/settings', { state: { scrollTo: 'myfeed', from: location.pathname } })}
+          onEditCategories={onEditCategories}
           // The lens control rendered in Swipe mode but nothing was wired to it, so
           // tapping Popular or Interesting did nothing. Reuse enterStoriesForTab — the
           // same switch the mode toggle already uses to move between feeds within

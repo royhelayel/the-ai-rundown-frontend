@@ -8,7 +8,7 @@ import StorySummarySheet from './StorySummarySheet';
 import ProgressRail from './ProgressRail';
 import AppHeader, { formatHeaderDate } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
-import { TopicRecapPages } from './TopicRecap';
+import { TopicRecapPanel } from './TopicRecap';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
 import { topicVars } from '../design';
@@ -251,8 +251,8 @@ export default function StoryReader({
   const navTo = (cat, idx) =>
     navigate(`/category/${encodeURIComponent(cat)}/story/${idx}`, { state: location.state, replace: true });
 
-  // Recap pages run on into the neighbouring topics' recaps, as stories do. Coming back
-  // into a topic from the one after lands on its last page, as a story would.
+  // Each topic's recap is one panel, and the swipe runs on into the neighbouring topics'
+  // recaps as stories do. Coming back into a topic from the one after lands at its end.
   const [recapLandLast, setRecapLandLast] = useState(null);
   const recapTopic = (c) => {
     if (!c || lenOf(c) === 0) return null;
@@ -263,6 +263,8 @@ export default function StoryReader({
     if (dir === 'next' && nextCat) { setRecapLandLast(null); navTo(nextCat, 0); }
     if (dir === 'prev' && prevCat) { setRecapLandLast(prevCat); navTo(prevCat, prevCatEntry()?.index ?? 0); }
   };
+  // The topics a recap swipe passes through: one pill each on the rail.
+  const recapTopics = cats.filter(c => lenOf(c) > 0);
 
   const navDirRef = useRef('next'); // direction of last nav → picks the slide animation
   const contentRef = useRef(null);  // scrollable headline region
@@ -871,7 +873,7 @@ export default function StoryReader({
         </div>
       ) : recapView && asPage ? (
         <div style={{ position: 'relative', zIndex: 3, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
-          <TopicRecapPages key={`${category}|${recapPeriod}`} category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
+          <TopicRecapPanel key={`${category}|${recapPeriod}`} category={category} period={recapPeriod} text={recapText} sourcesMap={recapSources}
             nextTopic={recapTopic(nextCat)} prevTopic={recapTopic(prevCat)} onLeave={leaveRecap} startAtEnd={recapLandLast === category}
             storyCount={stories.length} isToday={isTodaySelected} dateLabel={selectedDay ? new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''} onOpenStory={(idx) => onOpenRecapStory?.(category, idx)} />
         </div>
@@ -918,6 +920,16 @@ export default function StoryReader({
       {/* ── Progress — vertical rail on the right edge, so position maps to the swipe ── */}
       {/* The rail measures whatever list you're actually in — the ranking in All scope,
           the category's own stories otherwise. */}
+      {/* In a recap, one pill per topic — the recap you're on among the ones a swipe moves
+          through — so it shows on every recap, however short (Roy, 2026-10-17). */}
+      {recapView && asPage && !loading && recapTopics.includes(category) && <ProgressRail
+        filled={recapTopics.indexOf(category) + 1}
+        total={recapTopics.length}
+        theme="dark"
+        position="absolute"
+        onSelect={(i) => { const c = recapTopics[i]; if (c && c !== category) { setRecapLandLast(null); navTo(c, 0); } }}
+        labelFor={(i) => `${CATEGORY_SHORT[recapTopics[i]] || recapTopics[i]} recap, ${i + 1} of ${recapTopics.length}`}
+      />}
       {!recapView && !loading && <ProgressRail
         filled={allScope ? playlistPos + 1 : storyIndex + 1}
         total={allScope ? playlist.length : swipeLimit}

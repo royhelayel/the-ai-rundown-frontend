@@ -24,6 +24,7 @@ export default function ProgressRail({
   theme = 'light',
   position = 'fixed',
   onSelect,             // optional — tap a segment to jump to that story
+  labelFor,             // optional — (i) => what segment i is, for screen readers
 }) {
   if (total < 2) return null;
 
@@ -66,7 +67,7 @@ export default function ProgressRail({
           cursor: onSelect ? 'pointer' : 'default',
         };
         return onSelect
-          ? <button key={i} onClick={() => onSelect(i)} aria-label={`Story ${i + 1} of ${total}`}
+          ? <button key={i} onClick={() => onSelect(i)} aria-label={labelFor ? labelFor(i) : `Story ${i + 1} of ${total}`}
               aria-current={isCurrent ? 'true' : undefined} style={box}><span style={dot} /></button>
           : <div key={i} style={box}><span style={dot} /></div>;
       })}

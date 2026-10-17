@@ -90,7 +90,7 @@ function MiniRing({ size = 72, strokeW = 5, pct = 0, count, total, caption, colo
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f4" strokeWidth={strokeW} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={strokeW} />
         {dash > 0 && (
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeW}
             strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
@@ -123,10 +123,10 @@ function ChallengeRow({ pct, count, total, caption, awardTitle, awardColor, awar
       <MiniRing pct={pct} count={count} total={total} caption={caption} color={awardColor} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-          <span style={{ width: 17, height: 17, borderRadius: 6, background: `${awardColor}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 17, height: 17, borderRadius: 6, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <AwardIcon awardId={awardId} size={9} color={awardColor} />
           </span>
-          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: earned ? awardColor : 'var(--ink)' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 650, color: 'var(--ink)' }}>
             {awardTitle}
           </span>
         </div>
@@ -300,11 +300,11 @@ function GuestPromo({ onShowAuth }) {
     >
       <div style={{
         width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-        background: '#f1eefe',
+        background: 'var(--panel)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#6d28d9" strokeWidth="1.8"
+          stroke="var(--sub)" strokeWidth="1.8"
           strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -323,8 +323,8 @@ function GuestPromo({ onShowAuth }) {
 
       <div style={{
         padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
-        background: '#6d28d9',
-        color: '#fff', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap',
+        background: 'var(--accent)',
+        color: 'var(--paper)', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap',
       }}>
         Sign In
       </div>
@@ -332,19 +332,6 @@ function GuestPromo({ onShowAuth }) {
   );
 }
 
-
-// One line per award — read by ChallengeRow, next to that award's ring.
-const AWARD_DESCRIPTIONS = [
-  'Read your daily goal in a single day — the ring resets every morning.',
-  'Hit that daily goal three days in a row. Miss a day and the streak starts over.',
-  'Hit the daily goal 6 days this week — the 7th is your digital detox day.',
-];
-
-// A hairline the width of the card read as a seam — this fades in from both edges instead,
-// so each section still separates from the next without cutting a hard line across the card.
-function SoftDivider() {
-  return <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(10,10,15,0.08), transparent)' }} />;
-}
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
@@ -421,89 +408,58 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
 
   // Inline badge: icon + name, in the badge colour, bold.
   const BadgeLabel = ({ award }) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, verticalAlign: 'middle', color: award.color, fontWeight: 800 }}>
-      <AwardIcon awardId={award.id} size={12} color={award.color} />
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, verticalAlign: 'middle', color: 'var(--ink)', fontWeight: 650 }}>
+      <AwardIcon awardId={award.id} size={12} color="var(--accent)" />
       {award.title}
     </span>
   );
 
+  const panelStyle = { background: 'var(--panel)', borderRadius: 16, padding: '16px 14px' };
   return (
     <>
-      {(
-        /* ── Rings card ──────────────────────────────────────────────────── */
-        <div style={{ margin: '0 16px 12px', width: 'calc(100% - 32px)', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 18, boxShadow: '0 6px 18px rgba(20,20,40,0.05)', overflow: 'hidden', ...style }}>
-          {/* Where you stand, in a sentence, above the rings that qualify it. Sections are
-              separated by a soft fading rule rather than a flat edge-to-edge line — a hard
-              hairline the full width of the card read as a seam cutting the card in two; a
-              rule that fades out toward both edges reads as a break between chapters of the
-              same card instead. */}
-          <div style={{ padding: '16px 16px 14px' }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'var(--sub)', lineHeight: 1.55 }}>
-              {!nextAward ? (
-                <>You achieved <BadgeLabel award={topAward} /> — top rank this week 🎉</>
-              ) : topAward ? (
-                <>You achieved <BadgeLabel award={topAward} />, {nextReq} to become <BadgeLabel award={nextAward} /></>
-              ) : (
-                <>{capitalize(nextReq)} to become <BadgeLabel award={nextAward} /></>
-              )}
-            </p>
-          </div>
-
-          <SoftDivider />
-          {/* One row per award — the ring and what it takes, together, instead of three
-              rings up top and their explanations three sections away. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px' }}>
-            <ChallengeRow pct={todayPct} count={todayCount} total={dailyGoal} caption="stories today" awardTitle="Informed" awardColor={AWARDS[0].color} awardId="informed" earned={todayDone} description={AWARD_DESCRIPTIONS[0]} />
-            <ChallengeRow pct={streakPct} count={streakDays} total={3} caption="day streak" awardTitle="Sharp" awardColor={AWARDS[1].color} awardId="sharp" earned={streakDone} description={AWARD_DESCRIPTIONS[1]} />
-            <ChallengeRow pct={weekPct} count={weeklyDays} total={weeklyGoal} caption="days this week" awardTitle="Savvy" awardColor={AWARDS[2].color} awardId="savvy" earned={weekDone} description={AWARD_DESCRIPTIONS[2]} />
-          </div>
-
-          {/* This week, day by day.
-              Bars were the wrong instrument: height is a quantity, and the question here is
-              binary — did you clear 10 or not. You had to compare a bar against a dashed
-              line to answer it. These are the same rings as above, one per day, so a closed
-              ring means downstairs exactly what it means upstairs: goal met. */}
-          <SoftDivider />
-          <div style={{ padding: '16px 16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--sub)' }}>This week</span>
-              <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--sub)' }}>goal {dailyGoal}/day</span>
+      <div style={{ margin: '0 16px 12px', width: 'calc(100% - 32px)', ...style }}>
+        <p style={{ margin: '8px 0 18px', fontSize: '0.85rem', color: 'var(--sub)', lineHeight: 1.55 }}>
+          {!nextAward ? <>You achieved <BadgeLabel award={topAward} /> — top rank this week.</>
+            : topAward ? <>You achieved <BadgeLabel award={topAward} />, {nextReq} to become <BadgeLabel award={nextAward} /></>
+            : <>{capitalize(nextReq)} to become <BadgeLabel award={nextAward} /></>}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <section aria-label="Informed challenge" style={panelStyle}>
+            <ChallengeRow pct={todayPct} count={todayCount} total={dailyGoal} caption="stories today" awardTitle="Informed" awardColor="var(--accent)" awardId="informed" earned={todayDone} description={`Read ${dailyGoal} stories today`} />
+          </section>
+          <section aria-label="Sharp challenge" style={panelStyle}>
+            <ChallengeRow pct={streakPct} count={streakDays} total={3} caption="day streak" awardTitle="Sharp" awardColor="var(--accent)" awardId="sharp" earned={streakDone} description="Reach your daily goal 3 days in a row" />
+          </section>
+          <section aria-label="Savvy weekly challenge" style={panelStyle}>
+            <ChallengeRow pct={weekPct} count={weeklyDays} total={weeklyGoal} caption="days this week" awardTitle="Savvy" awardColor="var(--accent)" awardId="savvy" earned={weekDone} description={`Reach your daily goal on ${weeklyGoal} days this week`} />
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, margin: '20px 0 14px', color: 'var(--sub)', fontSize: '0.72rem' }}>
+              <span>{weeklyDays} of {weeklyGoal} days complete</span><span>{dailyGoal} stories / day</span>
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {weekDays.map(d => {
                 const R = 14, C = 2 * Math.PI * R;
                 const pct = Math.min(1, d.count / Math.max(1, dailyGoal));
-                const col = d.met ? AWARDS[1].color : d.isToday ? '#6366f1' : '#b6bac4';
                 return (
-                  <div key={d.key} title={`${d.count} of ${dailyGoal}`}
+                  <div key={d.key} aria-label={`${d.key}: ${d.count} of ${dailyGoal} stories${d.met ? ', goal reached' : ''}${d.isToday ? ', today' : ''}`}
                     style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                    <span style={{ position: 'relative', display: 'flex', width: 34, height: 34 }}>
-                      <svg width="34" height="34" viewBox="0 0 34 34" style={{ display: 'block' }}>
-                        {/* Hitting the goal fills the disc solid. Arc length alone was the
-                            problem — 9 and 10 look nearly identical as arcs, and the whole
-                            question is which side of 10 you landed on. Outline vs solid is
-                            categorical, so it answers at a glance rather than on inspection. */}
-                        <circle cx="17" cy="17" r={R} fill={d.met ? col : 'transparent'} stroke={d.met ? col : '#eceef2'} strokeWidth="3.5" />
-                        {!d.met && pct > 0 && (
-                          <circle cx="17" cy="17" r={R} fill="none" stroke={col} strokeWidth="3.5" strokeLinecap="round"
-                            strokeDasharray={C} strokeDashoffset={C * (1 - pct)} transform="rotate(-90 17 17)"
-                            style={{ transition: 'stroke-dashoffset 0.5s cubic-bezier(0.22,0.61,0.36,1)' }} />
-                        )}
+                    <span style={{ position: 'relative', display: 'flex', width: 32, height: 32 }}>
+                      <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true">
+                        <circle cx="17" cy="17" r={R} fill="none" stroke="var(--line)" strokeWidth="3.5" />
+                        {pct > 0 && <circle cx="17" cy="17" r={R} fill="none" stroke="var(--accent)" strokeWidth="3.5" strokeLinecap="round"
+                          strokeDasharray={C} strokeDashoffset={C * (1 - pct)} transform="rotate(-90 17 17)" />}
+                        {d.met && <path d="M11 17l4 4 8-8" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
                       </svg>
-                      <span style={{
-                        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.62rem', fontWeight: 800, lineHeight: 1,
-                        color: d.met ? '#fff' : d.count ? col : '#d2d5dc',
-                      }}>{d.count}</span>
+                      {!d.met && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.66rem', fontWeight: 650, color: d.count ? 'var(--ink)' : 'var(--sub)' }}>{d.count || '—'}</span>}
                     </span>
-                    <span style={{ fontSize: '0.58rem', fontWeight: d.isToday ? 900 : 600, color: d.isToday ? '#6366f1' : 'var(--sub)' }}>{d.letter}</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: d.isToday ? 800 : 500, color: d.isToday ? 'var(--ink)' : 'var(--sub)' }}>{d.letter}</span>
                   </div>
                 );
               })}
             </div>
-          </div>
-</div>
-      )}
+            {weeklyGoal === 6 && <p style={{ textAlign: 'center', margin: '18px 0 0', fontSize: '0.76rem', lineHeight: 1.6, color: 'var(--sub)' }}>Six days to stay informed.<br />One day for a digital detox.</p>}
+          </section>
+        </div>
+      </div>
 
       {/* ── Cosmic burst ──────────────────────────────────────────────────── */}
       {showConfetti && <Confetti award={toastAward} onDone={() => setShowConfetti(false)} />}

@@ -9,6 +9,7 @@ import ProgressRail from './ProgressRail';
 import AppHeader from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { TopicRecapPages } from './TopicRecap';
+import { storyParagraph } from '../lib/stories';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -624,7 +625,7 @@ export default function StoryReader({
   const twoLineFoot = atBatchEnd && !!nextCat && !summaryOpen;
   const storyBody = (entry, read) => {
     const entrySaved = savedFor(entry.story);
-    const bullets = entry.story.tightBullets?.length ? entry.story.tightBullets : (entry.story.allBullets || []).slice(0, 3);
+    const paragraph = storyParagraph(entry.story);
     const outs = (entry.story.storySources || []).filter(s => s.outlet);
     return (
       <>
@@ -634,15 +635,8 @@ export default function StoryReader({
             borderRadius: 19, padding: '18px 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <StoryTopRow category={entry.category} onCard read={user ? read : undefined} isNew={entry.story.status === 'New'} />
             <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 }}>{entry.story.headline}</h1>
-            {bullets.length > 0 && (
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 15.5, lineHeight: 1.5, color: 'var(--card-body)' }}>
-                {bullets.map((b, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 9 }}>
-                    <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', opacity: 0.7, marginTop: 9, flexShrink: 0 }} />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
+            {paragraph && (
+              <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>{paragraph}</p>
             )}
             <div style={{ marginTop: 'auto' }}>
               <SourcesRow sources={outs} onCard

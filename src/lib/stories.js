@@ -141,3 +141,17 @@ export const buildStories = (content, storiesContent) => {
 
   return { stories: builtStories, hasPunchyBullets: anyPunchy };
 };
+
+// Lines joined as prose, each ending in a full stop.
+export const asSentences = (lines = []) => lines.map(l => (l || '').trim()).filter(Boolean)
+  .map(l => (/[.!?…"”’')]$/.test(l) ? l : `${l}.`)).join(' ');
+
+// A story as one paragraph of full sentences, never bullets (Roy, 2026-10-17). That is the
+// card's Summary: the writer is asked for full sentences there and the grounding check covers
+// it. The takeaways, written in headline shorthand, are joined into sentences only for a story
+// that has no Summary.
+export function storyParagraph(story) {
+  if (!story) return '';
+  if (story.summary && story.summary.trim()) return story.summary.trim();
+  return asSentences(story.tightBullets?.length ? story.tightBullets : (story.allBullets || []).slice(0, 3));
+}

@@ -6,6 +6,7 @@ import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
+import { storyParagraph } from '../lib/stories';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -248,8 +249,7 @@ export default function FullPlayer({
 
   const headline = story?.headline || '';
   const isRecap  = !!story?._isBriefing;
-  const bullets  = depthLevel === 'deep' ? (story?.allBullets || story?.tightBullets || []) : (story?.tightBullets || story?.allBullets || []);
-  const excerpt  = bullets[0] || '';
+  const excerpt  = storyParagraph(story);
   const outlets  = (story?.storySources || []).filter(so => so.outlet);
 
   // bg color as rgb for gradient stop

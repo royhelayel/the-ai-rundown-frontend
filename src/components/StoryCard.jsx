@@ -3,9 +3,9 @@
  *
  * A white panel on the page (Roy, 2026-10-17 — back from the flat, line-separated version,
  * which read as one long column of text): topic and status, headline,
- * the short summary, then every source and the Interesting star on one row. The summary ends
- * in "… view more" on its own last line, and "view less" when open — no separate Takeaways
- * line. There is no Go deeper and no Listen: summaries are short now, and the bottom bar is
+ * the summary as one paragraph of full sentences, then every source and the Interesting star on
+ * one row. The paragraph ends in a quiet "… view more" on its third line, and "view less" when
+ * open. There is no Go deeper and no Listen: summaries are short now, and the bottom bar is
  * how you choose to listen (Roy, 2026-10-15).
  *
  * Props:
@@ -20,6 +20,7 @@
 import React from 'react';
 import { StoryTopRow, StarButton, SourcesRow } from './StoryBits';
 import { topicVars } from '../design';
+import { storyParagraph } from '../lib/stories';
 
 export default function StoryCard({
   story,
@@ -34,14 +35,13 @@ export default function StoryCard({
   removeButton,
 }) {
   const sources = (story.storySources || []).filter(s => s.outlet);
-  const takeaways = story.tightBullets?.length
-    ? story.tightBullets
-    : (story.allBullets || []).slice(0, 3);
-  const excerpt = takeaways.length ? takeaways.join(' ') : (story.summary || '');
+  const excerpt = storyParagraph(story);
   const [expanded, setExpanded] = React.useState(false);
 
   const expand = () => { onSeen?.(); setExpanded(true); };
-  const toggleLink = { display: 'inline', padding: 0, font: 'inherit', fontWeight: 650, color: 'var(--tp-chip)', cursor: 'pointer', background: 'none', border: 'none' };
+  // Quiet: smaller than the text it ends and in its grey, so it reads as a way to open the
+  // paragraph rather than a button competing with the headline (Roy, 2026-10-17).
+  const toggleLink = { display: 'inline', padding: 0, fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--sub)', cursor: 'pointer', background: 'none', border: 'none' };
 
   return (
     <article className="rn-tp" onClick={() => !expanded && expand()}
@@ -56,19 +56,10 @@ export default function StoryCard({
       {excerpt && (
         <div style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--sub)' }}>
           {expanded ? (
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {takeaways.map((b, i) => (
-                <li key={i} style={{ display: 'flex', gap: 9 }}>
-                  <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--tp-chip)', marginTop: 10, flexShrink: 0 }} />
-                  <span>
-                    {b}
-                    {i === takeaways.length - 1 && (
-                      <> <button className="rn-btn" aria-expanded="true" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} style={toggleLink}>view less</button></>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <p style={{ margin: 0 }}>
+              {excerpt}{' '}
+              <button className="rn-btn" aria-expanded="true" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} style={toggleLink}>view less</button>
+            </p>
           ) : (
             /* Three lines, and "… view more" floated onto the end of the third so it reads as
                the end of the sentence it cuts off. The zero-width float occupies lines 1–2 so
@@ -76,8 +67,8 @@ export default function StoryCard({
             <div style={{ maxHeight: '4.8em', overflow: 'hidden' }}>
               <div style={{ float: 'right', width: 0, height: '3.2em' }} />
               <button className="rn-btn" aria-expanded="false" onClick={(e) => { e.stopPropagation(); expand(); }}
-                style={{ ...toggleLink, float: 'right', clear: 'right', paddingLeft: 6, lineHeight: 1.6, background: 'var(--story-panel)' }}>
-                <span style={{ color: 'var(--sub)', fontWeight: 400 }}>… </span>view more
+                style={{ ...toggleLink, float: 'right', clear: 'right', paddingLeft: 6, lineHeight: '25.6px', background: 'var(--story-panel)' }}>
+                <span style={{ fontSize: 16, fontWeight: 400 }}>… </span>view more
               </button>
               {excerpt}
             </div>

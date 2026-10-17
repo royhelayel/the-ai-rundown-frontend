@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, X } from 'lucide-react';
 import InterestingButton from './InterestingButton';
+import { asSentences } from '../lib/stories';
 import { CATEGORY_COLORS, CATEGORY_SHORT } from '../theme';
 
 const light = {
@@ -138,14 +139,7 @@ export default function StorySummarySheet({
           {takeaways.length > 0 && (
             <div style={{ padding: '0.9rem 1rem', background: light.bgSub, borderRadius: 12, marginBottom: '1.4rem' }}>
               <p style={{ margin: '0 0 0.6rem', fontSize: '0.68rem', fontWeight: 800, color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Takeaways</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {takeaways.map((b, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0, marginTop: '0.5rem' }} />
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: light.text, lineHeight: 1.6, fontWeight: 500 }}>{b}</p>
-                  </div>
-                ))}
-              </div>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: light.text, lineHeight: 1.6, fontWeight: 500 }}>{asSentences(takeaways)}</p>
             </div>
           )}
 
@@ -158,14 +152,7 @@ export default function StorySummarySheet({
           ) : summaryBullets.length > 0 ? (
             <>
               <p style={{ margin: '0 0 0.7rem', fontSize: '0.68rem', fontWeight: 800, color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>The full picture</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {summaryBullets.map((b, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0, marginTop: '0.58rem' }} />
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.7 }}>{b}</p>
-                  </div>
-                ))}
-              </div>
+              <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.7 }}>{asSentences(summaryBullets)}</p>
             </>
           ) : null}
 

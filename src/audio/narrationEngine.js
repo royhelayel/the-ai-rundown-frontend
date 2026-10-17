@@ -355,17 +355,12 @@ export function createNarrationEngine({
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
-    // Takeaways = headline + the short bullets, nothing else. The spoken twin of the
-    // Takeaways panel in Swipe mode; Summary adds perspectives and why-it-matters.
-    const isTakeaways = depthLevel === 'takeaways';
+    // The headline and the short bullets, nothing else — the same script the backend
+    // pre-records, so the cached audio is found.
     const cl = cleanForTTS;
     const parts = [cl(story.headline) + '.'];
     if (!isHeadlines) {
       (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-      if (!isTakeaways) {
-        if (story.perspectives) parts.push((isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ') + cl(story.perspectives) + '.');
-        if (story.why) parts.push((isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ') + cl(story.why) + '.');
-      }
     }
     const script = parts.filter(Boolean).join(' ');
 
@@ -441,11 +436,11 @@ export function createNarrationEngine({
 
   const narrateDigestContent = (content) => {
     if (!narrationStateRef.current.active || !content) return;
-    const isAr = newsLanguage === 'ar';
     const text = content
       .replace(/#{1,3}\s+\[?([^\]\n]+)\]?[^\n]*/g, '$1.')
-      .replace(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*/g, isAr ? 'وجهات النظر تتباين. ' : 'On the other hand, ')
-      .replace(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*/g, isAr ? 'لماذا هذا مهم. ' : 'Here is why this matters. ')
+      // Older digests still carry these lines; they are not part of a story any more, so they
+      // are skipped rather than read out (Roy, 2026-10-15).
+      .replace(/^\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة|Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*[^\n]*/gm, '')
       .replace(/\*\*(?:Coverage|التغطية|المصادر):\*\*[^\n]*/g, '')
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')

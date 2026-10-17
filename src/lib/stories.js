@@ -11,7 +11,7 @@ export function buildSnapshotBriefing(items) {
   Object.keys(byCat).forEach(cat => {
     const all = byCat[cat];
     const totalWords = all.reduce((acc, st) => {
-      const fields = [...(st.allBullets || st.tightBullets || []), st.perspectives, st.why, st.headline].filter(Boolean);
+      const fields = [...(st.allBullets || st.tightBullets || []), st.headline].filter(Boolean);
       return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
     }, 0);
     const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
@@ -36,7 +36,7 @@ export const buildStories = (content, storiesContent) => {
 
   const normalizeHeadline = (h) => h.toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '').slice(0, 40);
 
-  // ── Parse content for structure, bullets, perspectives, why, sources ──────
+  // ── Parse content for structure, bullets, sources ──────────────────────────
   const src = content || storiesContent || '';
   const sourcesStart = src.search(/^#{1,3}\s+(?:\[)?(?:Sources|المصادر)(?:\]|\()?/im);
   const body = sourcesStart > -1 ? src.slice(0, sourcesStart).trim() : src.trim();
@@ -113,8 +113,6 @@ export const buildStories = (content, storiesContent) => {
   const builtStories = chunks.map((chunk, ci) => {
     const rest = chunk.bodyLines.join('\n');
     const allBullets = [...rest.matchAll(/^[-*]\s+(.+)$/gm)].map(m => m[1]);
-    const perspMatch = rest.match(/\*\*(?:Perspectives differ|وجهات النظر تتباين|تباين وجهات النظر|آراء مختلفة):\*\*\s*(.+)/);
-    const whyMatch = rest.match(/\*\*(?:Why this matters|لماذا هذا مهم|لماذا يهم هذا|أهمية الخبر):\*\*\s*(.+)/);
     // Only set on Evening's incremental-merge digest (see generateEveningUpdate on the
     // backend) — "Unchanged" carries no badge, only "Updated"/"New" do.
     const statusMatch = rest.match(/\*\*Status:\*\*\s*(Updated|New|Unchanged)/);
@@ -128,8 +126,8 @@ export const buildStories = (content, storiesContent) => {
       headline: chunk.headline,
       tightBullets,       // short: from storiesContent if available, else first 3 from content
       allBullets,         // full: all bullets from content
-      perspectives: perspMatch?.[1] || null,
-      why: whyMatch?.[1] || null,
+      // "Perspectives differ" and "Why this matters" are no longer part of a story (Roy,
+      // 2026-10-15). Older digests still carry them; they are not read out of the text.
       summary: punchy?.summary || null,  // elaborate narrative paragraph (new generation cycle only)
       // Only "New" is shown. The evening run still marks stories it added to as Updated;
       // the app treats those like any other story (Roy, 2026-10-15).

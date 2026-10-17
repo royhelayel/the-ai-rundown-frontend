@@ -83,8 +83,6 @@ export default function useBriefingData({
         const totalWords = s.reduce((acc, story) => {
           const fields = [
             ...(story.allBullets || story.tightBullets || []),
-            story.perspectives,
-            story.why,
             story.headline,
           ].filter(Boolean);
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;

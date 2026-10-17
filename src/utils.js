@@ -16,8 +16,6 @@ export function readTime(story) {
   if (!story) return '30s';
   const fields = [
     ...(story.allBullets || story.tightBullets || []),
-    story.perspectives,
-    story.why,
     story.headline,
   ].filter(Boolean);
 

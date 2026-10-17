@@ -28,7 +28,7 @@ const light = {
 // Reader = Reels-style Headlines + a Summary bottom sheet.
 //   Headlines: one full-screen headline per screen (category photo + scrim),
 //   vertical swipe/scroll to move between stories, progress bar on top.
-//   Summary: a bottom sheet with the full details (takeaways, perspectives, why).
+//   Summary: a bottom sheet with the full details (takeaways and sources).
 export default function StoryReader({
   category,
   story,

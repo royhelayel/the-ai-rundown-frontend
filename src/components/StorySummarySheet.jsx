@@ -20,7 +20,7 @@ const light = {
  *   • Scroll mode — opened directly over the feed (fixed), with no reader beneath it.
  *   • Swipe mode  — opened over the full-page reader (absolute, inside that container).
  *
- * Order is deliberate: Takeaways, then the full picture, then perspectives / why / sources.
+ * Order is deliberate: Takeaways, then the full picture, then sources.
  */
 export default function StorySummarySheet({
   open,
@@ -155,20 +155,6 @@ export default function StorySummarySheet({
               <p style={{ margin: 0, fontSize: '0.95rem', color: light.textSub, lineHeight: 1.7 }}>{asSentences(summaryBullets)}</p>
             </>
           ) : null}
-
-          {story.perspectives && (
-            <div style={{ padding: '0.9rem 1rem', background: `${color}08`, borderRadius: 12, borderLeft: `3px solid ${color}`, marginTop: '1.4rem' }}>
-              <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perspectives differ</p>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: light.textSub, lineHeight: 1.65 }}>{story.perspectives}</p>
-            </div>
-          )}
-
-          {story.why && (
-            <div style={{ padding: '0.9rem 1rem', background: light.bgSub, borderRadius: 12, borderLeft: `3px solid ${light.border}`, marginTop: '0.85rem' }}>
-              <p style={{ margin: '0 0 0.3rem', fontSize: '0.68rem', fontWeight: 800, color: light.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Why this matters</p>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: light.textSub, lineHeight: 1.65 }}>{story.why}</p>
-            </div>
-          )}
 
           {outlets.length > 0 && (
             <>

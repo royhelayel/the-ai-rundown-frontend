@@ -8,7 +8,7 @@ export default function Wordmark() {
       letterSpacing: '-1.4px', lineHeight: 1.1, whiteSpace: 'nowrap',
       color: 'var(--wordmark-ink)', flexShrink: 0,
     }}>
-      <span>Radio</span><span style={{ color: 'var(--wordmark-dim)' }}>News</span>
+      <span>RADIO</span><span style={{ color: 'var(--wordmark-dim)' }}>NEWS</span>
     </span>
   );
 }

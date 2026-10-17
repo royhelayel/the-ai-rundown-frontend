@@ -10,22 +10,31 @@ import CategoryIcon from './CategoryIcon';
 
 // Read, New or Unread — nothing else (Roy dropped "Updated", 2026-10-15). New means the
 // headline arrived in the evening run; it turns into Read once opened. Signed-in users only:
-// pass `read` as undefined for guests and nothing renders.
+// pass `read` as undefined for guests and nothing renders. Read sits on a green pill so it can
+// be told apart at a glance in every mode (Roy, 2026-10-17); it was green text, which on the
+// tinted cards was barely there.
 export function StatusBadge({ read, isNew }) {
   if (read === undefined) return null;
   const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
     letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 };
-  if (read) return <span style={{ ...base, color: 'var(--read)' }}><Check size={12} strokeWidth={2.6} />Read</span>;
+  if (read) return (
+    <span style={{ ...base, gap: 4, padding: '3px 9px 3px 7px', borderRadius: 999, background: 'var(--read-bg)', color: 'var(--read)' }}>
+      <Check size={12} strokeWidth={2.8} />Read
+    </span>
+  );
   if (isNew) return <span style={{ ...base, color: 'inherit' }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />New</span>;
-  return <span style={{ ...base, color: 'var(--sub)', opacity: 0.9 }}>Unread</span>;
+  return <span style={{ ...base, color: 'var(--sub)' }}>Unread</span>;
 }
 
-// "🌐 WORLD" on the left, the status on the right.
+// "🌐 WORLD" on the left, the status on the right. On Scroll's white panels the topic sits on
+// a pill of its own tint, so its colour carries (Roy, 2026-10-17); on Swipe's and Listen's
+// cards the whole card is already that tint.
 export function StoryTopRow({ category, read, isNew, onCard = false, right = null }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 26 }}>
       <span className="rn-tp" style={{ ...topicVars(category), display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5,
-        fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase', color: onCard ? 'inherit' : 'var(--tp-chip)' }}>
+        fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: onCard ? 'inherit' : 'var(--tp-chip)',
+        ...(onCard ? {} : { padding: '4px 10px 4px 8px', borderRadius: 999, background: 'var(--tp-card)' }) }}>
         <CategoryIcon category={category} size={14} color="currentColor" />
         {CATEGORY_SHORT[category] || category}
       </span>

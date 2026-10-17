@@ -281,17 +281,64 @@ export default function FullPlayer({
     const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll]');
     touchRef.current = t && !inScroller ? { x: t.clientX, y: t.clientY } : null;
   };
-  const onTouchEnd = (e) => {
+
+  // ── Listen's card moves like a page being scrolled (Roy, 2026-10-17) ──
+  // It follows a sideways drag, and next/back, by swipe, button or pill, slide it out one way
+  // and the new story in from the other, instead of swapping the words in place. The drag is
+  // written straight to the card's style, so following the finger costs no renders.
+  const cardRef = useRef(null);
+  const slideDirRef = useRef(null);   // set just before a move; read by the card that mounts
+  const lastCardRef = useRef(null);
+  const enterRef = useRef(null);
+  const reduceMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const SLIDE_OUT_MS = 170;
+  const slideTo = (dir, go) => {
+    const el = cardRef.current;
+    if (!el || reduceMotion) { go?.(); return; }
+    el.style.transition = `transform ${SLIDE_OUT_MS}ms ease-in, opacity ${SLIDE_OUT_MS}ms ease-in`;
+    el.style.transform = `translateX(${dir === 'next' ? '-110%' : '110%'})`;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      slideDirRef.current = dir;
+      go?.();
+      // Nowhere to go (the first story, say): the same card is still here, so bring it back.
+      setTimeout(() => {
+        if (cardRef.current !== el) return;
+        slideDirRef.current = null;
+        el.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
+        el.style.transform = 'none';
+        el.style.opacity = '1';
+      }, 250);
+    }, SLIDE_OUT_MS);
+  };
+  const pageTouchMove = (e) => {
     const start = touchRef.current;
-    touchRef.current = null;
-    if (!start || storyCount === 0) return;
-    const t = e.changedTouches?.[0];
-    if (!t) return;
+    const el = cardRef.current;
+    const t = e.touches?.[0];
+    if (!start || !el || !t || storyCount === 0) return;
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
-    // Ignore anything that reads as vertical, or as a tap that wandered a little.
-    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) return;
-    if (dx < 0) { if (!atBatchEnd) onNext?.(); } else onPrev?.();
+    if (!start.dragging) {
+      if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) return;
+      start.dragging = true;
+    }
+    // Past the end of a batch there is nothing to pull in, so the card resists.
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${dx < 0 && atBatchEnd ? dx * 0.25 : dx}px)`;
+  };
+  const pageTouchEnd = (e) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    const el = cardRef.current;
+    if (!start || !el) return;
+    const t = e.changedTouches?.[0];
+    const dx = t ? t.clientX - start.x : 0;
+    const dy = t ? t.clientY - start.y : 0;
+    const settle = () => { el.style.transition = 'transform 0.2s ease-out'; el.style.transform = 'none'; };
+    if (!start.dragging) return;
+    if (storyCount === 0 || Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) { settle(); return; }
+    if (dx < 0) { if (atBatchEnd) settle(); else slideTo('next', onNext); }
+    else slideTo('prev', onPrev);
   };
 
   // The recap row's colour: the category's own tint, and the exact value the active topic tab
@@ -665,10 +712,22 @@ export default function FullPlayer({
       if (isPaused) onResume?.(); else if (isNarrating) onPause?.(); else onPlay?.();
     };
 
+    // Which way the story now showing came in: the slide that asked for it, or for a move the
+    // player made itself (the next story starting), the direction it moved within the topic.
+    const cardKey = `${category}|${storyIndex}`;
+    if (lastCardRef.current !== cardKey) {
+      const before = lastCardRef.current;
+      lastCardRef.current = cardKey;
+      const [prevCat, prevIdx] = (before || '').split('|');
+      enterRef.current = reduceMotion || !before ? null
+        : slideDirRef.current || (prevCat === category ? (storyIndex > Number(prevIdx) ? 'next' : 'prev') : null);
+      slideDirRef.current = null;
+    }
+
     const pageDots = (stories || []).slice(0, listenLimit).map((_, i) => {
       const current = i === storyIndex;
       return (
-        <button key={i} className="rn-btn" onClick={() => onGoToStory?.(i)}
+        <button key={i} className="rn-btn" onClick={() => { if (i !== storyIndex) slideTo(i > storyIndex ? 'next' : 'prev', () => onGoToStory?.(i)); }}
           aria-label={`Story ${i + 1} of ${listenLimit}`} aria-current={current ? 'true' : undefined}
           style={{ padding: '6px 2.5px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
@@ -688,7 +747,8 @@ export default function FullPlayer({
         </p>
       </article>
     ) : (
-      <article className="rn-tp" style={cardFrame} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <article key={cardKey} ref={cardRef} className="rn-tp" onTouchStart={onTouchStart} onTouchMove={pageTouchMove} onTouchEnd={pageTouchEnd}
+        style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out both` : 'none' }}>
         <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
           <h1 style={h1}>{headline}</h1>
@@ -735,12 +795,12 @@ export default function FullPlayer({
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
-            categories={contextCategories} activeCategory={allScope ? null : category}
+            categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={onSelectCategory}
-            showAllPill={showAllPill} allActive={allScope} onSelectAll={onSelectAll}
+            showAllPill={showAllPill} allActive={allScope && !recapView} onSelectAll={onSelectAll}
             onEditCategories={onEditCategories} user={user}
             storyCount={topicStoryCount ?? storyCount}
-            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!showAllPill && !!onChangeRecapView}
+            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!!onChangeRecapView} recapCategory={category}
             lens={lens} onChangeLens={onChangeLens}
             period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
           />
@@ -771,14 +831,14 @@ export default function FullPlayer({
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
-                {navBtn(onPrev, 'Previous story', Rewind, recapView)}
+                {navBtn(() => slideTo('prev', onPrev), 'Previous story', Rewind, recapView)}
                 <button className="rn-btn" onClick={onPlayButton} aria-label={isPlaying ? 'Pause' : 'Play'}
                   style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
                 </button>
-                {navBtn(onNext, atBatchEnd ? 'End of this batch' : 'Next story', FastForward, recapView || atBatchEnd)}
+                {navBtn(() => slideTo('next', onNext), atBatchEnd ? 'End of this batch' : 'Next story', FastForward, recapView || atBatchEnd)}
               </div>
               {phoneVoice && (
                 <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.45 }}>

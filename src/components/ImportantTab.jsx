@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark } from 'lucide-react';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
+import TabRecap from './TabRecap';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { CATEGORY_SHORT } from '../theme';
 import { headlineKey } from './PopularTab';
@@ -31,6 +32,9 @@ export default function ImportantTab({
   selectedDay, availableDays = [], onSelectDay,
   onEnterStories, onEnterSummaries, onEnterAudio,
   savedStories = [], onToggleSaved,
+  // The recap tab (see TabRecap). recapData is the day's live news, which holds the recaps.
+  recapData = {}, recapView = false, onChangeRecapView, recapPeriod = 'Daily', onChangeRecapPeriod,
+  periodRecaps, onActiveCategoryChange, onOpenRecapStory,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/important');
@@ -47,6 +51,12 @@ export default function ImportantTab({
   });
 
   const cats = [...new Set(allStories.map(s => s.category))];
+
+  // The recap tab's topic: the chosen chip, or on "Top" the first topic in the list — or, while
+  // the list is still empty, the first topic with news that day.
+  const recapCat = selectedCat || cats[0] || Object.keys(recapData).find(c => recapData[c]?.storyCount > 0) || null;
+  // Weekly and monthly recaps are fetched for one topic at a time — say which.
+  useEffect(() => { if (recapView && recapCat) onActiveCategoryChange?.(recapCat); }, [recapView, recapCat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ranked = [...allStories].sort((a, b) => b.interestCount - a.interestCount);
   const activeList = selectedCat ? ranked.filter(s => s.category === selectedCat) : ranked;
@@ -73,11 +83,24 @@ export default function ImportantTab({
       `}</style>
 
       <FeedHeader feedName="Interesting" user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} challengeStats={challengeStats} viewMode="feed" onChangeViewMode={(m) => { if (m === 'stories') onEnterStories?.(); else if (m === 'summaries') onEnterSummaries?.(); }} onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
-        categories={cats} activeCategory={selectedCat} onSelectCategory={(cat) => setSelectedCat(cat === selectedCat ? null : cat)} showAllPill subtitle={subtitle}
+        categories={cats} activeCategory={recapView ? recapCat : selectedCat}
+        onSelectCategory={(cat) => {
+          // In the recap, a chip picks whose recap; "Top" (null) goes back to the list.
+          if (recapView) { if (cat) setSelectedCat(cat); else { setSelectedCat(null); onChangeRecapView?.(false); } return; }
+          setSelectedCat(cat === selectedCat ? null : cat);
+        }} showAllPill subtitle={subtitle}
+        storyCount={activeList.length} recapCategory={recapCat}
+        recapView={recapView} onChangeRecapView={onChangeRecapView} recapPeriod={recapPeriod} onChangeRecapPeriod={onChangeRecapPeriod}
+        periodReady={{ Daily: !!(recapData[recapCat]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
         showLens lens="interesting"
         onChangeLens={(l) => { if (l === 'latest') navigate('/'); else if (l === 'popular') navigate('/popular'); }}
         corpus="all"
         onChangeCorpus={(c) => navigate(c === 'mine' ? '/my-feed' : '/')} />
+
+      {recapView && recapCat ? (
+        <TabRecap category={recapCat} briefingData={recapData} period={recapPeriod} periodRecaps={periodRecaps}
+          selectedDay={selectedDay} onOpenStory={onOpenRecapStory} />
+      ) : <>
 
 
       {/* What you personally flagged lives under My Profile now — see Settings. This tab is
@@ -118,6 +141,7 @@ export default function ImportantTab({
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

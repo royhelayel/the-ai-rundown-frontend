@@ -21,7 +21,8 @@ export const LIGHT = {
   '--accent': '#31451b',      // tab underline, progress, challenge ring
   '--play-bg': '#31451b',     // the one strong colour on a screen
   '--play-fg': '#d5fa64',
-  '--read': '#245a2a',
+  '--read': '#1d6a2b',
+  '--read-bg': '#d9eed3',             // the Read pill
   '--wordmark-dim': '#8a9284',
   '--card-ink': '#142016',
   '--card-body': '#142016',
@@ -53,7 +54,8 @@ export const DARK = {
   '--accent': '#b3be8f',
   '--play-bg': '#d5fa64',
   '--play-fg': '#101113',
-  '--read': '#a3b09a',
+  '--read': '#a8dca2',
+  '--read-bg': 'rgba(168,220,162,0.15)',
   '--wordmark-dim': '#6f776a',
   '--card-ink': '#e8eae1',
   '--card-body': '#cfd3c8',
@@ -127,6 +129,8 @@ export const DESIGN_CSS = `
   .rn-hscroll::-webkit-scrollbar { display: none; }
   .rn-btn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
   @keyframes rn-spin { to { transform: rotate(360deg); } }
+  @keyframes rn-enter-next { from { transform: translateX(60%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes rn-enter-prev { from { transform: translateX(-60%); opacity: 0; } to { transform: none; opacity: 1; } }
 `;
 
 export const THEME_KEY = 'rundown_theme';

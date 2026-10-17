@@ -4,6 +4,7 @@ import { Users, Globe } from 'lucide-react';
 import { SkeletonPopularList } from './SkeletonScreens';
 import StoryCard from './StoryCard';
 import FeedHeader from './FeedHeader';
+import TabRecap from './TabRecap';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { rankStories } from '../utils';
 import { CATEGORY_SHORT } from '../theme';
@@ -34,6 +35,9 @@ export default function PopularTab({
   selectedDay, availableDays = [], onSelectDay,
   onEnterStories, onEnterSummaries, onEnterAudio,
   savedStories = [], onToggleSaved,
+  // The recap tab (see TabRecap). recapData is the day's live news, which holds the recaps.
+  recapData = {}, recapView = false, onChangeRecapView, recapPeriod = 'Daily', onChangeRecapPeriod,
+  periodRecaps, onActiveCategoryChange, onOpenRecapStory,
 }) {
   const navigate = useNavigate();
   useScrollRestore('/popular');
@@ -76,6 +80,12 @@ export default function PopularTab({
 
   const activeList = scope === 'circle' ? circleStories : sorted;
   const cats = [...new Set(activeList.map(s => s.category))];
+
+  // The recap tab's topic: the chosen chip, or on "Top" the first topic in the list — or, while
+  // the list is still empty, the first topic with news that day.
+  const recapCat = selectedCat || cats[0] || Object.keys(recapData).find(c => recapData[c]?.storyCount > 0) || null;
+  // Weekly and monthly recaps are fetched for one topic at a time — say which.
+  useEffect(() => { if (recapView && recapCat) onActiveCategoryChange?.(recapCat); }, [recapView, recapCat]); // eslint-disable-line react-hooks/exhaustive-deps
   const filtered = selectedCat ? activeList.filter(s => s.category === selectedCat) : activeList;
 
   // The same progress rail as the other scroll screens, on the same rule: it marks the
@@ -121,7 +131,15 @@ export default function PopularTab({
       <style>{`* { box-sizing: border-box; } body { background: ${bg}; margin: 0; } ::-webkit-scrollbar { display: none; } .pop-cat-strip::-webkit-scrollbar { display: none; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <FeedHeader feedName="Popular" user={user} onShowAuth={onShowAuth} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay} challengeStats={challengeStats} viewMode="feed" onChangeViewMode={(m) => { if (m === 'stories') onEnterStories?.(); else if (m === 'summaries') onEnterSummaries?.(); }} onEnterStories={onEnterStories} onEnterSummaries={onEnterSummaries} onEnterAudio={onEnterAudio}
-        categories={!briefingLoading && cats.length > 1 ? cats : []} activeCategory={selectedCat} onSelectCategory={(cat) => setSelectedCat(cat === selectedCat ? null : cat)} showAllPill subtitle={subtitle}
+        categories={!briefingLoading && cats.length > 1 ? cats : []} activeCategory={recapView ? recapCat : selectedCat}
+        onSelectCategory={(cat) => {
+          // In the recap, a chip picks whose recap; "Top" (null) goes back to the list.
+          if (recapView) { if (cat) setSelectedCat(cat); else { setSelectedCat(null); onChangeRecapView?.(false); } return; }
+          setSelectedCat(cat === selectedCat ? null : cat);
+        }} showAllPill subtitle={subtitle}
+        storyCount={filtered.length} recapCategory={recapCat}
+        recapView={recapView} onChangeRecapView={onChangeRecapView} recapPeriod={recapPeriod} onChangeRecapPeriod={onChangeRecapPeriod}
+        periodReady={{ Daily: !!(recapData[recapCat]?.briefing || '').trim(), Weekly: !!periodRecaps?.Weekly?.text, Monthly: !!periodRecaps?.Monthly?.text }}
         // The lens row was missing here entirely, so arriving at Popular had no way back to
         // Latest or across to Interesting except the browser's own back button — it read as
         // the Popular option vanishing rather than as "you're already on it".
@@ -130,6 +148,11 @@ export default function PopularTab({
         corpus="all"
         onChangeCorpus={(c) => navigate(c === 'mine' ? '/my-feed' : '/')}
         progressListened={railIdx + 1} progressTotal={filtered.length} />
+
+      {recapView && recapCat ? (
+        <TabRecap category={recapCat} briefingData={recapData} period={recapPeriod} periodRecaps={periodRecaps}
+          selectedDay={selectedDay} onOpenStory={onOpenRecapStory} />
+      ) : <>
 
 
       {/* Everyone | Circle toggle — only shown when the user follows someone */}
@@ -207,6 +230,7 @@ export default function PopularTab({
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

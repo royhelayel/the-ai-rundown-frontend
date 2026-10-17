@@ -826,13 +826,13 @@ export default function StoryReader({
         <div style={{ position: 'relative', zIndex: 8, flexShrink: 0 }}>
           <AppHeader
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
-            categories={contextCategories} activeCategory={allScope ? null : category}
+            categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={(cat) => { if (!allScope && cat === category) return; setScope('category'); navTo(cat, 0); }}
-            showAllPill={showAllPill} allActive={allScope}
+            showAllPill={showAllPill} allActive={allScope && !recapView}
             onSelectAll={() => { if (allScope) return; setScope('all'); const p = playlist?.[0]; if (p) navTo(p.category, p.storyIndex); }}
             onEditCategories={onEditCategories} user={user}
             storyCount={allScope ? (playlist?.length || 0) : stories.length}
-            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!showAllPill && !!onChangeRecapView}
+            recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!!onChangeRecapView} recapCategory={category}
             lens={lens} onChangeLens={onChangeLens}
             period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
           />

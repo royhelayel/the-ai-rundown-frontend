@@ -1942,6 +1942,15 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/popular')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
+          recapData={briefingData}
+          recapView={recapView}
+          onChangeRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={setRecapPeriod}
+          periodRecaps={periodRecaps}
+          onActiveCategoryChange={setFeedPeriodCategory}
+          // "Open the story" from a recap: the story lives in the day's feed, so go there.
+          onOpenRecapStory={(cat, idx) => { setRecapView(false); navigate('/'); setPendingFocus({ category: cat, index: idx }); }}
         />
       )}
 
@@ -1965,6 +1974,15 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/important')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
+          recapData={briefingData}
+          recapView={recapView}
+          onChangeRecapView={setRecapView}
+          recapPeriod={recapPeriod}
+          onChangeRecapPeriod={setRecapPeriod}
+          periodRecaps={periodRecaps}
+          onActiveCategoryChange={setFeedPeriodCategory}
+          // "Open the story" from a recap: the story lives in the day's feed, so go there.
+          onOpenRecapStory={(cat, idx) => { setRecapView(false); navigate('/'); setPendingFocus({ category: cat, index: idx }); }}
         />
       )}
 

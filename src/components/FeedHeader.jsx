@@ -32,6 +32,7 @@ export default function FeedHeader({
   onChangeRecapPeriod,
   periodReady,
   canRecap,
+  recapCategory,
 }) {
   // Publish the sticky header's real height as --header-h.
   //
@@ -63,7 +64,7 @@ export default function FeedHeader({
           showTabs={showLens || !!onChangeRecapView}
           storyCount={storyCount ?? progressTotal}
           recapView={recapView} onChangeRecapView={onChangeRecapView}
-          canRecap={canRecap ?? !!onChangeRecapView}
+          canRecap={canRecap ?? !!onChangeRecapView} recapCategory={recapCategory}
           lens={lens} onChangeLens={onChangeLens}
           period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
         />

@@ -49,6 +49,9 @@ export default function AppHeader({
   recapView = false,
   onChangeRecapView,
   canRecap = true,
+  // Which topic the recap tab opens. Defaults to the active chip; Popular and Interesting pass
+  // one even on "Top", so their recap tab doesn't disappear (Roy, 2026-10-17).
+  recapCategory,
   // The control on the right of the tabs
   lens = 'latest', onChangeLens,
   period = 'Daily', onChangePeriod, periodReady = {},
@@ -61,7 +64,8 @@ export default function AppHeader({
 
   const effectiveDay = selectedDay || new Date().toISOString().split('T')[0];
   const dayOptions = availableDays.map(d => ({ value: d.fullDate, label: formatHeaderDate(d.fullDate) }));
-  const catLabel = activeCategory ? (CATEGORY_SHORT[activeCategory] || activeCategory) : '';
+  const recapCat = recapCategory || (allActive ? null : activeCategory);
+  const catLabel = recapCat ? (CATEGORY_SHORT[recapCat] || recapCat) : '';
 
   const chip = (key, label, on, onClick, ref, style = {}, className) => (
     <button key={key} ref={ref} className={`rn-btn ${className || ''}`} aria-pressed={on} onClick={onClick}
@@ -82,7 +86,7 @@ export default function AppHeader({
     </button>
   );
 
-  const showRecapTab = canRecap && !!activeCategory && !allActive;
+  const showRecapTab = canRecap && !!recapCat;
 
   return (
     <div style={{ color: 'var(--ink)' }}>

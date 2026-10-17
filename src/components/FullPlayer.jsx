@@ -277,8 +277,9 @@ export default function FullPlayer({
   const onTouchStart = (e) => {
     const t = e.touches?.[0];
     // A horizontal drag that starts inside something that scrolls sideways belongs to that
-    // thing, not to us.
-    const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll]');
+    // thing, not to us — the outlets row above all, which used to drag the whole card with it
+    // (Roy, 2026-10-18). The card is swiped from anywhere else on it.
+    const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll], .rn-hscroll');
     touchRef.current = t && !inScroller ? { x: t.clientX, y: t.clientY } : null;
   };
 
@@ -292,6 +293,32 @@ export default function FullPlayer({
   const enterRef = useRef(null);
   const reduceMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const SLIDE_OUT_MS = 170;
+
+  // The progress pills live under the card, not on it, so they stay put while cards slide past —
+  // they used to leave with the old card and reappear on the new one (Roy, 2026-10-18). While the
+  // card is dragged they follow it: the current pill narrows as the one it is heading for widens,
+  // then both settle where the story lands. Written to the DOM directly, like the drag itself.
+  const dotRefs = useRef([]);
+  const DOT_TRANSITION = 'width 0.24s ease, opacity 0.24s ease';
+  const dotLook = (i, cur) => ({ width: i === cur ? 16 : 5, opacity: i === cur ? 1 : i < cur ? 0.45 : 0.2 });
+  const setDot = (i, look, transition) => {
+    const d = dotRefs.current[i];
+    if (!d) return;
+    d.style.transition = transition;
+    d.style.width = `${look.width}px`;
+    d.style.opacity = String(look.opacity);
+  };
+  const settleDots = (cur) => dotRefs.current.forEach((_, i) => setDot(i, dotLook(i, cur), DOT_TRANSITION));
+  const followDots = (dx, blocked) => {
+    const cur = storyIndex, to = dx < 0 ? cur + 1 : cur - 1, away = dx < 0 ? cur - 1 : cur + 1;
+    const width = cardRef.current?.offsetWidth || 320;
+    const f = blocked || !dotRefs.current[to] ? 0 : Math.min(1, Math.abs(dx) / (width * 0.6));
+    const from = dotLook(cur, cur), past = dotLook(cur, to), was = dotLook(to, cur);
+    setDot(cur, { width: from.width + (past.width - from.width) * f, opacity: from.opacity + (past.opacity - from.opacity) * f }, 'none');
+    setDot(to, { width: was.width + (16 - was.width) * f, opacity: was.opacity + (1 - was.opacity) * f }, 'none');
+    setDot(away, dotLook(away, cur), 'none');      // the drag may have changed direction
+  };
+
   const slideTo = (dir, go) => {
     const el = cardRef.current;
     if (!el || reduceMotion) { go?.(); return; }
@@ -305,6 +332,7 @@ export default function FullPlayer({
       setTimeout(() => {
         if (cardRef.current !== el) return;
         slideDirRef.current = null;
+        settleDots(storyIndex);
         el.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
         el.style.transform = 'none';
         el.style.opacity = '1';
@@ -330,6 +358,7 @@ export default function FullPlayer({
     const blocked = recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd);
     el.style.transition = 'none';
     el.style.transform = `translateX(${blocked ? dx * 0.25 : dx}px)`;
+    if (!recapView) followDots(dx, blocked);
   };
   const pageTouchEnd = (e) => {
     const start = touchRef.current;
@@ -339,7 +368,7 @@ export default function FullPlayer({
     const t = e.changedTouches?.[0];
     const dx = t ? t.clientX - start.x : 0;
     const dy = t ? t.clientY - start.y : 0;
-    const settle = () => { el.style.transition = 'transform 0.2s ease-out'; el.style.transform = 'none'; };
+    const settle = () => { el.style.transition = 'transform 0.2s ease-out'; el.style.transform = 'none'; settleDots(storyIndex); };
     if (!start.dragging) return;
     if ((!recapView && storyCount === 0) || Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) { settle(); return; }
     if (recapView) {
@@ -347,8 +376,9 @@ export default function FullPlayer({
       if (to) slideTo(dx < 0 ? 'next' : 'prev', () => onSelectCategory?.(to)); else settle();
       return;
     }
-    if (dx < 0) { if (atBatchEnd) settle(); else slideTo('next', onNext); }
-    else slideTo('prev', onPrev);
+    // Committed: the pills finish their move while the card slides out.
+    if (dx < 0) { if (atBatchEnd) settle(); else { settleDots(storyIndex + 1); slideTo('next', onNext); } }
+    else { if (storyIndex > 0) settleDots(storyIndex - 1); slideTo('prev', onPrev); }
   };
 
   // The recap row's colour: the category's own tint, and the exact value the active topic tab
@@ -749,8 +779,9 @@ export default function FullPlayer({
         <button key={i} className="rn-btn" onClick={() => { if (i !== storyIndex) slideTo(i > storyIndex ? 'next' : 'prev', () => onGoToStory?.(i)); }}
           aria-label={`Story ${i + 1} of ${listenLimit}`} aria-current={current ? 'true' : undefined}
           style={{ padding: '6px 2.5px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <span style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
-            opacity: current ? 1 : i < storyIndex ? 0.45 : 0.2, transition: 'width 0.2s ease' }} />
+          <span ref={el => { dotRefs.current[i] = el; }}
+            style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
+              opacity: current ? 1 : i < storyIndex ? 0.45 : 0.2, transition: DOT_TRANSITION }} />
         </button>
       );
     });
@@ -783,7 +814,6 @@ export default function FullPlayer({
           <SourcesRow sources={outlets} onCard bleed
             star={<StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />} />
         </div>
-        {pageDots.length > 1 && <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', marginLeft: -2.5 }}>{pageDots}</div>}
       </article>
     );
 
@@ -834,6 +864,9 @@ export default function FullPlayer({
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
           {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : storyCard}
+          {!loading && !recapView && pageDots.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>
+          )}
 
           {/* The player: speed and repeat ride the progress line, the three buttons you press
               most sit under it, and Play is the one coloured thing on the screen. */}

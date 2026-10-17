@@ -409,7 +409,6 @@ export default function FullPlayer({
   const atBatchEnd  = asPage && remaining > 0 && storyIndex >= listenLimit - 1;
   const isExpanded  = asPage && total > LISTEN_BATCH && revealed > LISTEN_BATCH;
   const showCollapse = isExpanded && storyIndex >= LISTEN_BATCH - 1;
-  const catLabel    = CATEGORY_SHORT[category] || category;
 
   // Dots, not a segmented bar. The three states survive the change — the current story is an
   // elongated pill, stories behind you are dim, ahead of you dimmer — so the rail still says
@@ -812,8 +811,22 @@ export default function FullPlayer({
             </p>
           )}
           <SourcesRow sources={outlets} onCard bleed={20} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />
+          {/* "View 4 more stories" / "View less" shares Interesting's line at the end of a batch
+              (Roy, 2026-10-18) — it used to sit under the play controls, apart from its story. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            {(atBatchEnd || showCollapse) && (
+              <NextLink dir={atBatchEnd ? 'down' : 'up'} style={{ padding: 0, minHeight: 32, color: 'var(--card-sub)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (atBatchEnd) setRevealed(total);
+                  else { setRevealed(LISTEN_BATCH); if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1); }
+                }}>
+                {atBatchEnd ? `View ${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'View less'}
+              </NextLink>
+            )}
+            <span style={{ marginLeft: 'auto' }}>
+              <StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />
+            </span>
           </div>
         </div>
       </article>
@@ -905,17 +918,7 @@ export default function FullPlayer({
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
                 </p>
               )}
-              {!loading && !recapView && (atBatchEnd || showCollapse) && (
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <NextLink dir={atBatchEnd ? 'down' : 'up'}
-                    onClick={() => {
-                      if (atBatchEnd) setRevealed(total);
-                      else { setRevealed(LISTEN_BATCH); if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1); }
-                    }}>
-                    {atBatchEnd ? `View ${remaining} more ${catLabel} ${remaining === 1 ? 'story' : 'stories'}` : `View less ${catLabel} stories`}
-                  </NextLink>
-                </div>
-              )}
+
             </section>
           )}
           <div style={{ flex: 1, minHeight: 12 }} />

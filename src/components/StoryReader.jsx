@@ -659,8 +659,32 @@ export default function StoryReader({
   // stays tall (Codex, 2026-10-15). Topic and status, headline, the takeaways, then every
   // source and the Interesting star on one row. No Go deeper and no Listen: the bottom bar is
   // how you choose to listen.
-  const twoLineFoot = atBatchEnd && !!nextCat && !summaryOpen;
-  const storyBody = (entry, read) => {
+  // "View 4 more stories" / "View less", on the card's own Interesting line at the end of a batch
+  // (Roy, 2026-10-18) — it used to float under the card, apart from the story it belongs to.
+  const toggleBatch = () => {
+    if (atBatchEnd) {
+      // Reveal the rest, then swipe into the first of them so the new stories arrive the same
+      // way every other story does. Flagged rather than done inline: the neighbour still points
+      // at the next *category* until the reveal re-renders, so animating now would slide in the
+      // wrong story.
+      setRevealed(stories.length);
+      pendingSwipeRef.current = 'next';
+    } else {
+      // Collapse back to the batch, stepping off any story that's about to be hidden so we're
+      // never stranded past the end of the rail. One step back is a real swipe down, so it is
+      // animated; from deeper in the list it's a jump, so that case stays instant.
+      setRevealed(SWIPE_BATCH);
+      if (storyIndex === SWIPE_BATCH) pendingSwipeRef.current = 'prev';
+      else if (storyIndex > SWIPE_BATCH) requestAnimationFrame(() => navTo(category, SWIPE_BATCH - 1));
+    }
+  };
+  const batchLink = (atBatchEnd || showCollapse) && !summaryOpen ? (
+    <NextLink dir={atBatchEnd ? 'down' : 'up'} onClick={(e) => { e.stopPropagation(); toggleBatch(); }}
+      style={{ padding: 0, minHeight: 32, color: 'var(--card-sub)' }}>
+      {atBatchEnd ? `View ${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'View less'}
+    </NextLink>
+  ) : null;
+  const storyBody = (entry, read, { here = false } = {}) => {
     const entrySaved = savedFor(entry.story);
     const paragraph = storyParagraph(entry.story);
     const outs = (entry.story.storySources || []).filter(s => s.outlet);
@@ -677,15 +701,18 @@ export default function StoryReader({
             )}
             <div style={{ marginTop: 'auto' }}>
               <SourcesRow sources={outs} onCard bleed={20} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                <StarButton onCard active={entrySaved} onClick={() => onToggleSaved?.(entry.story, entry.category, entry.index)} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
+                {here ? batchLink : null}
+                <span style={{ marginLeft: 'auto' }}>
+                  <StarButton onCard active={entrySaved} onClick={() => onToggleSaved?.(entry.story, entry.category, entry.index)} />
+                </span>
               </div>
             </div>
           </article>
         </div>
-        {/* Room under the card for the links below it, so they never sit on the star's label:
-            one line normally, two at the end of a batch ("View 4 more…" over "Swipe up for…"). */}
-        <div style={{ height: twoLineFoot ? 66 : 46, flexShrink: 0 }} />
+        {/* Room under the card for the one line below it: "Swipe up for next story", or for the
+            next topic at the end of a batch. */}
+        <div style={{ height: 46, flexShrink: 0 }} />
       </>
     );
   };
@@ -720,49 +747,10 @@ export default function StoryReader({
   // immediately, and on a long one it swells as the end comes up.
   const gateOrHint = (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 6 }}>
-    {(atBatchEnd || showCollapse) && !summaryOpen ? (
-      <>
-        {/* Quieter than before: no border, no fill, smaller text. It was styled like a
-            primary action — heavier than the Summary/Listen buttons that actually matter
-            more on this screen. */}
-        {/* Keyed apart from the hint below: unkeyed, React reuses the hint's button for this
-            one and it keeps the hint's scroll-driven opacity, drawing this line faded. */}
-        <NextLink key="gate" dir={atBatchEnd ? 'down' : 'up'} style={{ minHeight: atBatchEnd && nextCat ? 30 : 34 }}
-          onClick={() => {
-            if (atBatchEnd) {
-              // Reveal the rest, then swipe into the first of them so the new stories
-              // arrive the same way every other story does. Flagged rather than done
-              // inline: the neighbour still points at the next *category* until the
-              // reveal re-renders, so animating now would slide in the wrong story.
-              setRevealed(stories.length);
-              pendingSwipeRef.current = 'next';
-            } else {
-              // Collapse back to the batch, stepping off any story that's about to be
-              // hidden so we're never stranded past the end of the rail.
-              //
-              // One step back is a real swipe down, so animate it — the card below is
-              // already rendered and it's the one you land on. From deeper in the list
-              // it's a jump, not a swipe: animating would slide the wrong card in for
-              // 260ms before cutting to a different one, so that case stays instant.
-              setRevealed(SWIPE_BATCH);
-              if (storyIndex === SWIPE_BATCH) pendingSwipeRef.current = 'prev';
-              else if (storyIndex > SWIPE_BATCH) requestAnimationFrame(() => navTo(category, SWIPE_BATCH - 1));
-            }
-          }}>
-          {/* Down reveals more (there's further to go); up collapses back (folding up what
-              was revealed). Named, not generic. In Swipe the gate sits at the end of one category's run
-              with the next category's name directly under it ("swipe up for Sports"), so
-              "View 8 more stories" was the one line on screen that didn't say which pile it
-              meant. */}
-          {atBatchEnd
-            ? `View ${remaining} more ${CATEGORY_SHORT[category] || category} ${remaining === 1 ? 'story' : 'stories'}`
-            : `View less ${CATEGORY_SHORT[category] || category} stories`}
-        </NextLink>
-        {/* Swiping still works here — say where it goes, or it looks like a dead end. */}
-        {atBatchEnd && nextCat && (
-          <NextLink key="next-topic" as="span" dir="up" style={{ minHeight: 24 }}>Swipe up for {CATEGORY_SHORT[nextCat] || nextCat}</NextLink>
-        )}
-      </>
+    {atBatchEnd && !summaryOpen ? (
+      // Swiping still works at the end of a batch — say where it goes, or it looks like a dead
+      // end. The way to the rest of this topic is on the card itself.
+      nextCat ? <NextLink key="next-topic" as="span" dir="up">Swipe up for {CATEGORY_SHORT[nextCat] || nextCat}</NextLink> : null
     ) : hasNext && !summaryOpen ? (
       // The hint names a gesture, so it should also *be* one: tapping runs the same
       // commit the swipe does, animation included. It read as a caption before, which
@@ -887,7 +875,7 @@ export default function StoryReader({
         ref={(el) => { contentRef.current = el; registerLayer('text0', 0)(el); }}
         style={{ ...bodyContainer, willChange: 'transform', backfaceVisibility: 'hidden' }}
       >
-        {storyBody({ category, story, index: storyIndex }, readOf(category, storyIndex))}
+        {storyBody({ category, story, index: storyIndex }, readOf(category, storyIndex), { here: true })}
       </div>
       </div>
 

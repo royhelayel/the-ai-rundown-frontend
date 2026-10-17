@@ -311,20 +311,25 @@ export default function FullPlayer({
       }, 250);
     }, SLIDE_OUT_MS);
   };
+  // The recap moves along the topic row, as Swipe's recaps do.
+  const topicRow = contextCategories || [];
+  const topicAt = (d) => { const i = topicRow.indexOf(category); return i > -1 ? topicRow[i + d] || null : null; };
   const pageTouchMove = (e) => {
     const start = touchRef.current;
     const el = cardRef.current;
     const t = e.touches?.[0];
-    if (!start || !el || !t || storyCount === 0) return;
+    if (!start || !el || !t || (!recapView && storyCount === 0)) return;
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     if (!start.dragging) {
       if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) return;
       start.dragging = true;
     }
-    // Past the end of a batch there is nothing to pull in, so the card resists.
+    // Where there is nothing to pull in, the card resists: past the end of a batch, or past
+    // the first or last topic in the recap.
+    const blocked = recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd);
     el.style.transition = 'none';
-    el.style.transform = `translateX(${dx < 0 && atBatchEnd ? dx * 0.25 : dx}px)`;
+    el.style.transform = `translateX(${blocked ? dx * 0.25 : dx}px)`;
   };
   const pageTouchEnd = (e) => {
     const start = touchRef.current;
@@ -336,7 +341,12 @@ export default function FullPlayer({
     const dy = t ? t.clientY - start.y : 0;
     const settle = () => { el.style.transition = 'transform 0.2s ease-out'; el.style.transform = 'none'; };
     if (!start.dragging) return;
-    if (storyCount === 0 || Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) { settle(); return; }
+    if ((!recapView && storyCount === 0) || Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) { settle(); return; }
+    if (recapView) {
+      const to = topicAt(dx < 0 ? 1 : -1);
+      if (to) slideTo(dx < 0 ? 'next' : 'prev', () => onSelectCategory?.(to)); else settle();
+      return;
+    }
     if (dx < 0) { if (atBatchEnd) settle(); else slideTo('next', onNext); }
     else slideTo('prev', onPrev);
   };
@@ -712,15 +722,24 @@ export default function FullPlayer({
       if (isPaused) onResume?.(); else if (isNarrating) onPause?.(); else onPlay?.();
     };
 
-    // Which way the story now showing came in: the slide that asked for it, or for a move the
-    // player made itself (the next story starting), the direction it moved within the topic.
-    const cardKey = `${category}|${storyIndex}`;
-    if (lastCardRef.current !== cardKey) {
+    // Which way the card now showing came in: the slide that asked for it; or, for a move made
+    // some other way, the way it moved — along the topic for the next story starting, along the
+    // topic row for a topic picked from it (Roy, 2026-10-17: topics slide too). Switching
+    // between the stories and the recap, or the recap's period, doesn't slide.
+    const cardKey = recapView ? `recap|${category}|${recapPeriod}` : `${category}|${storyIndex}`;
+    if (lastCardRef.current?.key !== cardKey) {
       const before = lastCardRef.current;
-      lastCardRef.current = cardKey;
-      const [prevCat, prevIdx] = (before || '').split('|');
-      enterRef.current = reduceMotion || !before ? null
-        : slideDirRef.current || (prevCat === category ? (storyIndex > Number(prevIdx) ? 'next' : 'prev') : null);
+      lastCardRef.current = { key: cardKey, recap: recapView, category, storyIndex };
+      let dir = slideDirRef.current;
+      if (!dir && before && before.recap === recapView) {
+        if (before.category !== category) {
+          const a = topicRow.indexOf(before.category), b = topicRow.indexOf(category);
+          if (a > -1 && b > -1) dir = b > a ? 'next' : 'prev';
+        } else if (!recapView && storyIndex !== before.storyIndex) {
+          dir = storyIndex > before.storyIndex ? 'next' : 'prev';
+        }
+      }
+      enterRef.current = reduceMotion || !before ? null : dir || null;
       slideDirRef.current = null;
     }
 
@@ -747,8 +766,12 @@ export default function FullPlayer({
         </p>
       </article>
     ) : (
+      // The slide-in must let go once it ends. With fill "both" its last frame (transform:
+      // none) stayed applied over the inline transform the drag writes, so only the first
+      // card, which never slid in, followed the finger (Roy, 2026-10-17).
       <article key={cardKey} ref={cardRef} className="rn-tp" onTouchStart={onTouchStart} onTouchMove={pageTouchMove} onTouchEnd={pageTouchEnd}
-        style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out both` : 'none' }}>
+        onAnimationEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.style.animation = 'none'; }}
+        style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
           <h1 style={h1}>{headline}</h1>
@@ -765,7 +788,9 @@ export default function FullPlayer({
     );
 
     const recapCard = (
-      <article className="rn-tp" style={cardFrame}>
+      <article key={cardKey} ref={cardRef} className="rn-tp" onTouchStart={onTouchStart} onTouchMove={pageTouchMove} onTouchEnd={pageTouchEnd}
+        onAnimationEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.style.animation = 'none'; }}
+        style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
         </div>

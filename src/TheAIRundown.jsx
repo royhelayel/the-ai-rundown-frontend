@@ -386,6 +386,8 @@ const TheAIRundown = () => {
   const storyDarkBg = `linear-gradient(160deg, ${_darkenHex(storyCardColor, 0.10)}, ${_darkenHex(storyCardColor, 0.16)}, ${_darkenHex(storyCardColor, 0.24)})`;
   const storyGlowBg = `radial-gradient(ellipse at 30% 30%, rgba(${_scRgb}, 0.22) 0%, transparent 65%)`;
 
+  // How many of the Listen topic's stories are shown; set by FullPlayer, read by the narration.
+  const narrationLimitRef = useRef(null);
   const {
     speakWithBrowser,
   } = createNarrationEngine({
@@ -396,7 +398,7 @@ const TheAIRundown = () => {
     ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
     newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
     setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
-    setPhoneVoice,
+    setPhoneVoice, narrationLimitRef,
   });
 
   // ── Story reader sheet: mount / exit animations ──────────────────────────
@@ -2081,6 +2083,7 @@ const TheAIRundown = () => {
           everywhere else it's the sheet, which only exists while something is playing. */}
       {(isListenPath || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
+          narrationLimitRef={narrationLimitRef}
           loading={isListenPath && briefingLoading && !snapshotPlayRef.current}
           asPage={isListenPath}
           visible={isListenPath ? true : !fullPlayerExiting}

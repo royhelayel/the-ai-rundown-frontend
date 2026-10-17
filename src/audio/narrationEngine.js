@@ -14,8 +14,11 @@ export function createNarrationEngine({
   ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
   newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
   setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
-  setPhoneVoice,
+  setPhoneVoice, narrationLimitRef,
 }) {
+  // Where this topic's stories end for the narration: all of them, or in Listen only the ones
+  // the batch shows — past those it moves to the next topic (Roy, 2026-10-18).
+  const topicEnd = (n) => { const lim = narrationLimitRef?.current; return lim ? Math.min(n, lim) : n; };
   // Sync mutable player state into refs so narration callbacks can read latest values
   repeatModeRef.current = repeatMode;
   playbackSpeedRef.current = playbackSpeed;
@@ -345,7 +348,7 @@ export function createNarrationEngine({
   const narrateStoryFrom = (idx) => {
     if (!narrationStateRef.current.active) return;
     const { stories } = storyNavRef.current;
-    if (idx >= stories.length) {
+    if (idx >= topicEnd(stories.length)) {
       if (repeatModeRef.current) { setStoryIndex(0); narrateFnRef.current.narrateStory(0); return; }
       narrateFnRef.current.goNext(); return;
     }
@@ -375,7 +378,7 @@ export function createNarrationEngine({
           return;
         }
         const nextIdx = idx + 1;
-        if (nextIdx < storyNavRef.current.stories.length) {
+        if (nextIdx < topicEnd(storyNavRef.current.stories.length)) {
           // More stories ahead — play a brief transition (skip in headlines mode)
           const trans = (!isAr && !isHeadlines) ? pickRandom(STORY_TRANSITIONS) : null;
           if (trans) {

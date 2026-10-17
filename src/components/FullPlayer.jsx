@@ -142,6 +142,7 @@ export default function FullPlayer({
   visible,
   isExiting,
   asPage = false,
+  narrationLimitRef,   // how many of this topic's stories are shown; narration moves on after them
   loading = false,   // the day's news is on its way: the loader takes the card's place
   // Rendered at the bottom of the page shell (the dark BottomNav). Page mode only — the
   // sheet covers the nav rather than carrying one.
@@ -369,7 +370,7 @@ export default function FullPlayer({
     }
     // Where there is nothing to pull in, the card resists: past the end of a batch, or past
     // the first or last topic in the recap.
-    const blocked = recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd);
+    const blocked = recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd && !topicAt(1));
     el.style.transition = 'none';
     el.style.transform = `translateX(${blocked ? dx * 0.25 : dx}px)`;
     if (!recapView) followDots(dx, blocked);
@@ -391,7 +392,11 @@ export default function FullPlayer({
       return;
     }
     // Committed: the pills finish their move while the card slides out.
-    if (dx < 0) { if (atBatchEnd) settle(); else { settleDots(storyIndex + 1); slideTo('next', onNext); } }
+    // At the end of a batch, on to the next topic — the rest of this one is behind "View 4 more".
+    if (dx < 0) {
+      if (atBatchEnd) { const t = topicAt(1); if (t) slideTo('next', () => onSelectCategory?.(t)); else settle(); }
+      else { settleDots(storyIndex + 1); slideTo('next', onNext); }
+    }
     else { if (storyIndex > 0) settleDots(storyIndex - 1); slideTo('prev', onPrev); }
   };
 
@@ -419,6 +424,13 @@ export default function FullPlayer({
   useEffect(() => { setRevealed(Math.max(LISTEN_BATCH, storyIndex + 1)); }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
   const total       = (stories || []).length;
   const listenLimit = asPage ? Math.min(revealed, total) : total;
+  // The narration stops where the shown stories stop and moves to the next topic, rather than
+  // reading on into stories the batch has not revealed (Roy, 2026-10-18).
+  useEffect(() => {
+    if (!narrationLimitRef) return undefined;
+    narrationLimitRef.current = asPage && !allScope && !recapView ? listenLimit : null;
+    return () => { narrationLimitRef.current = null; };
+  }, [narrationLimitRef, asPage, allScope, recapView, listenLimit]);
   const remaining   = Math.max(0, total - listenLimit);
   const atBatchEnd  = asPage && remaining > 0 && storyIndex >= listenLimit - 1;
   const isExpanded  = asPage && total > LISTEN_BATCH && revealed > LISTEN_BATCH;
@@ -939,7 +951,9 @@ export default function FullPlayer({
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
                 </button>
-                {navBtn(() => slideTo('next', onNext), atBatchEnd ? 'End of this batch' : 'Next story', FastForward, recapView || atBatchEnd)}
+                {navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
+                  atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
+                  FastForward, recapView || (atBatchEnd && !topicAt(1)))}
               </div>
               {phoneVoice && (
                 <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.45 }}>

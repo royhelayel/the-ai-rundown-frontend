@@ -803,13 +803,16 @@ export default function FullPlayer({
         onAnimationEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.style.animation = 'none'; }}
         style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, flex: 1 }}>
           <h1 style={h1}>{headline}</h1>
           {excerpt && (
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {excerpt}
             </p>
           )}
+          {/* The outlets and Interesting sit at the foot of the card, as in Swipe and Scroll
+              (Roy, 2026-10-18); the card's fixed height leaves the room above them. */}
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <SourcesRow sources={outlets} onCard bleed={20} />
           {/* "View 4 more stories" / "View less" shares Interesting's line at the end of a batch
               (Roy, 2026-10-18) — it used to sit under the play controls, apart from its story. */}
@@ -827,6 +830,7 @@ export default function FullPlayer({
             <span style={{ marginLeft: 'auto' }}>
               <StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />
             </span>
+          </div>
           </div>
         </div>
       </article>

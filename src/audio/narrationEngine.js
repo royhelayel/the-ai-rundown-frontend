@@ -2,7 +2,8 @@
 // Called once per render from TheAIRundown with that render's state, exactly as the code
 // ran when it lived inline — everything it hands back is re-created each render.
 import { headlineKey } from '../components/PopularTab';
-import { cleanForTTS, STORY_TRANSITIONS, CAT_TRANSITION_TEMPLATES, pickRandom } from './narrationText';
+import { cleanForTTS, endSentence, STORY_TRANSITIONS, CAT_TRANSITION_TEMPLATES, pickRandom } from './narrationText';
+import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
 
 export function createNarrationEngine({
@@ -355,13 +356,12 @@ export function createNarrationEngine({
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
-    // The headline and the short bullets, nothing else — the same script the backend
-    // pre-records, so the cached audio is found.
+    // What the card shows: the headline, then the story's paragraph (Roy, 2026-10-18) — it read
+    // the takeaways while the card showed the Summary. The same script the backend pre-records,
+    // so the cached audio is found.
     const cl = cleanForTTS;
-    const parts = [cl(story.headline) + '.'];
-    if (!isHeadlines) {
-      (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-    }
+    const parts = [endSentence(cl(story.headline))];
+    if (!isHeadlines) parts.push(cl(storyParagraph(story)));
     const script = parts.filter(Boolean).join(' ');
 
     const playStory = () => {
@@ -414,10 +414,8 @@ export function createNarrationEngine({
   const buildStoryScript = (story) => {
     if (!story) return '';
     const cl = cleanForTTS;
-    const parts = [cl(story.headline) + '.'];
-    (story.tightBullets || story.allBullets || []).forEach(b => parts.push(cl(b) + '.'));
-    // Takeaways only, exactly as narrateStoryFrom reads it — the cache key has to match.
-    return parts.filter(Boolean).join(' ');
+    // Exactly as narrateStoryFrom reads it — the cache key has to match.
+    return [endSentence(cl(story.headline)), cl(storyParagraph(story))].filter(Boolean).join(' ');
   };
 
   // Pre-fetches TTS audio for `text` in the background so play is instant when triggered.

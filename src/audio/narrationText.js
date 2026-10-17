@@ -16,6 +16,9 @@ export const CAT_TRANSITION_TEMPLATES = [
 
 export const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+// One full stop to a sentence: appending one to a takeaway that already ended in one made "..".
+export const endSentence = (t) => (/[.!?…"”’')]$/.test(t) ? t : `${t}.`);
+
 // Strip markdown and symbols that TTS engines read aloud literally
 export const cleanForTTS = (text) => text
   .replace(/\*\*(?:Coverage|التغطية|المصادر):\*\*[^\n]*/g, '')   // remove coverage lines entirely

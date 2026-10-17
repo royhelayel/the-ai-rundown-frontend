@@ -38,6 +38,7 @@ export const LIGHT = {
   '--cite-bg': 'rgba(23,32,21,0.07)',
   '--cite-ink': '#3d4637',
   '--story-panel': '#ffffff',              // Scroll's white panel behind each story
+  '--error': '#b42318',
   '--story-panel-edge': 'rgba(23,32,21,0.07)',
 };
 
@@ -71,6 +72,7 @@ export const DARK = {
   '--cite-bg': 'rgba(232,234,225,0.08)',
   '--cite-ink': '#c9cfc2',
   '--story-panel': '#191b19',
+  '--error': '#f97066',
   '--story-panel-edge': 'rgba(232,234,225,0.06)',
 };
 
@@ -145,6 +147,8 @@ export const DESIGN_CSS = `
   .rn-hscroll::-webkit-scrollbar { display: none; }
   .rn-btn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
   @keyframes rn-spin { to { transform: rotate(360deg); } }
+  @keyframes rn-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes rn-fade-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes rn-enter-next { from { transform: translateX(60%); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes rn-enter-prev { from { transform: translateX(-60%); opacity: 0; } to { transform: none; opacity: 1; } }
 `;

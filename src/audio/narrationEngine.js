@@ -367,6 +367,13 @@ export function createNarrationEngine({
     const playStory = () => {
       narrateFnRef.current.speakText(script, () => {
         if (!narrationStateRef.current.active) return;
+        // Repeat this story: the same one again, after the usual pause.
+        if (repeatModeRef.current === 'one') {
+          const st = narrationStateRef.current;
+          clearTimeout(st.pendingNarrateTimer);
+          st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(idx); }, 600);
+          return;
+        }
         const nextIdx = idx + 1;
         if (nextIdx < storyNavRef.current.stories.length) {
           // More stories ahead — play a brief transition (skip in headlines mode)

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ChevronDown, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -135,6 +135,9 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
 }
 
 // ── FullPlayer ────────────────────────────────────────────────────────────────
+const REPEAT_LABEL = { off: 'Repeat off', all: 'Repeating this topic', one: 'Repeating this story' };
+const REPEAT_HINT = { off: 'Repeat off', all: 'Repeat this topic', one: 'Repeat this story' };
+
 export default function FullPlayer({
   visible,
   isExiting,
@@ -274,6 +277,17 @@ export default function FullPlayer({
   // — so tracking one would promise a transition the player doesn't perform.
   const touchRef = useRef(null);
   const SWIPE_MIN = 55;      // px of travel before a flick counts
+
+  // What the Repeat button just switched to, shown for a moment above it.
+  const [repeatHint, setRepeatHint] = useState(null);
+  const repeatHintTimer = useRef(null);
+  const nextRepeat = !repeatMode ? 'all' : repeatMode === 'all' ? 'one' : 'off';
+  const flashRepeatHint = () => {
+    clearTimeout(repeatHintTimer.current);
+    setRepeatHint(REPEAT_HINT[nextRepeat]);
+    repeatHintTimer.current = setTimeout(() => setRepeatHint(null), 1600);
+  };
+  useEffect(() => () => clearTimeout(repeatHintTimer.current), []);
   const onTouchStart = (e) => {
     const t = e.touches?.[0];
     // A horizontal drag that starts inside something that scrolls sideways belongs to that
@@ -459,10 +473,10 @@ export default function FullPlayer({
         </div>
         <button
           onClick={onRepeatToggle}
-          aria-label={repeatMode ? 'Repeat on' : 'Repeat off'}
+          aria-label={REPEAT_LABEL[repeatMode || 'off']}
           aria-pressed={!!repeatMode}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
-          <Repeat size={ICON.md} />
+          {repeatMode === 'one' ? <Repeat1 size={ICON.md} /> : <Repeat size={ICON.md} />}
         </button>
       </div>
 
@@ -902,9 +916,19 @@ export default function FullPlayer({
                   <div style={{ position: 'absolute', left: `calc(${pct}% - 6px)`, top: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--accent)', transition: isPlaying ? 'left 0.1s linear' : 'left 0.25s ease' }} />
                 </div>
                 <span>{fmt(totalSec)}</span>
-                <button className="rn-btn" onClick={onRepeatToggle} aria-label={repeatMode ? 'Repeat on' : 'Repeat off'} aria-pressed={!!repeatMode}
-                  style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: repeatMode ? 'var(--accent)' : 'var(--sub)', flexShrink: 0 }}>
-                  <Repeat size={20} strokeWidth={1.8} />
+                {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
+                    under it, and says which for a moment — a colour change alone was invisible. */}
+                <button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
+                  style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)', transition: 'background 0.2s ease, color 0.2s ease' }}>
+                  {repeatMode === 'one' ? <Repeat1 size={20} strokeWidth={2.1} /> : <Repeat size={20} strokeWidth={repeatMode ? 2.1 : 1.8} />}
+                  {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
+                  {repeatHint && (
+                    <span role="status" style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, whiteSpace: 'nowrap', padding: '5px 10px', borderRadius: 999,
+                      background: 'var(--ink)', color: 'var(--paper)', fontSize: 12, fontWeight: 600, pointerEvents: 'none' }}>
+                      {repeatHint}
+                    </span>
+                  )}
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>

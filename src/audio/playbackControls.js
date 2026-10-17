@@ -151,8 +151,11 @@ export function createPlaybackControls({
     else applySpeedToBrowserVoice();
   };
 
+  // Off → repeat this topic → repeat this story → off, as music players cycle (Roy, 2026-10-18:
+  // a single on/off that only acted at the end of a topic looked like it did nothing).
   const handleRepeatToggle = () => {
-    const next = !repeatModeRef.current;
+    const now = repeatModeRef.current;
+    const next = !now ? 'all' : now === 'all' ? 'one' : false;
     repeatModeRef.current = next;
     setRepeatMode(next);
   };

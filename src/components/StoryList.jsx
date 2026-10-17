@@ -8,6 +8,7 @@ import StoryCard from './StoryCard';
 import CategoryIcon from './CategoryIcon';
 import RecapBar from './RecapBar';
 import { Sparkles } from 'lucide-react';
+import { NextLink } from './StoryBits';
 import { headlineKey } from './PopularTab';
 
 // ── Category header — the recap chip, and nothing else ───────────────────────
@@ -503,16 +504,8 @@ function buildSections({
 
               {/* View all / Show less — expands inline */}
               {stories.length > COLLAPSED_CAP && (
-                <button
-                  onClick={() => toggleExpanded(cat)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                    width: '100%', marginTop: '6px', marginBottom: '6px',
-                    minHeight: 44, padding: '10px', border: '1px solid var(--line)',
-                    borderRadius: 10, background: 'transparent',
-                    cursor: 'pointer', color: 'var(--sub)', fontSize: 13, fontWeight: 600,
-                  }}
-                >
+                <NextLink dir={isExpanded ? 'up' : 'down'} onClick={() => toggleExpanded(cat)}
+                  style={{ display: 'flex', width: '100%', minHeight: 44, margin: '0 0 6px' }}>
                   {/* Same wording as Swipe mode's gate, so the two modes read alike — the
                       category included, which matters more here than anywhere: this button
                       repeats once per section down a single scrolling page, so without the
@@ -520,14 +513,7 @@ function buildSections({
                   {isExpanded
                     ? `View less ${CATEGORY_SHORT[cat] || cat} stories`
                     : `View ${stories.length - shownStories.length} more ${CATEGORY_SHORT[cat] || cat} ${stories.length - shownStories.length === 1 ? 'story' : 'stories'}`}
-                  <svg
-                    width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)' }}
-                  >
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
+                </NextLink>
               )}
             </div>
           );

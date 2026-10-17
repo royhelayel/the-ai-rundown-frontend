@@ -11,7 +11,8 @@
  * with no trigger rather than a guessed attribution.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, Sparkles, ChevronUp } from 'lucide-react';
+import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { NextLink } from './StoryBits';
 import { CATEGORY_SHORT } from '../theme';
 import { topicVars } from '../design';
 
@@ -185,9 +186,7 @@ export function TopicRecapPages({ category, period = 'Daily', text, sourcesMap, 
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', minHeight: 30, alignItems: 'center' }}>
         {page < last && (
-          <button className="rn-btn" onClick={() => go(1)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--sub)', minHeight: 30 }}>
-            <ChevronUp size={14} /> Swipe up for page {page + 2}
-          </button>
+          <NextLink dir="up" onClick={() => go(1)}>Swipe up for page {page + 2}</NextLink>
         )}
       </div>
       <SourcesSheet part={part} category={category} storyCount={storyCount} onClose={() => setPart(null)} onOpenStory={onOpenStory} />

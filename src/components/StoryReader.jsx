@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Star, ChevronDown, ChevronUp, Newspaper, X } from 'lucide-react';
+import { Play, Star, ChevronDown, Newspaper, X } from 'lucide-react';
 import { CATEGORY_COLORS, CATEGORY_SHORT, CATEGORY_IMAGES, UI_TRIAL } from '../theme';
 import { headlineKey } from './PopularTab';
 import BottomNav from './BottomNav';
 import StorySummarySheet from './StorySummarySheet';
 import ProgressRail from './ProgressRail';
 import AppHeader from './AppHeader';
-import { StoryTopRow, SourcesRow, StarButton } from './StoryBits';
+import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { TopicRecapPages } from './TopicRecap';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
@@ -605,6 +605,7 @@ export default function StoryReader({
   // stays tall (Codex, 2026-10-15). Topic and status, headline, the takeaways, then every
   // source and the Interesting star on one row. No Go deeper and no Listen: the bottom bar is
   // how you choose to listen.
+  const twoLineFoot = atBatchEnd && !!nextCat && !summaryOpen;
   const storyBody = (entry, read) => {
     const entrySaved = savedFor(entry.story);
     const bullets = entry.story.tightBullets?.length ? entry.story.tightBullets : (entry.story.allBullets || []).slice(0, 3);
@@ -633,7 +634,9 @@ export default function StoryReader({
             </div>
           </article>
         </div>
-        <div style={{ height: 40, flexShrink: 0 }} />
+        {/* Room under the card for the links below it, so they never sit on the star's label:
+            one line normally, two at the end of a batch ("View 4 more…" over "Swipe up for…"). */}
+        <div style={{ height: twoLineFoot ? 66 : 46, flexShrink: 0 }} />
       </>
     );
   };
@@ -667,13 +670,15 @@ export default function StoryReader({
   // working, and reads better here: on a story too short to scroll it settles at full size
   // immediately, and on a long one it swells as the end comes up.
   const gateOrHint = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, paddingBottom: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 6 }}>
     {(atBatchEnd || showCollapse) && !summaryOpen ? (
       <>
         {/* Quieter than before: no border, no fill, smaller text. It was styled like a
             primary action — heavier than the Summary/Listen buttons that actually matter
             more on this screen. */}
-        <button
+        {/* Keyed apart from the hint below: unkeyed, React reuses the hint's button for this
+            one and it keeps the hint's scroll-driven scale(1.4), drawing this line oversized. */}
+        <NextLink key="gate" dir={atBatchEnd ? 'down' : 'up'} style={{ minHeight: atBatchEnd && nextCat ? 30 : 34 }}
           onClick={() => {
             if (atBatchEnd) {
               // Reveal the rest, then swipe into the first of them so the new stories
@@ -694,39 +699,29 @@ export default function StoryReader({
               if (storyIndex === SWIPE_BATCH) pendingSwipeRef.current = 'prev';
               else if (storyIndex > SWIPE_BATCH) requestAnimationFrame(() => navTo(category, SWIPE_BATCH - 1));
             }
-          }}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', borderRadius: 999, border: 'none', background: 'transparent', color: 'var(--sub)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          }}>
           {/* Down reveals more (there's further to go); up collapses back (folding up what
-              was revealed) — these were swapped, pointing the opposite way from what each
-              button actually does. */}
-          {atBatchEnd ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
-          {/* Named, not generic. In Swipe the gate sits at the end of one category's run
+              was revealed). Named, not generic. In Swipe the gate sits at the end of one category's run
               with the next category's name directly under it ("swipe up for Sports"), so
               "View 8 more stories" was the one line on screen that didn't say which pile it
               meant. */}
           {atBatchEnd
             ? `View ${remaining} more ${CATEGORY_SHORT[category] || category} ${remaining === 1 ? 'story' : 'stories'}`
             : `View less ${CATEGORY_SHORT[category] || category} stories`}
-        </button>
+        </NextLink>
         {/* Swiping still works here — say where it goes, or it looks like a dead end. */}
         {atBatchEnd && nextCat && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--sub)', fontSize: 11.5, fontWeight: 600 }}>
-            <ChevronUp size={9} /> swipe up for {CATEGORY_SHORT[nextCat] || nextCat}
-          </span>
+          <NextLink key="next-topic" as="span" dir="up" style={{ minHeight: 24 }}>Swipe up for {CATEGORY_SHORT[nextCat] || nextCat}</NextLink>
         )}
       </>
     ) : hasNext && !summaryOpen ? (
       // The hint names a gesture, so it should also *be* one: tapping runs the same
       // commit the swipe does, animation included. It read as a caption before, which
       // left the only way forward as a gesture you had to already know.
-      <button
-        ref={hintRef}
-        onClick={() => commitTo('next')}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '6px 12px', borderRadius: 999,
-          border: 'none', background: 'transparent', color: 'var(--sub)', fontSize: 12, cursor: 'pointer',
-          transformOrigin: 'center', transition: 'transform 0.08s ease-out' }}>
-        <ChevronUp size={14} /> Swipe up for next story
-      </button>
+      <NextLink key="hint" ref={hintRef} dir="up" onClick={() => commitTo('next')}
+        style={{ transformOrigin: 'center', transition: 'transform 0.08s ease-out' }}>
+        Swipe up for next story
+      </NextLink>
     ) : null}
     </div>
   );

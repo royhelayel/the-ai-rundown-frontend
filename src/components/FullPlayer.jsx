@@ -5,7 +5,7 @@ import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
-import { StoryTopRow, SourcesRow, StarButton } from './StoryBits';
+import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -785,13 +785,13 @@ export default function FullPlayer({
               )}
               {!recapView && (atBatchEnd || showCollapse) && (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <button className="rn-btn" style={{ minHeight: 32, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}
+                  <NextLink dir={atBatchEnd ? 'down' : 'up'}
                     onClick={() => {
                       if (atBatchEnd) setRevealed(total);
                       else { setRevealed(LISTEN_BATCH); if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1); }
                     }}>
                     {atBatchEnd ? `View ${remaining} more ${catLabel} ${remaining === 1 ? 'story' : 'stories'}` : `View less ${catLabel} stories`}
-                  </button>
+                  </NextLink>
                 </div>
               )}
             </section>

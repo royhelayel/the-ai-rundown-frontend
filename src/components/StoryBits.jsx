@@ -3,7 +3,7 @@
  * status, sources and Interesting the same way.
  */
 import React from 'react';
-import { ArrowUpRight, Check, Star } from 'lucide-react';
+import { ArrowUpRight, Check, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { CATEGORY_SHORT } from '../theme';
 import { topicVars } from '../design';
 import CategoryIcon from './CategoryIcon';
@@ -34,13 +34,18 @@ export function StoryTopRow({ category, read, isNew, onCard = false, right = nul
   );
 }
 
+// The star says what it is underneath it — a bare star read as "favourite" or "rate this"
+// (Roy, 2026-10-17). The word is part of the button, so it is also something to tap.
 export function StarButton({ active, onClick, onCard = false }) {
   return (
     <button className="rn-btn" aria-label={active ? 'Remove from Interesting' : 'Mark as Interesting'} aria-pressed={!!active}
       onClick={(e) => { e.stopPropagation(); onClick?.(e); }}
-      style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: onCard ? 'var(--card-btn)' : 'var(--soft-btn)', color: 'inherit' }}>
-      <Star size={17} strokeWidth={1.8} fill={active ? 'currentColor' : 'none'} />
+      style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, color: 'inherit' }}>
+      <span style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: onCard ? 'var(--card-btn)' : 'var(--soft-btn)' }}>
+        <Star size={17} strokeWidth={1.8} fill={active ? 'currentColor' : 'none'} />
+      </span>
+      <span aria-hidden style={{ fontSize: 10.5, fontWeight: 600, lineHeight: 1.2, color: onCard ? 'var(--card-sub)' : 'var(--sub)' }}>Interesting</span>
     </button>
   );
 }
@@ -50,9 +55,9 @@ export function StarButton({ active, onClick, onCard = false }) {
 export function SourcesRow({ sources = [], onCard = false, star = null, bleed = false }) {
   const list = sources.filter(s => s.outlet);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <div className="rn-hscroll" aria-label="Sources" onClick={(e) => e.stopPropagation()}
-        style={{ flex: 1, minWidth: 0, display: 'flex', gap: 6, fontSize: 12.5, fontWeight: 600,
+        style={{ flex: 1, minWidth: 0, display: 'flex', gap: 6, marginTop: star ? 2 : 0, fontSize: 12.5, fontWeight: 600,
           color: onCard ? 'var(--card-sub)' : 'var(--sub)', ...(bleed ? { marginRight: -20, paddingRight: 20 } : {}) }}>
         {list.map((s, i) => {
           const style = { display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 36, padding: '0 12px', borderRadius: 10,
@@ -67,3 +72,19 @@ export function SourcesRow({ sources = [], onCard = false, star = null, bleed = 
     </div>
   );
 }
+
+// "Swipe up for next story", "View 6 more World stories", "View less World stories" and
+// "Swipe up for page 2" are one family — the way on from where you are — so they share one
+// quiet style in Listen, Swipe and Scroll instead of four sizes, two weights and a box
+// (Roy, 2026-10-17). The chevron leads and points the way the content will move.
+export const NextLink = React.forwardRef(function NextLink({ dir = 'down', as: Tag = 'button', style, children, ...rest }, ref) {
+  const Icon = dir === 'up' ? ChevronUp : ChevronDown;
+  return (
+    <Tag ref={ref} className={Tag === 'button' ? 'rn-btn' : undefined} {...rest}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 34, padding: '0 12px',
+        color: 'var(--sub)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', ...style }}>
+      <Icon size={15} strokeWidth={2.2} aria-hidden />
+      {children}
+    </Tag>
+  );
+});

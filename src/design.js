@@ -22,7 +22,8 @@ export const LIGHT = {
   '--play-bg': '#31451b',     // the one strong colour on a screen
   '--play-fg': '#d5fa64',
   '--read': '#16a34a',               // Read: a bright green, so it shows on the panels and cards
-  '--wordmark-dim': '#8a9284',
+  '--wordmark-ink': '#20271b',
+  '--wordmark-dim': '#606855',
   '--card-ink': '#142016',
   '--card-body': '#142016',
   '--card-sub': 'rgba(20,32,22,0.66)',
@@ -54,7 +55,8 @@ export const DARK = {
   '--play-bg': '#d5fa64',
   '--play-fg': '#101113',
   '--read': '#4ade80',
-  '--wordmark-dim': '#6f776a',
+  '--wordmark-ink': '#e8eae1',
+  '--wordmark-dim': '#adb5a0',
   '--card-ink': '#e8eae1',
   '--card-body': '#cfd3c8',
   '--card-sub': '#aab1a5',

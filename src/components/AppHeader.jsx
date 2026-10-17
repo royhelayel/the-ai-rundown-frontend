@@ -18,6 +18,7 @@ import { CATEGORY_SHORT } from '../theme';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 import Dropdown from './Dropdown';
+import Wordmark from './Wordmark';
 
 export function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
@@ -93,9 +94,7 @@ export default function AppHeader({
       {/* ── Identity and day ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 50,
         padding: `calc(env(safe-area-inset-top, 0px) + 6px) ${gutter}px 0` }}>
-        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '0.23em' }}>
-          <span>RADIO</span><span style={{ color: 'var(--wordmark-dim)' }}>NEWS</span>
-        </span>
+        <Wordmark />
         {dayOptions.length > 0 ? (
           <Dropdown value={effectiveDay} options={dayOptions} onChange={onSelectDay} width={170}
             label={formatHeaderDate(effectiveDay)} title="Pick a day"

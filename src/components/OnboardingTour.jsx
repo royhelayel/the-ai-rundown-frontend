@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Headphones, Play, ArrowUp, AlignLeft, Check, ArrowRight, Newspaper } from 'lucide-react';
 import './OnboardingTour.css';
+import Wordmark from './Wordmark';
 
 export const ONBOARDING_KEY = 'rundown_onboarding_seen';
 
@@ -76,7 +77,7 @@ export default function OnboardingTour({ onClose }) {
   }, [index]);
   return createPortal(<dialog ref={dialog} className="intro-tour" aria-labelledby="intro-title" onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className="intro-shell">
-      <header className="intro-header"><span className="intro-brand">RADIONEWS</span><button type="button" className="intro-skip" onClick={onClose}>Skip</button></header>
+      <header className="intro-header"><Wordmark /><button type="button" className="intro-skip" onClick={onClose}>Skip</button></header>
       <nav className="intro-nav" aria-label="Tour steps">{SLIDES.map((item, i) => <button type="button" key={item.label} aria-current={index === i ? 'step' : undefined} onClick={() => setIndex(i)}>{item.label}</button>)}</nav>
       <TourPreview index={index} />
       <section className="intro-copy"><div className="intro-small">{slide.eyebrow}</div><h2 id="intro-title" ref={heading} tabIndex={-1}>{slide.title}</h2><p>{slide.body}</p></section>

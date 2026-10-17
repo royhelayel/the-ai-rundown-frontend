@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, Flame } from 'lucide-react';
 import ProgressPill from './ProgressPill';
@@ -15,6 +15,14 @@ import ProgressPill from './ProgressPill';
  *
  * The challenge shows today's progress as a ring and "4/5", no label (Roy, 2026-10-15).
  */
+// The selection slides to the mode you pick (Roy, 2026-10-17). Each mode draws its own bar —
+// Scroll's, Swipe's and Listen's are different elements — so changing mode swaps the bar
+// rather than updating it. The bar that appears starts its highlight where the last one left
+// it, then slides to its own mode; this remembers where that was.
+const MODES = ['swipe', 'audio', 'scroll'];
+let lastShownMode = null;
+const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 export default function BottomNav({
   fixed = true,
   mode = 'scroll',
@@ -35,6 +43,19 @@ export default function BottomNav({
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
+  const modeIdx = Math.max(0, MODES.indexOf(mode));
+  const [thumbIdx, setThumbIdx] = useState(() => {
+    const was = MODES.indexOf(lastShownMode);
+    return was > -1 && !reduceMotion() ? was : modeIdx;
+  });
+  // After the first paint at the old place, move: the transition does the slide.
+  useEffect(() => {
+    lastShownMode = MODES[modeIdx];
+    if (thumbIdx === modeIdx) return;
+    const raf = requestAnimationFrame(() => setThumbIdx(modeIdx));
+    return () => cancelAnimationFrame(raf);
+  }, [modeIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Both ends are the same 44px circle in the modes' own grey, so they read as buttons and as
   // a pair, with the modes centred between them (Roy, 2026-10-17). The challenge's progress is
   // drawn on the edge of its circle rather than as a ring of its own, so it is never the bigger
@@ -42,16 +63,17 @@ export default function BottomNav({
   const end = { width: 44, height: 44, borderRadius: '50%', background: 'var(--panel)', color: 'var(--ink)', position: 'relative',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 
+  // The label lights with the highlight under it, so the two arrive together.
   const seg = (label, value) => {
     const on = mode === value;
+    const lit = MODES[thumbIdx] === value;
     return (
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
         onClick={() => !on && onChangeMode?.(value)}
-        style={{ flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
+        style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: on ? 'default' : 'pointer',
-          background: on ? 'var(--raised)' : 'transparent', boxShadow: on ? 'var(--raised-shadow)' : 'none',
-          color: on ? 'var(--ink)' : 'var(--sub)', fontWeight: on ? 650 : 500 }}>
+          cursor: on ? 'default' : 'pointer', background: 'transparent',
+          color: lit ? 'var(--ink)' : 'var(--sub)', fontWeight: lit ? 650 : 500, transition: 'color 0.2s ease' }}>
         {label}
       </button>
     );
@@ -85,7 +107,13 @@ export default function BottomNav({
             <UserCircle size={22} strokeWidth={1.8} />
           </button>
           <div role="group" aria-label="How you take in the news"
-            style={{ flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
+            style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
+            {/* The highlight: one third of the track, less the padding and the two gaps, moved a
+                whole segment (its own width plus a gap) per step. */}
+            <span aria-hidden style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc((100% - 10px) / 3)', borderRadius: 10,
+              background: 'var(--raised)', boxShadow: 'var(--raised-shadow)',
+              transform: `translateX(calc(${thumbIdx} * (100% + 2px)))`,
+              transition: reduceMotion() ? 'none' : 'transform 0.3s cubic-bezier(0.3, 0.7, 0.2, 1)' }} />
             {seg('Swipe', 'swipe')}
             {seg('Listen', 'audio')}
             {seg('Scroll', 'scroll')}

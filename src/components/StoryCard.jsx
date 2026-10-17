@@ -85,8 +85,12 @@ export default function StoryCard({
       )}
 
       <div style={{ marginTop: 10 }}>
-        <SourcesRow sources={sources}
-          star={onToggleSaved ? <StarButton active={!!isSaved} onClick={() => onToggleSaved()} /> : null} />
+        <SourcesRow sources={sources} bleed={16} />
+        {onToggleSaved && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+            <StarButton active={!!isSaved} onClick={() => onToggleSaved()} />
+          </div>
+        )}
       </div>
     </article>
   );

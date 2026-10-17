@@ -676,8 +676,10 @@ export default function StoryReader({
               <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>{paragraph}</p>
             )}
             <div style={{ marginTop: 'auto' }}>
-              <SourcesRow sources={outs} onCard
-                star={<StarButton onCard active={entrySaved} onClick={() => onToggleSaved?.(entry.story, entry.category, entry.index)} />} />
+              <SourcesRow sources={outs} onCard bleed={20} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                <StarButton onCard active={entrySaved} onClick={() => onToggleSaved?.(entry.story, entry.category, entry.index)} />
+              </div>
             </div>
           </article>
         </div>

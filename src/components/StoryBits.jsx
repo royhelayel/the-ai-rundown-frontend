@@ -38,31 +38,32 @@ export function StoryTopRow({ category, read, isNew, onCard = false, right = nul
   );
 }
 
-// The star says what it is underneath it — a bare star read as "favourite" or "rate this"
-// (Roy, 2026-10-17). The word is part of the button, so it is also something to tap.
+// The star says what it is — a bare star read as "favourite" or "rate this" (Roy, 2026-10-17) —
+// as one compact pill on a line of its own under the outlets, in every mode, so it never sits on
+// them as they scroll (Roy, 2026-10-18).
 export function StarButton({ active, onClick, onCard = false }) {
   return (
     <button className="rn-btn" aria-label={active ? 'Remove from Interesting' : 'Mark as Interesting'} aria-pressed={!!active}
       onClick={(e) => { e.stopPropagation(); onClick?.(e); }}
-      style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, color: 'inherit' }}>
-      <span style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: onCard ? 'var(--card-btn)' : 'var(--soft-btn)' }}>
-        <Star size={17} strokeWidth={1.8} fill={active ? 'currentColor' : 'none'} />
-      </span>
-      <span aria-hidden style={{ fontSize: 10.5, fontWeight: 600, lineHeight: 1.2, color: onCard ? 'var(--card-sub)' : 'var(--sub)' }}>Interesting</span>
+      style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, padding: '0 12px 0 10px', borderRadius: 999,
+        background: onCard ? 'var(--card-btn)' : 'var(--soft-btn)', color: 'inherit', fontSize: 12.5, fontWeight: 600 }}>
+      <Star size={15} strokeWidth={1.9} fill={active ? 'currentColor' : 'none'} />
+      Interesting
     </button>
   );
 }
 
 // Every source, in one row that scrolls sideways (Roy, 2026-10-15) — this used to be two
-// names and "+3", with the full list only inside Go deeper, which is gone.
-export function SourcesRow({ sources = [], onCard = false, star = null, bleed = false }) {
+// names and "+3", with the full list only inside Go deeper, which is gone. The row has the
+// width to itself and runs to the card's edge (`bleed` is the card's side padding), fading out.
+export function SourcesRow({ sources = [], onCard = false, bleed = 0 }) {
   const list = sources.filter(s => s.outlet);
+  const edge = bleed === true ? 20 : Number(bleed) || 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+    <div style={{ display: 'flex' }}>
       <div className="rn-hscroll" aria-label="Sources" onClick={(e) => e.stopPropagation()}
-        style={{ flex: 1, minWidth: 0, display: 'flex', gap: 6, marginTop: star ? 2 : 0, fontSize: 12.5, fontWeight: 600,
-          color: onCard ? 'var(--card-sub)' : 'var(--sub)', ...(bleed ? { marginRight: -20, paddingRight: 20 } : {}) }}>
+        style={{ flex: 1, minWidth: 0, display: 'flex', gap: 6, fontSize: 12.5, fontWeight: 600,
+          color: onCard ? 'var(--card-sub)' : 'var(--sub)', ...(edge ? { marginRight: -edge, paddingRight: edge } : {}) }}>
         {list.map((s, i) => {
           const style = { display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 36, padding: '0 12px', borderRadius: 10,
             border: `1px solid ${onCard ? 'var(--card-line)' : 'var(--line)'}`, whiteSpace: 'nowrap', flexShrink: 0,
@@ -72,7 +73,6 @@ export function SourcesRow({ sources = [], onCard = false, star = null, bleed = 
             : <span key={i} style={style}>{s.outlet}</span>;
         })}
       </div>
-      {star}
     </div>
   );
 }

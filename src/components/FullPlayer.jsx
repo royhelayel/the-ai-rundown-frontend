@@ -811,8 +811,10 @@ export default function FullPlayer({
               {excerpt}
             </p>
           )}
-          <SourcesRow sources={outlets} onCard bleed
-            star={<StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />} />
+          <SourcesRow sources={outlets} onCard bleed={20} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} />
+          </div>
         </div>
       </article>
     );

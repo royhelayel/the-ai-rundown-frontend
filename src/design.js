@@ -93,6 +93,19 @@ function desaturate(hex, amount) {
   return toHex([r, g, b].map(v => v + (grey - v) * amount));
 }
 
+// The topic's name as text on Scroll's panels (Roy, 2026-10-18 — a pill behind it was more than it
+// needed). The topic's own colour, darkened in light mode or lightened in dark mode only as far as
+// it takes to read clearly (4.5:1 on the panel), so each topic stays as vivid as it can be.
+const luminance = (hex) => {
+  const [r, g, b] = toRgb(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+function readableOn(base, ground, toward, min = 4.5) {
+  for (let t = 0; t <= 1; t += 0.02) { const c = mix(base, toward, t); if (contrast(c, ground) >= min) return c; }
+  return toward;
+}
+
 const cache = {};
 export function topicVars(category) {
   if (cache[category]) return cache[category];
@@ -105,6 +118,9 @@ export function topicVars(category) {
     // Dark: a lifted, desaturated chip, and a card tinted toward the ground rather than a
     // pastel block glowing on black (Roy chose this over v2's light card, 2026-10-15).
     '--tp-chip-d': desaturate(mix(base, '#ffffff', 0.55), 0.3),
+    // The topic's name on Scroll's panels: white in light mode, #191b19 in dark.
+    '--tp-label-l': readableOn(base, '#ffffff', '#000000'),
+    '--tp-label-d': readableOn(base, '#191b19', '#ffffff'),
     '--tp-card-d': mix(desaturate(mix(base, '#101113', 0.75), 0.35), '#ffffff', 0.02),
   };
   cache[category] = v;
@@ -117,12 +133,12 @@ const cssBlock = (vars) => Object.entries(vars).map(([k, v]) => `${k}: ${v};`).j
 // Appearance is System (follow the phone), Light or Dark: `data-theme` on <html> overrides the
 // phone's setting when it is "light" or "dark", and is absent for System.
 const DARK_ROOT = `${cssBlock(DARK)} color-scheme: dark;`;
-const DARK_TOPIC = '--tp-chip: var(--tp-chip-d); --tp-card: var(--tp-card-d);';
+const DARK_TOPIC = '--tp-chip: var(--tp-chip-d); --tp-card: var(--tp-card-d); --tp-label: var(--tp-label-d);';
 export const DESIGN_CSS = `
   :root { ${cssBlock(LIGHT)} color-scheme: light; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ${DARK_ROOT} } }
   :root[data-theme="dark"] { ${DARK_ROOT} }
-  .rn-tp { --tp-chip: var(--tp-chip-l); --tp-card: var(--tp-card-l); }
+  .rn-tp { --tp-chip: var(--tp-chip-l); --tp-card: var(--tp-card-l); --tp-label: var(--tp-label-l); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rn-tp { ${DARK_TOPIC} } }
   :root[data-theme="dark"] .rn-tp { ${DARK_TOPIC} }
   .rn-hscroll { overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }

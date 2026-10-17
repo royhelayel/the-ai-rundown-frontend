@@ -22,15 +22,14 @@ export function StatusBadge({ read, isNew }) {
   return <span style={{ ...base, color: 'var(--sub)' }}>Unread</span>;
 }
 
-// "🌐 WORLD" on the left, the status on the right. On Scroll's white panels the topic sits on
-// a pill of its own tint, so its colour carries (Roy, 2026-10-17); on Swipe's and Listen's
-// cards the whole card is already that tint.
+// "🌐 WORLD" on the left, the status on the right. On Scroll's panels the topic is written in
+// its own colour, as vivid as reads clearly there — no pill (Roy, 2026-10-18); on Swipe's and
+// Listen's cards the whole card is already that tint.
 export function StoryTopRow({ category, read, isNew, onCard = false, right = null }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 26 }}>
       <span className="rn-tp" style={{ ...topicVars(category), display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5,
-        fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: onCard ? 'inherit' : 'var(--tp-chip)',
-        ...(onCard ? {} : { padding: '4px 10px 4px 8px', borderRadius: 999, background: 'var(--tp-card)' }) }}>
+        fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: onCard ? 'inherit' : 'var(--tp-label)' }}>
         <CategoryIcon category={category} size={14} color="currentColor" />
         {CATEGORY_SHORT[category] || category}
       </span>

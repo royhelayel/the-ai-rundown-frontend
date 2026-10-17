@@ -32,10 +32,11 @@ export default function BottomNav({
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  // Both ends are the same size and carry no fill — an icon and a ring — so the bar reads as
-  // one light control with the modes centred between two quiet buttons, rather than three
-  // grey blocks (Roy, 2026-10-17: "the bottom menu is bulky").
-  const end = { width: 44, height: 44, borderRadius: '50%', color: 'var(--ink)', position: 'relative',
+  // Both ends are the same 44px circle in the modes' own grey, so they read as buttons and as
+  // a pair, with the modes centred between them (Roy, 2026-10-17). The challenge's progress is
+  // drawn on the edge of its circle rather than as a ring of its own, so it is never the bigger
+  // of the two.
+  const end = { width: 44, height: 44, borderRadius: '50%', background: 'var(--panel)', color: 'var(--ink)', position: 'relative',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 
   const seg = (label, value) => {
@@ -54,13 +55,14 @@ export default function BottomNav({
   };
 
   // Today's progress as a ring, with the count inside it.
-  const R = 18.5, C = 2 * Math.PI * R;
+  const R = 20.75, C = 2 * Math.PI * R;
   const ring = (
     <>
-      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden style={{ position: 'absolute', inset: 1, transform: 'rotate(-90deg)' }}>
-        <circle cx="21" cy="21" r={R} fill="none" stroke="var(--line)" strokeWidth="2.5" />
-        {frac > 0 && <circle cx="21" cy="21" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />}
-      </svg>
+      {frac > 0 && (
+        <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+          <circle cx="22" cy="22" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
+        </svg>
+      )}
       <span style={{ position: 'relative', fontSize: 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{todayCount}/{dailyGoal}</span>
     </>
   );
@@ -75,7 +77,7 @@ export default function BottomNav({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
           <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
-            <UserCircle size={24} strokeWidth={1.7} />
+            <UserCircle size={22} strokeWidth={1.8} />
           </button>
           <div role="group" aria-label="How you take in the news"
             style={{ flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
@@ -86,7 +88,7 @@ export default function BottomNav({
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={!user ? 'Reading challenge — sign in to track progress' : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
             style={end}>
-            {user ? ring : <Flame size={22} strokeWidth={1.8} />}
+            {user ? ring : <Flame size={20} strokeWidth={1.8} />}
           </button>
         </div>
       </nav>

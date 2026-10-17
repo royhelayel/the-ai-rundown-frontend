@@ -32,7 +32,10 @@ export default function BottomNav({
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  const square = { height: 52, borderRadius: 14, background: 'var(--panel)', color: 'var(--ink)',
+  // Both ends are the same size and carry no fill — an icon and a ring — so the bar reads as
+  // one light control with the modes centred between two quiet buttons, rather than three
+  // grey blocks (Roy, 2026-10-17: "the bottom menu is bulky").
+  const end = { width: 44, height: 44, borderRadius: '50%', color: 'var(--ink)', position: 'relative',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 
   const seg = (label, value) => {
@@ -40,7 +43,7 @@ export default function BottomNav({
     return (
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
         onClick={() => !on && onChangeMode?.(value)}
-        style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 10, fontSize: 13.5,
+        style={{ flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: on ? 'default' : 'pointer',
           background: on ? 'var(--raised)' : 'transparent', boxShadow: on ? 'var(--raised-shadow)' : 'none',
@@ -50,12 +53,16 @@ export default function BottomNav({
     );
   };
 
-  const R = 11.5, C = 2 * Math.PI * R;
+  // Today's progress as a ring, with the count inside it.
+  const R = 18.5, C = 2 * Math.PI * R;
   const ring = (
-    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx="13" cy="13" r={R} fill="none" stroke="var(--line)" strokeWidth="3" />
-      {frac > 0 && <circle cx="13" cy="13" r={R} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />}
-    </svg>
+    <>
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden style={{ position: 'absolute', inset: 1, transform: 'rotate(-90deg)' }}>
+        <circle cx="21" cy="21" r={R} fill="none" stroke="var(--line)" strokeWidth="2.5" />
+        {frac > 0 && <circle cx="21" cy="21" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />}
+      </svg>
+      <span style={{ position: 'relative', fontSize: 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{todayCount}/{dailyGoal}</span>
+    </>
   );
 
   return (
@@ -63,24 +70,23 @@ export default function BottomNav({
       <nav style={{
         ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
         zIndex: 45, flexShrink: 0, background: 'var(--paper)',
-        padding: '6px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
+        padding: '4px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         display: 'flex', justifyContent: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 420 }}>
-          <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={{ ...square, width: 52 }}>
-            <UserCircle size={22} strokeWidth={1.8} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
+          <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
+            <UserCircle size={24} strokeWidth={1.7} />
           </button>
           <div role="group" aria-label="How you take in the news"
-            style={{ flex: 1, minWidth: 0, display: 'flex', gap: 4, padding: 4, background: 'var(--panel)', borderRadius: 14 }}>
+            style={{ flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
             {seg('Swipe', 'swipe')}
             {seg('Listen', 'audio')}
             {seg('Scroll', 'scroll')}
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={!user ? 'Reading challenge — sign in to track progress' : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
-            style={{ ...square, padding: '0 12px 0 10px', gap: 8 }}>
-            {user ? ring : <Flame size={20} strokeWidth={1.9} />}
-            {user && <span style={{ fontSize: 14, fontWeight: 750, fontVariantNumeric: 'tabular-nums' }}>{todayCount}/{dailyGoal}</span>}
+            style={end}>
+            {user ? ring : <Flame size={22} strokeWidth={1.8} />}
           </button>
         </div>
       </nav>

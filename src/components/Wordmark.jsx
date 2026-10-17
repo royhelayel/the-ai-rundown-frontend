@@ -1,12 +1,12 @@
 import React from 'react';
 
-/** Compact editorial wordmark, matching the landing-page headline typography. */
+/** Original uppercase wordmark with slightly tighter letter spacing. */
 export default function Wordmark() {
   return (
     <span aria-label="RadioNews" style={{
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 29, fontWeight: 900,
-      letterSpacing: '-1.4px', lineHeight: 1.1, whiteSpace: 'nowrap',
-      color: 'var(--wordmark-ink)', flexShrink: 0,
+      fontFamily: 'inherit', fontSize: 17, fontWeight: 800,
+      letterSpacing: '0.17em', lineHeight: 1.1, whiteSpace: 'nowrap',
+      color: 'var(--ink)', flexShrink: 0,
     }}>
       <span>RADIO</span><span style={{ color: 'var(--wordmark-dim)' }}>NEWS</span>
     </span>

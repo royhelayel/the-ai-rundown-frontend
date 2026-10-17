@@ -26,9 +26,9 @@ describe('readTime', () => {
     expect(readTime({ headline: 'Short' })).toBe('10s');
   });
 
-  test('counts words across bullets, perspectives, why and headline at 200 wpm', () => {
+  test('counts words across bullets and headline at 200 wpm, ignoring the retired perspectives and why', () => {
     const words = n => Array(n).fill('word').join(' ');
-    const story = { allBullets: [words(100), words(100)], perspectives: words(100), why: words(90), headline: words(10) };
+    const story = { allBullets: [words(200), words(190)], perspectives: words(100), why: words(90), headline: words(10) };
     expect(readTime(story)).toBe('2m');
   });
 });

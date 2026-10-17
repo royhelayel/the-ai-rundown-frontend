@@ -104,7 +104,7 @@ export default function BottomNav({
       <nav style={{
         ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
         zIndex: 45, flexShrink: 0, background: 'var(--paper)',
-        padding: `${earnedBadge ? 25 : 4}px 20px 4px`, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+        padding: '4px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         display: 'flex', justifyContent: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
@@ -127,12 +127,13 @@ export default function BottomNav({
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
               : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
             style={end}>
-            {earnedBadge && <span style={{ position: 'absolute', bottom: 'calc(100% + 5px)', right: 0,
-              display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-              fontSize: 11, fontWeight: 650, lineHeight: '16px', color: 'var(--accent)' }}>
-              <BadgeIcon size={12} strokeWidth={1.8} aria-hidden="true" />{earnedBadge.title}
-            </span>}
             {user ? ring : <Flame size={20} strokeWidth={1.8} />}
+            {earnedBadge && <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2,
+              width: 19, height: 19, borderRadius: '50%', background: 'var(--paper)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
+              color: 'var(--accent)', boxShadow: '0 0 0 2px var(--paper)' }}>
+              <BadgeIcon size={13} strokeWidth={2} />
+            </span>}
           </button>
         </div>
       </nav>

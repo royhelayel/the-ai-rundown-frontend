@@ -23,7 +23,7 @@ export const LIGHT = {
   '--play-fg': '#d5fa64',
   '--read': '#16a34a',               // Read: a bright green, so it shows on the panels and cards
   '--wordmark-ink': '#20271b',
-  '--wordmark-dim': '#606855',
+  '--wordmark-dim': '#8a9284',
   '--card-ink': '#142016',
   '--card-body': '#142016',
   '--card-sub': 'rgba(20,32,22,0.66)',
@@ -56,7 +56,7 @@ export const DARK = {
   '--play-fg': '#101113',
   '--read': '#4ade80',
   '--wordmark-ink': '#e8eae1',
-  '--wordmark-dim': '#adb5a0',
+  '--wordmark-dim': '#6f776a',
   '--card-ink': '#e8eae1',
   '--card-body': '#cfd3c8',
   '--card-sub': '#aab1a5',

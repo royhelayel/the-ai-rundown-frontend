@@ -266,7 +266,7 @@ export default function StoryReader({
 
   const navDirRef = useRef('next'); // direction of last nav → picks the slide animation
   const contentRef = useRef(null);  // scrollable headline region
-  const hintRef = useRef(null);     // "swipe up for next" — grows as you scroll toward the edge
+  const hintRef = useRef(null);     // "swipe up for next" — strengthens as you scroll toward the edge
   const stageRef = useRef(null);    // the reel "card" (image + headline) that pans with the drag
 
   const rootRef = useRef(null);     // the swipe viewport — one story tall
@@ -469,14 +469,18 @@ export default function StoryReader({
   // "Scroll to see the full story, then a harder swipe turns the page" is only discoverable
   // if you already know it — the touch code that makes it work only ever sees one instant of
   // a gesture, so it has no way to hint what's coming. A separate scroll listener does: it
-  // watches proximity to the bottom independent of the gesture, and grows the existing
-  // "swipe up for next" affordance as you approach — like the card gently stretching toward
-  // the edge. Direct style writes, not state: this fires on every scroll frame, and a
-  // re-render per frame is exactly the flicker this file spent several rounds removing.
+  // watches proximity to the bottom independent of the gesture, and brings the existing
+  // "swipe up for next" line from faint to full as you approach. Direct style writes, not
+  // state: this fires on every scroll frame, and a re-render per frame is exactly the flicker
+  // this file spent several rounds removing.
+  //
+  // It used to grow to 1.4× as well. A story short enough not to scroll counts as already at
+  // the bottom, so on most stories the line sat permanently 1.4× the size of every other
+  // "next" link (Roy, 2026-10-17). It fades now; it never changes size.
   useEffect(() => {
     const el = contentRef.current;
     if (!el || !hasNext) return;
-    const ZONE = 90; // px of scroll remaining where the hint starts growing
+    const ZONE = 90; // px of scroll remaining where the hint starts to strengthen
     let raf = null;
     const apply = () => {
       raf = null;
@@ -484,7 +488,6 @@ export default function StoryReader({
       const t = Math.max(0, Math.min(1, 1 - remaining / ZONE));
       const hint = hintRef.current;
       if (hint) {
-        hint.style.transform = `scale(${(1 + t * 0.4).toFixed(3)})`;
         hint.style.opacity = (0.45 + t * 0.55).toFixed(3);
       }
     };
@@ -719,7 +722,7 @@ export default function StoryReader({
             primary action — heavier than the Summary/Listen buttons that actually matter
             more on this screen. */}
         {/* Keyed apart from the hint below: unkeyed, React reuses the hint's button for this
-            one and it keeps the hint's scroll-driven scale(1.4), drawing this line oversized. */}
+            one and it keeps the hint's scroll-driven opacity, drawing this line faded. */}
         <NextLink key="gate" dir={atBatchEnd ? 'down' : 'up'} style={{ minHeight: atBatchEnd && nextCat ? 30 : 34 }}
           onClick={() => {
             if (atBatchEnd) {
@@ -761,7 +764,7 @@ export default function StoryReader({
       // commit the swipe does, animation included. It read as a caption before, which
       // left the only way forward as a gesture you had to already know.
       <NextLink key="hint" ref={hintRef} dir="up" onClick={() => commitTo('next')}
-        style={{ transformOrigin: 'center', transition: 'transform 0.08s ease-out' }}>
+        style={{ transition: 'opacity 0.08s ease-out' }}>
         Swipe up for next story
       </NextLink>
     ) : null}

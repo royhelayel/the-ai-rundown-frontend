@@ -29,6 +29,9 @@ export default function BottomNav({
   const todayCount = challengeStats?.todayCount || 0;
   const dailyGoal  = challengeStats?.dailyGoal  || 10;
   const frac = Math.min(1, dailyGoal ? todayCount / dailyGoal : 0);
+  // Past the goal the goal stops mattering: "11", not "11/10" (Roy, 2026-10-17) — the same as
+  // the challenge sheet's own ring.
+  const exceeded = todayCount > dailyGoal;
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
@@ -63,7 +66,9 @@ export default function BottomNav({
           <circle cx="22" cy="22" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
         </svg>
       )}
-      <span style={{ position: 'relative', fontSize: 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{todayCount}/{dailyGoal}</span>
+      <span style={{ position: 'relative', fontSize: exceeded ? 13 : 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+        {exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
+      </span>
     </>
   );
 
@@ -86,7 +91,8 @@ export default function BottomNav({
             {seg('Scroll', 'scroll')}
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
-            aria-label={!user ? 'Reading challenge — sign in to track progress' : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
+            aria-label={!user ? 'Reading challenge — sign in to track progress'
+              : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
             style={end}>
             {user ? ring : <Flame size={20} strokeWidth={1.8} />}
           </button>

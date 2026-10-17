@@ -1,5 +1,7 @@
 // Player transport: next / previous, speed, repeat, and the play buttons on each feed.
 // Called once per render from TheAIRundown, like createNarrationEngine.
+import { unlockNarrationAudio } from './narrationPlayer';
+
 export function createPlaybackControls({
   setSelectedCategory, selectedCategory, setStoryIndex, storyIndex, setStories, stories,
   goToLastStoryRef, storyNavRef, storyGoRef, isNarrating, setIsNarrating, isPaused, setIsPaused,
@@ -87,6 +89,7 @@ export function createPlaybackControls({
   // the story just never plays. Speaking one empty utterance on the tap itself unlocks the
   // API for the rest of the session; after that the late fallback is allowed to speak.
   const unlockSpeech = () => {
+    unlockNarrationAudio();
     if (speechUnlockedRef.current) return;
     try {
       const synth = window.speechSynthesis;

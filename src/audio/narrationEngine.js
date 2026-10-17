@@ -2,9 +2,10 @@
 // Called once per render from TheAIRundown with that render's state, exactly as the code
 // ran when it lived inline — everything it hands back is re-created each render.
 import { headlineKey } from '../components/PopularTab';
-import { cleanForTTS, endSentence, STORY_TRANSITIONS, CAT_TRANSITION_TEMPLATES, pickRandom } from './narrationText';
+import { cleanForTTS, endSentence, CAT_TRANSITION_TEMPLATES, pickRandom } from './narrationText';
 import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
+import { narrationPlayer, storyChimeUrl } from './narrationPlayer';
 
 export function createNarrationEngine({
   setSelectedCategory, selectedTime, newsSummary, viewMode, depthLevel, depthLevelRef, storyIndex,
@@ -191,8 +192,12 @@ export function createNarrationEngine({
     // stop() / cancelAudioKeepActive() both increment narrationGenRef, so any audio
     // element left over from a previous session will bail when its onended fires.
     const capturedGen = narrationGenRef.current;
-    // iOS Safari won't replay an already-ended Audio element — create a fresh one from the same URL
-    const audio = (audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn;
+    // Always the one shared element, unlocked by the first tap (see narrationPlayer.js): a new
+    // element per clip is what iPhones refused to play outside a tap. Prefetched clips hand over
+    // their URL; the element they were made with is not played.
+    const shared = narrationPlayer();
+    const audio = shared || ((audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn);
+    if (shared && audioIn.src && shared.src !== audioIn.src) { shared.pause(); shared.src = audioIn.src; }
     narrationStateRef.current.audio = audio;
     audio.currentTime = 0;
     audio.playbackRate = playbackSpeedRef.current;
@@ -255,16 +260,23 @@ export function createNarrationEngine({
   const getTTSAudio = (text) => {
     const existing = ttsUrlPromisesRef.current.get(text);
     if (existing) return existing;
-    const promise = fetch(`${BACKEND_URL}/api/tts-stream`, {
+    // A saved recording plays straight from storage, starting as the first bytes arrive
+    // (2026-10-18); only text with nothing saved yet is made and fetched whole.
+    const made = () => fetch(`${BACKEND_URL}/api/tts-stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     })
       .then(r => { if (!r.ok) throw new Error('tts-stream failed'); return r.arrayBuffer(); })
-      .then(buf => {
-        const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
-        return url;
-      })
+      .then(buf => URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' })));
+    const promise = fetch(`${BACKEND_URL}/api/tts-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+      .then(r => (r.ok ? r.json() : { url: null }))
+      .catch(() => ({ url: null }))
+      .then(({ url }) => url || made())
       .catch(() => null);
     ttsUrlPromisesRef.current.set(text, promise);
     if (ttsUrlPromisesRef.current.size > 12) {
@@ -294,7 +306,8 @@ export function createNarrationEngine({
         if (!url) throw new Error('no url');
         // Recheck cache — prefetch may have stored an element while we awaited bytes
         const fromCache = ttsAudioCacheRef.current.get(text);
-        const audio = fromCache || (() => { const a = new Audio(url); a.preload = 'auto'; return a; })();
+        // The shared player takes the address; a second element would only download it twice.
+        const audio = fromCache || { src: url, ended: false };
         setupAndPlayAudio(audio, onDone, opts);
       })
       .catch(() => {
@@ -359,13 +372,11 @@ export function createNarrationEngine({
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines';
-    // What the card shows: the headline, then the story's paragraph (Roy, 2026-10-18) — it read
-    // the takeaways while the card showed the Summary. The same script the backend pre-records,
-    // so the cached audio is found.
+    // The story's paragraph, as the card shows it — no headline: the paragraph's first sentence
+    // already carries it, and reading both said the news twice (Roy, 2026-10-18). The same
+    // script the backend pre-records, so the saved audio is found.
     const cl = cleanForTTS;
-    const parts = [endSentence(cl(story.headline))];
-    if (!isHeadlines) parts.push(cl(storyParagraph(story)));
-    const script = parts.filter(Boolean).join(' ');
+    const script = isHeadlines ? endSentence(cl(story.headline)) : cl(storyParagraph(story));
 
     const playStory = () => {
       narrateFnRef.current.speakText(script, () => {
@@ -379,12 +390,14 @@ export function createNarrationEngine({
         }
         const nextIdx = idx + 1;
         if (nextIdx < topicEnd(storyNavRef.current.stories.length)) {
-          // More stories ahead — play a brief transition (skip in headlines mode)
-          const trans = (!isAr && !isHeadlines) ? pickRandom(STORY_TRANSITIONS) : null;
-          if (trans) {
-            narrateFnRef.current.speakText(trans, () => {
+          // More stories ahead: a soft chime, then the next one — a podcast's sound mark between
+          // items rather than a voice saying "Up next" (Roy, 2026-10-18).
+          if (!isHeadlines) {
+            setupAndPlayAudio({ src: storyChimeUrl(), ended: false }, () => {
               if (!narrationStateRef.current.active) return;
-              narrateFnRef.current.narrateStory(nextIdx);
+              const st = narrationStateRef.current;
+              clearTimeout(st.pendingNarrateTimer);
+              st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, 250);
             }, { isTransition: true });
           } else {
             const st = narrationStateRef.current;
@@ -416,9 +429,8 @@ export function createNarrationEngine({
   // Build the exact TTS script for a story (mirrors narrateStoryFrom so cache keys align)
   const buildStoryScript = (story) => {
     if (!story) return '';
-    const cl = cleanForTTS;
     // Exactly as narrateStoryFrom reads it — the cache key has to match.
-    return [endSentence(cl(story.headline)), cl(storyParagraph(story))].filter(Boolean).join(' ');
+    return cleanForTTS(storyParagraph(story));
   };
 
   // Pre-fetches TTS audio for `text` in the background so play is instant when triggered.
@@ -429,7 +441,7 @@ export function createNarrationEngine({
     try {
       const url = await getTTSAudio(text.trim()); // shared promise — no duplicate fetch with speakText
       if (!url || ttsAudioCacheRef.current.has(text)) return;
-      const audio = new Audio(url); // blob: URL — already fully local, instant play
+      const audio = new Audio(url); // loads the clip now, so the shared player finds it ready
       audio.preload = 'auto';
       ttsAudioCacheRef.current.set(text, audio);
       if (ttsAudioCacheRef.current.size > 10) {

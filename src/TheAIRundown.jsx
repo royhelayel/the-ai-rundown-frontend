@@ -20,7 +20,8 @@ import useListenHistory, { computeGamifiedStats, computeChallengeStats } from '.
 import { buildStories, buildSnapshotBriefing } from './lib/stories';
 import { readDayCache, writeDayCache } from './lib/dayCache';
 import { toUAEDate, getUAEHour } from './lib/uaeTime';
-import { STORY_TRANSITIONS, CAT_TRANSITION_TEMPLATES, pickRandom } from './audio/narrationText';
+import { CAT_TRANSITION_TEMPLATES, pickRandom } from './audio/narrationText';
+import { unlockNarrationAudio } from './audio/narrationPlayer';
 import { BACKEND_URL } from './lib/backend';
 import { supabase } from './lib/supabaseClient';
 import GlobalStyles from './views/GlobalStyles';
@@ -388,6 +389,14 @@ const TheAIRundown = () => {
 
   // How many of the Listen topic's stories are shown; set by FullPlayer, read by the narration.
   const narrationLimitRef = useRef(null);
+  // The first tap anywhere unlocks narration's audio element, so the first Play is enough on an
+  // iPhone (see audio/narrationPlayer.js).
+  useEffect(() => {
+    const unlock = () => unlockNarrationAudio();
+    document.addEventListener('touchend', unlock, true);
+    document.addEventListener('click', unlock, true);
+    return () => { document.removeEventListener('touchend', unlock, true); document.removeEventListener('click', unlock, true); };
+  }, []);
   const {
     speakWithBrowser,
   } = createNarrationEngine({
@@ -1134,12 +1143,6 @@ const TheAIRundown = () => {
 
   // Stop narration on unmount
   useEffect(() => { return () => { window.speechSynthesis?.cancel(); }; }, []);
-
-  // Pre-warm TTS cache with all static story transition phrases at startup
-  useEffect(() => {
-    const fn = narrateFnRef.current;
-    STORY_TRANSITIONS.forEach(t => fn.prefetchTTS?.(t));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // No day/time fallback needed — all days and slots are always visible.
   // Disabled slots show "News Not Available" in the body if somehow selected.

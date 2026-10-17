@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, UserCircle, Flame } from 'lucide-react';
-import ProgressPill from './ProgressPill';
+import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
+import ProgressPill, { AWARDS } from './ProgressPill';
 
 /**
  * BottomNav — [Settings] [Swipe | Listen | Scroll] [Challenge].
@@ -40,6 +40,11 @@ export default function BottomNav({
   // Past the goal the goal stops mattering: "11", not "11/10" (Roy, 2026-10-17) — the same as
   // the challenge sheet's own ring.
   const exceeded = todayCount > dailyGoal;
+  const earnedBadge = user ? [...AWARDS].reverse().find(award => award.check({
+    todayCount, dailyGoal, streakDays: challengeStats?.streakDays || 0,
+    weeklyDays: challengeStats?.weeklyDays || 0, weeklyGoal: challengeStats?.weeklyGoal || 6,
+  })) : null;
+  const BadgeIcon = earnedBadge?.id === 'savvy' ? Star : earnedBadge?.id === 'sharp' ? Zap : Lightbulb;
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
@@ -99,7 +104,7 @@ export default function BottomNav({
       <nav style={{
         ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
         zIndex: 45, flexShrink: 0, background: 'var(--paper)',
-        padding: '4px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+        padding: `${earnedBadge ? 25 : 4}px 20px 4px`, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         display: 'flex', justifyContent: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
@@ -119,9 +124,14 @@ export default function BottomNav({
             {seg('Scroll', 'scroll')}
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
-            aria-label={!user ? 'Reading challenge — sign in to track progress'
-              : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}
+            aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
+              : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
             style={end}>
+            {earnedBadge && <span style={{ position: 'absolute', bottom: 'calc(100% + 5px)', right: 0,
+              display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+              fontSize: 11, fontWeight: 650, lineHeight: '16px', color: 'var(--accent)' }}>
+              <BadgeIcon size={12} strokeWidth={1.8} aria-hidden="true" />{earnedBadge.title}
+            </span>}
             {user ? ring : <Flame size={20} strokeWidth={1.8} />}
           </button>
         </div>

@@ -9,6 +9,7 @@ import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
 import RadioTranscript from './RadioTranscript';
+import RecapSourcesSheet from './RecapSourcesSheet';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -242,6 +243,8 @@ export default function FullPlayer({
 
   // Sheet slide-in / slide-out animation
   const [mounted, setMounted] = useState(false);
+  const [sourcesSnapshot, setSourcesSnapshot] = useState(null);
+  const closeSources = React.useCallback(() => setSourcesSnapshot(null), []);
   useEffect(() => {
     if (visible && !isExiting) requestAnimationFrame(() => setMounted(true));
     else setMounted(false);
@@ -894,13 +897,11 @@ export default function FullPlayer({
             </p>
           )}
         </div>
-        {recapSources.length > 0 && <details style={{ flexShrink: 0, color: 'var(--card-sub)', fontSize: 12 }}>
-          <summary style={{ minHeight: 36, padding: '8px 0', cursor: 'pointer' }}>Stories &amp; sources</summary>
-          <div style={{ maxHeight: 130, overflowY: 'auto', overscrollBehavior: 'contain' }}>{recapSources.map((item, i) => <div key={i} style={{ margin: '8px 0 14px' }}>
-            <strong style={{ fontSize: 13, color: 'var(--card-ink)' }}>{item.headline}</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 5 }}>{(item.sources || []).map((src, j) => /^https?:\/\//.test(src.url || '') ? <a key={j} href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', padding: '5px 0' }}>{src.outlet || src.name || 'Source'} ↗</a> : <span key={j} style={{ padding: '5px 0' }}>{src.outlet || src.name || 'Source'}</span>)}</div>
-          </div>)}</div>
-        </details>}
+        {recapSources.length > 0 && <button className="rn-btn" aria-haspopup="dialog"
+          onClick={() => setSourcesSnapshot({ items: recapSources, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })}
+          style={{ flexShrink: 0, minHeight: 44, textAlign: 'left', color: 'var(--card-sub)', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Stories &amp; sources <ChevronDown size={15} style={{ transform: 'rotate(180deg)' }} />
+        </button>}
       </article>
     );
 
@@ -992,6 +993,7 @@ export default function FullPlayer({
           <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />
         </div>
         {footer}
+        {sourcesSnapshot && <RecapSourcesSheet snapshot={sourcesSnapshot} onClose={closeSources} />}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );

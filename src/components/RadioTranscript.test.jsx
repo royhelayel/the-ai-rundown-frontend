@@ -26,8 +26,10 @@ test('scrolls only the transcript when the narrated word leaves its visible area
   const { rerender } = render(<RadioTranscript text="Hello world." progress={0} charOffset={0} active />);
   const box = screen.getByLabelText('Recap transcript');
   Object.defineProperty(box, 'clientHeight', { value: 200 });
+  box.scrollTo = jest.fn();
+  Object.defineProperty(box, 'scrollHeight', { value: 1000 });
   box.getBoundingClientRect = () => ({ top: 100, bottom: 300 });
   screen.getByText('world.').parentElement.getBoundingClientRect = () => ({ top: 330, bottom: 350 });
   rerender(<RadioTranscript text="Hello world." progress={80} charOffset={6} active />);
-  expect(box.scrollTop).toBe(182);
+  expect(box.scrollTo).toHaveBeenCalledWith({ top: 182, behavior: 'smooth' });
 });

@@ -20,9 +20,13 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   const current = useRef(null);
   const viewport = useRef(null);
   const resumeTimer = useRef(null);
+  const scrollTarget = useRef(null);
   const [follow, setFollow] = useState(true);
   useEffect(() => () => clearTimeout(resumeTimer.current), []);
   const pauseFollow = () => {
+    scrollTarget.current = null;
+    const box = viewport.current;
+    box?.scrollTo?.({ top: box.scrollTop, behavior: 'instant' });
     setFollow(false);
     clearTimeout(resumeTimer.current);
     resumeTimer.current = setTimeout(() => setFollow(true), 5000);
@@ -37,7 +41,13 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
       const line = word.getBoundingClientRect();
       const padding = Math.min(48, box.clientHeight / 4);
       if (line.bottom > bounds.bottom - padding || line.top < bounds.top + padding) {
-        box.scrollTop += line.top - bounds.top - padding;
+        const target = Math.max(0, Math.min(box.scrollHeight - box.clientHeight,
+          box.scrollTop + line.top - bounds.top - padding));
+        // Words on the same line share a destination; don't restart an in-flight glide.
+        if (scrollTarget.current !== null && Math.abs(target - scrollTarget.current) < 2) return;
+        scrollTarget.current = target;
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        box.scrollTo({ top: target, behavior: reducedMotion ? 'instant' : 'smooth' });
       }
     };
     keepVisible();

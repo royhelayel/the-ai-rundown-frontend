@@ -3,7 +3,7 @@
  *
  *   RADIONEWS                       📅 Today ▾
  *   [⚙]  [World] [Tech] [Business] …            topic chips
- *   12 stories   World recap          Latest ▾  understated tabs + the list control
+ *   Latest  Popular  Interesting  World recap   understated tabs
  *
  * Each mode used to draw its own copy of this, with its own recap strip and lens row. The
  * tabs replace the recap strip: "12 stories" is the topic story by story, "World recap" is
@@ -143,18 +143,24 @@ export default function AppHeader({
               ))}
             </div>
           ) : (
-          <div role="group" aria-label="How to catch up" style={{ display: 'flex', gap: 22, minWidth: 0 }}>
-            {tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
+          // Reading: which stories are the tabs — Latest, Popular, Interesting — in place of a
+          // story count, beside the topic's recap (Roy, 2026-10-18). Picking one from the recap
+          // leaves the recap. A screen with no choice of stories keeps the count.
+          <div role="group" aria-label="Which stories" style={{ display: 'flex', gap: 18, minWidth: 0 }}>
+            {onChangeLens
+              ? LENS_OPTIONS.map(o => (
+                  <React.Fragment key={o.value}>{tab(o.label, !recapView && lens === o.value, () => {
+                    if (recapView) onChangeRecapView?.(false);
+                    if (lens !== o.value) onChangeLens(o.value);
+                  })}</React.Fragment>
+                ))
+              : tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
             {showRecapTab && tab(`${catLabel} recap`, recapView, () => !recapView && onChangeRecapView?.(true))}
           </div>
           )}
-          {radioOnly ? null : recapView && showRecapTab ? (
-            onChangePeriod && (
-              <Dropdown value={period} onChange={onChangePeriod} ariaLabel="Recap period"
-                options={PERIODS.map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />
-            )
-          ) : (
-            onChangeLens && <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Which stories" width={170} />
+          {!radioOnly && recapView && showRecapTab && onChangePeriod && (
+            <Dropdown value={period} onChange={onChangePeriod} ariaLabel="Recap period"
+              options={PERIODS.map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />
           )}
         </div>
       )}

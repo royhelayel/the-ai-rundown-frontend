@@ -279,46 +279,65 @@ const TheAIRundown = () => {
   const handleToggleSaved = (story, category, storyIndex) => {
     if (!user) { setShowAuth(true); setAuthMode('signin'); return; }
     const key = headlineKey(story.headline || '');
-    setSavedStories(prev => {
-      const exists = prev.some(s => s.category === category && s.storyIndex === storyIndex);
-      // Day the story belongs to: snapshot stories carry _day; otherwise it's the day being viewed.
-      const storyDay = story._day || selectedDay || null;
-      const next = exists
-        ? prev.filter(s => !(s.category === category && s.storyIndex === storyIndex))
-        : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay }, ...prev];
-      try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
-      // Sync to Supabase (fire-and-forget)
+    // Day the story belongs to: snapshot stories carry _day; otherwise it's the day being viewed.
+    const storyDay = story._day || selectedDay || null;
+    // A save is the story itself, known by its headline — as the star shows it and the server
+    // keeps it. It used to be matched by topic and position, which every day reuses: with
+    // yesterday's World #1 starred, tapping the star on today's World #1 removed yesterday's
+    // instead, nothing visibly changed, and it took a second tap (Roy, 2026-10-18).
+    const same = (s) => (key ? headlineKey(s.headline || '') === key
+      : s.category === category && s.storyIndex === storyIndex && (s.day || null) === storyDay);
+    // Decided once, here, from what the star showed. The requests used to be sent from inside
+    // the state update, which React may run twice — one tap saved twice.
+    const exists = savedStories.some(same);
+    const next = exists
+      ? savedStories.filter(s => !same(s))
+      : [{ category, storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay }, ...savedStories];
+    setSavedStories(next);
+    try { localStorage.setItem('rundown_saved_stories', JSON.stringify(next)); } catch {}
+
+    // Interesting is everyone's stars, counted: it changes the moment this one does, then is
+    // read again from the server once the server has it (Roy, 2026-10-18: a new star only
+    // showed after leaving the tab and coming back).
+    setInterestingStories(list => {
+      const at = list.findIndex(it => (it.story_key || headlineKey(it.headline || '')) === key);
       if (exists) {
-        fetch(`${BACKEND_URL}/api/saves/remove`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.id, headline: story.headline }),
-        }).catch(() => {});
-      } else {
-        fetch(`${BACKEND_URL}/api/saves/sync`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user.id, category, story_index: storyIndex,
-            headline: story.headline, preview: story.allBullets?.[0] || '',
-            day: storyDay, content_snapshot: story,
-          }),
-        }).catch(() => {});
-        // Optimistically add to the My Saves feed so it appears without a refetch
-        setMySaves(prevSaves => {
-          if (prevSaves.some(s => headlineKey(s.headline || '') === key)) return prevSaves;
-          return [{ category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay, content_snapshot: story, story_key: key }, ...prevSaves];
-        });
+        if (at < 0) return list;
+        const count = (list[at].count || 1) - 1;
+        return count > 0 ? list.map((it, i) => (i === at ? { ...it, count } : it)) : list.filter((_, i) => i !== at);
       }
-      // Keep My Saves feed in sync on removal too
-      if (exists) {
-        setMySaves(prevSaves => prevSaves.filter(s => headlineKey(s.headline || '') !== key));
-      }
-      // Update distinct saved count (binary: 1 when saved, 0 when removed)
-      if (key) setSavedCounts(prevC => {
-        const nextC = { ...prevC, [key]: exists ? Math.max(0, (prevC[key] || 0) - 1) : Math.min(1, (prevC[key] || 0) + 1) };
-        try { localStorage.setItem('rundown_saved_counts', JSON.stringify(nextC)); } catch {}
-        return nextC;
+      if (at >= 0) return list.map((it, i) => (i === at ? { ...it, count: (it.count || 0) + 1 } : it));
+      return [{ story_key: key, category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay, content_snapshot: story, count: 1 }, ...list];
+    });
+    const refreshInteresting = () => setInterestingVersion(v => v + 1);
+
+    // The server, then Interesting read again.
+    if (exists) {
+      fetch(`${BACKEND_URL}/api/saves/remove`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, headline: story.headline }),
+      }).then(refreshInteresting, () => {});
+      setMySaves(prevSaves => prevSaves.filter(s => headlineKey(s.headline || '') !== key));
+    } else {
+      fetch(`${BACKEND_URL}/api/saves/sync`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id, category, story_index: storyIndex,
+          headline: story.headline, preview: story.allBullets?.[0] || '',
+          day: storyDay, content_snapshot: story,
+        }),
+      }).then(refreshInteresting, () => {});
+      // Optimistically add to the My Saves feed so it appears without a refetch
+      setMySaves(prevSaves => {
+        if (prevSaves.some(s => headlineKey(s.headline || '') === key)) return prevSaves;
+        return [{ category, story_index: storyIndex, headline: story.headline, preview: story.allBullets?.[0] || '', day: storyDay, content_snapshot: story, story_key: key }, ...prevSaves];
       });
-      return next;
+    }
+    // Update distinct saved count (binary: 1 when saved, 0 when removed)
+    if (key) setSavedCounts(prevC => {
+      const nextC = { ...prevC, [key]: exists ? Math.max(0, (prevC[key] || 0) - 1) : Math.min(1, (prevC[key] || 0) + 1) };
+      try { localStorage.setItem('rundown_saved_counts', JSON.stringify(nextC)); } catch {}
+      return nextC;
     });
   };
   const handleRemoveSaved = (category, storyIndex) => {
@@ -348,6 +367,7 @@ const TheAIRundown = () => {
   // interestingStories: global most-saved stories across all users → powers Interesting.
   const [mySaves, setMySaves] = useState([]);
   const [interestingStories, setInterestingStories] = useState([]);
+  const [interestingVersion, setInterestingVersion] = useState(0);   // bumped to read Interesting again
 
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
@@ -427,7 +447,8 @@ const TheAIRundown = () => {
 
   useHeartbeat({ user });
 
-  useSavesFeeds({ user, setMySaves, setInterestingStories });
+  useSavesFeeds({ user, setMySaves, setInterestingStories, setSavedStories,
+    interestingVersion, onInteresting: location.pathname === '/important' });
 
   // ── My Saves feed: snapshots for the selected day, shaped like briefingData ──
   const savesBriefingData = useMemo(() => {

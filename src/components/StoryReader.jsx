@@ -601,10 +601,10 @@ export default function StoryReader({
     commitTo(e.deltaY > 0 ? 'next' : 'prev');
   };
 
-  // Bookmark identity
+  // Bookmark identity: the story's headline, as everywhere else. A topic and position match
+  // lit the star for whatever story held that place on another day.
   const savedKey = headlineKey(story?.headline || '');
-  const isSaved = (savedKey && savedStories.some(s => headlineKey(s.headline || '') === savedKey))
-    || savedStories.some(s => s.category === category && s.storyIndex === storyIndex);
+  const isSaved = !!savedKey && savedStories.some(s => headlineKey(s.headline || '') === savedKey);
 
   const swipeBar = asPage ? (
     <BottomNav theme="dark" fixed={false} mode="swipe"

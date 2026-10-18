@@ -140,7 +140,9 @@ test('Radio opens recaps with a complete transcript, and reading mode has no rec
   expect(screen.queryByRole('button', { name: 'Scroll', exact: true })).not.toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Read: Swipe or Scroll' }));
   userEvent.click(await screen.findByRole('button', { name: 'Scroll', exact: true }));
-  expect(await screen.findByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
+  // The bar moves first and the page follows once it has (BottomNav's MOTION_MS).
+  expect(await screen.findByRole('group', { name: 'Which stories' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('group', { name: 'Recap period' })).not.toBeInTheDocument();
   // Reading offers which stories as tabs, in place of a story count.
   const lenses = screen.getByRole('group', { name: 'Which stories' });

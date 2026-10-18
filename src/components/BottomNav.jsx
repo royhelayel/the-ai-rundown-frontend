@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
 import ProgressPill, { AWARDS } from './ProgressPill';
@@ -22,6 +22,12 @@ import ProgressPill, { AWARDS } from './ProgressPill';
 // highlight, and Read open or folded — then moves to its own mode; this remembers which that was.
 const MODES = ['audio', 'swipe', 'scroll'];
 let lastShownMode = null;
+// The bar you tap moves first and the page changes when it has finished (Roy, 2026-10-18: Read
+// was not smooth). Changing page first meant the motion waited for the new page to be built —
+// nothing moved for the first ~170 ms on a 4x-slowed CPU, and the new bar's first frame was
+// already partway through. Now the motion runs on the bar you touched, with nothing else
+// happening, and the next page's bar is drawn already in its final place.
+const MOTION_MS = 260;
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export default function BottomNav({
@@ -59,6 +65,16 @@ export default function BottomNav({
     return () => cancelAnimationFrame(raf);
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
   const open = shown !== 'audio';               // Read shown as Swipe | Scroll
+  const goTimer = useRef(null);
+  useEffect(() => () => clearTimeout(goTimer.current), []);
+  const go = (value) => {
+    if (value === current) return;
+    if (reduceMotion()) { onChangeMode?.(value); return; }
+    lastShownMode = value;
+    setShown(value);
+    clearTimeout(goTimer.current);
+    goTimer.current = setTimeout(() => onChangeMode?.(value), MOTION_MS);
+  };
   const motion = reduceMotion() ? 'none' : null;
   const ease = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
 
@@ -75,7 +91,7 @@ export default function BottomNav({
     const lit = shown === value;
     return (
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
-        onClick={() => !on && onChangeMode?.(value)} {...extra.props}
+        onClick={() => !on && go(value)} {...extra.props}
         style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: on ? 'default' : 'pointer', background: 'transparent',
@@ -136,7 +152,7 @@ export default function BottomNav({
               {inside('Scroll', 'scroll')}
               <button className="rn-btn" aria-label="Read: Swipe or Scroll" aria-expanded={open}
                 tabIndex={open ? -1 : 0} aria-hidden={open ? true : undefined}
-                onClick={() => onChangeMode?.('swipe')}
+                onClick={() => go('swipe')}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: 13, fontWeight: 500,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--sub)',
                   opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto',

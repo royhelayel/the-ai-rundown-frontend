@@ -5,6 +5,7 @@ import { rankStories } from './utils';
 import BriefingFeed from './components/BriefingFeed';
 import StorySummarySheet from './components/StorySummarySheet';
 import FullPlayer from './components/FullPlayer';
+import useRadioRecaps, { radioSnapshot } from './data/useRadioRecaps';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
@@ -389,6 +390,7 @@ const TheAIRundown = () => {
 
   // How many of the Listen topic's stories are shown; set by FullPlayer, read by the narration.
   const narrationLimitRef = useRef(null);
+  const [narrationCharOffset, setNarrationCharOffset] = useState(-1);
   // The first tap anywhere unlocks narration's audio element, so the first Play is enough on an
   // iPhone (see audio/narrationPlayer.js).
   useEffect(() => {
@@ -407,7 +409,7 @@ const TheAIRundown = () => {
     ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
     newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
     setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
-    setPhoneVoice, narrationLimitRef,
+    setPhoneVoice, narrationLimitRef, setNarrationCharOffset,
   });
 
   // ── Story reader sheet: mount / exit animations ──────────────────────────
@@ -472,6 +474,12 @@ const TheAIRundown = () => {
     if (!nextCat) return;
 
     const fn = narrateFnRef.current;
+    const queued = snapshotPlayRef.current?.map?.[nextCat]?.allStories?.[0];
+    if (queued) {
+      const script = fn.buildStoryScript?.(queued);
+      if (script) fn.prefetchTTS?.(script);
+      return;
+    }
 
     (async () => {
       try {
@@ -1218,23 +1226,38 @@ const TheAIRundown = () => {
   // path as handleNarrateBriefing, but the topic stays the selected category — the period
   // recap used to swap it for a label like "World · last week", which the header has no chip
   // for — and the topic strip keeps every topic rather than shrinking to this one.
-  const playTopicRecap = (cat, period) => {
-    const text = period === 'Daily' ? briefingData[cat]?.briefing : periodRecaps[period]?.text;
-    if (!cat || !text || !text.trim()) return;
-    if (isNarrating) narrateFnRef.current.stop();
-    const pseudo = [{ headline: `${CATEGORY_SHORT[cat] || cat} recap`, tightBullets: [text], allBullets: [text], storySources: [], _isBriefing: true, _recapPeriod: period }];
-    snapshotPlayRef.current = { category: cat, stories: pseudo, map: { [cat]: { allStories: pseudo } } };
-    playlistCatsRef.current = [cat];
-    const st = narrationStateRef.current;
-    st.active = true; st.paused = false; st.pendingLoad = false;
-    unlockSpeech();
-    setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
-    setPlayerVisible(true); setPlayerMinimized(false);
-    setStories(pseudo);
-    setStoryIndex(0);
-    storyNavRef.current = { idx: 0, stories: pseudo, cats: [cat], cat };
-    setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+  const radio = useRadioRecaps({ active: location.pathname === '/listen', categories: topicsForReading,
+    period: recapPeriod, day: selectedDay, today, language: newsLanguage, briefingData });
+  const radioMap = radioSnapshot(topicsForReading, radio.rows, recapPeriod);
+  const cueRadio = (cat, play = false) => {
+    narrateFnRef.current.stop();
+    const cats = Object.keys(radioMap);
+    const list = radioMap[cat]?.allStories || [];
+    snapshotPlayRef.current = { category: cat, stories: list, map: radioMap, radio: true };
+    playlistCatsRef.current = cats;
+    setPlayerContextCategories(topicsForReading);
+    setSelectedCategory(cat); setStories(list); setStoryIndex(0);
+    setNarrationProgress(0); setNarrationCharOffset(-1);
+    storyNavRef.current = { idx: 0, stories: list, cats, cat };
+    if (play && list.length) {
+      unlockSpeech();
+      narrationStateRef.current.active = true;
+      narrationStateRef.current.paused = false;
+      setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
+      setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+    }
   };
+  const playTopicRecap = (cat) => cueRadio(cat, true);
+  const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${topicsForReading.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories[0].summary.length}`).join('|')}`;
+  const radioCueRef = useRef(null);
+  useEffect(() => {
+    if (location.pathname !== '/listen') { radioCueRef.current = null; return; }
+    if (!authReady || briefingLoading || radio.loading) return;
+    if (radioCueRef.current === radioCueKey && (!radioMap[selectedCategory] || stories[0]?._isBriefing)) return;
+    radioCueRef.current = radioCueKey;
+    const first = radioMap[selectedCategory] ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
+    if (first) cueRadio(first);
+  }, [location.pathname, authReady, briefingLoading, radio.loading, radioCueKey, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
   // Back to the stories after a recap played: stop it and put the topic's stories back.
   const leaveRecapPlayback = (cat = selectedCategory) => {
     if (!stories[0]?._isBriefing) return;
@@ -1564,11 +1587,9 @@ const TheAIRundown = () => {
     // or the corpus toggle) kept resuming the remembered story regardless, so picking Popular
     // or Interesting changed the label and nothing else: same category, same story, same
     // list. A different feed is a different list, so it starts at that list's top.
-    const f = next === prev ? focusRef.current : null;
-    if (f?.category) { cueStory(f.category, f.index ?? 0); navigate('/listen'); return; }
-    const playlist = playlistForTab(next);
-    if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
-    else { setStories([]); setStoryIndex(0); focusRef.current = null; }
+    narrateFnRef.current.stop();
+    radioCueRef.current = null;
+    setStories([]); setStoryIndex(0);
     navigate('/listen');
   };
 
@@ -1590,6 +1611,7 @@ const TheAIRundown = () => {
     narrateFnRef.current.stop();
     setPlayerVisible(false);
     setPlayerMinimized(false);
+    setRecapView(false);
   };
 
   const enterStoriesForTab = (tabPath) => {
@@ -1665,32 +1687,6 @@ const TheAIRundown = () => {
   // Landing on /listen without a cued story — a reload, a bookmark, or a shared link. The
   // page renders off selectedCategory/storyIndex, so without this it shows "1 of 0" and an
   // empty card. Cues the shared cursor's story, or the tab's first, and stays paused.
-  useEffect(() => {
-    if (!isListenPath || !authReady) return;
-    if (stories.length > 0) return;               // already cued
-    const f = focusRef.current;
-    if (f?.category) { cueStory(f.category, f.index ?? 0); return; }
-    const playlist = playlistForTab(playerSourcePath.current || '/');
-    if (playlist.length) cueStory(playlist[0].category, playlist[0].storyIndex);
-  }, [isListenPath, authReady, briefingData, stories.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Changing the day on the player page drops whatever is cued, so the effect above re-cues
-  // from the new day. `stories` is a snapshot copied out of briefingData at cue time, so it
-  // outlives the day it came from: pick a different date and the header changed while the
-  // card kept playing the old day's story. Clearing the shared cursor too — it points at an
-  // index in the old day's list, which means nothing in the new one.
-  const cuedDayRef = useRef(null);
-  useEffect(() => {
-    if (!isListenPath) return;
-    if (cuedDayRef.current === selectedDay) return;
-    const first = cuedDayRef.current === null;
-    cuedDayRef.current = selectedDay;
-    if (first) return;              // arriving, not switching — leave the cue alone
-    focusRef.current = null;
-    setStories([]);
-    setStoryIndex(0);
-  }, [isListenPath, selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Moving on the Listen page moves the shared cursor, exactly as swiping does in Swipe mode
   // (StoryReader publishes its position the same way, via onFocusStory).
   //
@@ -1859,7 +1855,7 @@ const TheAIRundown = () => {
           isPaused={isPaused}
           selectedCategory={selectedCategory}
           currentStoryIndex={storyIndex}
-          onPlayStory={handlePlayStory}
+          onPlayStory={(cat) => { setSelectedCategory(cat); enterAudioMode(location.pathname); }}
           onMarkRead={handleMarkRead}
           focusStory={pendingFocus}
           onFocusRestored={() => setPendingFocus(null)}
@@ -1879,8 +1875,8 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
-          recapView={recapView}
-          onChangeRecapView={setRecapView}
+          recapView={false}
+          onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
           onChangeRecapPeriod={setRecapPeriod}
           onFocusStoryRequest={(cat, idx) => setPendingFocus({ category: cat, index: idx })}
@@ -1904,7 +1900,7 @@ const TheAIRundown = () => {
           onPlayMyFeed={handlePlayMyFeed}
           onPlayCategory={handlePlayCategory}
           onSelectCategory={handleSelectCategory}
-          onPlayStory={handlePlayStory}
+          onPlayStory={(cat) => { setSelectedCategory(cat); enterAudioMode(location.pathname); }}
           onMarkRead={handleMarkRead}
           focusStory={pendingFocus}
           onFocusRestored={() => setPendingFocus(null)}
@@ -1922,8 +1918,8 @@ const TheAIRundown = () => {
           onEnterSummaries={() => enterSummariesMode('/my-feed')}
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
-          recapView={recapView}
-          onChangeRecapView={setRecapView}
+          recapView={false}
+          onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
           onChangeRecapPeriod={setRecapPeriod}
           periodRecaps={periodRecaps}
@@ -1959,8 +1955,8 @@ const TheAIRundown = () => {
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
           recapData={briefingData}
-          recapView={recapView}
-          onChangeRecapView={setRecapView}
+          recapView={false}
+          onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
           onChangeRecapPeriod={setRecapPeriod}
           periodRecaps={periodRecaps}
@@ -1974,7 +1970,7 @@ const TheAIRundown = () => {
         <ImportantTab
           briefingData={interestingBriefingData}
           onSelectCategory={handleSelectCategory}
-          onPlayStory={handlePlayStory}
+          onPlayStory={(cat) => { setSelectedCategory(cat); enterAudioMode(location.pathname); }}
           onPlayCategory={handlePlayCategory}
           onMarkRead={handleMarkRead}
           user={user}
@@ -1991,8 +1987,8 @@ const TheAIRundown = () => {
           savedStories={savedStories}
           onToggleSaved={handleToggleSaved}
           recapData={briefingData}
-          recapView={recapView}
-          onChangeRecapView={setRecapView}
+          recapView={false}
+          onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
           onChangeRecapPeriod={setRecapPeriod}
           periodRecaps={periodRecaps}
@@ -2031,7 +2027,7 @@ const TheAIRundown = () => {
           onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }}
           briefingData={briefingData}
           onSelectCategory={handleSelectCategory}
-          onPlayStory={handlePlayStory}
+          onPlayStory={(cat) => { setSelectedCategory(cat); enterAudioMode(location.pathname); }}
           playerVisible={playerVisible}
           gamifiedStats={gamifiedStats}
         />
@@ -2087,7 +2083,7 @@ const TheAIRundown = () => {
       {(isListenPath || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
           narrationLimitRef={narrationLimitRef}
-          loading={isListenPath && briefingLoading && !snapshotPlayRef.current}
+          loading={isListenPath && (briefingLoading || radio.loading)}
           asPage={isListenPath}
           visible={isListenPath ? true : !fullPlayerExiting}
           isExiting={isListenPath ? false : fullPlayerExiting}
@@ -2133,12 +2129,23 @@ const TheAIRundown = () => {
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
-          recapView={recapView}
+          recapView={isListenPath || recapView}
+          radioOnly={isListenPath}
+          radioQueueCategories={Object.keys(radioMap)}
+          recapEnd={radio.end}
+          narrationCharOffset={narrationCharOffset}
           onChangeRecapView={(v) => { if (!v) leaveRecapPlayback(); setRecapView(v); }}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={(p) => { leaveRecapPlayback(); setRecapPeriod(p); }}
-          periodReady={{ Daily: !!briefingData[selectedCategory]?.briefing?.trim(), Weekly: !!periodRecaps.Weekly?.text, Monthly: !!periodRecaps.Monthly?.text }}
-          recapText={(recapPeriod === 'Daily' ? briefingData[selectedCategory]?.briefing : periodRecaps[recapPeriod]?.text) || null}
+          onChangeRecapPeriod={(p) => { narrateFnRef.current.stop(); setStories([]); setRecapPeriod(p); }}
+          periodReady={{}}
+          recapText={radio.rows[selectedCategory]?.text || null}
+          recapError={radio.error}
+          recapSources={(() => {
+            let sources = radio.rows[selectedCategory]?.sources;
+            if (typeof sources === 'string') { try { sources = JSON.parse(sources); } catch { sources = []; } }
+            if (Array.isArray(sources) && sources.length) return sources.flatMap(p => p.stories || []);
+            return recapPeriod === 'Daily' ? (briefingData[selectedCategory]?.allStories || []).map(st => ({ headline: st.headline, sources: st.storySources || [] })) : [];
+          })()}
           onPlayRecapPeriod={(p) => playTopicRecap(selectedCategory, p)}
           topicStoryCount={stories[0]?._isBriefing ? (briefingData[selectedCategory]?.storyCount || 0) : undefined}
           narrationDuration={narrationDurationRef.current}
@@ -2176,11 +2183,11 @@ const TheAIRundown = () => {
           playbackSpeed={playbackSpeed}
           repeatMode={repeatMode}
           depthLevel={depthLevel}
-          onPlay={() => onPlayFrom(storyIndex)}
+          onPlay={() => isListenPath ? cueRadio(selectedCategory, true) : onPlayFrom(storyIndex)}
           onPause={() => narrateFnRef.current.pause()}
           onResume={() => narrateFnRef.current.resume()}
-          onNext={goNext}
-          onPrev={goPrev}
+          onNext={isListenPath ? () => { const cats = Object.keys(radioMap); const next = cats[cats.indexOf(selectedCategory) + 1]; if (next) cueRadio(next, isNarrating && !isPaused); } : goNext}
+          onPrev={isListenPath ? () => { const cats = Object.keys(radioMap); const prev = cats[cats.indexOf(selectedCategory) - 1]; if (prev) cueRadio(prev, isNarrating && !isPaused); } : goPrev}
           onSpeedCycle={handleSpeedCycle}
           onRepeatToggle={handleRepeatToggle}
           onSetDepth={handleSetDepth}
@@ -2193,7 +2200,7 @@ const TheAIRundown = () => {
           // topic list — so the header had no topics. Fall back to the feed's own.
           // Live news shows only the topics with stories on the day showing. The list is set
           // when the player opens and kept every topic, so a day with five showed twelve.
-          contextCategories={(() => {
+          contextCategories={isListenPath ? topicsForReading : (() => {
             const base = playerContextCategories.length ? playerContextCategories
               : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
             if (snapshotPlayRef.current) return base;
@@ -2201,6 +2208,7 @@ const TheAIRundown = () => {
             return live.length ? live : base;
           })()}
           onSelectCategory={(cat) => {
+            if (isListenPath) { cueRadio(cat, isNarrating && !isPaused); return; }
             // A recap was playing: stop it and go back to live stories for the new topic.
             if (stories[0]?._isBriefing) { narrateFnRef.current.stop(); snapshotPlayRef.current = null; setStories(briefingData[cat]?.allStories || []); }
             // Snapshot feeds: switch category within the snapshot, don't drop to live news
@@ -2224,7 +2232,7 @@ const TheAIRundown = () => {
           isPaused={isPaused}
           isLoading={isAudioLoading}
           narrationProgress={narrationProgress}
-          onPlay={() => onPlayFrom(storyIndex)}
+          onPlay={() => isListenPath ? cueRadio(selectedCategory, true) : onPlayFrom(storyIndex)}
           onPause={() => narrateFnRef.current.pause()}
           onResume={() => narrateFnRef.current.resume()}
           onExpand={() => setPlayerMinimized(false)}
@@ -2340,8 +2348,8 @@ const TheAIRundown = () => {
           readerClose={readerClose}
           snapshotBriefing={snapshotBriefing}
           viewStories={viewStories}
-          recapView={recapView}
-          setRecapView={setRecapView}
+          recapView={false}
+          setRecapView={undefined}
           recapPeriod={recapPeriod}
           setRecapPeriod={setRecapPeriod}
           isTodaySelected={selectedDay === today}

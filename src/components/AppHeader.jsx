@@ -41,7 +41,7 @@ export const PERIODS = ['Daily', 'Weekly', 'Monthly'];
 export default function AppHeader({
   selectedDay, availableDays = [], onSelectDay,
   categories = [], activeCategory = null, onSelectCategory,
-  onEditCategories, user,
+  onEditCategories, user, radioOnly = false,
   showAllPill = false, allActive = false, onSelectAll,
   // The tabs
   showTabs = true,
@@ -132,10 +132,11 @@ export default function AppHeader({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
           <div role="group" aria-label="How to catch up" style={{ display: 'flex', gap: 22, minWidth: 0 }}>
-            {tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
-            {showRecapTab && tab(`${catLabel} recap`, recapView, () => !recapView && onChangeRecapView?.(true))}
+            {!radioOnly && tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
+            {radioOnly && <span style={{ fontSize: 14, padding: '10px 0', fontWeight: 650 }}>Radio · {period.toLowerCase()} recap</span>}
+            {!radioOnly && showRecapTab && tab(`${catLabel} recap`, recapView, () => !recapView && onChangeRecapView?.(true))}
           </div>
-          {recapView && showRecapTab ? (
+          {radioOnly || (recapView && showRecapTab) ? (
             onChangePeriod && (
               <Dropdown value={period} onChange={onChangePeriod} ariaLabel="Recap period"
                 options={PERIODS.map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />

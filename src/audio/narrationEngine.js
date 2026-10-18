@@ -15,7 +15,7 @@ export function createNarrationEngine({
   ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
   newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
   setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
-  setPhoneVoice, narrationLimitRef,
+  setPhoneVoice, narrationLimitRef, setNarrationCharOffset,
 }) {
   // Where this topic's stories end for the narration: all of them, or in Listen only the ones
   // the batch shows — past those it moves to the next topic (Roy, 2026-10-18).
@@ -32,8 +32,10 @@ export function createNarrationEngine({
     if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setNarrationCharOffset?.(-1);
     st.active = false;
     st.pendingLoad = false;
+    st.pendingCategoryName = null;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
     snapshotPlayRef.current = null; // resume live news fetching after snapshot playback
@@ -153,8 +155,9 @@ export function createNarrationEngine({
            voices.find(v => v.lang.startsWith('en')));
       if (targetVoice) utter.voice = targetVoice;
       utter.onboundary = (e) => {
-        if (e.name === 'word' && whole.length > 0) {
+        if (e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
           narrationStateRef.current.browserCharIndex = offset + e.charIndex;
+          setNarrationCharOffset?.(offset + e.charIndex);
           setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
         }
       };
@@ -287,6 +290,8 @@ export function createNarrationEngine({
   };
 
   const speakText = (text, onDone, opts = {}) => {
+    narrationStateRef.current.isTransition = !!opts.isTransition;
+    setNarrationCharOffset?.(opts.isTransition ? -2 : -1);
     if (!narrationStateRef.current.active || !text.trim()) { onDone(); return; }
     if (newsLanguage === 'ar') { setIsAudioLoading(false); speakWithBrowser(cleanForTTS(text), onDone); return; }
 
@@ -371,7 +376,7 @@ export function createNarrationEngine({
     // A recap is not a story: playing one must not tick off whichever story sits at index 0.
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isAr = newsLanguage === 'ar';
-    const isHeadlines = depthLevel === 'headlines';
+    const isHeadlines = depthLevel === 'headlines' && !story._isBriefing;
     // The story's paragraph, as the card shows it — no headline: the paragraph's first sentence
     // already carries it, and reading both said the news twice (Roy, 2026-10-18). The same
     // script the backend pre-records, so the saved audio is found.

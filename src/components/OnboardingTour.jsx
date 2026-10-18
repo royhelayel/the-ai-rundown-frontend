@@ -7,7 +7,7 @@ import Wordmark from './Wordmark';
 export const ONBOARDING_KEY = 'rundown_onboarding_seen';
 
 const SLIDES = [
-  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Stories play one after another across different news categories.' },
+  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Category recaps play one after another, keeping you caught up across your news categories.' },
   { label: 'Summaries', eyebrow: 'Less repetition. More understanding.', title: 'Different news outlets. One short summary.', body: 'Related coverage from different news outlets, brought together in short summaries. Get the essentials, with links to the original reporting.' },
   { label: 'Read', eyebrow: 'Make your scrolling count.', title: 'Prefer to read?', body: 'The familiar swipe and scroll, with more to take away. Browse short news summaries and leave better informed.' },
   { label: 'Recaps', eyebrow: 'The bigger picture, in less time.', title: 'Less time? Get daily news recaps instead.', body: 'Read or listen to a short category recap in one go, without going story by story. Catch up on today, last week or last month.' },

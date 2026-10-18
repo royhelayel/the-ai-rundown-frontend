@@ -108,3 +108,32 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   expect(await screen.findByRole('button', { name: 'Sat, Sep 19' })).toBeInTheDocument();
   expect(screen.queryByRole('menuitemradio', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
 });
+
+test('Radio opens recaps with a complete transcript, and reading mode has no recap toggle', async () => {
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  window.history.pushState({}, '', '/listen');
+  mockCompletedRows = [{ day: '2026-09-20', time_slot: 'Morning' }];
+  global.fetch = jest.fn((url) => {
+    const params = new URL(String(url), 'http://localhost').searchParams;
+    if (String(url).startsWith('/api/news') && params.get('mode') === 'list') {
+      const category = params.get('category');
+      const rows = ['World News', 'Technology'].includes(category) ? [{
+        time_slot: 'Morning', content: `## ${category} story\n**Coverage:** [Example](https://example.com/news)\n- A reported fact.`,
+        briefing: `${category} briefing with a complete transcript. This final sentence must remain visible.`,
+      }] : [];
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(rows) });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
+  });
+  render(<App />);
+  expect(await screen.findByText(/Radio · daily recap/)).toBeInTheDocument();
+  expect(await screen.findByText('briefing', { exact: true })).toBeInTheDocument();
+  expect(screen.getByText('visible.', { exact: true })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Next category recap' })).toBeEnabled();
+  userEvent.click(screen.getByRole('button', { name: 'Scroll', exact: true }));
+  expect(await screen.findByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
+  expect(screen.queryByText('Radio · daily recap')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Which stories' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
+});

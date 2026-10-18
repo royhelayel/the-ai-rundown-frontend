@@ -61,7 +61,7 @@ export default function FeedHeader({
           showAllPill={showAllPill} allActive={showAllPill && activeCategory === null}
           onSelectAll={() => onSelectCategory?.(null)}
           onEditCategories={onEditCategories} user={user}
-          showTabs={showLens || !!onChangeRecapView}
+          showTabs={showLens || !!onChangeLens || !!onChangeRecapView}
           storyCount={storyCount ?? progressTotal}
           recapView={recapView} onChangeRecapView={onChangeRecapView}
           canRecap={canRecap ?? !!onChangeRecapView} recapCategory={recapCategory}

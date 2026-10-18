@@ -84,7 +84,7 @@ function StoryListInner({
   showCategoryImages = false,
   // Scroll docks one recap under its header that follows the section you are in, so its
   // sections must not each carry their own. My Feed has no such row and still does.
-  sectionRecap = true,
+  sectionRecap = false,
   sectionTitle = '',
   onEditFeed,
   markNew = false, // show "New"/"Updated" badges on evening-incremental stories (live feeds only)

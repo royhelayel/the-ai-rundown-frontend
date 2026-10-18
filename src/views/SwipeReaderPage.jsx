@@ -138,7 +138,7 @@ export default function SwipeReaderPage({
           recapFor={(c) => (recapPeriod === 'Daily' ? { text: (briefingData[c]?.briefing || '').trim() ? briefingData[c].briefing : null, sources: briefingData[c]?.briefingSources } : undefined)}
           isTodaySelected={isTodaySelected}
           onOpenRecapStory={(cat, idx) => {
-            setRecapView(false);
+            setRecapView?.(false);
             navigate(`/category/${encodeURIComponent(cat)}/story/${idx}`, { replace: true, state: location.state });
           }}
         />

@@ -8,6 +8,7 @@ import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
+import RadioTranscript from './RadioTranscript';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -218,6 +219,7 @@ export default function FullPlayer({
   narrationDuration = 0,
   isTodaySelected = true,
   phoneVoice = false,
+  radioOnly = false, narrationCharOffset = -1, recapError = false, recapSources = [], radioQueueCategories = [], recapEnd,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -760,6 +762,9 @@ export default function FullPlayer({
     const recapPlaying = isRecap;
     const recapCat = category;
     const topicName = CATEGORY_SHORT[recapCat] || recapCat;
+    const recapDate = recapEnd ? new Date(`${recapEnd}T00:00:00Z`) : null;
+    const monthLabel = recapDate ? recapDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Last month';
+    const weekLabel = recapDate ? `Week ending ${recapDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}` : 'Last week';
     const words = (recapView
       ? (recapText || '')
       : [headline, ...(story?.tightBullets || story?.allBullets || [])].join(' ')).split(/\s+/).filter(Boolean).length;
@@ -811,7 +816,7 @@ export default function FullPlayer({
       );
     });
 
-    const cardFrame = { ...topicVars(recapCat), flex: '0 1 380px', minHeight: 250, background: 'var(--tp-card)', color: 'var(--card-ink)',
+    const cardFrame = { ...topicVars(recapCat), flex: radioOnly ? '1 1 380px' : '0 1 380px', minHeight: radioOnly ? 130 : 250, background: 'var(--tp-card)', color: 'var(--card-ink)',
       borderRadius: 19, padding: '18px 20px 14px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' };
     const h1 = { margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 };
 
@@ -869,16 +874,24 @@ export default function FullPlayer({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
         </div>
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
-          <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} this week` : `${topicName} this month`}</h1>
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, flex: 1 }}>
+          <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} · ${weekLabel}` : `${topicName} · ${monthLabel}`}</h1>
           {recapText ? (
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 9, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{recapText}</p>
+            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct}
+              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2} phoneVoice={phoneVoice} />
           ) : (
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
-              {recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
+              {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
             </p>
           )}
         </div>
+        {recapSources.length > 0 && <details style={{ flexShrink: 0, color: 'var(--card-sub)', fontSize: 12 }}>
+          <summary style={{ minHeight: 36, padding: '8px 0', cursor: 'pointer' }}>Stories &amp; sources</summary>
+          <div style={{ maxHeight: 130, overflowY: 'auto', overscrollBehavior: 'contain' }}>{recapSources.map((item, i) => <div key={i} style={{ margin: '8px 0 14px' }}>
+            <strong style={{ fontSize: 13, color: 'var(--card-ink)' }}>{item.headline}</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 5 }}>{(item.sources || []).map((src, j) => /^https?:\/\//.test(src.url || '') ? <a key={j} href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', padding: '5px 0' }}>{src.outlet || src.name || 'Source'} ↗</a> : <span key={j} style={{ padding: '5px 0' }}>{src.outlet || src.name || 'Source'}</span>)}</div>
+          </div>)}</div>
+        </details>}
       </article>
     );
 
@@ -897,9 +910,10 @@ export default function FullPlayer({
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={onSelectCategory}
-            showAllPill={showAllPill} allActive={allScope && !recapView} onSelectAll={onSelectAll}
+            showAllPill={radioOnly ? false : showAllPill} allActive={allScope && !recapView} onSelectAll={onSelectAll}
             onEditCategories={onEditCategories} user={user}
             storyCount={topicStoryCount ?? storyCount}
+            radioOnly={radioOnly}
             recapView={recapView} onChangeRecapView={onChangeRecapView} canRecap={!!onChangeRecapView} recapCategory={category}
             lens={lens} onChangeLens={onChangeLens}
             period={recapPeriod} onChangePeriod={onChangeRecapPeriod} periodReady={periodReady}
@@ -944,14 +958,14 @@ export default function FullPlayer({
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
-                {navBtn(() => slideTo('prev', onPrev), 'Previous story', Rewind, recapView)}
+                {navBtn(() => slideTo('prev', onPrev), radioOnly ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? radioQueueCategories.indexOf(category) <= 0 : recapView)}
                 <button className="rn-btn" onClick={onPlayButton} aria-label={isPlaying ? 'Pause' : 'Play'}
                   style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
                 </button>
-                {navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
+                {radioOnly ? navBtn(() => slideTo('next', onNext), 'Next category recap', FastForward, !radioQueueCategories.length || radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
                   atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
                   FastForward, recapView || (atBatchEnd && !topicAt(1)))}
               </div>
@@ -963,7 +977,7 @@ export default function FullPlayer({
 
             </section>
           )}
-          <div style={{ flex: 1, minHeight: 12 }} />
+          <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />
         </div>
         {footer}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

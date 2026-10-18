@@ -52,7 +52,7 @@ function TourPreview({ index }) {
   </div>;
 }
 
-export default function OnboardingTour({ onClose }) {
+export default function OnboardingTour({ onClose, onFinish = onClose }) {
   const [index, setIndex] = useState(0);
   const dialog = useRef(null);
   const heading = useRef(null);
@@ -81,7 +81,7 @@ export default function OnboardingTour({ onClose }) {
       <nav className="intro-nav" aria-label="Tour steps">{SLIDES.map((item, i) => <button type="button" key={item.label} aria-current={index === i ? 'step' : undefined} onClick={() => setIndex(i)}>{item.label}</button>)}</nav>
       <TourPreview index={index} />
       <section className="intro-copy"><div className="intro-small">{slide.eyebrow}</div><h2 id="intro-title" ref={heading} tabIndex={-1}>{slide.title}</h2><p>{slide.body}</p></section>
-      <footer className="intro-footer"><span className="intro-note" aria-live="polite">{index + 1} of {SLIDES.length}</span><div className="intro-progress" aria-hidden="true">{SLIDES.map((_, i) => <span key={i} className={i <= index ? 'complete' : ''} />)}</div><div className="intro-actions">{index > 0 && <button type="button" onClick={() => setIndex(i => i - 1)}>Back</button>}<button type="button" className="intro-primary" onClick={() => index === SLIDES.length - 1 ? onClose() : setIndex(i => i + 1)}>{index === SLIDES.length - 1 ? 'Start exploring' : 'Continue'}<ArrowRight size={17} aria-hidden="true" /></button></div></footer>
+      <footer className="intro-footer"><span className="intro-note" aria-live="polite">{index + 1} of {SLIDES.length}</span><div className="intro-progress" aria-hidden="true">{SLIDES.map((_, i) => <span key={i} className={i <= index ? 'complete' : ''} />)}</div><div className="intro-actions">{index > 0 && <button type="button" onClick={() => setIndex(i => i - 1)}>Back</button>}<button type="button" className="intro-primary" onClick={() => index === SLIDES.length - 1 ? onFinish() : setIndex(i => i + 1)}>{index === SLIDES.length - 1 ? 'Start exploring' : 'Continue'}<ArrowRight size={17} aria-hidden="true" /></button></div></footer>
     </div>
   </dialog>, document.body);
 }

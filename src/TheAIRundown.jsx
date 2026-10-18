@@ -1691,6 +1691,20 @@ const TheAIRundown = () => {
     else enterStoriesMode(location.pathname, playlist);
   }, [authReady, location.pathname, briefingData]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Finishing the tour ("Start exploring") goes home — the page the app opens on, in the way you
+  // last chose — rather than back to Settings, where a replayed tour was started (Roy,
+  // 2026-10-18). Skip just closes it where you are.
+  const finishOnboarding = () => {
+    dismissOnboarding();
+    const mode = preferredReadMode();
+    if (mode === 'audio') { if (location.pathname !== '/listen') enterAudioMode('/'); return; }
+    if (mode === 'swipe') {
+      const playlist = playlistForTab('/');
+      if (playlist.length) { enterStoriesMode('/', playlist); return; }
+    }
+    if (location.pathname !== '/') navigate('/');
+  };
+
   // /saved was the "My Interesting" feed; it now lives in Reading history.
   useEffect(() => { if (isSavedPath) navigate('/history', { replace: true }); }, [isSavedPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1810,7 +1824,7 @@ const TheAIRundown = () => {
       <GlobalStyles />
 
       {/* ── Onboarding Tour ── */}
-      {showOnboarding && <OnboardingTour key={onboardingKey} onClose={dismissOnboarding} />}
+      {showOnboarding && <OnboardingTour key={onboardingKey} onClose={dismissOnboarding} onFinish={finishOnboarding} />}
 
       {/* ── Auth Modal ── */}
       {showAuth && (

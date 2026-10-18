@@ -138,6 +138,13 @@ function CatStrip({ contextCategories, category, onSelectCategory, onEditCategor
 // ── FullPlayer ────────────────────────────────────────────────────────────────
 const REPEAT_LABEL = { off: 'Repeat off', all: 'Repeating this topic', one: 'Repeating this story' };
 const REPEAT_HINT = { off: 'Repeat off', all: 'Repeat this topic', one: 'Repeat this story' };
+// Speed and repeat are about playback, so they appear once it starts and stay through a pause
+// until it stops (Roy, 2026-10-18); before that they only crowded the line. Their room is kept,
+// so the line does not move when they fade in.
+const whilePlaying = (on) => ({
+  props: { tabIndex: on ? 0 : -1, 'aria-hidden': on ? undefined : true },
+  style: { opacity: on ? 1 : 0, pointerEvents: on ? 'auto' : 'none' },
+});
 
 export default function FullPlayer({
   visible,
@@ -476,8 +483,9 @@ export default function FullPlayer({
             thing here. */}
         <button
           onClick={onSpeedCycle}
-          aria-label={`Playback speed ${playbackSpeed}×`}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color }}>
+          aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, fontSize: TYPE.meta, fontWeight: WEIGHT.ui, color: playbackSpeed === 1 ? 'rgba(255,255,255,0.45)' : color,
+            ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
           {playbackSpeed}×
         </button>
         <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.12)', borderRadius: RADIUS.pill, overflow: 'hidden' }}>
@@ -488,8 +496,9 @@ export default function FullPlayer({
         <button
           onClick={onRepeatToggle}
           aria-label={REPEAT_LABEL[repeatMode || 'off']}
-          aria-pressed={!!repeatMode}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)' }}>
+          aria-pressed={!!repeatMode} {...whilePlaying(isNarrating).props}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', color: repeatMode ? color : 'rgba(255,255,255,0.45)',
+            ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
           {repeatMode === 'one' ? <Repeat1 size={ICON.md} /> : <Repeat size={ICON.md} />}
         </button>
       </div>
@@ -932,8 +941,9 @@ export default function FullPlayer({
           {!loading && (canPlay || isNarrating) && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
-                <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`}
-                  style={{ width: 40, height: 40, fontSize: 13.5, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0 }}>
+                <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
+                  style={{ width: 40, height: 40, fontSize: 13.5, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
+                    ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
                   {playbackSpeed}×
                 </button>
                 <span>{fmt((totalSec * pct) / 100)}</span>
@@ -945,8 +955,10 @@ export default function FullPlayer({
                 {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
                     under it, and says which for a moment — a colour change alone was invisible. */}
                 <button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
+                  {...whilePlaying(isNarrating).props}
                   style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)', transition: 'background 0.2s ease, color 0.2s ease' }}>
+                    background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',
+                    ...whilePlaying(isNarrating).style, transition: 'background 0.2s ease, color 0.2s ease, opacity 0.25s ease' }}>
                   {repeatMode === 'one' ? <Repeat1 size={20} strokeWidth={2.1} /> : <Repeat size={20} strokeWidth={repeatMode ? 2.1 : 1.8} />}
                   {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
                   {repeatHint && (

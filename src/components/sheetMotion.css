@@ -1,0 +1,28 @@
+.rn-motion-panel {
+  animation: rn-sheet-in 340ms cubic-bezier(.22,1,.36,1) both;
+  will-change: transform;
+}
+.rn-motion-panel[data-closing="true"] {
+  animation: rn-sheet-out 280ms cubic-bezier(.4,0,1,1) both;
+  pointer-events: none;
+}
+.rn-motion-overlay { animation: rn-sheet-backdrop-in 340ms ease both; }
+.rn-motion-overlay[data-closing="true"] { animation: rn-sheet-backdrop-out 280ms ease both; }
+dialog.rn-motion-dialog::backdrop { animation: rn-sheet-fade-in 340ms ease both; }
+dialog.rn-motion-dialog[data-closing="true"]::backdrop { animation: rn-sheet-fade-out 280ms ease both; }
+@keyframes rn-sheet-in {
+  from { transform: translate(var(--sheet-x, 0px), 100%); }
+  to { transform: translate(var(--sheet-x, 0px), 0); }
+}
+@keyframes rn-sheet-out {
+  from { transform: translate(var(--sheet-x, 0px), 0); }
+  to { transform: translate(var(--sheet-x, 0px), 100%); }
+}
+@keyframes rn-sheet-backdrop-in { from { background-color: transparent; } to { background-color: rgba(0,0,0,.48); } }
+@keyframes rn-sheet-backdrop-out { from { background-color: rgba(0,0,0,.48); } to { background-color: transparent; } }
+@keyframes rn-sheet-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rn-sheet-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rn-motion-panel, .rn-motion-overlay,
+  dialog.rn-motion-dialog::backdrop { animation: none !important; }
+}

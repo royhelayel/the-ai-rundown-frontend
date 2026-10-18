@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import useSheetMotion from './useSheetMotion';
 import { X } from 'lucide-react';
 
 export default function RecapSourcesSheet({ snapshot, onClose }) {
+  const { closing, dismiss } = useSheetMotion(onClose);
   const panel = useRef(null);
   const close = useRef(null);
   useEffect(() => {
@@ -10,7 +12,7 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
     document.body.style.overflow = 'hidden';
     close.current?.focus();
     const key = e => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+      if (e.key === 'Escape') { e.preventDefault(); dismiss(); }
       if (e.key !== 'Tab') return;
       const nodes = panel.current?.querySelectorAll('button, a[href]');
       if (!nodes?.length) return;
@@ -24,9 +26,9 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
       document.removeEventListener('keydown', key);
       previous?.focus?.();
     };
-  }, [onClose]);
-  return <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
-    <section ref={panel} role="dialog" aria-modal="true" aria-labelledby="recap-sources-title" onClick={e => e.stopPropagation()}
+  }, [dismiss]);
+  return <div className="rn-motion-overlay" data-closing={closing} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={dismiss}>
+    <section className="rn-motion-panel" data-closing={closing} ref={panel} role="dialog" aria-modal="true" aria-labelledby="recap-sources-title" onClick={e => e.stopPropagation()}
       style={{ width: '100%', maxWidth: 560, maxHeight: '80dvh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', color: 'var(--ink)', borderRadius: '24px 24px 0 0', boxShadow: '0 -12px 48px rgba(0,0,0,.15)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div aria-hidden="true" style={{ width: 34, height: 4, background: 'var(--line)', borderRadius: 4, margin: '10px auto 0' }} />
       <header style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--line)' }}>
@@ -34,7 +36,7 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
           <h2 id="recap-sources-title" style={{ fontSize: 19, margin: '0 0 4px' }}>Stories &amp; sources</h2>
           <p style={{ fontSize: 12, color: 'var(--sub)', margin: 0 }}>{snapshot.label}</p>
         </div>
-        <button ref={close} className="rn-btn" aria-label="Close stories and sources" onClick={onClose} style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', flexShrink: 0 }}><X size={20} /></button>
+        <button ref={close} className="rn-btn" aria-label="Close stories and sources" onClick={dismiss} style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', flexShrink: 0 }}><X size={20} /></button>
       </header>
       <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', padding: '0 20px 20px' }}>
         {snapshot.items.map((item, i) => <article key={i} style={{ padding: '18px 0', borderBottom: i < snapshot.items.length - 1 ? '1px solid var(--line)' : undefined }}>

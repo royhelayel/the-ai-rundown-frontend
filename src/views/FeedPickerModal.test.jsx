@@ -3,10 +3,10 @@ import FeedPickerModal from './FeedPickerModal';
 
 const base = { setShowFeedPicker: jest.fn(), feedPickerDraft: ['Technology'], setFeedPickerDraft: jest.fn(), defaultCategories: ['Technology', 'World News'], restoreCategories: ['World News'], saveFeedCategories: jest.fn(), onSignIn: jest.fn() };
 beforeEach(() => jest.clearAllMocks());
-test('guest must sign in and cannot save categories', () => {
+test('guest must sign in and cannot save categories', async () => {
   render(<FeedPickerModal {...base} user={null} />);
   fireEvent.click(screen.getByRole('button', { name: 'Sign in to choose categories' }));
-  expect(base.onSignIn).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(base.onSignIn).toHaveBeenCalledTimes(1));
   expect(screen.queryByRole('button', { name: 'Save categories' })).not.toBeInTheDocument();
   expect(base.saveFeedCategories).not.toHaveBeenCalled();
 });
@@ -27,9 +27,9 @@ test('empty selection is blocked; a saved selection closes the sheet', async () 
   await waitFor(() => expect(base.setShowFeedPicker).toHaveBeenCalledWith(false));
   expect(save).toHaveBeenCalledWith(['Technology']);
 });
-test('closing discards the local draft without saving', () => {
+test('closing discards the local draft without saving', async () => {
   render(<FeedPickerModal {...base} user={{ id: 1 }} />);
   fireEvent.click(screen.getByRole('button', { name: 'Close categories' }));
-  expect(base.setShowFeedPicker).toHaveBeenCalledWith(false);
+  await waitFor(() => expect(base.setShowFeedPicker).toHaveBeenCalledWith(false));
   expect(base.saveFeedCategories).not.toHaveBeenCalled();
 });

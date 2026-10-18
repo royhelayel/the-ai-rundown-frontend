@@ -117,10 +117,12 @@ export default function FeedCategoryEditor({ allCategories = [], selected = [], 
                 </span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: '0.82rem', fontWeight: 700, color: 'var(--ink)' }}>{cat}</span>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--sub)', flexShrink: 0 }}>{idx + 1}</span>
-                <button type="button" aria-label={`Move ${cat} up`} disabled={idx === 0} onClick={() => move(idx, -1)}
-                  style={{ border: 0, background: 'none', color: 'var(--sub)', width: 30, padding: 0, opacity: idx === 0 ? .3 : 1 }}><ChevronUp size={16} /></button>
-                <button type="button" aria-label={`Move ${cat} down`} disabled={idx === list.length - 1} onClick={() => move(idx, 1)}
-                  style={{ border: 0, background: 'none', color: 'var(--sub)', width: 30, padding: 0, opacity: idx === list.length - 1 ? .3 : 1 }}><ChevronDown size={16} /></button>
+                <div role="group" aria-label={`Reorder ${cat}`} style={{ display: 'flex', alignItems: 'center', borderRadius: 10, background: 'var(--surface)', flexShrink: 0 }}>
+                  <button type="button" className="rn-btn" aria-label={`Move ${cat} up`} disabled={idx === 0} onClick={() => move(idx, -1)}
+                    style={{ display: 'grid', placeItems: 'center', width: 36, minHeight: 44, padding: 0, color: 'var(--sub)', opacity: idx === 0 ? .25 : 1 }}><ChevronUp size={17} strokeWidth={1.8} /></button>
+                  <button type="button" className="rn-btn" aria-label={`Move ${cat} down`} disabled={idx === list.length - 1} onClick={() => move(idx, 1)}
+                    style={{ display: 'grid', placeItems: 'center', width: 36, minHeight: 44, padding: 0, color: 'var(--sub)', opacity: idx === list.length - 1 ? .25 : 1 }}><ChevronDown size={17} strokeWidth={1.8} /></button>
+                </div>
                 <button
                   onClick={() => remove(cat)}
                   style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--sub)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}

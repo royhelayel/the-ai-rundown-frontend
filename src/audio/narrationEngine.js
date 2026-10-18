@@ -29,6 +29,7 @@ export function createNarrationEngine({
   const stopNarration = () => {
     narrationGenRef.current++;
     const st = narrationStateRef.current;
+    clearInterval(st.browserProgressTimer);
     if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -96,6 +97,7 @@ export function createNarrationEngine({
   const cancelAudioKeepActive = () => {
     narrationGenRef.current++; // invalidate any stale canplay/fetch callbacks
     const st = narrationStateRef.current;
+    clearInterval(st.browserProgressTimer);
     if (st.pendingNarrateTimer) { clearTimeout(st.pendingNarrateTimer); st.pendingNarrateTimer = null; }
     st.canceling = true;
     if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
@@ -144,6 +146,24 @@ export function createNarrationEngine({
       if (!narrationStateRef.current.active) return;
       const utter = new SpeechSynthesisUtterance(text.trim());
       const utterGen = narrationGenRef.current;
+      let hasBoundary = false;
+      let spokenSeconds = 0;
+      let lastTick = 0;
+      utter.onstart = () => {
+        clearInterval(narrationStateRef.current.browserProgressTimer);
+        lastTick = Date.now();
+        narrationStateRef.current.browserProgressTimer = setInterval(() => {
+          const st = narrationStateRef.current;
+          const now = Date.now(), dt = (now - lastTick) / 1000;
+          lastTick = now;
+          if (!st.active || utterGen !== narrationGenRef.current) { clearInterval(st.browserProgressTimer); return; }
+          if (st.paused || hasBoundary || st.isTransition) return;
+          spokenSeconds += dt;
+          const seconds = Math.max(1, text.trim().split(/\s+/).length / (2.5 * utter.rate));
+          const fraction = Math.min(.99, spokenSeconds / seconds);
+          setNarrationProgress(Math.min(99, (offset + fraction * text.length) / Math.max(1, whole.length) * 100));
+        }, 200);
+      };
       utter.rate = (isAr ? 0.85 : 0.92) * playbackSpeedRef.current;
       utter.pitch = 1.0;
       utter.lang = isAr ? 'ar-SA' : 'en-US';
@@ -157,6 +177,7 @@ export function createNarrationEngine({
       if (targetVoice) utter.voice = targetVoice;
       utter.onboundary = (e) => {
         if (utterGen === narrationGenRef.current && e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
+          hasBoundary = true;
           narrationStateRef.current.browserCharIndex = offset + e.charIndex;
           setNarrationCharOffset?.(offset + e.charIndex);
           setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
@@ -164,6 +185,7 @@ export function createNarrationEngine({
       };
       utter.onend = () => {
         if (utterGen !== narrationGenRef.current) return;
+        clearInterval(narrationStateRef.current.browserProgressTimer);
         setNarrationProgress(0);
         narrationDurationRef.current = 0;
         if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();

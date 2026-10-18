@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import { ONBOARDING_KEY } from './components/OnboardingTour';
@@ -126,7 +126,12 @@ test('Radio opens recaps with a complete transcript, and reading mode has no rec
     return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
   });
   render(<App />);
-  expect(await screen.findByText(/Radio · daily recap/)).toBeInTheDocument();
+  // Radio's header is the period choice: Daily, and the week and month only once they have recaps.
+  const periods = await screen.findByRole('group', { name: 'Recap period' });
+  expect(within(periods).getByRole('button', { name: 'Daily' })).toHaveAttribute('aria-pressed', 'true');
+  expect(within(periods).getByRole('button', { name: 'Last week' })).toBeDisabled();
+  expect(within(periods).getByRole('button', { name: 'Last month' })).toBeDisabled();
+  expect(screen.queryByText(/Radio · daily recap/)).not.toBeInTheDocument();
   expect(await screen.findByText('briefing', { exact: true })).toBeInTheDocument();
   expect(screen.getByText('visible.', { exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
@@ -136,7 +141,7 @@ test('Radio opens recaps with a complete transcript, and reading mode has no rec
   userEvent.click(screen.getByRole('button', { name: 'Read: Swipe or Scroll' }));
   userEvent.click(await screen.findByRole('button', { name: 'Scroll', exact: true }));
   expect(await screen.findByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
-  expect(screen.queryByText('Radio · daily recap')).not.toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Recap period' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Which stories' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
 });

@@ -37,6 +37,7 @@ export const LENS_OPTIONS = [
 ];
 
 export const PERIODS = ['Daily', 'Weekly', 'Monthly'];
+const PERIOD_NAMES = { Daily: 'Daily', Weekly: 'Last week', Monthly: 'Last month' };
 
 export default function AppHeader({
   selectedDay, availableDays = [], onSelectDay,
@@ -76,10 +77,11 @@ export default function AppHeader({
     </button>
   );
 
-  const tab = (label, on, onClick) => (
-    <button className="rn-btn" aria-pressed={on} onClick={onClick}
+  const tab = (label, on, onClick, disabled = false) => (
+    <button className="rn-btn" aria-pressed={on} onClick={disabled ? undefined : onClick} disabled={disabled}
       style={{ position: 'relative', minHeight: 44, fontSize: 14, whiteSpace: 'nowrap',
-        fontWeight: on ? 650 : 500, color: on ? 'var(--ink)' : 'var(--sub)' }}>
+        fontWeight: on ? 650 : 500, color: on ? 'var(--ink)' : 'var(--sub)',
+        ...(disabled ? { opacity: 0.4, cursor: 'default' } : {}) }}>
       {label}
       {on && <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, bottom: 7, height: 3, borderRadius: 3, background: 'var(--accent)' }} />}
     </button>
@@ -131,12 +133,22 @@ export default function AppHeader({
       {showTabs && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
+          {/* Radio: the period is the one choice, so it is the tabs — Daily, Last week, Last month —
+              in place of a "Radio · daily recap" title the card already says (Roy, 2026-10-18).
+              A period with no recap yet is shown but cannot be picked. */}
+          {radioOnly ? (
+            <div role="group" aria-label="Recap period" style={{ display: 'flex', gap: 22, minWidth: 0 }}>
+              {PERIODS.map(p => (
+                <React.Fragment key={p}>{tab(PERIOD_NAMES[p], period === p, () => period !== p && onChangePeriod?.(p), periodReady[p] === false)}</React.Fragment>
+              ))}
+            </div>
+          ) : (
           <div role="group" aria-label="How to catch up" style={{ display: 'flex', gap: 22, minWidth: 0 }}>
-            {!radioOnly && tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
-            {radioOnly && <span style={{ fontSize: 14, padding: '10px 0', fontWeight: 650 }}>Radio · {period.toLowerCase()} recap</span>}
-            {!radioOnly && showRecapTab && tab(`${catLabel} recap`, recapView, () => !recapView && onChangeRecapView?.(true))}
+            {tab(`${storyCount} ${storyCount === 1 ? 'story' : 'stories'}`, !recapView, () => recapView && onChangeRecapView?.(false))}
+            {showRecapTab && tab(`${catLabel} recap`, recapView, () => !recapView && onChangeRecapView?.(true))}
           </div>
-          {radioOnly || (recapView && showRecapTab) ? (
+          )}
+          {radioOnly ? null : recapView && showRecapTab ? (
             onChangePeriod && (
               <Dropdown value={period} onChange={onChangePeriod} ariaLabel="Recap period"
                 options={PERIODS.map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />

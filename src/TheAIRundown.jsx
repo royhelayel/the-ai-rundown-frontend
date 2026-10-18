@@ -2137,7 +2137,10 @@ const TheAIRundown = () => {
           onChangeRecapView={(v) => { if (!v) leaveRecapPlayback(); setRecapView(v); }}
           recapPeriod={recapPeriod}
           onChangeRecapPeriod={(p) => { narrateFnRef.current.stop(); setStories([]); setRecapPeriod(p); }}
-          periodReady={{}}
+          // A period can be picked once its recaps exist (Roy, 2026-10-18). Daily always has one;
+          // the week and the month are looked up for the topic on screen, the same way the recap
+          // tab does it.
+          periodReady={{ Daily: true, Weekly: !!periodRecaps.Weekly, Monthly: !!periodRecaps.Monthly }}
           recapText={radio.rows[selectedCategory]?.text || null}
           recapError={radio.error}
           recapSources={(() => {

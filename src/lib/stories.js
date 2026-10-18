@@ -68,10 +68,15 @@ export const buildStories = (content, storiesContent) => {
     if (!cur) return;
     const cov = line.match(/^\s*\*\*(?:Coverage|التغطية|المصادر):\*\*\s*(.+)$/);
     if (cov) {
-      [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)].forEach(([, outlet, url]) => {
+      const links = [...cov[1].matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)];
+      links.forEach(([, outlet, url]) => {
         if (urlToStoryIdx[url] === undefined) urlToStoryIdx[url] = idx;
         cur.coverageLinks.push({ outlet, url, title: titleMap[normalizeUrl(url)] || '' });
       });
+      // An outlet named without a link: the backend writes this when the only link the writer
+      // gave was to another story's article (Roy, 2026-10-18). Shown, but not linked.
+      if (!links.length) cov[1].split(/\s*·\s*/).map(o => o.trim()).filter(o => o && !/[[\]()]/.test(o))
+        .forEach(outlet => cur.coverageLinks.push({ outlet, url: null, title: '' }));
     } else {
       cur.bodyLines.push(line);
       [...line.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].forEach(([, url]) => {
@@ -116,7 +121,7 @@ export const buildStories = (content, storiesContent) => {
     // Only set on Evening's incremental-merge digest (see generateEveningUpdate on the
     // backend) — "Unchanged" carries no badge, only "Updated"/"New" do.
     const statusMatch = rest.match(/\*\*Status:\*\*\s*(Updated|New|Unchanged)/);
-    const storySources = chunk.coverageLinks.filter((s, i, a) => a.findIndex(x => x.url === s.url) === i);
+    const storySources = chunk.coverageLinks.filter((s, i, a) => a.findIndex(x => (x.url || x.outlet) === (s.url || s.outlet)) === i);
     const key = normalizeHeadline(chunk.headline);
     const punchy = punchyMap[key] || (canIndexMatch ? punchyList[ci] : undefined);
     if (punchy) anyPunchy = true;

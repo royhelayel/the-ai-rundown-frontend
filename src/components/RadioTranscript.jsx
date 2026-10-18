@@ -14,7 +14,7 @@ export function wordAtProgress(words, progress, charOffset = -1) {
   let sum = 0;
   return weights.findIndex(w => (sum += w) > target);
 }
-export default function RadioTranscript({ text, progress, charOffset = -1, active, phoneVoice }) {
+export default function RadioTranscript({ text, progress, charOffset = -1, active }) {
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -58,10 +58,6 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
           }}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
       </p>
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--card-sub)', marginTop: 8 }}>
-      <span>{phoneVoice && charOffset >= 0 ? 'Word tracking' : 'Estimated word sync'}</span>
-      <button className="rn-btn" aria-pressed={follow} onClick={() => { clearTimeout(resumeTimer.current); setFollow(v => !v); }} style={{ fontSize: 11, minHeight: 32 }}>{follow ? 'Following narration ✓' : 'Follow narration'}</button>
     </div>
   </>;
 }

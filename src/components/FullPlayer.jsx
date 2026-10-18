@@ -890,7 +890,7 @@ export default function FullPlayer({
           <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} · ${weekLabel}` : `${topicName} · ${monthLabel}`}</h1>
           {recapText ? (
             <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct}
-              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2} phoneVoice={phoneVoice} />
+              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2} />
           ) : (
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
               {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}

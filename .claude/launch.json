@@ -54,6 +54,15 @@
       "port": 3001
     },
     {
+      "name": "backend-local-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd /Users/royhelayel/Documents/Github/the-ai-rundown-backend && LOCAL_PREVIEW=1 PORT=3099 node backend-server.js"
+      ],
+      "port": 3099
+    },
+    {
       "name": "vercel-dev",
       "runtimeExecutable": "bash",
       "runtimeArgs": [

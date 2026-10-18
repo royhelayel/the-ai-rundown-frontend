@@ -23,9 +23,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   return <>
     <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}>
       <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.85, color: 'var(--card-body)' }}>
-        {words.map((w, i) => <span data-narrated-word={i === index ? 'true' : undefined} key={w.start} ref={i === index ? current : null} style={{ borderRadius: 4,
-          background: i === index ? 'var(--ink)' : 'transparent', color: i === index ? 'var(--paper)' : undefined,
-          boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>{w.text}{' '}</span>)}
+        {words.map((w, i) => <span data-narrated-word={i === index ? 'true' : undefined} key={w.start} ref={i === index ? current : null} style={{ color: i === index ? 'var(--tp-chip, var(--accent))' : undefined }}>{w.text}{' '}</span>)}
       </p>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--card-sub)', marginTop: 8 }}>

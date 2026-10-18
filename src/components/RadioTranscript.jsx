@@ -14,7 +14,9 @@ export function wordAtProgress(words, progress, charOffset = -1) {
   let sum = 0;
   return weights.findIndex(w => (sum += w) > target);
 }
-export default function RadioTranscript({ text, progress, charOffset = -1, active }) {
+// `after` is shown at the end of the text, inside the scrolling transcript — Stories & sources
+// comes after the recap rather than docked under it (Roy, 2026-10-18).
+export default function RadioTranscript({ text, progress, charOffset = -1, active, after = null }) {
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -68,6 +70,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
           }}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
       </p>
+      {after}
     </div>
   </>;
 }

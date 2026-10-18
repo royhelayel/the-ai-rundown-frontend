@@ -890,18 +890,21 @@ export default function FullPlayer({
           <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} · ${weekLabel}` : `${topicName} · ${monthLabel}`}</h1>
           {recapText ? (
             <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct}
-              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2} />
+              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
+              after={recapSources.length > 0 && (
+                // At the end of the text, not docked under it (Roy, 2026-10-18).
+                <button className="rn-btn" aria-haspopup="dialog"
+                  onClick={() => setSourcesSnapshot({ items: recapSources, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })}
+                  style={{ marginTop: 10, minHeight: 44, color: 'var(--card-sub)', fontSize: 12, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  Stories &amp; sources <ChevronDown size={15} style={{ transform: 'rotate(180deg)' }} />
+                </button>
+              )} />
           ) : (
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
               {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
             </p>
           )}
         </div>
-        {recapSources.length > 0 && <button className="rn-btn" aria-haspopup="dialog"
-          onClick={() => setSourcesSnapshot({ items: recapSources, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })}
-          style={{ flexShrink: 0, minHeight: 44, textAlign: 'left', color: 'var(--card-sub)', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Stories &amp; sources <ChevronDown size={15} style={{ transform: 'rotate(180deg)' }} />
-        </button>}
       </article>
     );
 

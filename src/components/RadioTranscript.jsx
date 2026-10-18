@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 export function transcriptWords(text) {
   return [...text.matchAll(/\S+/g)].map(m => ({ text: m[0], start: m.index, end: m.index + m[0].length }));
@@ -18,13 +18,38 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
+  const viewport = useRef(null);
+  const resumeTimer = useRef(null);
   const [follow, setFollow] = useState(true);
-  useEffect(() => { if (follow && active) current.current?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' }); }, [index, follow, active]);
+  useEffect(() => () => clearTimeout(resumeTimer.current), []);
+  const pauseFollow = () => {
+    setFollow(false);
+    clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => setFollow(true), 5000);
+  };
+  useLayoutEffect(() => {
+    if (!follow || !active) return;
+    const keepVisible = () => {
+      const box = viewport.current;
+      const word = current.current;
+      if (!box || !word || !box.clientHeight) return;
+      const bounds = box.getBoundingClientRect();
+      const line = word.getBoundingClientRect();
+      const padding = Math.min(48, box.clientHeight / 4);
+      if (line.bottom > bounds.bottom - padding || line.top < bounds.top + padding) {
+        box.scrollTop += line.top - bounds.top - padding;
+      }
+    };
+    keepVisible();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(keepVisible);
+    if (viewport.current) observer?.observe(viewport.current);
+    return () => observer?.disconnect();
+  }, [index, follow, active]);
   return <>
     <style>{`.rn-radio-word { display: inline-grid; vertical-align: baseline; }
       .rn-radio-word::after { content: attr(data-word); font-weight: 700; visibility: hidden; grid-area: 1 / 1; pointer-events: none; }
       .rn-radio-word > span { grid-area: 1 / 1; }`}</style>
-    <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}>
+    <div ref={viewport} aria-label="Recap transcript" style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
       <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.85, color: 'var(--card-body)' }}>
         {words.map((w, i) => <span key={w.start} className="rn-radio-word" data-word={w.text} ref={i === index ? current : null}>
           <span data-narrated-word={i === index ? 'true' : undefined} style={{
@@ -36,7 +61,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     </div>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--card-sub)', marginTop: 8 }}>
       <span>{phoneVoice && charOffset >= 0 ? 'Word tracking' : 'Estimated word sync'}</span>
-      <button className="rn-btn" aria-pressed={follow} onClick={() => setFollow(v => !v)} style={{ fontSize: 11, minHeight: 32 }}>{follow ? 'Following narration ✓' : 'Follow narration'}</button>
+      <button className="rn-btn" aria-pressed={follow} onClick={() => { clearTimeout(resumeTimer.current); setFollow(v => !v); }} style={{ fontSize: 11, minHeight: 32 }}>{follow ? 'Following narration ✓' : 'Follow narration'}</button>
     </div>
   </>;
 }

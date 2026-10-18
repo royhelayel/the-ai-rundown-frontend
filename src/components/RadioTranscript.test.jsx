@@ -21,3 +21,13 @@ test('transcript remains complete and highlighting follows the current word', ()
   expect(screen.getByText('world.')).toHaveAttribute('data-narrated-word', 'true');
   expect(screen.getByText('Hello')).not.toHaveAttribute('data-narrated-word');
 });
+
+test('scrolls only the transcript when the narrated word leaves its visible area', () => {
+  const { rerender } = render(<RadioTranscript text="Hello world." progress={0} charOffset={0} active />);
+  const box = screen.getByLabelText('Recap transcript');
+  Object.defineProperty(box, 'clientHeight', { value: 200 });
+  box.getBoundingClientRect = () => ({ top: 100, bottom: 300 });
+  screen.getByText('world.').parentElement.getBoundingClientRect = () => ({ top: 330, bottom: 350 });
+  rerender(<RadioTranscript text="Hello world." progress={80} charOffset={6} active />);
+  expect(box.scrollTop).toBe(182);
+});

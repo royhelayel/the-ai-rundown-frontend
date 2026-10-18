@@ -143,6 +143,7 @@ export function createNarrationEngine({
     const doSpeak = (voices) => {
       if (!narrationStateRef.current.active) return;
       const utter = new SpeechSynthesisUtterance(text.trim());
+      const utterGen = narrationGenRef.current;
       utter.rate = (isAr ? 0.85 : 0.92) * playbackSpeedRef.current;
       utter.pitch = 1.0;
       utter.lang = isAr ? 'ar-SA' : 'en-US';
@@ -155,18 +156,19 @@ export function createNarrationEngine({
            voices.find(v => v.lang.startsWith('en')));
       if (targetVoice) utter.voice = targetVoice;
       utter.onboundary = (e) => {
-        if (e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
+        if (utterGen === narrationGenRef.current && e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
           narrationStateRef.current.browserCharIndex = offset + e.charIndex;
           setNarrationCharOffset?.(offset + e.charIndex);
           setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
         }
       };
       utter.onend = () => {
+        if (utterGen !== narrationGenRef.current) return;
         setNarrationProgress(0);
         narrationDurationRef.current = 0;
         if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
       };
-      utter.onerror = () => { if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
+      utter.onerror = () => { if (utterGen === narrationGenRef.current && !narrationStateRef.current.canceling) narrateFnRef.current.stop(); };
       narrationStateRef.current.browserUtter = utter;
       window.speechSynthesis.speak(utter);
     };
@@ -217,7 +219,7 @@ export function createNarrationEngine({
     audio.ontimeupdate = () => {
       if (!isTransition && audio.duration > 0) {
         const pct = (audio.currentTime / audio.duration) * 100;
-        if (pct - lastPct >= 0.5 || pct === 0) { lastPct = pct; setNarrationProgress(pct); }
+        if (pct !== lastPct) { lastPct = pct; setNarrationProgress(pct); }
         // Track listen for Popular rankings:
         // full stories → 50% threshold; headlines → 100% (they're too short for 50% to be meaningful)
         const threshold = depthLevelRef.current === 'headlines' ? 99 : 50;

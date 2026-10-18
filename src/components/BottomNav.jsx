@@ -4,10 +4,11 @@ import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
 import ProgressPill, { AWARDS } from './ProgressPill';
 
 /**
- * BottomNav — [Settings] [Swipe | Listen | Scroll] [Challenge].
+ * BottomNav — [Settings] [Listen | Read] [Challenge]; Read opens into [Swipe | Scroll].
  *
- * The three modes are the one choice people make here every session, so they share one
- * rounded block in the middle, as words. Settings and the challenge are places rather than
+ * The first choice is listening or reading, so the middle offers just those two. Choosing Read
+ * opens it into its two ways — Swipe, selected, and Scroll — and choosing Listen folds them back
+ * into Read (Roy, 2026-10-18). The modes share one rounded block in the middle, as words. Settings and the challenge are places rather than
  * modes, so they sit apart in squares of the same height and corners — icons, not words, which
  * is what tells the two kinds apart (Roy and Codex, 2026-10-15; Uber's button pair was the
  * reference). Calm on purpose: the play button is the one strong colour on a screen, and a
@@ -17,9 +18,9 @@ import ProgressPill, { AWARDS } from './ProgressPill';
  */
 // The selection slides to the mode you pick (Roy, 2026-10-17). Each mode draws its own bar —
 // Scroll's, Swipe's and Listen's are different elements — so changing mode swaps the bar
-// rather than updating it. The bar that appears starts its highlight where the last one left
-// it, then slides to its own mode; this remembers where that was.
-const MODES = ['swipe', 'audio', 'scroll'];
+// rather than updating it. The bar that appears is first drawn the way the last one was — its
+// highlight, and Read open or folded — then moves to its own mode; this remembers which that was.
+const MODES = ['audio', 'swipe', 'scroll'];
 let lastShownMode = null;
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -48,18 +49,18 @@ export default function BottomNav({
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  const modeIdx = Math.max(0, MODES.indexOf(mode));
-  const [thumbIdx, setThumbIdx] = useState(() => {
-    const was = MODES.indexOf(lastShownMode);
-    return was > -1 && !reduceMotion() ? was : modeIdx;
-  });
-  // After the first paint at the old place, move: the transition does the slide.
+  const current = MODES.includes(mode) ? mode : 'scroll';
+  const [shown, setShown] = useState(() => (MODES.includes(lastShownMode) && !reduceMotion() ? lastShownMode : current));
+  // After the first paint in the old shape, move: the transitions do the sliding and opening.
   useEffect(() => {
-    lastShownMode = MODES[modeIdx];
-    if (thumbIdx === modeIdx) return;
-    const raf = requestAnimationFrame(() => setThumbIdx(modeIdx));
+    lastShownMode = current;
+    if (shown === current) return;
+    const raf = requestAnimationFrame(() => setShown(current));
     return () => cancelAnimationFrame(raf);
-  }, [modeIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+  const open = shown !== 'audio';               // Read shown as Swipe | Scroll
+  const motion = reduceMotion() ? 'none' : null;
+  const ease = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
 
   // Both ends are the same 44px circle in the modes' own grey, so they read as buttons and as
   // a pair, with the modes centred between them (Roy, 2026-10-17). The challenge's progress is
@@ -69,20 +70,26 @@ export default function BottomNav({
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
 
   // The label lights with the highlight under it, so the two arrive together.
-  const seg = (label, value) => {
-    const on = mode === value;
-    const lit = MODES[thumbIdx] === value;
+  const seg = (label, value, extra = {}) => {
+    const on = current === value;
+    const lit = shown === value;
     return (
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
-        onClick={() => !on && onChangeMode?.(value)}
+        onClick={() => !on && onChangeMode?.(value)} {...extra.props}
         style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: on ? 'default' : 'pointer', background: 'transparent',
-          color: lit ? 'var(--ink)' : 'var(--sub)', fontWeight: lit ? 650 : 500, transition: 'color 0.2s ease' }}>
+          color: lit ? 'var(--ink)' : 'var(--sub)', fontWeight: lit ? 650 : 500,
+          transition: motion || 'color 0.2s ease, opacity 0.2s ease', ...extra.style }}>
         {label}
       </button>
     );
   };
+  // Swipe and Scroll are there only while Read is open; folded, they cannot be reached.
+  const inside = (label, value) => seg(label, value, {
+    props: { tabIndex: open ? 0 : -1, 'aria-hidden': open ? undefined : true },
+    style: { opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transitionDelay: open ? '0.08s' : '0s' },
+  });
 
   // Today's progress as a ring, with the count inside it.
   const R = 20.75, C = 2 * Math.PI * R;
@@ -113,15 +120,30 @@ export default function BottomNav({
           </button>
           <div role="group" aria-label="How you take in the news"
             style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
-            {/* The highlight: one third of the track, less the padding and the two gaps, moved a
-                whole segment (its own width plus a gap) per step. */}
-            <span aria-hidden style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: 'calc((100% - 10px) / 3)', borderRadius: 10,
+            {/* The highlight: one segment of the track — a half while Read is folded, a third while it
+                is open — less the padding and gaps, moved a whole segment (its own width plus a
+                gap) per step. */}
+            <span aria-hidden style={{ position: 'absolute', top: 3, bottom: 3, left: 3, borderRadius: 10,
+              width: open ? 'calc((100% - 10px) / 3)' : 'calc((100% - 8px) / 2)',
               background: 'var(--raised)', boxShadow: 'var(--raised-shadow)',
-              transform: `translateX(calc(${thumbIdx} * (100% + 2px)))`,
-              transition: reduceMotion() ? 'none' : 'transform 0.3s cubic-bezier(0.3, 0.7, 0.2, 1)' }} />
-            {seg('Swipe', 'swipe')}
+              transform: `translateX(calc(${MODES.indexOf(shown)} * (100% + 2px)))`,
+              transition: motion || `transform 0.3s ${ease}, width 0.3s ${ease}` }} />
             {seg('Listen', 'audio')}
-            {seg('Scroll', 'scroll')}
+            {/* Read: one segment folded, two open. It widens as Swipe and Scroll fade in. */}
+            <div style={{ position: 'relative', flex: `${open ? 2 : 1} 1 0`, minWidth: 0, display: 'flex', gap: 2,
+              transition: motion || `flex-grow 0.3s ${ease}` }}>
+              {inside('Swipe', 'swipe')}
+              {inside('Scroll', 'scroll')}
+              <button className="rn-btn" aria-label="Read: Swipe or Scroll" aria-expanded={open}
+                tabIndex={open ? -1 : 0} aria-hidden={open ? true : undefined}
+                onClick={() => onChangeMode?.('swipe')}
+                style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--sub)',
+                  opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto',
+                  transition: motion || 'opacity 0.15s ease' }}>
+                Read
+              </button>
+            </div>
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'

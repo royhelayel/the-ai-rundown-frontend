@@ -131,7 +131,10 @@ test('Radio opens recaps with a complete transcript, and reading mode has no rec
   expect(screen.getByText('visible.', { exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Next category recap' })).toBeEnabled();
-  userEvent.click(screen.getByRole('button', { name: 'Scroll', exact: true }));
+  // From Listen, reading is one choice, Read, which opens on Swipe; Scroll is beside it there.
+  expect(screen.queryByRole('button', { name: 'Scroll', exact: true })).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Read: Swipe or Scroll' }));
+  userEvent.click(await screen.findByRole('button', { name: 'Scroll', exact: true }));
   expect(await screen.findByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
   expect(screen.queryByText('Radio · daily recap')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Which stories' })).toBeInTheDocument();

@@ -63,7 +63,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
       .rn-radio-word > span { grid-area: 1 / 1; }`}</style>
     <div ref={viewport} aria-label="Recap transcript" style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
       {before}
-      <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.85, color: 'var(--card-body)' }}>
+      <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: 'var(--card-body)' }}>
         {words.map((w, i) => <span key={w.start} className="rn-radio-word" data-word={w.text} ref={i === index ? current : null}>
           <span data-narrated-word={i === index ? 'true' : undefined} style={{
             color: i === index ? 'var(--tp-chip, var(--accent))' : undefined,

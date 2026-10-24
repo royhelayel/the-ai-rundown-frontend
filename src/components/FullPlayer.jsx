@@ -879,17 +879,20 @@ export default function FullPlayer({
       </article>
     );
 
+    const recapHeading = <header style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
+        </div>
+          <h1 style={{ ...h1, marginTop: 10 }}>{recapPeriod === 'Daily' ? fmtDay(selectedDay) : recapPeriod === 'Weekly' ? weekLabel : monthLabel}</h1>
+    </header>;
+
     const recapCard = (
       <article key={cardKey} ref={cardRef} className="rn-tp" onTouchStart={onTouchStart} onTouchMove={pageTouchMove} onTouchEnd={pageTouchEnd}
         onAnimationEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.style.animation = 'none'; }}
         style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
-        </div>
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, flex: 1 }}>
-          <h1 style={h1}>{recapPeriod === 'Daily' ? (isTodaySelected ? `Today in ${topicName}` : `${topicName}, ${fmtDay(selectedDay)}`) : recapPeriod === 'Weekly' ? `${topicName} · ${weekLabel}` : `${topicName} · ${monthLabel}`}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {recapText ? (
-            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct}
+            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct} before={recapHeading}
               charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
               after={recapSources.length > 0 && (
                 // At the end of the text, not docked under it (Roy, 2026-10-18).
@@ -900,9 +903,9 @@ export default function FullPlayer({
                 </button>
               )} />
           ) : (
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
+            <div style={{ overflowY: 'auto' }}>{recapHeading}<p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
               {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
-            </p>
+            </p></div>
           )}
         </div>
       </article>

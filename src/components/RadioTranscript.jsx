@@ -16,7 +16,7 @@ export function wordAtProgress(words, progress, charOffset = -1) {
 }
 // `after` is shown at the end of the text, inside the scrolling transcript — Stories & sources
 // comes after the recap rather than docked under it (Roy, 2026-10-18).
-export default function RadioTranscript({ text, progress, charOffset = -1, active, after = null }) {
+export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null }) {
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -62,6 +62,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
       .rn-radio-word::after { content: attr(data-word); font-weight: 700; visibility: hidden; grid-area: 1 / 1; pointer-events: none; }
       .rn-radio-word > span { grid-area: 1 / 1; }`}</style>
     <div ref={viewport} aria-label="Recap transcript" style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
+      {before}
       <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.85, color: 'var(--card-body)' }}>
         {words.map((w, i) => <span key={w.start} className="rn-radio-word" data-word={w.text} ref={i === index ? current : null}>
           <span data-narrated-word={i === index ? 'true' : undefined} style={{

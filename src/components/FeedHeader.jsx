@@ -10,7 +10,7 @@ import AppHeader from './AppHeader';
 import ProgressRail from './ProgressRail';
 
 export default function FeedHeader({
-  user,
+  user, onEnterStories,
   selectedDay,
   availableDays = [],
   onSelectDay,
@@ -55,7 +55,7 @@ export default function FeedHeader({
         frame, a known cause of stutter on iOS Safari. */}
     <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--paper)' }}>
       <div style={{ maxWidth: 'var(--body-max)', margin: '0 auto' }}>
-        <AppHeader
+        <AppHeader readMode="scroll" onChangeReadMode={onEnterStories ? (m => { if (m === 'swipe') onEnterStories(); }) : undefined}
           selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
           categories={categories} activeCategory={activeCategory} onSelectCategory={onSelectCategory}
           showAllPill={showAllPill} allActive={showAllPill && activeCategory === null}

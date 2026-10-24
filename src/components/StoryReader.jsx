@@ -625,7 +625,7 @@ export default function StoryReader({
     return (
       <div ref={rootRef} style={{ position: 'relative', flex: 1, minHeight: 0, background: 'var(--paper)', color: 'var(--ink)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ position: 'relative', zIndex: 8, flexShrink: 0 }}>
-          <AppHeader selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
+          <AppHeader readMode="swipe" onChangeReadMode={m => { if (m === 'scroll') (onClose ? onClose() : goBack()); }} selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={[]} showTabs={false} onEditCategories={onEditCategories} user={user} />
         </div>
         {loading ? <NewsLoader day={selectedDay} /> : (
@@ -814,7 +814,7 @@ export default function StoryReader({
       {/* ── Top: identity row (asPage), or close/breadcrumb/Interesting (sheet) ── */}
       {asPage ? (
         <div style={{ position: 'relative', zIndex: 8, flexShrink: 0 }}>
-          <AppHeader
+          <AppHeader readMode="swipe" onChangeReadMode={m => { if (m === 'scroll') (onClose ? onClose() : goBack()); }}
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={(cat) => { if (!allScope && cat === category) return; setScope('category'); navTo(cat, 0); }}

@@ -122,7 +122,7 @@ export default function BriefingFeed({
     <div style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <style>{`* { box-sizing: border-box; } ::-webkit-scrollbar { display: none; }`}</style>
 
-      <FeedHeader
+      <FeedHeader onEnterStories={onEnterStories}
         user={user}
         selectedDay={selectedDay}
         availableDays={availableDays}

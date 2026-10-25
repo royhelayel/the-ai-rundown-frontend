@@ -82,6 +82,7 @@ test('compact audio keeps actions visible and expands when narration reaches the
 test('More expands the text without starting playback', () => {
   mockCroppedGeometry();
   render(<RadioTranscript compact text="One two three four." progress={0} active={false} />);
+  expect(screen.getByRole('button', { name: 'More' }).closest('p')).not.toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'More' }));
   expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
 });

@@ -141,7 +141,7 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   window.history.pushState({}, '', '/listen');
   installSummaryFixtures();
   render(<App />);
-  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('reported', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Story 2 of 2' }));
   expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
@@ -150,7 +150,7 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   userEvent.click(screen.getByRole('button', { name: 'Previous story' }));
   expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
   await chooseSummary('Headlines', 'Daily recap');
-  expect(await screen.findByText('daily', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('daily', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Story order' })).not.toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   await waitFor(() => expect(window.location.pathname).toBe('/recaps'));
@@ -158,7 +158,7 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   expect(screen.queryByRole('slider', { name: 'Audio progress' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Swipe', exact: true })).not.toBeInTheDocument();
   await chooseSummary('Daily recap', 'Last week');
-  expect(await screen.findByText('weekly', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('weekly', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Tech', exact: true }));
   expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
   // An unavailable topic must not silently substitute World, nor retain its text.
@@ -169,9 +169,9 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   expect(screen.getByRole('region', { name: 'Player' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
   userEvent.click(screen.getByRole('button', { name: 'World', exact: true }));
-  expect(await screen.findByText('weekly', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('weekly', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   await chooseSummary('Last week', 'Last month');
-  expect(await screen.findByText('monthly', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('monthly', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   await chooseSummary('Last month', 'Headlines');
   expect(await screen.findByRole('button', { name: 'Next story' })).toBeInTheDocument();
   expect(screen.queryByText('monthly', { exact: true })).not.toBeInTheDocument();
@@ -183,7 +183,7 @@ test('Read headlines exposes summary choices and restores its previous reading r
   renderForReturningGuest();
   expect(await screen.findByRole('group', { name: 'Summary type' })).toBeInTheDocument();
   await chooseSummary('Headlines', 'Daily recap');
-  expect(await screen.findByText('daily', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('daily', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
   await chooseSummary('Daily recap', 'Headlines');
   await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();

@@ -20,6 +20,8 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   const [expanded, setExpanded] = useState(false);
   const [cropped, setCropped] = useState(false);
   const [visibleHeight, setVisibleHeight] = useState(null);
+  const [visibleWords, setVisibleWords] = useState(null);
+  const moreInline = useRef(null);
   const textBox = useRef(null);
   const paragraph = useRef(null);
   const firstHidden = useRef(-1);
@@ -45,7 +47,13 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
       firstHidden.current = -1;
       if (overflow) {
         const bottom = box.getBoundingClientRect().top + height;
-        firstHidden.current = [...p.querySelectorAll('[data-radio-index]')].findIndex(word => word.getBoundingClientRect().bottom > bottom + 1);
+        const bounds = box.getBoundingClientRect();
+        const reserve = moreInline.current?.getBoundingClientRect().width || 72;
+        firstHidden.current = [...p.querySelectorAll('[data-radio-index]')].findIndex(word => {
+          const line = word.getBoundingClientRect();
+          return line.bottom > bottom + 1 || (line.bottom > bottom - lineHeight + 1 && line.right > bounds.right - reserve);
+        });
+        setVisibleWords(firstHidden.current < 0 ? words.length : firstHidden.current);
       }
     };
     measure();
@@ -88,25 +96,29 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     if (viewport.current) observer?.observe(viewport.current);
     return () => observer?.disconnect();
   }, [index, follow, active, collapsed]);
-  const moreButton = collapsed && cropped ? <button className="rn-btn" onClick={() => setExpanded(true)} aria-expanded="false"
-    style={{ minHeight: 36, fontSize: 13, fontWeight: 650, color: 'var(--card-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>More</button> : null;
-  const footer = typeof after === 'function' ? after({ moreButton }) : <>{moreButton}{after}</>;
+  const moreButton = collapsed && cropped ? <span ref={moreInline} style={{ whiteSpace: 'nowrap' }}> … <button className="rn-btn" onClick={() => setExpanded(true)} aria-expanded="false"
+    style={{ fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 650, color: 'var(--card-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>More</button></span> : null;
+  const footer = typeof after === 'function' ? after({ moreButton: null }) : after;
   const content = (
     <div ref={viewport} aria-label={label} data-collapsed={collapsed} style={{ overflowY: collapsed ? 'hidden' : 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1,
       ...(collapsed ? { display: 'flex', flexDirection: 'column' } : {}) }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
       <div style={collapsed ? { flexShrink: 0 } : undefined}>{before}</div>
-      <div ref={textBox} style={collapsed ? { flex: 1, minHeight: 0, overflow: 'hidden' } : undefined}>
+      <div ref={textBox} style={collapsed ? { position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' } : undefined}>
       {/* Set exactly as Read mode's paragraph (Swipe's card: 16.5px, 1.55), and the words are plain
           inline text, so lines and word gaps read the same in both (Roy, 2026-10-25). Each word
           used to be its own inline grid, sized to its bold width so turning bold did not reflow
           the line — which spaced the words unevenly and the lines further apart. The narrated
           word is now emboldened with an outline instead, which leaves its width as it is. */}
-      <p ref={paragraph} dir="auto" style={{ ...(collapsed ? { maxHeight: visibleHeight ?? undefined, overflow: 'hidden' } : {}), margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
-        {words.map((w, i) => <span key={w.start} data-radio-index={i} ref={i === index ? current : null}>
+      {collapsed && <p ref={paragraph} aria-hidden="true" dir="auto" style={{ position: 'absolute', inset: '0 0 auto', visibility: 'hidden', margin: 0, fontSize: 16.5, lineHeight: 1.55 }}>
+        {words.map((w, i) => <span key={w.start} data-radio-index={i}>{w.text}{i < words.length - 1 ? ' ' : ''}</span>)}
+      </p>}
+      <p ref={collapsed ? undefined : paragraph} dir="auto" style={{ ...(collapsed ? { maxHeight: visibleHeight ?? undefined, overflow: 'hidden' } : {}), margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
+        {(collapsed && cropped && visibleWords !== null ? words.slice(0, visibleWords) : words).map((w, i) => <span key={w.start} data-radio-index={i} ref={i === index ? current : null}>
           <span data-narrated-word={highlight && i === index ? 'true' : undefined} style={highlight && i === index ? {
             color: 'var(--tp-chip, var(--accent))', WebkitTextStroke: '0.04em currentColor',
           } : undefined}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
+        {moreButton}
       </p>
       </div>
       <div style={collapsed ? { flexShrink: 0 } : undefined}>{footer}</div>

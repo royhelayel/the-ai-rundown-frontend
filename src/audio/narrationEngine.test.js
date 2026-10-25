@@ -57,3 +57,25 @@ test('the programme closes only after its last category', () => {
   expect(h.speak.mock.calls[0][0]).toBe("That's your news for now. Thanks for listening to RadioNews.");
   expect(h.speak.mock.calls[0][2]).toEqual({ isTransition: true });
 });
+
+test('recorded audio seeks within the current clip and rejects transitions', () => {
+  const h = harness();
+  const audio = { duration: 100, currentTime: 12, ended: false };
+  h.state.audio = audio;
+  expect(h.fn.seek(60)).toBe(true);
+  expect(audio.currentTime).toBe(60);
+  h.state.isTransition = true;
+  expect(h.fn.seek(20)).toBe(false);
+  expect(audio.currentTime).toBe(60);
+});
+test('paused device speech seeks to a word without playing or losing its completion callback', () => {
+  const h = harness();
+  h.state.paused = true;
+  h.state.browserText = 'One two three four.';
+  h.state.browserOnDone = jest.fn();
+  expect(h.fn.seek(60)).toBe(true);
+  expect(h.state.browserSeek.text).toBe('One two three four.');
+  expect(h.state.browserSeek.offset).toBe(8);
+  expect(h.state.browserSeek.onDone).toBe(h.state.browserOnDone);
+  expect(h.state.paused).toBe(true);
+});

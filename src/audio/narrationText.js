@@ -37,3 +37,11 @@ export function categoryTransition(category, language = 'en') {
   const arabic = { 'World News': 'أخبار العالم', Technology: 'التكنولوجيا', Business: 'الاقتصاد', Politics: 'السياسة', Sports: 'الرياضة', Entertainment: 'الثقافة', Science: 'العلوم', Health: 'الصحة', UAE: 'الإمارات', KSA: 'السعودية', QAT: 'قطر', LEB: 'لبنان', AI: 'الذكاء الاصطناعي', Crypto: 'العملات الرقمية', Football: 'كرة القدم', Basketball: 'كرة السلة' };
   return language === 'ar' ? `ننتقل الآن إلى ${arabic[category] || category}.` : `Now, ${names[category] || category.toLowerCase()}.`;
 }
+
+export function narrationSeekOffset(text, percent) {
+  const words = [...text.matchAll(/\S+/g)];
+  if (!words.length) return 0;
+  const target = text.length * Math.max(0, Math.min(100, percent)) / 100;
+  const word = words.find(w => w.index + w[0].length > target) || words[words.length - 1];
+  return word.index;
+}

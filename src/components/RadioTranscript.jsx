@@ -16,7 +16,7 @@ export function wordAtProgress(words, progress, charOffset = -1) {
 }
 // `after` is shown at the end of the text, inside the scrolling transcript — Stories & sources
 // comes after the recap rather than docked under it (Roy, 2026-10-18).
-export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null, label = 'Recap transcript' }) {
+export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null, label = 'Recap transcript', highlight = true }) {
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -67,7 +67,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
           word is now emboldened with an outline instead, which leaves its width as it is. */}
       <p dir="auto" style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
         {words.map((w, i) => <span key={w.start} ref={i === index ? current : null}>
-          <span data-narrated-word={i === index ? 'true' : undefined} style={i === index ? {
+          <span data-narrated-word={highlight && i === index ? 'true' : undefined} style={i === index ? {
             color: 'var(--tp-chip, var(--accent))', WebkitTextStroke: '0.04em currentColor',
           } : undefined}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}

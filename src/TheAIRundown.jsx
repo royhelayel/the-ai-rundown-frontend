@@ -2217,6 +2217,7 @@ const TheAIRundown = () => {
           })()}
           onPlayRecapPeriod={(p) => playTopicRecap(selectedCategory, p)}
           topicStoryCount={stories[0]?._isBriefing ? (briefingData[selectedCategory]?.storyCount || 0) : undefined}
+          onSeek={percent => narrateFnRef.current.seek?.(percent)}
           narrationDuration={narrationDurationRef.current}
           phoneVoice={phoneVoice && isNarrating}
           isTodaySelected={selectedDay === today}

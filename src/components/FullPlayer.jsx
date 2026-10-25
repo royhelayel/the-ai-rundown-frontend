@@ -9,6 +9,7 @@ import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
 import { cleanForTTS } from '../audio/narrationText';
+import AudioSeekBar from './AudioSeekBar';
 import RadioTranscript from './RadioTranscript';
 import RecapSourcesSheet from './RecapSourcesSheet';
 import { topicVars } from '../design';
@@ -225,6 +226,7 @@ export default function FullPlayer({
   recapText,
   onPlayRecapPeriod,
   topicStoryCount,
+  onSeek,
   narrationDuration = 0,
   isTodaySelected = true,
   phoneVoice = false,
@@ -882,7 +884,7 @@ export default function FullPlayer({
 
     const headlineCard = storyCount === 0 ? storyCard : (
       <article key={cardKey} ref={cardRef} className="rn-tp" style={{ ...cardFrame, touchAction: 'pan-y' }}>
-        <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary"
+        <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary" highlight={false}
           charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
           before={<header style={{ marginBottom: 12 }}>
             <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
@@ -970,10 +972,8 @@ export default function FullPlayer({
                   {playbackSpeed}×
                 </button>
                 <span>{fmt((totalSec * pct) / 100)}</span>
-                <div aria-hidden style={{ position: 'relative', flex: 1, height: 4, borderRadius: 4, background: 'var(--line)' }}>
-                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, borderRadius: 4, background: 'var(--accent)', transition: isPlaying ? 'width 0.1s linear' : 'width 0.25s ease' }} />
-                  <div style={{ position: 'absolute', left: `calc(${pct}% - 6px)`, top: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--accent)', transition: isPlaying ? 'left 0.1s linear' : 'left 0.25s ease' }} />
-                </div>
+                <AudioSeekBar key={`${selectedDay}|${cardKey}`} progress={pct} duration={totalSec}
+                  disabled={!onSeek || !isNarrating || !playingThis || isLoading || narrationCharOffset === -2} onSeek={onSeek} />
                 <span>{fmt(totalSec)}</span>
                 {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
                     under it, and says which for a moment — a colour change alone was invisible. */}

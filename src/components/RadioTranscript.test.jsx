@@ -41,3 +41,10 @@ test('daily listening uses the same complete summaries and skips empty categorie
   expect(map.World.allStories).toEqual([story]);
   expect(map.World.allStories[0]._isBriefing).toBeUndefined();
 });
+
+test('headline audio keeps the full text without word emphasis', () => {
+  const { container } = render(<RadioTranscript text="Hello world." progress={50} active highlight={false} />);
+  expect(screen.getByText('world.')).toBeInTheDocument();
+  expect(container.querySelector('[data-narrated-word]')).toBeNull();
+  expect(container.querySelector('.rn-radio-word')).toBeNull();
+});

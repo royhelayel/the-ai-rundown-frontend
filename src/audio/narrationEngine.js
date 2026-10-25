@@ -2,7 +2,7 @@
 // Called once per render from TheAIRundown with that render's state, exactly as the code
 // ran when it lived inline — everything it hands back is re-created each render.
 import { headlineKey } from '../components/PopularTab';
-import { cleanForTTS, endSentence, categoryTransition } from './narrationText';
+import { cleanForTTS, endSentence, categoryTransition, narrationSeekOffset } from './narrationText';
 import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
 import { narrationPlayer } from './narrationPlayer';
@@ -38,6 +38,7 @@ export function createNarrationEngine({
     st.pendingLoad = false;
     st.pendingCategoryName = null;
     st.pendingSessionOpening = null;
+    st.browserSeek = null;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
     snapshotPlayRef.current = null; // resume live news fetching after snapshot playback
@@ -64,7 +65,12 @@ export function createNarrationEngine({
     if (!st.active || !st.paused) return;
     st.paused = false;
     setIsPaused(false);
-    if (st.audio) {
+    if (st.browserSeek) {
+      const { text, offset, onDone } = st.browserSeek;
+      st.browserSeek = null;
+      window.speechSynthesis?.resume();
+      speakWithBrowser(text.slice(offset), onDone, offset, text);
+    } else if (st.audio) {
       st.audio.play().catch(() => narrateFnRef.current.stop());
     } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
@@ -212,6 +218,37 @@ export function createNarrationEngine({
   };
 
   // Attach playback handlers and start playing — reusable for both cached and fresh Audio objects
+  // Recorded audio can seek directly. Device speech restarts at a word boundary.
+  narrateFnRef.current.seek = (percent) => {
+    const st = narrationStateRef.current;
+    if (!st.active || st.isTransition || !Number.isFinite(percent)) return false;
+    const fraction = Math.max(0, Math.min(100, percent)) / 100;
+    if (st.audio) {
+      const duration = st.audio.duration;
+      if (!Number.isFinite(duration) || duration <= 0) return false;
+      clearTimeout(st.pendingNarrateTimer);
+      const target = Math.min(Math.max(0, duration - .05), duration * fraction);
+      const wasEnded = st.audio.ended;
+      st.audio.currentTime = target;
+      setNarrationCharOffset?.(-1);
+      setNarrationProgress(target / duration * 100);
+      if (wasEnded && !st.paused) st.audio.play().catch(() => narrateFnRef.current.stop());
+      return true;
+    }
+    const text = st.browserText, onDone = st.browserOnDone;
+    if (!text || !onDone) return false;
+    const paused = st.paused;
+    const offset = narrationSeekOffset(text, percent);
+    cancelAudioKeepActive();
+    st.canceling = false;
+    st.browserCharIndex = offset;
+    setNarrationCharOffset?.(offset);
+    setNarrationProgress(offset / text.length * 100);
+    if (paused) st.browserSeek = { text, offset, onDone };
+    else { st.browserSeek = null; window.speechSynthesis?.resume(); speakWithBrowser(text.slice(offset), onDone, offset, text); }
+    return true;
+  };
+
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
   const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
     if (!narrationStateRef.current.active) return;

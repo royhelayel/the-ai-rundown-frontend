@@ -923,7 +923,7 @@ export default function FullPlayer({
               )} />
           ) : (
             <div style={{ overflowY: 'auto' }}>{recapHeading}<p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
-              {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `Today's ${topicName} recap isn't ready yet. It is written after the day's stories are checked.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
+              {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `No ${topicName} recap is available for this day. Try another topic or date.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
             </p></div>
           )}
         </div>

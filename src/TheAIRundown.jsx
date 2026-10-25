@@ -1328,6 +1328,18 @@ const TheAIRundown = () => {
     if (location.pathname !== '/listen') { radioCueRef.current = null; return; }
     if (!authReady || briefingLoading || radio.loading) return;
     if (radioCueRef.current === radioCueKey) return;
+    const sameRecapEdition = radioCueRef.current?.startsWith(`${selectedDay}|${newsLanguage}|${recapPeriod}|`);
+    const snap = snapshotPlayRef.current;
+    if (sameRecapEdition && recapPeriod !== 'Headlines' && snap?.stories?.length
+        && snap.category === selectedCategory && snap.stories[0].summary === radioMap[selectedCategory]?.allStories?.[0]?.summary) {
+      // Other topics can finish backfilling while this recap plays. Update the upcoming
+      // queue without stopping or rewinding the current recording.
+      snapshotPlayRef.current = { ...snap, map: radioMap };
+      playlistCatsRef.current = Object.keys(radioMap);
+      storyNavRef.current = { ...storyNavRef.current, cats: Object.keys(radioMap) };
+      radioCueRef.current = radioCueKey;
+      return;
+    }
     const keepCursor = radioCueRef.current === null || radioCueRef.current.startsWith(`${selectedDay}|${newsLanguage}|`);
     radioCueRef.current = radioCueKey;
     const first = topicsForReading.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];

@@ -58,17 +58,18 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     return () => observer?.disconnect();
   }, [index, follow, active]);
   return <>
-    <style>{`.rn-radio-word { display: inline-grid; vertical-align: baseline; }
-      .rn-radio-word::after { content: attr(data-word); font-weight: 700; visibility: hidden; grid-area: 1 / 1; pointer-events: none; }
-      .rn-radio-word > span { grid-area: 1 / 1; }`}</style>
     <div ref={viewport} aria-label="Recap transcript" style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
       {before}
-      <p dir="auto" style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: 'var(--card-body)' }}>
-        {words.map((w, i) => <span key={w.start} className="rn-radio-word" data-word={w.text} ref={i === index ? current : null}>
-          <span data-narrated-word={i === index ? 'true' : undefined} style={{
-            color: i === index ? 'var(--tp-chip, var(--accent))' : undefined,
-            fontWeight: i === index ? 700 : 400,
-          }}>{w.text}</span>
+      {/* Set exactly as Read mode's paragraph (Swipe's card: 16.5px, 1.55), and the words are plain
+          inline text, so lines and word gaps read the same in both (Roy, 2026-10-25). Each word
+          used to be its own inline grid, sized to its bold width so turning bold did not reflow
+          the line — which spaced the words unevenly and the lines further apart. The narrated
+          word is now emboldened with an outline instead, which leaves its width as it is. */}
+      <p dir="auto" style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
+        {words.map((w, i) => <span key={w.start} ref={i === index ? current : null}>
+          <span data-narrated-word={i === index ? 'true' : undefined} style={i === index ? {
+            color: 'var(--tp-chip, var(--accent))', WebkitTextStroke: '0.04em currentColor',
+          } : undefined}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
       </p>
       {after}

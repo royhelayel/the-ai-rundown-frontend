@@ -1,7 +1,8 @@
 .rn-summary-viewport {
   position: relative;
   width: 100%;
-  max-width: 320px;
+  max-width: 240px;
+  flex: 1 1 0;
   min-width: 0;
 }
 .rn-summary-strip {
@@ -24,6 +25,7 @@
   letter-spacing: -0.015em;
   font-weight: 500;
   color: var(--sub);
+  color: color-mix(in srgb, var(--sub) 88%, var(--paper));
   transition: color .22s ease;
 }
 .rn-summary-choice::after {

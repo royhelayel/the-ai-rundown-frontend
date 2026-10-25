@@ -110,13 +110,9 @@ export default function AppHeader({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
           <SummaryTypeSelector value={period} onChange={onChangePeriod} category={activeCategory || recapCategory} />
-
-        </div>
-      )}
-      {showTabs && period === 'Headlines' && onChangeLens && (
-        <div aria-label="Headline collection" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${gutter}px`, minHeight: 40, marginBottom: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sub)', letterSpacing: '0.01em' }}>Headlines</span>
-          <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Story order" buttonStyle={{ fontSize: 12.5 }} />
+          {period === 'Headlines' && onChangeLens && (
+            <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Story order" buttonStyle={{ fontSize: 12.5 }} />
+          )}
         </div>
       )}
     </div>

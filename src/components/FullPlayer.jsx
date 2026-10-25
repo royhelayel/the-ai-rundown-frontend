@@ -221,6 +221,7 @@ export default function FullPlayer({
   recapView = false,
   onChangeRecapView,
   recapPeriod = 'Daily',
+  readOnly = false,
   onChangeRecapPeriod,
   periodReady,
   recapText,
@@ -885,7 +886,7 @@ export default function FullPlayer({
     const headlineCard = storyCount === 0 ? storyCard : (
       <article key={cardKey} ref={cardRef} className="rn-tp" style={{ ...cardFrame, touchAction: 'pan-y' }}>
         <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary" highlight={false}
-          charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
+          charOffset={narrationCharOffset} active={!readOnly && isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
           before={<header style={{ marginBottom: 12 }}>
             <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
             <h1 style={{ ...h1, marginTop: 10 }}>{headline}</h1>
@@ -910,8 +911,8 @@ export default function FullPlayer({
         style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {recapText ? (
-            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={pct} before={recapHeading}
-              charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
+            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={readOnly ? 0 : pct} before={recapHeading} highlight={!readOnly}
+              charOffset={narrationCharOffset} active={!readOnly && isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
               after={recapSources.length > 0 && (
                 // At the end of the text, not docked under it (Roy, 2026-10-18).
                 <button className="rn-btn" aria-haspopup="dialog"
@@ -963,7 +964,7 @@ export default function FullPlayer({
 
           {/* The player: speed and repeat ride the progress line, the three buttons you press
               most sit under it, and Play is the one coloured thing on the screen. */}
-          {!loading && (canPlay || isNarrating) && (
+          {!readOnly && !loading && (canPlay || isNarrating) && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                 <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}

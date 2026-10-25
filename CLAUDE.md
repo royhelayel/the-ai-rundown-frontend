@@ -98,7 +98,9 @@ The `create*` functions in `src/audio/` are called once per render with that ren
 ## Daily listening programme (2026-10-25)
 
 Listen defaults to `Headlines`: the same complete story summaries as Read, played in topic
-order through a snapshot queue. There is no daily category recap in the public UI. Weekly
-and monthly recaps remain separate editions. Session introductions and category transitions
+order through a snapshot queue. The shared summary selector offers Headlines, Daily recap, Last week and Last month in both
+Listen and Read. Read recaps use /recaps with continuous text and a two-choice Listen/Read
+bar; Headlines retain Swipe/Scroll. Latest/Popular/Interesting is a dropdown for Headlines
+only. Daily recaps are generated and checked separately in the backend. Session introductions and category transitions
 are separate clips, never embedded in story summaries; manual mid-topic starts do not get a
 false category transition. Do not impose the browsing batch limit on the programme queue.

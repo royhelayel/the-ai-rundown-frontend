@@ -110,9 +110,7 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   expect(screen.queryByRole('menuitemradio', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
 });
 
-test('Radio opens headline summaries, not a daily digest, and reading mode has no recap toggle', async () => {
-  localStorage.setItem(ONBOARDING_KEY, '1');
-  window.history.pushState({}, '', '/listen');
+const installSummaryFixtures = () => {
   mockCompletedRows = [{ day: '2026-09-20', time_slot: 'Morning' }];
   global.fetch = jest.fn((url) => {
     const params = new URL(String(url), 'http://localhost').searchParams;
@@ -120,54 +118,71 @@ test('Radio opens headline summaries, not a daily digest, and reading mode has n
       const category = params.get('category');
       const rows = ['World News', 'Technology'].includes(category) ? [{
         time_slot: 'Morning', content: `## ${category} story\n**Coverage:** [Example](https://example.com/news)\n- A reported fact.${category === 'World News' ? '\n\n## Another World story\n- A second verified fact.' : ''}`,
-        briefing: `${category} briefing with a complete transcript. This final sentence must remain visible.`,
+        briefing: `${category} daily briefing. This final sentence must remain visible.`,
       }] : [];
       return Promise.resolve({ ok: true, json: () => Promise.resolve(rows) });
     }
-    if (String(url).startsWith('/api/news') && params.get('mode') === 'one' && ['Weekly', 'Monthly'].includes(params.get('timeSlot'))) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ briefing: 'Verified period recap.', briefing_sources: [] }) });
+    if (String(url).startsWith('/api/news') && params.get('mode') === 'one') {
+      const text = params.get('timeSlot') === 'Weekly' ? 'Verified weekly recap.' : 'Verified monthly recap.';
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(params.get('category') === 'Technology' ? null : { briefing: text, briefing_sources: [] }) });
     }
     return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
   });
+};
+const chooseSummary = async (currentLabel, nextLabel) => {
+  userEvent.click(await screen.findByRole('button', { name: `Summary type: ${currentLabel}` }));
+  const sheet = await screen.findByRole('dialog', { name: 'Choose your summary' });
+  userEvent.click(within(sheet).getByRole('radio', { name: new RegExp(`^${nextLabel}`) }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose your summary' })).not.toBeInTheDocument());
+};
+
+test('summary choice is independent of Listen/Read, retains topic, and includes daily and period recaps', async () => {
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  window.history.pushState({}, '', '/listen');
+  installSummaryFixtures();
   render(<App />);
-  // Radio's header is the period choice: Daily, and the week and month only once they have recaps.
-  const periods = await screen.findByRole('group', { name: 'Recap period' });
-  expect(within(periods).getByRole('button', { name: 'Headlines' })).toHaveAttribute('aria-pressed', 'true');
-  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last week' })).toBeEnabled());
-  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last month' })).toBeEnabled());
-  expect(screen.queryByText(/Radio · daily recap/)).not.toBeInTheDocument();
   expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
-  expect(screen.queryByText('briefing', { exact: true })).not.toBeInTheDocument();
-  expect(within(periods).queryByRole('button', { name: 'Daily' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Next story' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Story 2 of 2' }));
   expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Next story' }));
   expect(await screen.findByRole('heading', { name: 'Technology story' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Previous story' }));
   expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Story 1 of 2' }));
-  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
-  userEvent.click(within(periods).getByRole('button', { name: 'Last week' }));
-  expect(await screen.findByText('Verified', { exact: true })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Story 1 of 1' })).not.toBeInTheDocument();
-  userEvent.click(within(periods).getByRole('button', { name: 'Last month' }));
-  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true'));
-  userEvent.click(within(periods).getByRole('button', { name: 'Headlines' }));
-  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
-  // From Listen, reading is one choice, Read, which opens on Swipe; Scroll is beside it there.
-  expect(screen.queryByRole('button', { name: 'Scroll', exact: true })).not.toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Read: Swipe or Scroll' }));
-  userEvent.click(await screen.findByRole('button', { name: 'Scroll', exact: true }));
-  // The bar moves first and the page follows once it has (BottomNav's MOTION_MS).
-  expect(await screen.findByRole('group', { name: 'Which stories' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Listen', exact: true })).toBeInTheDocument();
-  expect(screen.queryByRole('group', { name: 'Recap period' })).not.toBeInTheDocument();
-  // Reading offers which stories as tabs, in place of a story count.
-  const lenses = screen.getByRole('group', { name: 'Which stories' });
-  expect(within(lenses).getAllByRole('button').map(b => b.textContent)).toEqual(['Latest', 'Popular', 'Interesting']);
-  expect(within(lenses).getByRole('button', { name: 'Latest' })).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.queryByText(/^\d+ stor(y|ies)$/)).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
+  await chooseSummary('Headlines', 'Daily recap');
+  expect(await screen.findByText('daily', { exact: true })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Story order' })).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
+  await waitFor(() => expect(window.location.pathname).toBe('/recaps'));
+  expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('slider', { name: 'Audio progress' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Swipe', exact: true })).not.toBeInTheDocument();
+  await chooseSummary('Daily recap', 'Last week');
+  expect(await screen.findByText('weekly', { exact: true })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Tech', exact: true }));
+  expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
+  // An unavailable topic must not silently substitute World, nor retain its text.
+  expect(screen.queryByText('weekly', { exact: true })).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
+  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
+  expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'World', exact: true }));
+  expect(await screen.findByText('weekly', { exact: true })).toBeInTheDocument();
+  await chooseSummary('Last week', 'Last month');
+  expect(await screen.findByText('monthly', { exact: true })).toBeInTheDocument();
+  await chooseSummary('Last month', 'Headlines');
+  expect(await screen.findByRole('button', { name: 'Next story' })).toBeInTheDocument();
+  expect(screen.queryByText('monthly', { exact: true })).not.toBeInTheDocument();
+});
+
+test('Read headlines exposes summary choices and restores its previous reading route', async () => {
+  localStorage.setItem('rundown_read_mode', 'scroll');
+  installSummaryFixtures();
+  renderForReturningGuest();
+  expect(await screen.findByRole('button', { name: 'Summary type: Headlines' })).toBeInTheDocument();
+  await chooseSummary('Headlines', 'Daily recap');
+  expect(await screen.findByText('daily', { exact: true })).toBeInTheDocument();
+  await chooseSummary('Daily recap', 'Headlines');
+  await waitFor(() => expect(window.location.pathname).toBe('/'));
+  expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
 });

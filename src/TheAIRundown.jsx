@@ -175,7 +175,31 @@ const TheAIRundown = () => {
   // failed). That voice is muted by the silent switch, so the player says so.
   const [phoneVoice, setPhoneVoice] = useState(false);
   const [recapView, setRecapView] = useState(false);
-  const [recapPeriod, setRecapPeriod] = useState('Headlines');
+  const [recapPeriod, setRecapPeriod] = useState(() => {
+    const saved = localStorage.getItem('radionews_summary_type');
+    if (window.location.pathname === '/recaps' && (!saved || saved === 'Headlines')) return 'Daily';
+    return ['Headlines', 'Daily', 'Weekly', 'Monthly'].includes(saved) ? saved : 'Headlines';
+  });
+  const summaryReadFromRef = useRef({ pathname: '/my-feed', state: null });
+  const changeSummaryType = (period) => {
+    narrateFnRef.current.stop();
+    setPlayerVisible(false);
+    setRecapPeriod(period);
+    localStorage.setItem('radionews_summary_type', period);
+    if (location.pathname === '/listen') return;
+    if (period === 'Headlines') {
+      snapshotPlayRef.current = null;
+      setStories(briefingData[selectedCategory]?.allStories || []);
+      setStoryIndex(focusRef.current?.category === selectedCategory ? focusRef.current.index : 0);
+      if (isReadRecap) navigate(summaryReadFromRef.current.pathname, { state: summaryReadFromRef.current.state });
+      return;
+    }
+    const storyMatch = location.pathname.match(/^\/category\/([^/]+)\/story\//);
+    if (storyMatch) setSelectedCategory(decodeURIComponent(storyMatch[1]));
+    else if (periodCategory) setSelectedCategory(periodCategory);
+    if (!isReadRecap) summaryReadFromRef.current = { pathname: location.pathname, state: location.state };
+    navigate('/recaps');
+  };
   const [feedPickerDraft, setFeedPickerDraft] = useState([]);
 
   // ── Listen tracking (for Popular tab) ────────────────────────────────────────
@@ -374,6 +398,13 @@ const TheAIRundown = () => {
   const [categoryTransition, setCategoryTransition] = useState(null); // { category, storyCount, estimatedSec, nextStoryTitle }
   const navigate = useNavigate();
   const location = useLocation();
+  const isReadRecap = location.pathname === '/recaps';
+  useEffect(() => {
+    if (['/', '/my-feed', '/popular', '/important'].includes(location.pathname) || /\/story\//.test(location.pathname)) {
+      setRecapPeriod('Headlines');
+    }
+  }, [location.pathname]);
+
 
   // Reset the passwordless flow each time the auth modal opens.
   useEffect(() => {
@@ -1257,7 +1288,7 @@ const TheAIRundown = () => {
   // path as handleNarrateBriefing, but the topic stays the selected category — the period
   // recap used to swap it for a label like "World · last week", which the header has no chip
   // for — and the topic strip keeps every topic rather than shrinking to this one.
-  const radio = useRadioRecaps({ active: location.pathname === '/listen', categories: topicsForReading,
+  const radio = useRadioRecaps({ active: location.pathname === '/listen' || isReadRecap, categories: topicsForReading,
     period: recapPeriod, day: selectedDay, today, language: newsLanguage, briefingData });
   const radioMap = recapPeriod === 'Headlines' ? headlineRadioSnapshot(topicsForReading, briefingData) : radioSnapshot(topicsForReading, radio.rows, recapPeriod);
   const cueRadio = (cat, play = false, index = 0, opening = false) => {
@@ -1299,7 +1330,7 @@ const TheAIRundown = () => {
     if (radioCueRef.current === radioCueKey) return;
     const keepCursor = radioCueRef.current === null || radioCueRef.current.startsWith(`${selectedDay}|${newsLanguage}|`);
     radioCueRef.current = radioCueKey;
-    const first = radioMap[selectedCategory] ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
+    const first = topicsForReading.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
     if (first) cueRadio(first, false, recapPeriod === 'Headlines' && keepCursor ? (focusRef.current?.category === first ? focusRef.current.index : 0) : 0);
   }, [location.pathname, authReady, briefingLoading, radio.loading, radioCueKey, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
   // Back to the stories after a recap played: stop it and put the topic's stories back.
@@ -1315,8 +1346,8 @@ const TheAIRundown = () => {
     const match = location.pathname.match(/^\/category\/([^/]+)\/briefing$/);
     if (!match) return;
     setSelectedCategory(decodeURIComponent(match[1]));
-    setRecapPeriod('Headlines');
-    navigate('/listen', { replace: true });
+    setRecapPeriod('Daily');
+    navigate('/recaps', { replace: true });
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Social helpers ────────────────────────────────────────────────────────────
@@ -1443,7 +1474,7 @@ const TheAIRundown = () => {
     ? catsForFrom(location.state?.from)
         .filter(c => briefingData[c]?.briefing && briefingData[c].briefing.trim())
     : [];
-  const isLatestHome    = !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath && !isListenPath && !isHistoryPath;
+  const isLatestHome    = !isReadRecap && !catFromUrl && !isSettingsPath && !isMyFeedPath && !isPopularPath && !isImportantPath && !isSavedPath && !isProfilePath && !isListenPath && !isHistoryPath;
   const isHome          = isLatestHome; // kept for backward compat
   const isStoryView     = !!storyRouteMatch;
   // Opened via the Feed/Stories toggle: the reader IS the page, not a sheet over a tab.
@@ -1475,7 +1506,7 @@ const TheAIRundown = () => {
   // The summary sheet sits over a live tab, so that tab keeps its nav.
   // Listen is excluded for the same reason Swipe is: it's a full page that renders its own
   // dark nav inside its container, so the global one would be a second bar underneath it.
-  const showBottomNav   = !isSettingsPath && !isHistoryPath && !isStoriesPage && !isBriefingView && !isListenPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
+  const showBottomNav   = !isReadRecap && !isSettingsPath && !isHistoryPath && !isStoriesPage && !isBriefingView && !isListenPath && !(playerVisible && !playerMinimized && !fullPlayerExiting);
 
   // ── Feed / Stories toggle — flatten a tab's stories into a swipeable playlist ──
   // Mirrors the ordering each tab already uses for its card list.
@@ -1944,7 +1975,7 @@ const TheAIRundown = () => {
           recapView={false}
           onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={setRecapPeriod}
+          onChangeRecapPeriod={changeSummaryType}
           onFocusStoryRequest={(cat, idx) => setPendingFocus({ category: cat, index: idx })}
           isReadStory={isReadStory}
         />
@@ -1987,7 +2018,7 @@ const TheAIRundown = () => {
           recapView={false}
           onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={setRecapPeriod}
+          onChangeRecapPeriod={changeSummaryType}
           periodRecaps={periodRecaps}
           onFocusStoryRequest={(cat, idx) => setPendingFocus({ category: cat, index: idx })}
           onActiveCategoryChange={setFeedPeriodCategory}
@@ -2024,7 +2055,7 @@ const TheAIRundown = () => {
           recapView={false}
           onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={setRecapPeriod}
+          onChangeRecapPeriod={changeSummaryType}
           periodRecaps={periodRecaps}
           onActiveCategoryChange={setFeedPeriodCategory}
           // "Open the story" from a recap: the story lives in the day's feed, so go there.
@@ -2056,7 +2087,7 @@ const TheAIRundown = () => {
           recapView={false}
           onChangeRecapView={undefined}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={setRecapPeriod}
+          onChangeRecapPeriod={changeSummaryType}
           periodRecaps={periodRecaps}
           onActiveCategoryChange={setFeedPeriodCategory}
           // "Open the story" from a recap: the story lives in the day's feed, so go there.
@@ -2146,15 +2177,21 @@ const TheAIRundown = () => {
       {/* ── FullPlayer overlay ── */}
       {/* One player, two shells. On /listen it's the page (always mounted, playing or not);
           everywhere else it's the sheet, which only exists while something is playing. */}
-      {(isListenPath || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
+      {(isListenPath || isReadRecap || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
           narrationLimitRef={narrationLimitRef}
-          loading={isListenPath && (briefingLoading || radio.loading)}
-          asPage={isListenPath}
-          visible={isListenPath ? true : !fullPlayerExiting}
-          isExiting={isListenPath ? false : fullPlayerExiting}
-          footer={isListenPath ? (
-            <BottomNav theme="dark" fixed={false} mode="audio"
+          loading={(isListenPath || isReadRecap) && (briefingLoading || radio.loading)}
+          readOnly={isReadRecap}
+          asPage={isListenPath || isReadRecap}
+          visible={isListenPath || isReadRecap ? true : !fullPlayerExiting}
+          isExiting={isListenPath || isReadRecap ? false : fullPlayerExiting}
+          footer={isReadRecap ? (
+            <BottomNav fixed={false} mode="scroll" compactRead
+              onChangeMode={() => enterAudioMode(playerSourcePath.current || '/my-feed')}
+              challengeStats={challengeStatsFull} user={user}
+              onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
+          ) : isListenPath ? (
+            <BottomNav theme="dark" fixed={false} mode="audio" compactRead={recapPeriod !== 'Headlines'}
               onChangeMode={(m) => {
                 // Step out of the page's player state before leaving. On /listen the player
                 // is the page, so playerVisible has no bearing on what you see — but the
@@ -2163,6 +2200,11 @@ const TheAIRundown = () => {
                 // what "keep listening while I read" already means everywhere else; leaving
                 // silent just closes it.
                 leaveListenPlayer();
+                if (recapPeriod !== 'Headlines') {
+                  rememberReadMode('scroll');
+                  summaryReadFromRef.current = { pathname: playerSourcePath.current || '/', state: null };
+                  navigate('/recaps'); return;
+                }
                 if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(playerSourcePath.current || '/'); }
                 // Hand the cursor over the same way leaving Swipe does, so Scroll opens on
                 // the story you were listening to rather than at the top of the feed.
@@ -2195,14 +2237,14 @@ const TheAIRundown = () => {
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
-          recapView={isListenPath ? recapPeriod !== 'Headlines' : recapView}
-          radioOnly={isListenPath}
+          recapView={isReadRecap || (isListenPath ? recapPeriod !== 'Headlines' : recapView)}
+          radioOnly={isListenPath || isReadRecap}
           radioQueueCategories={Object.keys(radioMap)}
           recapEnd={radio.end}
           narrationCharOffset={narrationCharOffset}
           onChangeRecapView={(v) => { if (!v) leaveRecapPlayback(); setRecapView(v); }}
           recapPeriod={recapPeriod}
-          onChangeRecapPeriod={(p) => { narrateFnRef.current.stop(); setStories([]); setRecapPeriod(p); }}
+          onChangeRecapPeriod={changeSummaryType}
           // A period can be picked once its recaps exist (Roy, 2026-10-18). Daily always has one;
           // the week and the month are looked up for the topic on screen, the same way the recap
           // tab does it.
@@ -2271,7 +2313,7 @@ const TheAIRundown = () => {
           // topic list — so the header had no topics. Fall back to the feed's own.
           // Live news shows only the topics with stories on the day showing. The list is set
           // when the player opens and kept every topic, so a day with five showed twelve.
-          contextCategories={isListenPath ? topicsForReading : (() => {
+          contextCategories={isListenPath || isReadRecap ? topicsForReading : (() => {
             const base = playerContextCategories.length ? playerContextCategories
               : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
             if (snapshotPlayRef.current) return base;
@@ -2279,6 +2321,7 @@ const TheAIRundown = () => {
             return live.length ? live : base;
           })()}
           onSelectCategory={(cat) => {
+            if (isReadRecap) { setSelectedCategory(cat); return; }
             if (isListenPath) { cueRadio(cat, isNarrating && !isPaused); return; }
             // A recap was playing: stop it and go back to live stories for the new topic.
             if (stories[0]?._isBriefing) { narrateFnRef.current.stop(); snapshotPlayRef.current = null; setStories(briefingData[cat]?.allStories || []); }
@@ -2422,7 +2465,7 @@ const TheAIRundown = () => {
           recapView={false}
           setRecapView={undefined}
           recapPeriod={recapPeriod}
-          setRecapPeriod={setRecapPeriod}
+          setRecapPeriod={changeSummaryType}
           isTodaySelected={selectedDay === today}
         />
       )}

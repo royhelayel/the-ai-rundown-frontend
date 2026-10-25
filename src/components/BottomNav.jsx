@@ -16,6 +16,7 @@ const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?
 
 export default function BottomNav({
   fixed = true,
+  compactRead = false,
   mode = 'scroll',
   onChangeMode,
   challengeStats,
@@ -42,7 +43,7 @@ export default function BottomNav({
   const current = MODES.includes(mode) ? mode : 'scroll';
   const [shown, setShown] = useState(current);
   useEffect(() => { setShown(current); }, [current]);
-  const open = shown !== 'audio';               // Read shown as Swipe | Scroll
+  const open = !compactRead && shown !== 'audio';               // Read shown as Swipe | Scroll
   const goTimer = useRef(null);
   useEffect(() => () => clearTimeout(goTimer.current), []);
   const go = (value) => {
@@ -119,11 +120,12 @@ export default function BottomNav({
             <span aria-hidden style={{ position: 'absolute', top: 3, bottom: 3, left: 3, borderRadius: 10,
               width: open ? 'calc((100% - 10px) / 3)' : 'calc((100% - 8px) / 2)',
               background: 'var(--raised)', boxShadow: 'var(--raised-shadow)',
-              transform: `translateX(calc(${MODES.indexOf(shown)} * (100% + 2px)))`,
+              transform: `translateX(calc(${(compactRead ? (shown === 'audio' ? 0 : 1) : MODES.indexOf(shown))} * (100% + 2px)))`,
               transition: motion || `transform 0.34s ${ease}, width 0.34s ${ease}` }} />
             {seg('Listen', 'audio')}
+            {compactRead && seg('Read', 'scroll')}
             {/* Read: one segment folded, two open. It widens as Swipe and Scroll fade in. */}
-            <div style={{ position: 'relative', flex: `${open ? 2 : 1} 1 0`, minWidth: 0, display: 'flex', gap: 2,
+            <div style={{ display: compactRead ? 'none' : 'flex', position: 'relative', flex: `${open ? 2 : 1} 1 0`, minWidth: 0, gap: 2,
               transition: motion || `flex-grow 0.34s ${ease}` }}>
               {inside('Swipe', 'swipe')}
               {inside('Scroll', 'scroll')}

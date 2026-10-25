@@ -38,6 +38,7 @@ import { createNarrationEngine } from './audio/narrationEngine';
 import { createPlaybackControls } from './audio/playbackControls';
 import { createPlayActions } from './audio/playActions';
 import useHeartbeat from './data/useHeartbeat';
+import usePlaybackWakeLock from './hooks/usePlaybackWakeLock';
 import useSavesFeeds from './data/useSavesFeeds';
 import useCompletedSlots from './data/useCompletedSlots';
 import useBriefingData from './data/useBriefingData';
@@ -129,6 +130,7 @@ const TheAIRundown = () => {
   const swipeTouchRef = useRef(null); // tracks touch start position for swipe detection
   const [isNarrating, setIsNarrating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  usePlaybackWakeLock(isNarrating && !isPaused);
   const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [repeatMode, setRepeatMode] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);

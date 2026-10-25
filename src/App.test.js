@@ -119,7 +119,7 @@ test('Radio opens headline summaries, not a daily digest, and reading mode has n
     if (String(url).startsWith('/api/news') && params.get('mode') === 'list') {
       const category = params.get('category');
       const rows = ['World News', 'Technology'].includes(category) ? [{
-        time_slot: 'Morning', content: `## ${category} story\n**Coverage:** [Example](https://example.com/news)\n- A reported fact.`,
+        time_slot: 'Morning', content: `## ${category} story\n**Coverage:** [Example](https://example.com/news)\n- A reported fact.${category === 'World News' ? '\n\n## Another World story\n- A second verified fact.' : ''}`,
         briefing: `${category} briefing with a complete transcript. This final sentence must remain visible.`,
       }] : [];
       return Promise.resolve({ ok: true, json: () => Promise.resolve(rows) });
@@ -141,6 +141,14 @@ test('Radio opens headline summaries, not a daily digest, and reading mode has n
   expect(within(periods).queryByRole('button', { name: 'Daily' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Next story' })).toBeEnabled();
+  userEvent.click(screen.getByRole('button', { name: 'Story 2 of 2' }));
+  expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Next story' }));
+  expect(await screen.findByRole('heading', { name: 'Technology story' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Previous story' }));
+  expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Story 1 of 2' }));
+  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
   userEvent.click(within(periods).getByRole('button', { name: 'Last week' }));
   expect(await screen.findByText('Verified', { exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Story 1 of 1' })).not.toBeInTheDocument();

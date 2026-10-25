@@ -156,6 +156,7 @@ const TheAIRundown = () => {
   const [showFeedPicker, setShowFeedPicker] = useState(false);
   const [authReady, setAuthReady] = useState(false); // stored user applied — per-user prefs readable
   // Where the reader is, shared across modes so Scroll and Swipe continue from each other.
+  const radioSkipRef = useRef(null);
   const focusRef = useRef(null); // { category, index }
   // Stories seen this session in either mode — read badges stay consistent for guests too.
   const sessionSeenRef = useRef(new Set());
@@ -742,12 +743,19 @@ const TheAIRundown = () => {
   }, [newsSummary, briefingData, selectedDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (snapshotPlayRef.current?.radio) return;
     if (!goToLastStoryRef.current) setStoryIndex(0);
   }, [selectedCategory, selectedDay, selectedTime]);
 
   useEffect(() => {
     if (viewMode !== 'stories') return;
     const handler = (e) => {
+      if (snapshotPlayRef.current?.radio && window.location.pathname === '/listen') {
+        if (e.target?.closest?.('input, textarea, select, dialog, [role=dialog]')) return;
+        const direction = ['ArrowRight', 'ArrowDown'].includes(e.key) ? 1 : ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 0;
+        if (direction) { e.preventDefault(); radioSkipRef.current?.(direction); }
+        return;
+      }
       const { idx, stories, cats, cat } = storyNavRef.current;
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         if (idx < stories.length - 1) { setStoryIndex(i => i + 1); }
@@ -1281,6 +1289,7 @@ const TheAIRundown = () => {
     const cat = cats[cats.indexOf(selectedCategory) + direction];
     if (cat) cueRadio(cat, play, direction < 0 ? radioMap[cat].allStories.length - 1 : 0);
   };
+  radioSkipRef.current = skipRadio;
   const playTopicRecap = (cat) => cueRadio(cat, true);
   const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${topicsForReading.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories.map(st => `${st.headline}:${storyParagraph(st).length}`).join(',')}`).join('|')}`;
   const radioCueRef = useRef(null);

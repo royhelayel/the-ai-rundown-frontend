@@ -265,13 +265,20 @@ export function createNarrationEngine({
     if (shared && audioIn.src && shared.src !== audioIn.src) { shared.pause(); shared.src = audioIn.src; }
     narrationStateRef.current.audio = audio;
     audio.currentTime = 0;
-    audio.playbackRate = playbackSpeedRef.current;
+    const applySpeed = () => {
+      if (narrationGenRef.current !== capturedGen || narrationStateRef.current.audio !== audio) return;
+      audio.defaultPlaybackRate = playbackSpeedRef.current;
+      audio.playbackRate = playbackSpeedRef.current;
+    };
+    applySpeed();
+    audio.onplaying = applySpeed;
     // Clear any stale handlers from prior use of the same Audio element
     audio.onloadedmetadata = null;
     audio.ontimeupdate = null;
     audio.onended = null;
     audio.onerror = null;
     audio.onloadedmetadata = () => {
+      applySpeed();
       if (!isTransition && audio.duration > 0) narrationDurationRef.current = audio.duration;
     };
     let lastPct = -1;

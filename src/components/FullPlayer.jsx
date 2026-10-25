@@ -885,15 +885,15 @@ export default function FullPlayer({
 
     const headlineCard = storyCount === 0 ? storyCard : (
       <article key={cardKey} ref={cardRef} className="rn-tp" style={{ ...cardFrame, touchAction: 'pan-y' }}>
-        <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary" highlight={false}
+        <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary" highlight={false} compact
           charOffset={narrationCharOffset} active={!readOnly && isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
           before={<header style={{ marginBottom: 12 }}>
             <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
             <h1 style={{ ...h1, marginTop: 10 }}>{headline}</h1>
           </header>}
-          after={<div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          after={({ moreButton }) => <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SourcesRow sources={outlets} onCard />
-            <span style={{ alignSelf: 'flex-end' }}><StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} /></span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>{moreButton}<span style={{ marginLeft: 'auto' }}><StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} /></span></div>
           </div>} />
       </article>
     );
@@ -911,7 +911,7 @@ export default function FullPlayer({
         style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {recapText ? (
-            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={readOnly ? 0 : pct} before={recapHeading} highlight={!readOnly}
+            <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={readOnly ? 0 : pct} before={recapHeading} highlight={!readOnly} compact={!readOnly}
               charOffset={narrationCharOffset} active={!readOnly && isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
               after={recapSources.length > 0 && (
                 // At the end of the text, not docked under it (Roy, 2026-10-18).

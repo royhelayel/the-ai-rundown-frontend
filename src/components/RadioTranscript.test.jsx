@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import RadioTranscript, { transcriptWords, wordAtProgress } from './RadioTranscript';
 import { radioSnapshot, headlineRadioSnapshot } from '../data/useRadioRecaps';
 
@@ -47,4 +47,41 @@ test('headline audio keeps the full text without word emphasis', () => {
   expect(screen.getByText('world.')).toBeInTheDocument();
   expect(container.querySelector('[data-narrated-word]')).toBeNull();
   expect(container.querySelector('.rn-radio-word')).toBeNull();
+});
+
+function mockCroppedGeometry() {
+  HTMLElement.prototype.scrollTo = jest.fn();
+  jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(50);
+  jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(100);
+  const computedStyle = window.getComputedStyle;
+  jest.spyOn(window, 'getComputedStyle').mockImplementation(el => {
+    const style = computedStyle(el);
+    Object.defineProperty(style, 'lineHeight', { value: '25px' });
+    return style;
+  });
+  jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+    const top = this.dataset.radioIndex ? Number(this.dataset.radioIndex) * 25 : 0;
+    return { top, bottom: top + 25 };
+  });
+}
+afterEach(() => jest.restoreAllMocks());
+test('compact audio keeps actions visible and expands when narration reaches the hidden text', () => {
+  mockCroppedGeometry();
+  const footer = ({ moreButton }) => <>{moreButton}<button>Sources</button><button>Interesting</button></>;
+  const { rerender } = render(<RadioTranscript compact text="One two three four." progress={0} active={false} after={footer} />);
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'true');
+  expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Sources' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Interesting' })).toBeInTheDocument();
+  rerender(<RadioTranscript compact text="One two three four." progress={0} charOffset={0} active after={footer} />);
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'true');
+  rerender(<RadioTranscript compact text="One two three four." progress={60} charOffset={8} active after={footer} />);
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
+  expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+});
+test('More expands the text without starting playback', () => {
+  mockCroppedGeometry();
+  render(<RadioTranscript compact text="One two three four." progress={0} active={false} />);
+  fireEvent.click(screen.getByRole('button', { name: 'More' }));
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
 });

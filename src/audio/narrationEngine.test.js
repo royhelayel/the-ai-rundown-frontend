@@ -1,3 +1,5 @@
+import { narrationPlayer } from './narrationPlayer';
+jest.mock('./narrationPlayer', () => ({ narrationPlayer: jest.fn(() => null) }));
 import { createNarrationEngine } from './narrationEngine';
 jest.mock('../components/PopularTab', () => ({ headlineKey: text => text }));
 const ref = current => ({ current });
@@ -9,18 +11,20 @@ function harness() {
   const snapshot = ref({ category: 'World News', stories, headlineProgramme: true, map: { 'World News': { allStories: stories }, UAE: { allStories: [story(3)] } } });
   const nav = ref({ cat: 'World News', stories, idx: 0, cats: ['World News', 'UAE'] });
   const history = jest.fn(), select = jest.fn();
+  const speed = ref(1), cache = ref(new Map());
   createNarrationEngine({ narrateFnRef: fn, narrationStateRef: state, snapshotPlayRef: snapshot,
-    storyNavRef: nav, repeatModeRef: ref(false), playbackSpeedRef: ref(1), repeatMode: false, playbackSpeed: 1,
+    storyNavRef: nav, repeatModeRef: ref(false), playbackSpeedRef: speed, repeatMode: false, playbackSpeed: 1,
     narrationGenRef: ref(0), narrationDurationRef: ref(0), narrationLimitRef: ref(null),
     currentNarratingStoryRef: ref({}), playlistCatsRef: ref(null), newsLanguage: 'en', depthLevel: 'takeaways',
     setSelectedCategory: select, setStories: jest.fn(), setStoryIndex: jest.fn(), addToHistory: history,
     setIsNarrating: jest.fn(), setIsPaused: jest.fn(), setIsAudioLoading: jest.fn(), setNarrationProgress: jest.fn(),
-    setNarrationCharOffset: jest.fn(), ttsAudioCacheRef: ref(new Map()), ttsUrlPromisesRef: ref(new Map()),
+    setNarrationCharOffset: jest.fn(), ttsAudioCacheRef: cache, ttsUrlPromisesRef: ref(new Map()),
   });
+  const realSpeak = fn.current.speakText;
   const speak = jest.fn();
   fn.current.speakText = speak;
   fn.current.prefetchTTS = jest.fn();
-  return { fn: fn.current, state: state.current, snapshot, speak, history, select };
+  return { fn: fn.current, state: state.current, snapshot, speak, history, select, realSpeak, speed, cache };
 }
 afterEach(() => jest.useRealTimers());
 test('starting on story two reads its complete summary without a false category introduction', () => {
@@ -78,4 +82,26 @@ test('paused device speech seeks to a word without playing or losing its complet
   expect(h.state.browserSeek.offset).toBe(8);
   expect(h.state.browserSeek.onDone).toBe(h.state.browserOnDone);
   expect(h.state.paused).toBe(true);
+});
+
+test('recorded clips retain the latest speed through media loading and the next headline', async () => {
+  const audio = { src: '', play: jest.fn(() => Promise.resolve()), pause: jest.fn(), playbackRate: 1, defaultPlaybackRate: 1 };
+  narrationPlayer.mockReturnValue(audio);
+  const h = harness();
+  h.cache.current.set('First.', { src: 'https://example.com/one.mp3' });
+  h.cache.current.set('Next.', { src: 'https://example.com/two.mp3' });
+  h.speed.current = 1.5;
+  h.realSpeak('First.', jest.fn());
+  expect(audio.defaultPlaybackRate).toBe(1.5);
+  // Safari can reset the rate after assigning the next src, during load/play.
+  audio.playbackRate = 1;
+  audio.onloadedmetadata();
+  expect(audio.playbackRate).toBe(1.5);
+  h.speed.current = 2;
+  h.realSpeak('Next.', jest.fn());
+  expect(audio.defaultPlaybackRate).toBe(2);
+  audio.playbackRate = 1;
+  audio.onplaying();
+  expect(audio.playbackRate).toBe(2);
+  narrationPlayer.mockReturnValue(null);
 });

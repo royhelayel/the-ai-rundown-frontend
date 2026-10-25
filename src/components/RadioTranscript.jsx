@@ -16,7 +16,14 @@ export function wordAtProgress(words, progress, charOffset = -1) {
 }
 // `after` is shown at the end of the text, inside the scrolling transcript — Stories & sources
 // comes after the recap rather than docked under it (Roy, 2026-10-18).
-export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null, label = 'Recap transcript', highlight = true }) {
+export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null, label = 'Recap transcript', highlight = true, compact = false }) {
+  const [expanded, setExpanded] = useState(false);
+  const [cropped, setCropped] = useState(false);
+  const [visibleHeight, setVisibleHeight] = useState(null);
+  const textBox = useRef(null);
+  const paragraph = useRef(null);
+  const firstHidden = useRef(-1);
+  const collapsed = compact && !expanded;
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -25,6 +32,30 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   const scrollTarget = useRef(null);
   const [follow, setFollow] = useState(true);
   useEffect(() => () => clearTimeout(resumeTimer.current), []);
+  useLayoutEffect(() => {
+    if (!collapsed) return;
+    const measure = () => {
+      const box = textBox.current, p = paragraph.current;
+      if (!box?.clientHeight || !p) return;
+      const lineHeight = parseFloat(window.getComputedStyle(p).lineHeight) || 25.575;
+      const height = Math.floor(box.clientHeight / lineHeight) * lineHeight;
+      setVisibleHeight(height);
+      const overflow = p.scrollHeight > height + 1;
+      setCropped(overflow);
+      firstHidden.current = -1;
+      if (overflow) {
+        const bottom = box.getBoundingClientRect().top + height;
+        firstHidden.current = [...p.querySelectorAll('[data-radio-index]')].findIndex(word => word.getBoundingClientRect().bottom > bottom + 1);
+      }
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    [viewport.current, textBox.current, paragraph.current].forEach(el => el && observer?.observe(el));
+    return () => observer?.disconnect();
+  }, [collapsed, text, cropped]);
+  useLayoutEffect(() => {
+    if (collapsed && active && cropped && firstHidden.current >= 0 && index >= firstHidden.current) setExpanded(true);
+  }, [collapsed, active, cropped, index]);
   const pauseFollow = () => {
     scrollTarget.current = null;
     const box = viewport.current;
@@ -34,7 +65,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     resumeTimer.current = setTimeout(() => setFollow(true), 5000);
   };
   useLayoutEffect(() => {
-    if (!follow || !active) return;
+    if (collapsed || !follow || !active) return;
     const keepVisible = () => {
       const box = viewport.current;
       const word = current.current;
@@ -56,23 +87,30 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(keepVisible);
     if (viewport.current) observer?.observe(viewport.current);
     return () => observer?.disconnect();
-  }, [index, follow, active]);
-  return <>
-    <div ref={viewport} aria-label={label} style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
-      {before}
+  }, [index, follow, active, collapsed]);
+  const moreButton = collapsed && cropped ? <button className="rn-btn" onClick={() => setExpanded(true)} aria-expanded="false"
+    style={{ minHeight: 36, fontSize: 13, fontWeight: 650, color: 'var(--card-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>More</button> : null;
+  const footer = typeof after === 'function' ? after({ moreButton }) : <>{moreButton}{after}</>;
+  const content = (
+    <div ref={viewport} aria-label={label} data-collapsed={collapsed} style={{ overflowY: collapsed ? 'hidden' : 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1,
+      ...(collapsed ? { display: 'flex', flexDirection: 'column' } : {}) }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
+      <div style={collapsed ? { flexShrink: 0 } : undefined}>{before}</div>
+      <div ref={textBox} style={collapsed ? { flex: 1, minHeight: 0, overflow: 'hidden' } : undefined}>
       {/* Set exactly as Read mode's paragraph (Swipe's card: 16.5px, 1.55), and the words are plain
           inline text, so lines and word gaps read the same in both (Roy, 2026-10-25). Each word
           used to be its own inline grid, sized to its bold width so turning bold did not reflow
           the line — which spaced the words unevenly and the lines further apart. The narrated
           word is now emboldened with an outline instead, which leaves its width as it is. */}
-      <p dir="auto" style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
-        {words.map((w, i) => <span key={w.start} ref={i === index ? current : null}>
-          <span data-narrated-word={highlight && i === index ? 'true' : undefined} style={i === index ? {
+      <p ref={paragraph} dir="auto" style={{ ...(collapsed ? { maxHeight: visibleHeight ?? undefined, overflow: 'hidden' } : {}), margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>
+        {words.map((w, i) => <span key={w.start} data-radio-index={i} ref={i === index ? current : null}>
+          <span data-narrated-word={highlight && i === index ? 'true' : undefined} style={highlight && i === index ? {
             color: 'var(--tp-chip, var(--accent))', WebkitTextStroke: '0.04em currentColor',
           } : undefined}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
       </p>
-      {after}
+      </div>
+      <div style={collapsed ? { flexShrink: 0 } : undefined}>{footer}</div>
     </div>
-  </>;
+  );
+  return content;
 }

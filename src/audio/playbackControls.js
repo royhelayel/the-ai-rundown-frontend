@@ -150,7 +150,10 @@ export function createPlaybackControls({
     playbackSpeedRef.current = next;
     setPlaybackSpeed(next);
     // The audio element re-rates in place; the browser voice has to be restarted.
-    if (narrationStateRef.current.audio) narrationStateRef.current.audio.playbackRate = next;
+    if (narrationStateRef.current.audio) {
+      narrationStateRef.current.audio.defaultPlaybackRate = next;
+      narrationStateRef.current.audio.playbackRate = next;
+    }
     else applySpeedToBrowserVoice();
   };
 

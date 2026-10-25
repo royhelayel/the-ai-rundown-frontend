@@ -8,6 +8,7 @@ import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
+import { cleanForTTS } from '../audio/narrationText';
 import RadioTranscript from './RadioTranscript';
 import RecapSourcesSheet from './RecapSourcesSheet';
 import { topicVars } from '../design';
@@ -440,9 +441,9 @@ export default function FullPlayer({
   // reading on into stories the batch has not revealed (Roy, 2026-10-18).
   useEffect(() => {
     if (!narrationLimitRef) return undefined;
-    narrationLimitRef.current = asPage && !allScope && !recapView ? listenLimit : null;
+    narrationLimitRef.current = asPage && !radioOnly && !allScope && !recapView ? listenLimit : null;
     return () => { narrationLimitRef.current = null; };
-  }, [narrationLimitRef, asPage, allScope, recapView, listenLimit]);
+  }, [narrationLimitRef, asPage, radioOnly, allScope, recapView, listenLimit]);
   const remaining   = Math.max(0, total - listenLimit);
   const atBatchEnd  = asPage && remaining > 0 && storyIndex >= listenLimit - 1;
   const isExpanded  = asPage && total > LISTEN_BATCH && revealed > LISTEN_BATCH;
@@ -455,14 +456,14 @@ export default function FullPlayer({
   // The visible dot is 5px but the button around it is not: transparent padding gives each a
   // ~15px tap target, since 5px is well under anything a thumb can hit. That padding is why
   // the row's bottom margin drops from 12 to 6 below — the buttons now carry their own.
-  const dots = (stories || []).slice(0, listenLimit).map((_, i) => {
+  const dots = (stories || []).slice(0, radioOnly ? stories.length : listenLimit).map((_, i) => {
     const current = i === storyIndex;
     const read    = i < storyIndex;
     return (
       <button
         key={i}
         onClick={() => onGoToStory?.(i)}
-        aria-label={`Story ${i + 1} of ${listenLimit}`}
+        aria-label={`Story ${i + 1} of ${radioOnly ? stories.length : listenLimit}`}
         aria-current={current ? 'true' : undefined}
         style={{ border: 'none', background: 'transparent', padding: '5px 3px', cursor: 'pointer',
           display: 'flex', alignItems: 'center', flexShrink: 0 }}
@@ -779,7 +780,7 @@ export default function FullPlayer({
     const weekLabel = recapDate ? `Week ending ${recapDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}` : 'Last week';
     const words = (recapView
       ? (recapText || '')
-      : [headline, ...(story?.tightBullets || story?.allBullets || [])].join(' ')).split(/\s+/).filter(Boolean).length;
+      : storyParagraph(story || {})).split(/\s+/).filter(Boolean).length;
     const totalSec = narrationDuration > 0 && (recapView ? recapPlaying : !recapPlaying)
       ? narrationDuration
       : Math.round((words / 150) * 60 / (playbackSpeed || 1));
@@ -815,11 +816,11 @@ export default function FullPlayer({
       slideDirRef.current = null;
     }
 
-    const pageDots = (stories || []).slice(0, listenLimit).map((_, i) => {
+    const pageDots = (stories || []).slice(0, radioOnly ? stories.length : listenLimit).map((_, i) => {
       const current = i === storyIndex;
       return (
         <button key={i} className="rn-btn" onClick={() => { if (i !== storyIndex) slideTo(i > storyIndex ? 'next' : 'prev', () => onGoToStory?.(i)); }}
-          aria-label={`Story ${i + 1} of ${listenLimit}`} aria-current={current ? 'true' : undefined}
+          aria-label={`Story ${i + 1} of ${radioOnly ? stories.length : listenLimit}`} aria-current={current ? 'true' : undefined}
           style={{ padding: '6px 2.5px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <span ref={el => { dotRefs.current[i] = el; }}
             style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
@@ -876,6 +877,21 @@ export default function FullPlayer({
           </div>
           </div>
         </div>
+      </article>
+    );
+
+    const headlineCard = storyCount === 0 ? storyCard : (
+      <article key={cardKey} ref={cardRef} className="rn-tp" style={{ ...cardFrame, touchAction: 'pan-y' }}>
+        <RadioTranscript key={`${category}|${storyIndex}|${selectedDay}`} text={cleanForTTS(storyParagraph(story))} progress={pct} label="Headline summary"
+          charOffset={narrationCharOffset} active={isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
+          before={<header style={{ marginBottom: 12 }}>
+            <StoryTopRow category={category} onCard read={user ? isStoryRead : undefined} isNew={story?.status === 'New'} />
+            <h1 style={{ ...h1, marginTop: 10 }}>{headline}</h1>
+          </header>}
+          after={<div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SourcesRow sources={outlets} onCard />
+            <span style={{ alignSelf: 'flex-end' }}><StarButton onCard active={!!isInteresting} onClick={onToggleInteresting} /></span>
+          </div>} />
       </article>
     );
 
@@ -938,7 +954,7 @@ export default function FullPlayer({
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
-          {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : storyCard}
+          {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!loading && !recapView && pageDots.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>
           )}
@@ -977,14 +993,14 @@ export default function FullPlayer({
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
-                {navBtn(() => slideTo('prev', onPrev), radioOnly ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? radioQueueCategories.indexOf(category) <= 0 : recapView)}
+                {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
                 <button className="rn-btn" onClick={onPlayButton} aria-label={isPlaying ? 'Pause' : 'Play'}
                   style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
                 </button>
-                {radioOnly ? navBtn(() => slideTo('next', onNext), 'Next category recap', FastForward, !radioQueueCategories.length || radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
+                {radioOnly ? navBtn(() => slideTo('next', onNext), recapView ? 'Next category recap' : 'Next story', FastForward, !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1))) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
                   atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
                   FastForward, recapView || (atBatchEnd && !topicAt(1)))}
               </div>

@@ -2,10 +2,10 @@
 // Called once per render from TheAIRundown with that render's state, exactly as the code
 // ran when it lived inline — everything it hands back is re-created each render.
 import { headlineKey } from '../components/PopularTab';
-import { cleanForTTS, endSentence, CAT_TRANSITION_TEMPLATES, pickRandom } from './narrationText';
+import { cleanForTTS, endSentence, categoryTransition } from './narrationText';
 import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
-import { narrationPlayer, storyChimeUrl } from './narrationPlayer';
+import { narrationPlayer } from './narrationPlayer';
 
 export function createNarrationEngine({
   setSelectedCategory, selectedTime, newsSummary, viewMode, depthLevel, depthLevelRef, storyIndex,
@@ -37,6 +37,7 @@ export function createNarrationEngine({
     st.active = false;
     st.pendingLoad = false;
     st.pendingCategoryName = null;
+    st.pendingSessionOpening = null;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
     snapshotPlayRef.current = null; // resume live news fetching after snapshot playback
@@ -356,8 +357,8 @@ export function createNarrationEngine({
       const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
       if (nextCat && narrationStateRef.current.active) {
         const nextStories = snap.map[nextCat].allStories;
-        snapshotPlayRef.current = { category: nextCat, stories: nextStories, map: snap.map };
-        const transition = pickRandom(CAT_TRANSITION_TEMPLATES)(nextCat);
+        snapshotPlayRef.current = { ...snap, category: nextCat, stories: nextStories };
+        const transition = categoryTransition(nextCat, newsLanguage);
         narrationStateRef.current.pendingCategoryName = transition;
         narrateFnRef.current.prefetchTTS?.(transition);
         setSelectedCategory(nextCat);
@@ -365,6 +366,9 @@ export function createNarrationEngine({
         setStoryIndex(0);
         storyNavRef.current = { idx: 0, stories: nextStories, cats, cat: nextCat };
         setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
+      } else if (snap.headlineProgramme && narrationStateRef.current.active) {
+        const closing = newsLanguage === 'ar' ? 'هذه آخر الأخبار. شكراً لاستماعك إلى راديو نيوز.' : "That's your news for now. Thanks for listening to RadioNews.";
+        narrateFnRef.current.speakText(closing, () => narrateFnRef.current.stop(), { isTransition: true });
       } else {
         narrateFnRef.current.stop();
       }
@@ -375,7 +379,7 @@ export function createNarrationEngine({
     const catIdx = cats.indexOf(cat);
     const nextCat = catIdx >= 0 && catIdx < cats.length - 1 ? cats[catIdx + 1] : null;
     if (nextCat && narrationStateRef.current.active) {
-      const transition = pickRandom(CAT_TRANSITION_TEMPLATES)(nextCat);
+      const transition = categoryTransition(nextCat, newsLanguage);
       narrationStateRef.current.pendingCategoryName = transition;
       // Pre-fetch while new category loads — will be instant by the time stories are ready
       narrateFnRef.current.prefetchTTS?.(transition);
@@ -399,7 +403,6 @@ export function createNarrationEngine({
     currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
     // A recap is not a story: playing one must not tick off whichever story sits at index 0.
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
-    const isAr = newsLanguage === 'ar';
     const isHeadlines = depthLevel === 'headlines' && !story._isBriefing;
     // The story's paragraph, as the card shows it — no headline: the paragraph's first sentence
     // already carries it, and reading both said the news twice (Roy, 2026-10-18). The same
@@ -419,20 +422,9 @@ export function createNarrationEngine({
         }
         const nextIdx = idx + 1;
         if (nextIdx < topicEnd(storyNavRef.current.stories.length)) {
-          // More stories ahead: a soft chime, then the next one — a podcast's sound mark between
-          // items rather than a voice saying "Up next" (Roy, 2026-10-18).
-          if (!isHeadlines) {
-            setupAndPlayAudio({ src: storyChimeUrl(), ended: false }, () => {
-              if (!narrationStateRef.current.active) return;
-              const st = narrationStateRef.current;
-              clearTimeout(st.pendingNarrateTimer);
-              st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, 250);
-            }, { isTransition: true });
-          } else {
-            const st = narrationStateRef.current;
-            clearTimeout(st.pendingNarrateTimer);
-            st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, isHeadlines ? 400 : 600);
-          }
+          const st = narrationStateRef.current;
+          clearTimeout(st.pendingNarrateTimer);
+          st.pendingNarrateTimer = setTimeout(() => { st.pendingNarrateTimer = null; narrateFnRef.current.narrateStory(nextIdx); }, 450);
         } else {
           const st = narrationStateRef.current;
           clearTimeout(st.pendingNarrateTimer);
@@ -441,9 +433,18 @@ export function createNarrationEngine({
       });
     };
 
+    const opening = narrationStateRef.current.pendingSessionOpening;
+    if (opening) {
+      narrationStateRef.current.pendingSessionOpening = null;
+      narrateFnRef.current.speakText(opening, () => {
+        if (narrationStateRef.current.active) playStory();
+      }, { isTransition: true });
+      return;
+    }
+
     // Play category transition first if we just auto-advanced from another category
     const catTransition = narrationStateRef.current.pendingCategoryName;
-    if (idx === 0 && catTransition && !isAr) {
+    if (idx === 0 && catTransition) {
       narrationStateRef.current.pendingCategoryName = null;
       narrateFnRef.current.speakText(catTransition, () => {
         if (!narrationStateRef.current.active) return;

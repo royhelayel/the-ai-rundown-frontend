@@ -31,3 +31,9 @@ export const cleanForTTS = (text) => text
   .replace(/[#*`[\]()]/g, '')                                     // leftover symbols
   .replace(/\s{2,}/g, ' ')
   .trim();
+
+export function categoryTransition(category, language = 'en') {
+  const names = { 'World News': 'world news', UAE: 'the United Arab Emirates', KSA: 'Saudi Arabia', QAT: 'Qatar', LEB: 'Lebanon', AI: 'artificial intelligence', Crypto: 'cryptocurrency' };
+  const arabic = { 'World News': 'أخبار العالم', Technology: 'التكنولوجيا', Business: 'الاقتصاد', Politics: 'السياسة', Sports: 'الرياضة', Entertainment: 'الثقافة', Science: 'العلوم', Health: 'الصحة', UAE: 'الإمارات', KSA: 'السعودية', QAT: 'قطر', LEB: 'لبنان', AI: 'الذكاء الاصطناعي', Crypto: 'العملات الرقمية', Football: 'كرة القدم', Basketball: 'كرة السلة' };
+  return language === 'ar' ? `ننتقل الآن إلى ${arabic[category] || category}.` : `Now, ${names[category] || category.toLowerCase()}.`;
+}

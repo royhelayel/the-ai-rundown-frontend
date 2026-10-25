@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import RadioTranscript, { transcriptWords, wordAtProgress } from './RadioTranscript';
-import { radioSnapshot } from '../data/useRadioRecaps';
+import { radioSnapshot, headlineRadioSnapshot } from '../data/useRadioRecaps';
 
 test('radio queue contains only available recap texts in category order', () => {
   const map = radioSnapshot(['World', 'Tech', 'Health'], { World: { text: 'World briefing.' }, Tech: { text: ' ' }, Health: { text: 'Health briefing.' } }, 'Daily');
@@ -32,4 +32,12 @@ test('scrolls only the transcript when the narrated word leaves its visible area
   screen.getByText('world.').parentElement.getBoundingClientRect = () => ({ top: 330, bottom: 350 });
   rerender(<RadioTranscript text="Hello world." progress={80} charOffset={6} active />);
   expect(box.scrollTo).toHaveBeenCalledWith({ top: 182, behavior: 'smooth' });
+});
+
+test('daily listening uses the same complete summaries and skips empty categories', () => {
+  const story = { headline: 'A headline', summary: 'The verified summary.', storySources: [{ outlet: 'AP', url: 'https://example.com' }] };
+  const map = headlineRadioSnapshot(['Health', 'World'], { Health: { allStories: [] }, World: { allStories: [story, { headline: 'Empty' }] } });
+  expect(Object.keys(map)).toEqual(['World']);
+  expect(map.World.allStories).toEqual([story]);
+  expect(map.World.allStories[0]._isBriefing).toBeUndefined();
 });

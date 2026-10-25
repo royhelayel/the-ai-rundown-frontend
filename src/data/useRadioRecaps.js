@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { storyParagraph } from '../lib/stories';
 import { cleanForTTS } from '../audio/narrationText';
 
 // Read existing recap records only; generation remains owned by the backend.
@@ -17,7 +18,7 @@ export default function useRadioRecaps({ active, categories, period, day, today,
   }, [day, today, period]);
   const key = `${catsKey}|${period}|${end}|${language}`;
   useEffect(() => {
-    if (!active || period === 'Daily') return;
+    if (!active || (period === 'Daily' || period === 'Headlines')) return;
     let canceled = false;
     const controller = new AbortController();
     setRemote({ key, rows: {}, loading: true, error: false });
@@ -32,10 +33,10 @@ export default function useRadioRecaps({ active, categories, period, day, today,
       .catch(() => { if (!canceled) setRemote({ key, rows: {}, loading: false, error: true }); });
     return () => { canceled = true; controller.abort(); };
   }, [active, key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rows = period === 'Daily'
+  const rows = period === 'Headlines' ? {} : period === 'Daily'
     ? Object.fromEntries(categories.map(c => [c, { text: cleanForTTS(briefingData[c]?.briefing || ''), sources: briefingData[c]?.briefingSources, day }]))
     : remote.key === key ? remote.rows : {};
-  return { rows, loading: active && period !== 'Daily' && (remote.key !== key || remote.loading), error: period !== 'Daily' && remote.key === key && remote.error, end };
+  return { rows, loading: active && period !== 'Daily' && period !== 'Headlines' && (remote.key !== key || remote.loading), error: period !== 'Daily' && period !== 'Headlines' && remote.key === key && remote.error, end };
 }
 
 export function radioSnapshot(categories, rows, period) {
@@ -43,4 +44,12 @@ export function radioSnapshot(categories, rows, period) {
     headline: `${c} recap`, summary: rows[c].text.trim(), tightBullets: [rows[c].text.trim()], allBullets: [rows[c].text.trim()],
     storySources: [], _isBriefing: true, _recapPeriod: period,
   }] }]));
+}
+
+// Headline summaries are the daily programme: the same verified text as Read mode.
+export function headlineRadioSnapshot(categories, data) {
+  return Object.fromEntries(categories.flatMap(category => {
+    const allStories = (data[category]?.allStories || []).filter(story => storyParagraph(story).trim());
+    return allStories.length ? [[category, { allStories }]] : [];
+  }));
 }

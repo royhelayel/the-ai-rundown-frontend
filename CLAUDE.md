@@ -94,3 +94,11 @@ The `create*` functions in `src/audio/` are called once per render with that ren
 - My Feed has two states:
   - **Default (expanded):** Challenge cards + Today's Briefing progress card, then stories below.
   - **Scrolled (compact sticky bar):** Collapses to a slim bar showing **Today's Briefing only** — a mini ring (X of 8) + segmented progress bar. No challenge badge pills in the compact state.
+
+## Daily listening programme (2026-10-25)
+
+Listen defaults to `Headlines`: the same complete story summaries as Read, played in topic
+order through a snapshot queue. There is no daily category recap in the public UI. Weekly
+and monthly recaps remain separate editions. Session introductions and category transitions
+are separate clips, never embedded in story summaries; manual mid-topic starts do not get a
+false category transition. Do not impose the browsing batch limit on the programme queue.

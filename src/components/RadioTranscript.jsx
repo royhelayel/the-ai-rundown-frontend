@@ -16,7 +16,7 @@ export function wordAtProgress(words, progress, charOffset = -1) {
 }
 // `after` is shown at the end of the text, inside the scrolling transcript — Stories & sources
 // comes after the recap rather than docked under it (Roy, 2026-10-18).
-export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null }) {
+export default function RadioTranscript({ text, progress, charOffset = -1, active, before = null, after = null, label = 'Recap transcript' }) {
   const words = useMemo(() => transcriptWords(text), [text]);
   const index = active ? wordAtProgress(words, progress, charOffset) : -1;
   const current = useRef(null);
@@ -58,7 +58,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     return () => observer?.disconnect();
   }, [index, follow, active]);
   return <>
-    <div ref={viewport} aria-label="Recap transcript" style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
+    <div ref={viewport} aria-label={label} style={{ overflowY: 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1 }} onWheel={pauseFollow} onTouchMove={pauseFollow}>
       {before}
       {/* Set exactly as Read mode's paragraph (Swipe's card: 16.5px, 1.55), and the words are plain
           inline text, so lines and word gaps read the same in both (Roy, 2026-10-25). Each word

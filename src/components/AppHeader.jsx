@@ -37,7 +37,7 @@ export const LENS_OPTIONS = [
 ];
 
 export const PERIODS = ['Daily', 'Weekly', 'Monthly'];
-const PERIOD_NAMES = { Daily: 'Daily', Weekly: 'Last week', Monthly: 'Last month' };
+const PERIOD_NAMES = { Headlines: 'Headlines', Daily: 'Daily', Weekly: 'Last week', Monthly: 'Last month' };
 
 export default function AppHeader({
   selectedDay, availableDays = [], onSelectDay,
@@ -139,7 +139,7 @@ export default function AppHeader({
               A period with no recap yet is shown but cannot be picked. */}
           {radioOnly ? (
             <div role="group" aria-label="Recap period" style={{ display: 'flex', gap: 22, minWidth: 0 }}>
-              {PERIODS.map(p => (
+              {(radioOnly ? ['Headlines', 'Weekly', 'Monthly'] : PERIODS).map(p => (
                 <React.Fragment key={p}>{tab(PERIOD_NAMES[p], period === p, () => period !== p && onChangePeriod?.(p), periodReady[p] === false)}</React.Fragment>
               ))}
             </div>
@@ -161,7 +161,7 @@ export default function AppHeader({
           )}
           {!radioOnly && recapView && showRecapTab && onChangePeriod && (
             <Dropdown value={period} onChange={onChangePeriod} ariaLabel="Recap period"
-              options={PERIODS.map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />
+              options={(radioOnly ? ['Headlines', 'Weekly', 'Monthly'] : PERIODS).map(p => ({ value: p, label: p, disabled: periodReady[p] === false, note: periodReady[p] === false ? 'not ready' : null }))} />
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import { ONBOARDING_KEY } from './components/OnboardingTour';
@@ -110,7 +110,7 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   expect(screen.queryByRole('menuitemradio', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
 });
 
-test('Radio opens recaps with a complete transcript, and reading mode has no recap toggle', async () => {
+test('Radio opens headline summaries, not a daily digest, and reading mode has no recap toggle', async () => {
   localStorage.setItem(ONBOARDING_KEY, '1');
   window.history.pushState({}, '', '/listen');
   mockCompletedRows = [{ day: '2026-09-20', time_slot: 'Morning' }];
@@ -124,19 +124,30 @@ test('Radio opens recaps with a complete transcript, and reading mode has no rec
       }] : [];
       return Promise.resolve({ ok: true, json: () => Promise.resolve(rows) });
     }
+    if (String(url).startsWith('/api/news') && params.get('mode') === 'one' && ['Weekly', 'Monthly'].includes(params.get('timeSlot'))) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ briefing: 'Verified period recap.', briefing_sources: [] }) });
+    }
     return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
   });
   render(<App />);
   // Radio's header is the period choice: Daily, and the week and month only once they have recaps.
   const periods = await screen.findByRole('group', { name: 'Recap period' });
-  expect(within(periods).getByRole('button', { name: 'Daily' })).toHaveAttribute('aria-pressed', 'true');
-  expect(within(periods).getByRole('button', { name: 'Last week' })).toBeDisabled();
-  expect(within(periods).getByRole('button', { name: 'Last month' })).toBeDisabled();
+  expect(within(periods).getByRole('button', { name: 'Headlines' })).toHaveAttribute('aria-pressed', 'true');
+  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last week' })).toBeEnabled());
+  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last month' })).toBeEnabled());
   expect(screen.queryByText(/Radio · daily recap/)).not.toBeInTheDocument();
-  expect(await screen.findByText('briefing', { exact: true })).toBeInTheDocument();
-  expect(screen.getByText('visible.', { exact: true })).toBeInTheDocument();
+  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
+  expect(screen.queryByText('briefing', { exact: true })).not.toBeInTheDocument();
+  expect(within(periods).queryByRole('button', { name: 'Daily' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'World recap' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Next category recap' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Next story' })).toBeEnabled();
+  userEvent.click(within(periods).getByRole('button', { name: 'Last week' }));
+  expect(await screen.findByText('Verified', { exact: true })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Story 1 of 1' })).not.toBeInTheDocument();
+  userEvent.click(within(periods).getByRole('button', { name: 'Last month' }));
+  await waitFor(() => expect(within(periods).getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true'));
+  userEvent.click(within(periods).getByRole('button', { name: 'Headlines' }));
+  expect(await screen.findByText('reported', { exact: true })).toBeInTheDocument();
   // From Listen, reading is one choice, Read, which opens on Swipe; Scroll is beside it there.
   expect(screen.queryByRole('button', { name: 'Scroll', exact: true })).not.toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Read: Swipe or Scroll' }));

@@ -7,16 +7,16 @@ import Wordmark from './Wordmark';
 export const ONBOARDING_KEY = 'rundown_onboarding_seen';
 
 const SLIDES = [
-  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Category recaps play one after another, keeping you caught up across your news categories.' },
+  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Headline summaries play one after another across your news categories, with natural transitions along the way.' },
   { label: 'Summaries', eyebrow: 'Less repetition. More understanding.', title: 'Different news outlets. One short summary.', body: 'Related coverage from different news outlets, brought together in short summaries. Get the essentials, with links to the original reporting.' },
   { label: 'Read', eyebrow: 'Make your scrolling count.', title: 'Prefer to read?', body: 'The familiar swipe and scroll, with more to take away. Browse short news summaries and leave better informed.' },
-  { label: 'Recaps', eyebrow: 'The bigger picture, in less time.', title: 'Less time? Get daily news recaps instead.', body: 'Read or listen to a short category recap in one go, without going story by story. Catch up on today, last week or last month.' },
+  { label: 'Recaps', eyebrow: 'Step back. See what changed.', title: 'Catch up on last week or last month.', body: 'Listen to a category recap of last week or last month. Revisit the main developments over a longer period, beyond the daily headlines.' },
   { label: 'Categories', eyebrow: 'Your interests. Your news.', title: 'Follow what matters to you.', body: 'Choose your news categories and build your own news mix. Change it whenever your interests change.' },
 ];
 
 function TourPreview({ index }) {
   const [readingMode, setReadingMode] = useState('Swipe');
-  const [period, setPeriod] = useState('Today');
+  const [period, setPeriod] = useState('Last week');
   const [categories, setCategories] = useState(['World', 'Technology']);
   if (index === 0) return <div className="intro-demo intro-listen">
     <Headphones size={32} aria-hidden="true" />
@@ -39,7 +39,7 @@ function TourPreview({ index }) {
     <p>{readingMode === 'Swipe' ? 'Swipe up to move to the next story.' : 'Scroll through summaries and stop on what interests you.'}</p>
   </div>;
   if (index === 3) return <div className="intro-demo">
-    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Today', 'Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
+    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
     <span className="intro-small">WORLD · {period.toUpperCase()}</span>
     <strong>{period === 'Today' ? 'Your daily overview.' : period === 'Last week' ? 'The week in perspective.' : 'The month in perspective.'}</strong>
     <div className="intro-queue"><Headphones size={18} aria-hidden="true" /><span>Listen</span><span aria-hidden="true">·</span><AlignLeft size={18} aria-hidden="true" /><span>Read</span></div>

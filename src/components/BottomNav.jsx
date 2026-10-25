@@ -3,16 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
 import ProgressPill, { AWARDS } from './ProgressPill';
 
-// Listen and Read are the two main modes. Reading layout is chosen in the topic header.
-// Animate the selected segment before switching pages.
-const MODES = ['audio', 'swipe'];
-let lastShownMode = null;
+// Read unfolds into Swipe / Scroll in the same track. Finish the motion before
+// changing routes, so the new page inherits the settled navigation.
+const MODES = ['audio', 'swipe', 'scroll'];
 // The bar you tap moves first and the page changes when it has finished (Roy, 2026-10-18: Read
 // was not smooth). Changing page first meant the motion waited for the new page to be built —
 // nothing moved for the first ~170 ms on a 4x-slowed CPU, and the new bar's first frame was
 // already partway through. Now the motion runs on the bar you touched, with nothing else
 // happening, and the next page's bar is drawn already in its final place.
-const MOTION_MS = 260;
+const MOTION_MS = 340;
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export default function BottomNav({
@@ -40,27 +39,21 @@ export default function BottomNav({
 
   const goSettings = () => navigate('/settings', { state: { from: window.location.pathname } });
 
-  const current = mode === 'audio' ? 'audio' : 'swipe';
-  const [shown, setShown] = useState(() => (MODES.includes(lastShownMode) && !reduceMotion() ? lastShownMode : current));
-  // After the first paint in the old shape, move: the transitions do the sliding and opening.
-  useEffect(() => {
-    lastShownMode = current;
-    if (shown === current) return;
-    const raf = requestAnimationFrame(() => setShown(current));
-    return () => cancelAnimationFrame(raf);
-  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+  const current = MODES.includes(mode) ? mode : 'scroll';
+  const [shown, setShown] = useState(current);
+  useEffect(() => { setShown(current); }, [current]);
+  const open = shown !== 'audio';               // Read shown as Swipe | Scroll
   const goTimer = useRef(null);
   useEffect(() => () => clearTimeout(goTimer.current), []);
   const go = (value) => {
     if (value === current) return;
     if (reduceMotion()) { onChangeMode?.(value); return; }
-    lastShownMode = value;
     setShown(value);
     clearTimeout(goTimer.current);
     goTimer.current = setTimeout(() => onChangeMode?.(value), MOTION_MS);
   };
   const motion = reduceMotion() ? 'none' : null;
-  const ease = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
+  const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
   // Both ends are the same 44px circle in the modes' own grey, so they read as buttons and as
   // a pair, with the modes centred between them (Roy, 2026-10-17). The challenge's progress is
@@ -85,6 +78,12 @@ export default function BottomNav({
       </button>
     );
   };
+  // Swipe and Scroll are there only while Read is open; folded, they cannot be reached.
+  const inside = (label, value) => seg(label, value, {
+    props: { tabIndex: open ? 0 : -1, 'aria-hidden': open ? undefined : true },
+    style: { transform: open ? 'translateY(0)' : 'translateY(4px)', transition: motion || 'opacity .18s ease, transform .24s ease, color .2s ease', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transitionDelay: open ? '0.08s' : '0s' },
+  });
+
   // Today's progress as a ring, with the count inside it.
   const R = 20.75, C = 2 * Math.PI * R;
   const ring = (
@@ -114,13 +113,30 @@ export default function BottomNav({
           </button>
           <div role="group" aria-label="How you take in the news"
             style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
+            {/* The highlight: one segment of the track — a half while Read is folded, a third while it
+                is open — less the padding and gaps, moved a whole segment (its own width plus a
+                gap) per step. */}
             <span aria-hidden style={{ position: 'absolute', top: 3, bottom: 3, left: 3, borderRadius: 10,
-              width: 'calc((100% - 8px) / 2)',
+              width: open ? 'calc((100% - 10px) / 3)' : 'calc((100% - 8px) / 2)',
               background: 'var(--raised)', boxShadow: 'var(--raised-shadow)',
               transform: `translateX(calc(${MODES.indexOf(shown)} * (100% + 2px)))`,
-              transition: motion || `transform 0.3s ${ease}, width 0.3s ${ease}` }} />
+              transition: motion || `transform 0.34s ${ease}, width 0.34s ${ease}` }} />
             {seg('Listen', 'audio')}
-            {seg('Read', 'swipe')}
+            {/* Read: one segment folded, two open. It widens as Swipe and Scroll fade in. */}
+            <div style={{ position: 'relative', flex: `${open ? 2 : 1} 1 0`, minWidth: 0, display: 'flex', gap: 2,
+              transition: motion || `flex-grow 0.34s ${ease}` }}>
+              {inside('Swipe', 'swipe')}
+              {inside('Scroll', 'scroll')}
+              <button className="rn-btn" aria-label="Read: Swipe or Scroll" aria-expanded={open}
+                tabIndex={open ? -1 : 0} aria-hidden={open ? true : undefined}
+                onClick={() => go('swipe')}
+                style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--sub)',
+                  opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto',
+                  transition: motion || 'opacity 0.15s ease' }}>
+                Read
+              </button>
+            </div>
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'

@@ -56,7 +56,6 @@ export default function AppHeader({
   // The control on the right of the tabs
   lens = 'latest', onChangeLens,
   period = 'Daily', onChangePeriod, periodReady = {},
-  readMode, onChangeReadMode,
   gutter = 20,
 }) {
   const stripRef = useRef(null);
@@ -109,7 +108,7 @@ export default function AppHeader({
       </div>
 
       {/* ── Topics ── */}
-      {(categories.length > 0 || showAllPill || onEditCategories || onChangeReadMode) && (
+      {(categories.length > 0 || showAllPill || onEditCategories) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 48, paddingLeft: onEditCategories && !showAllPill ? gutter - 10 : gutter }}>
           {onEditCategories && !showAllPill && (
             <button className="rn-btn" aria-label="Choose your topics" title="Choose your topics"
@@ -127,11 +126,7 @@ export default function AppHeader({
                 on ? activeRef : null, on ? { ...topicVars(cat), background: 'var(--tp-chip)' } : {}, on ? 'rn-tp' : '');
             })}
           </div>
-          {onChangeReadMode && <div style={{ flexShrink: 0, paddingRight: gutter }}>
-            <Dropdown value={readMode} label="Swipe or scroll" ariaLabel="Swipe or scroll" width={150}
-              options={[{ value: 'swipe', label: 'Swipe' }, { value: 'scroll', label: 'Scroll' }]}
-              onChange={onChangeReadMode} buttonStyle={{ background: 'transparent', border: 0, fontSize: 12, color: 'var(--sub)', minHeight: 44, padding: '0 2px' }} />
-          </div>}
+
         </div>
       )}
 

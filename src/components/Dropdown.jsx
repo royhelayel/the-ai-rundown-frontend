@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import './Dropdown.css';
 
 /**
  * Dropdown — a plain menu under a quiet text button ("Latest ▾", "Daily ▾", the day).
@@ -7,13 +8,29 @@ import { ChevronDown, Check } from 'lucide-react';
  */
 export default function Dropdown({ value, options, onChange, label, icon = null, align = 'right', width = 180, ariaLabel, title, buttonStyle }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const closeTimer = useRef(null);
+  const trigger = useRef(null);
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+  const close = () => {
+    setOpen(false);
+    clearTimeout(closeTimer.current);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) setMounted(false);
+    else closeTimer.current = setTimeout(() => setMounted(false), 150);
+  };
+  const toggle = () => {
+    if (open) { close(); return; }
+    clearTimeout(closeTimer.current);
+    setMounted(true);
+    setOpen(true);
+  };
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
     // Capture phase, and stopped there: the tap that closes the menu must not also land on
     // the story card underneath it.
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) { e.stopPropagation(); setOpen(false); }
+      if (ref.current && !ref.current.contains(e.target)) { e.stopPropagation(); close(); }
     };
     document.addEventListener('click', handler, true);
     return () => document.removeEventListener('click', handler, true);
@@ -21,21 +38,21 @@ export default function Dropdown({ value, options, onChange, label, icon = null,
 
   const current = options.find(o => o.value === value);
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button className="rn-btn" aria-haspopup="menu" aria-expanded={open} aria-label={ariaLabel} title={title}
-        onClick={() => setOpen(o => !o)}
+    <div ref={ref} onKeyDown={e => { if (e.key === 'Escape' && open) { e.preventDefault(); close(); trigger.current?.focus(); } }} style={{ position: 'relative', flexShrink: 0 }}>
+      <button ref={trigger} className="rn-btn" aria-haspopup="menu" aria-expanded={open} aria-label={ariaLabel} title={title}
+        onClick={toggle}
         style={{ display: 'flex', alignItems: 'center', gap: 5, minHeight: 44, fontSize: 13, fontWeight: 600, color: 'var(--sub)', ...buttonStyle }}>
-        {icon}{label ?? current?.label}<ChevronDown size={14} strokeWidth={2.2} />
+        {icon}{label ?? current?.label}<ChevronDown className="rn-dropdown-chevron" data-open={open} size={14} strokeWidth={2.2} />
       </button>
-      {open && (
-        <div role="menu" style={{ position: 'absolute', top: 'calc(100% - 2px)', [align]: 0, zIndex: 60, width,
+      {mounted && (
+        <div role="menu" className="rn-dropdown-menu" data-open={open} aria-hidden={!open || undefined} style={{ pointerEvents: open ? 'auto' : 'none', transformOrigin: `top ${align}`, position: 'absolute', top: 'calc(100% - 2px)', [align]: 0, zIndex: 60, width,
           background: 'var(--menu-bg)', border: '1px solid var(--line)', borderRadius: 14,
           boxShadow: 'var(--menu-shadow)', padding: '6px 0', color: 'var(--ink)' }}>
           {options.map(o => {
             const on = o.value === value;
             return (
-              <button key={o.value} className="rn-btn" role="menuitemradio" aria-checked={on} disabled={o.disabled}
-                onClick={() => { setOpen(false); if (!on) onChange?.(o.value); }}
+              <button key={o.value} className="rn-btn rn-dropdown-option" role="menuitemradio" tabIndex={open ? 0 : -1} aria-checked={on} disabled={o.disabled}
+                onClick={() => { close(); if (!on) onChange?.(o.value); }}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
                   minHeight: 44, padding: '0 14px', fontSize: 14, textAlign: 'left',
                   fontWeight: on ? 650 : 500, opacity: o.disabled ? 0.45 : 1, cursor: o.disabled ? 'default' : 'pointer' }}>

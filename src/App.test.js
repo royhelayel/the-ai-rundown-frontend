@@ -166,6 +166,8 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   userEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
   expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Player' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
   userEvent.click(screen.getByRole('button', { name: 'World', exact: true }));
   expect(await screen.findByText('weekly', { exact: true })).toBeInTheDocument();
   await chooseSummary('Last week', 'Last month');

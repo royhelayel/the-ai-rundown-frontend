@@ -964,7 +964,7 @@ export default function FullPlayer({
 
           {/* The player: speed and repeat ride the progress line, the three buttons you press
               most sit under it, and Play is the one coloured thing on the screen. */}
-          {!readOnly && !loading && (canPlay || isNarrating) && (
+          {!readOnly && !loading && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                 <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
@@ -995,8 +995,9 @@ export default function FullPlayer({
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
                 {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
-                <button className="rn-btn" onClick={onPlayButton} aria-label={isPlaying ? 'Pause' : 'Play'}
-                  style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <button className="rn-btn" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
+                  title={!canPlay ? 'Audio is available when this recap is ready' : undefined}
+                  style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}

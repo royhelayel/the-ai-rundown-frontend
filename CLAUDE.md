@@ -98,7 +98,8 @@ The `create*` functions in `src/audio/` are called once per render with that ren
 ## Daily listening programme (2026-10-25)
 
 Listen defaults to `Headlines`: the same complete story summaries as Read, played in topic
-order through a snapshot queue. The shared summary selector offers Headlines, Daily recap, Last week and Last month in both
+order through a snapshot queue. The shared summary selector is a compact, horizontally scrollable text strip with a
+topic-colored selected underline. It offers Headlines, Daily recap, Last week and Last month in both
 Listen and Read. Read recaps use /recaps with continuous text and a two-choice Listen/Read
 bar; Headlines retain Swipe/Scroll. Latest/Popular/Interesting is a dropdown for Headlines
 only. Daily recaps are generated and checked separately in the backend. Session introductions and category transitions

@@ -130,10 +130,10 @@ const installSummaryFixtures = () => {
   });
 };
 const chooseSummary = async (currentLabel, nextLabel) => {
-  userEvent.click(await screen.findByRole('button', { name: `Summary type: ${currentLabel}` }));
-  const sheet = await screen.findByRole('dialog', { name: 'Choose your summary' });
-  userEvent.click(within(sheet).getByRole('radio', { name: new RegExp(`^${nextLabel}`) }));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose your summary' })).not.toBeInTheDocument());
+  const strip = await screen.findByRole('group', { name: 'Summary type' });
+  expect(within(strip).getByRole('button', { name: currentLabel, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  userEvent.click(within(strip).getByRole('button', { name: nextLabel, exact: true }));
+  await waitFor(() => expect(within(screen.getByRole('group', { name: 'Summary type' })).getByRole('button', { name: nextLabel, exact: true })).toHaveAttribute('aria-pressed', 'true'));
 };
 
 test('summary choice is independent of Listen/Read, retains topic, and includes daily and period recaps', async () => {
@@ -179,7 +179,7 @@ test('Read headlines exposes summary choices and restores its previous reading r
   localStorage.setItem('rundown_read_mode', 'scroll');
   installSummaryFixtures();
   renderForReturningGuest();
-  expect(await screen.findByRole('button', { name: 'Summary type: Headlines' })).toBeInTheDocument();
+  expect(await screen.findByRole('group', { name: 'Summary type' })).toBeInTheDocument();
   await chooseSummary('Headlines', 'Daily recap');
   expect(await screen.findByText('daily', { exact: true })).toBeInTheDocument();
   await chooseSummary('Daily recap', 'Headlines');

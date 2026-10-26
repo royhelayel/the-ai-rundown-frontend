@@ -130,3 +130,14 @@ test('a native audio interruption pauses the interface and flushes saved progres
   expect(h.programme.flush).toHaveBeenCalled();
   narrationPlayer.mockReturnValue(null);
 });
+
+test('pausing during an audio load prevents a late recording from starting itself',()=>{
+ const audio={src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};narrationPlayer.mockReturnValue(audio);
+ const h=harness();h.cache.current.set('Recap.',{src:'https://example.com/recap.mp3'});h.state.paused=true;
+ h.realSpeak('Recap.',jest.fn());expect(audio.play).not.toHaveBeenCalled();h.fn.resume();expect(audio.play).toHaveBeenCalledTimes(1);
+ narrationPlayer.mockReturnValue(null);
+});
+test('pausing between clips holds the next story until the user resumes',()=>{
+ const h=harness();h.state.paused=true;h.fn.narrateStory(1);expect(h.speak).not.toHaveBeenCalled();
+ h.fn.resume();expect(h.speak.mock.calls[0][0]).toBe('Verified summary 2.');
+});

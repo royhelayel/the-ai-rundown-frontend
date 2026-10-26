@@ -41,6 +41,7 @@ export function createNarrationEngine({
     st.pendingSessionOpening = null;
     st.pendingResumeFraction = null;
     st.pendingResumeMessage = null;
+    st.pendingResumeAction = null;
     st.browserSeek = null;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
@@ -69,7 +70,9 @@ export function createNarrationEngine({
     if (!st.active || !st.paused) return;
     st.paused = false;
     setIsPaused(false);
-    if (st.browserSeek) {
+    if (st.pendingResumeAction) {
+      const next = st.pendingResumeAction; st.pendingResumeAction = null; next();
+    } else if (st.browserSeek) {
       const { text, offset, onDone } = st.browserSeek;
       st.browserSeek = null;
       window.speechSynthesis?.resume();
@@ -164,6 +167,10 @@ export function createNarrationEngine({
 
     const doSpeak = (voices) => {
       if (!narrationStateRef.current.active) return;
+      if (narrationStateRef.current.paused) {
+        narrationStateRef.current.browserSeek = { text: whole, offset, onDone };
+        setIsAudioLoading(false); return;
+      }
       const utter = new SpeechSynthesisUtterance(text.trim());
       const utterGen = narrationGenRef.current;
       let hasBoundary = false;
@@ -286,7 +293,7 @@ export function createNarrationEngine({
       audio.playbackRate = playbackSpeedRef.current;
     };
     applySpeed();
-    audio.onplaying = () => { applySpeed(); setIsAudioLoading(false); };
+    audio.onplaying = () => { applySpeed(); setIsAudioLoading(false); if (narrationStateRef.current.paused) audio.pause(); };
     audio.onwaiting = () => { if (narrationStateRef.current.active && !narrationStateRef.current.paused) setIsAudioLoading(true); };
     audio.onpause = () => {
       const st = narrationStateRef.current;
@@ -354,6 +361,7 @@ export function createNarrationEngine({
       narrateFnRef.current.stop();
     };
     if (audio.readyState >= 1) restorePosition();
+    if (narrationStateRef.current.paused) { setIsAudioLoading(false); return; }
     audio.play()
       .then(() => { setIsAudioLoading(false); })
       .catch(() => { setIsAudioLoading(false); if (!narrationStateRef.current.canceling && capturedGen === narrationGenRef.current) { programmeRef?.current?.fail?.(); narrateFnRef.current.stop(); } });
@@ -473,6 +481,10 @@ export function createNarrationEngine({
 
   const narrateStoryFrom = (idx) => {
     if (!narrationStateRef.current.active) return;
+    if (narrationStateRef.current.paused) {
+      narrationStateRef.current.pendingResumeAction = () => narrateFnRef.current.narrateStory(idx);
+      return;
+    }
     const { stories } = storyNavRef.current;
     if (idx >= topicEnd(stories.length)) {
       if (repeatModeRef.current) { setStoryIndex(0); narrateFnRef.current.narrateStory(0); return; }

@@ -793,7 +793,7 @@ export default function FullPlayer({
     const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
     const isPlaying = playingThis && isNarrating && !isPaused;
     const onPlayButton = () => {
-      if (isLoading && playingThis) return;
+      if (isLoading && playingThis) { if (isPaused) onResume?.(); else if (isNarrating) onPause?.(); return; }
       if (recapView && !recapPlaying) { onPlayRecapPeriod?.(recapPeriod); return; }
       if (!recapView && recapPlaying) { onPlay?.(); return; }
       if (isPaused) onResume?.(); else if (isNarrating) onPause?.(); else onPlay?.();

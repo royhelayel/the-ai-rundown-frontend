@@ -871,7 +871,7 @@ export default function FullPlayer({
                   if (atBatchEnd) setRevealed(total);
                   else { setRevealed(LISTEN_BATCH); if (storyIndex > LISTEN_BATCH - 1) onGoToStory?.(LISTEN_BATCH - 1); }
                 }}>
-                {atBatchEnd ? `View ${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'View less'}
+                {atBatchEnd ? `${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'less'}
               </NextLink>
             )}
             <span style={{ marginLeft: 'auto' }}>
@@ -939,7 +939,7 @@ export default function FullPlayer({
     );
 
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div data-mode-surface={readOnly ? 'scroll' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}

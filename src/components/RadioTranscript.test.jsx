@@ -70,19 +70,28 @@ test('compact audio keeps actions visible and expands when narration reaches the
   const footer = ({ moreButton }) => <>{moreButton}<button>Sources</button><button>Interesting</button></>;
   const { rerender } = render(<RadioTranscript compact text="One two three four." progress={0} active={false} after={footer} />);
   expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'true');
-  expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'more' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Sources' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Interesting' })).toBeInTheDocument();
   rerender(<RadioTranscript compact text="One two three four." progress={0} charOffset={0} active after={footer} />);
   expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'true');
   rerender(<RadioTranscript compact text="One two three four." progress={60} charOffset={8} active after={footer} />);
   expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
-  expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'more' })).not.toBeInTheDocument();
 });
 test('More expands the text without starting playback', () => {
   mockCroppedGeometry();
   render(<RadioTranscript compact text="One two three four." progress={0} active={false} />);
-  expect(screen.getByRole('button', { name: 'More' }).closest('p')).not.toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'More' }));
+  expect(screen.getByRole('button', { name: 'more' }).closest('p')).not.toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'more' }));
   expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
+});
+
+test('less restores the compact excerpt and respects a manual collapse during narration', () => {
+  mockCroppedGeometry();
+  render(<RadioTranscript compact text="One two three four." progress={80} charOffset={8} active />);
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'false');
+  fireEvent.click(screen.getByRole('button', { name: 'less' }));
+  expect(screen.getByLabelText('Recap transcript')).toHaveAttribute('data-collapsed', 'true');
+  expect(screen.getByRole('button', { name: 'more' })).toBeInTheDocument();
 });

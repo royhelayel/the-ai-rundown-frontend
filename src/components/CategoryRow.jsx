@@ -188,7 +188,7 @@ export default function CategoryRow({ cat, catData, onOpen, onPlay, onPlayStory,
                 onMouseEnter={e => e.currentTarget.style.background = `${color}08`}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                View less <ChevronUp size={14} />
+                less <ChevronUp size={14} />
               </div>
             ) : (
               <div

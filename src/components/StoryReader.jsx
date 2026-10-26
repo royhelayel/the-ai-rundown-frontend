@@ -1,3 +1,4 @@
+import ExpandableSummary from './ExpandableSummary';
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Star, ChevronDown, Newspaper, X } from 'lucide-react';
@@ -681,7 +682,7 @@ export default function StoryReader({
   const batchLink = (atBatchEnd || showCollapse) && !summaryOpen ? (
     <NextLink dir={atBatchEnd ? 'down' : 'up'} onClick={(e) => { e.stopPropagation(); toggleBatch(); }}
       style={{ padding: 0, minHeight: 32, color: 'var(--card-sub)' }}>
-      {atBatchEnd ? `View ${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'View less'}
+      {atBatchEnd ? `${remaining} more ${remaining === 1 ? 'story' : 'stories'}` : 'less'}
     </NextLink>
   ) : null;
   const storyBody = (entry, read, { here = false } = {}) => {
@@ -697,7 +698,7 @@ export default function StoryReader({
             <StoryTopRow category={entry.category} onCard read={user ? read : undefined} isNew={entry.story.status === 'New'} />
             <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 }}>{entry.story.headline}</h1>
             {paragraph && (
-              <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.55, color: 'var(--card-body)' }}>{paragraph}</p>
+              <ExpandableSummary key={`${entry.category}|${entry.index}|${entry.story.headline}`} text={paragraph} onCard />
             )}
             <div style={{ marginTop: 'auto' }}>
               <SourcesRow sources={outs} onCard bleed={20} />

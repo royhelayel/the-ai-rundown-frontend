@@ -511,8 +511,8 @@ function buildSections({
                       repeats once per section down a single scrolling page, so without the
                       name every one of them reads identically. */}
                   {isExpanded
-                    ? `View less ${CATEGORY_SHORT[cat] || cat} stories`
-                    : `View ${stories.length - shownStories.length} more ${CATEGORY_SHORT[cat] || cat} ${stories.length - shownStories.length === 1 ? 'story' : 'stories'}`}
+                    ? `less ${CATEGORY_SHORT[cat] || cat} stories`
+                    : `${stories.length - shownStories.length} more ${CATEGORY_SHORT[cat] || cat} ${stories.length - shownStories.length === 1 ? 'story' : 'stories'}`}
                 </NextLink>
               )}
             </div>

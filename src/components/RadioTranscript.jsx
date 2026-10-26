@@ -22,6 +22,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
   const [visibleHeight, setVisibleHeight] = useState(null);
   const [visibleWords, setVisibleWords] = useState(null);
   const moreInline = useRef(null);
+  const manualCollapse = useRef(false);
   const textBox = useRef(null);
   const paragraph = useRef(null);
   const firstHidden = useRef(-1);
@@ -62,7 +63,7 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     return () => observer?.disconnect();
   }, [collapsed, text, cropped]);
   useLayoutEffect(() => {
-    if (collapsed && active && cropped && firstHidden.current >= 0 && index >= firstHidden.current) setExpanded(true);
+    if (collapsed && !manualCollapse.current && active && cropped && firstHidden.current >= 0 && index >= firstHidden.current) setExpanded(true);
   }, [collapsed, active, cropped, index]);
   const pauseFollow = () => {
     scrollTarget.current = null;
@@ -96,8 +97,8 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
     if (viewport.current) observer?.observe(viewport.current);
     return () => observer?.disconnect();
   }, [index, follow, active, collapsed]);
-  const moreButton = collapsed && cropped ? <span ref={moreInline} style={{ whiteSpace: 'nowrap' }}> … <button className="rn-btn" onClick={() => setExpanded(true)} aria-expanded="false"
-    style={{ fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 650, color: 'var(--card-ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>More</button></span> : null;
+  const moreButton = collapsed && cropped ? <span ref={moreInline} style={{ whiteSpace: 'nowrap' }}> … <button className="rn-btn" onClick={() => { manualCollapse.current = false; setExpanded(true); }} aria-expanded="false"
+    style={{ fontSize: 14, lineHeight: 'inherit', fontWeight: 500, color: 'var(--card-sub)' }}>more</button></span> : null;
   const footer = typeof after === 'function' ? after({ moreButton: null }) : after;
   const content = (
     <div ref={viewport} aria-label={label} data-collapsed={collapsed} style={{ overflowY: collapsed ? 'hidden' : 'auto', overscrollBehavior: 'contain', minHeight: 0, flex: 1,
@@ -119,6 +120,9 @@ export default function RadioTranscript({ text, progress, charOffset = -1, activ
           } : undefined}>{w.text}</span>
         </span>).reduce((out, word, i) => { if (i) out.push(' '); out.push(word); return out; }, [])}
         {moreButton}
+        {compact && expanded && cropped && <> <button className="rn-btn" aria-expanded="true"
+          onClick={() => { manualCollapse.current = true; viewport.current?.scrollTo?.({ top: 0, behavior: 'instant' }); setExpanded(false); }}
+          style={{ fontSize: 14, fontWeight: 500, color: 'var(--card-sub)' }}>less</button></>}
       </p>
       </div>
       <div style={collapsed ? { flexShrink: 0 } : undefined}>{footer}</div>

@@ -37,7 +37,7 @@ export default function SwipeReaderPage({
     return cats.includes(catFromUrl) ? cats : allCategories;
   })();
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>
+    <div data-mode-surface={isStoriesPage ? 'swipe' : undefined} style={{ position: 'fixed', inset: 0, zIndex: 160, pointerEvents: 'auto' }}>
       {/* Backdrop — dims behind sheet; fades out on exit. Not shown when opened as a full page. */}
       {!isStoriesPage && (
         <div

@@ -39,6 +39,7 @@ import { createPlaybackControls } from './audio/playbackControls';
 import { createPlayActions } from './audio/playActions';
 import useHeartbeat from './data/useHeartbeat';
 import usePlaybackWakeLock from './hooks/usePlaybackWakeLock';
+import useModePageMotion from './hooks/useModePageMotion';
 import useSavesFeeds from './data/useSavesFeeds';
 import useCompletedSlots from './data/useCompletedSlots';
 import useBriefingData from './data/useBriefingData';
@@ -1895,6 +1896,9 @@ const TheAIRundown = () => {
       ? (briefingLoading && !briefingData[catFromUrl])
       : newsLoading;
 
+  const readingMode = isListenPath ? 'audio' : isStoriesPage ? 'swipe' : (isReadRecap || isLatestHome || isMyFeedPath || isPopularPath || isImportantPath) ? 'scroll' : null;
+  useModePageMotion(readingMode);
+
   return (
     <div style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh' }}>
       <GlobalStyles />
@@ -1938,7 +1942,7 @@ const TheAIRundown = () => {
 
       {/* ── Main Content (URL-routed) ── */}
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <div className="main-content-offset">
+      <div className="main-content-offset" data-mode-surface={readingMode === 'scroll' && !isReadRecap ? 'scroll' : undefined}>
       {(isLatestHome || showHomeBg) && !isSummariesPage && (
         <BriefingFeed
           onEditCategories={openCategoryPicker}

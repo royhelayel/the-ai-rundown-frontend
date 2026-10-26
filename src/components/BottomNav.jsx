@@ -28,12 +28,12 @@ export default function BottomNav({
 
   const todayCount = challengeStats?.todayCount || 0;
   const dailyGoal  = challengeStats?.dailyGoal  || 10;
-  const frac = Math.min(1, dailyGoal ? todayCount / dailyGoal : 0);
+  const frac = Math.max(challengeStats?.todayAudioComplete ? 1 : 0, Math.min(1, dailyGoal ? todayCount / dailyGoal : 0));
   // Past the goal the goal stops mattering: "11", not "11/10" (Roy, 2026-10-17) — the same as
   // the challenge sheet's own ring.
   const exceeded = todayCount > dailyGoal;
   const earnedBadge = user ? [...AWARDS].reverse().find(award => award.check({
-    todayCount, dailyGoal, streakDays: challengeStats?.streakDays || 0,
+    todayCount, dailyGoal, todayAudioComplete: challengeStats?.todayAudioComplete, streakDays: challengeStats?.streakDays || 0,
     weeklyDays: challengeStats?.weeklyDays || 0, weeklyGoal: challengeStats?.weeklyGoal || 6,
   })) : null;
   const BadgeIcon = earnedBadge?.id === 'savvy' ? Star : earnedBadge?.id === 'sharp' ? Zap : Lightbulb;
@@ -95,7 +95,7 @@ export default function BottomNav({
         </svg>
       )}
       <span style={{ position: 'relative', fontSize: exceeded ? 13 : 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-        {exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
+        {challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
       </span>
     </>
   );
@@ -142,7 +142,7 @@ export default function BottomNav({
           </div>
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
-              : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
+              : challengeStats?.todayAudioComplete ? 'Challenge: listening mix completed' : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
             style={end}>
             {user ? ring : <Flame size={20} strokeWidth={1.8} />}
             {earnedBadge && <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2,

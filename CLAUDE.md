@@ -97,11 +97,26 @@ The `create*` functions in `src/audio/` are called once per render with that ren
 
 ## Daily listening programme (2026-10-25)
 
-Listen defaults to `Headlines`: the same complete story summaries as Read, played in topic
-order through a snapshot queue. The shared summary selector is a compact, horizontally scrollable text strip with a
+Listen defaults to `Daily` for first-time listeners and remembers the summary choice for returning users.
+Headlines retain the same complete story summaries as Read, played in topic order through a snapshot queue. The shared summary selector is a compact, horizontally scrollable text strip with a
 topic-colored selected underline. It offers Headlines, Daily recap, Last week and Last month in both
 Listen and Read. Read recaps use /recaps with continuous text and a two-choice Listen/Read
 bar; Headlines retain Swipe/Scroll. Latest/Popular/Interesting is a dropdown for Headlines
 only. Daily recaps are generated and checked separately in the backend. Session introductions and category transitions
 are separate clips, never embedded in story summaries; manual mid-topic starts do not get a
 false category transition. Do not impose the browsing batch limit on the programme queue.
+
+## Audio programme progress (2026-10-27)
+
+`useAudioProgramme` persists edition/topic/content-signature position, unique played intervals and speed.
+`HTMLMediaElement.played` supplies recorded-audio coverage; seek position alone never earns credit.
+Browser speech uses delivered word boundaries (or completion of the actual utterance). A recap is
+completed at **70% unique coverage**. Replays union intervals rather than adding duplicate time.
+A Daily mix qualifies when all its available topics meet that threshold. Listening is stored separately
+from headline reads and can satisfy a day in the six-day weekly challenge. Missing topics are disclosed.
+Guest progress stays on the device. Signed-in progress syncs to the backend `/api/audio-progress`
+using the verified Supabase session. Account scopes stay separate. `Continue listening` restores the
+saved edition, topic, speed and position; changed recap text starts from the beginning with a message.
+Media Session maps native play/pause/next/previous/seek where supported; external pauses update the UI.
+Programme openings include the selected edition date. Sound-mark comparisons are review artifacts;
+no background music or new default sound mark has been enabled.

@@ -40,3 +40,11 @@ describe('computeChallengeStats', () => {
     expect(computeChallengeStats(history, 10, '2026-09-24').todayCount).toBe(1);
   });
 });
+
+test('a completed listening mix contributes to the weekly habit without fabricating story reads', () => {
+  const stats = computeChallengeStats([], 10, '2026-10-26', ['2026-10-26']);
+  expect(stats.todayCount).toBe(0);
+  expect(stats.todayAudioComplete).toBe(true);
+  expect(stats.weeklyDays).toBe(1);
+  expect(stats.weekGrid.find(d=>d.key==='2026-10-26').met).toBe(true);
+});

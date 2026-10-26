@@ -9,7 +9,7 @@ export const AWARDS = [
     subtitle: "Today's challenge achieved",
     color:    '#a5b4fc',                                        // pale (lightest tier)
     glow:     'rgba(165,180,252,0.35)',
-    check:    (s) => s.todayCount >= s.dailyGoal,
+    check:    (s) => s.todayAudioComplete || s.todayCount >= s.dailyGoal,
   },
   {
     id:       'sharp',
@@ -343,6 +343,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
 
   const {
     todayCount = 0,
+    todayAudioComplete = false,
     dailyGoal  = 10,
     streakDays = 0,
     weeklyDays = 0,
@@ -350,7 +351,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
     weekGrid   = [],
   } = challengeStats || {};
 
-  const stats = { todayCount, dailyGoal, streakDays, weeklyDays, weeklyGoal };
+  const stats = { todayAudioComplete, todayCount, dailyGoal, streakDays, weeklyDays, weeklyGoal };
   const topAward = getHighestAward(stats);
 
   // Detect when a new (higher) award is earned and fire the toast once per session
@@ -384,9 +385,9 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
   // two always agree. All seven days show, read or not, so the week reads as a fixed frame
   // rather than shrinking and growing as content is generated through the week.
   const weekDays = weekGrid
-    .map(d => ({ key: d.key, letter: d.day, count: d.count, met: d.met, isToday: d.isToday }));
+    .map(d => ({ key: d.key, letter: d.day, count: d.count, met: d.met, audioComplete: d.audioComplete, isToday: d.isToday }));
 
-  const todayDone  = todayCount >= dailyGoal;
+  const todayDone  = todayAudioComplete || todayCount >= dailyGoal;
   const streakDone = streakDays >= 3;
   const weekDone   = weeklyDays >= weeklyGoal;
 
@@ -425,7 +426,7 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section aria-label="Informed challenge" style={panelStyle}>
-            <ChallengeRow pct={todayPct} count={todayCount} total={dailyGoal} caption="stories today" awardTitle="Informed" awardColor="var(--accent)" awardId="informed" earned={todayDone} description={`Read ${dailyGoal} stories today`} />
+            <ChallengeRow pct={todayAudioComplete ? 1 : todayPct} count={todayAudioComplete ? 1 : todayCount} total={todayAudioComplete ? 1 : dailyGoal} caption={todayAudioComplete ? "listening mix completed" : "stories today"} awardTitle="Informed" awardColor="var(--accent)" awardId="informed" earned={todayDone} description={`Complete your listening mix or read ${dailyGoal} stories today`} />
           </section>
           <section aria-label="Sharp challenge" style={panelStyle}>
             <ChallengeRow pct={streakPct} count={streakDays} total={3} caption="day streak" awardTitle="Sharp" awardColor="var(--accent)" awardId="sharp" earned={streakDone} description="Reach your daily goal 3 days in a row" />
@@ -433,14 +434,14 @@ export default function ProgressPill({ challengeStats, user, onShowAuth, style =
           <section aria-label="Savvy weekly challenge" style={panelStyle}>
             <ChallengeRow pct={weekPct} count={weeklyDays} total={weeklyGoal} caption="days this week" awardTitle="Savvy" awardColor="var(--accent)" awardId="savvy" earned={weekDone} description={`Reach your daily goal on ${weeklyGoal} days this week`} />
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, margin: '20px 0 14px', color: 'var(--sub)', fontSize: '0.72rem' }}>
-              <span>{weeklyDays} of {weeklyGoal} days complete</span><span>{dailyGoal} stories / day</span>
+              <span>{weeklyDays} of {weeklyGoal} days complete</span><span>Daily mix or {dailyGoal} stories</span>
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {weekDays.map(d => {
                 const R = 14, C = 2 * Math.PI * R;
-                const pct = Math.min(1, d.count / Math.max(1, dailyGoal));
+                const pct = d.met ? 1 : Math.min(1, d.count / Math.max(1, dailyGoal));
                 return (
-                  <div key={d.key} aria-label={`${d.key}: ${d.count} of ${dailyGoal} stories${d.met ? ', goal reached' : ''}${d.isToday ? ', today' : ''}`}
+                  <div key={d.key} aria-label={`${d.key}: ${d.audioComplete ? 'listening mix completed; ' : ''}${d.count} of ${dailyGoal} stories${d.met ? ', goal reached' : ''}${d.isToday ? ', today' : ''}`}
                     style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
                     <span style={{ position: 'relative', display: 'flex', width: 32, height: 32 }}>
                       <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true">

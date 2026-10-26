@@ -166,10 +166,12 @@ export function computeGamifiedStats(history, perfectDays, briefingData, feedCat
 
 // ── Challenge stats (daily goal, streak, weekly) ─────────────────────────────
 
-export function computeChallengeStats(history, dailyGoal = 10, referenceDate = null) {
+export function computeChallengeStats(history, dailyGoal = 10, referenceDate = null, audioDays = []) {
   // referenceDate = the content date currently being viewed (selectedDay).
   // Reads are stored under the content date, so we count against that same date.
   const today = referenceDate || dayKey(Date.now());
+  const audioSet = new Set(audioDays);
+  const metOn = day => (dailyCountMap[day] || 0) >= dailyGoal || audioSet.has(day);
 
   // Count unique (category, storyIndex) pairs per content-day.
   // Use h.date (content date) when present; fall back to dayKey(h.timestamp) for old entries.
@@ -190,7 +192,7 @@ export function computeChallengeStats(history, dailyGoal = 10, referenceDate = n
   let streakDays = 0;
   const [sy, sm, sd] = today.split('-').map(Number);
   const cur = new Date(sy, sm - 1, sd, 12, 0, 0);
-  if (todayCount >= dailyGoal) {
+  if (metOn(today)) {
     streakDays++;
     cur.setDate(cur.getDate() - 1);
   } else {
@@ -198,7 +200,7 @@ export function computeChallengeStats(history, dailyGoal = 10, referenceDate = n
   }
   for (let i = 0; i < 365; i++) {
     const k = dayKey(cur.getTime());
-    if ((dailyCountMap[k] || 0) >= dailyGoal) {
+    if (metOn(k)) {
       streakDays++;
       cur.setDate(cur.getDate() - 1);
     } else break;
@@ -227,16 +229,17 @@ export function computeChallengeStats(history, dailyGoal = 10, referenceDate = n
     d.setDate(monday.getDate() + i);
     const k   = dayKey(d.getTime());
     const cnt = dailyCountMap[k] || 0;
-    const met = cnt >= dailyGoal;
+    const met = metOn(k);
     if (met) weeklyDays++;
     return {
-      key: k, day: MONDAY_LETTERS[i], isToday: k === today, count: cnt, met,
+      key: k, day: MONDAY_LETTERS[i], isToday: k === today, count: cnt, met, audioComplete: audioSet.has(k),
       isFuture: d.getTime() > todayDate.getTime(),
     };
   });
 
   return {
     todayCount,
+    todayAudioComplete: audioSet.has(today),
     dailyGoal,
     streakDays,
     weeklyDays,

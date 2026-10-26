@@ -12,19 +12,21 @@ function harness() {
   const nav = ref({ cat: 'World News', stories, idx: 0, cats: ['World News', 'UAE'] });
   const history = jest.fn(), select = jest.fn();
   const speed = ref(1), cache = ref(new Map());
+  const programme = { begin: jest.fn(), media: jest.fn(), flush: jest.fn(), end: jest.fn(), fail: jest.fn() };
+  const paused = jest.fn();
   createNarrationEngine({ narrateFnRef: fn, narrationStateRef: state, snapshotPlayRef: snapshot,
     storyNavRef: nav, repeatModeRef: ref(false), playbackSpeedRef: speed, repeatMode: false, playbackSpeed: 1,
     narrationGenRef: ref(0), narrationDurationRef: ref(0), narrationLimitRef: ref(null),
-    currentNarratingStoryRef: ref({}), playlistCatsRef: ref(null), newsLanguage: 'en', depthLevel: 'takeaways',
+    currentNarratingStoryRef: ref({}), playlistCatsRef: ref(null), newsLanguage: 'en', depthLevel: 'takeaways', depthLevelRef: ref('takeaways'),
     setSelectedCategory: select, setStories: jest.fn(), setStoryIndex: jest.fn(), addToHistory: history,
-    setIsNarrating: jest.fn(), setIsPaused: jest.fn(), setIsAudioLoading: jest.fn(), setNarrationProgress: jest.fn(),
+    setIsNarrating: jest.fn(), setIsPaused: paused, programmeRef: ref(programme), setIsAudioLoading: jest.fn(), setNarrationProgress: jest.fn(),
     setNarrationCharOffset: jest.fn(), ttsAudioCacheRef: cache, ttsUrlPromisesRef: ref(new Map()),
   });
   const realSpeak = fn.current.speakText;
   const speak = jest.fn();
   fn.current.speakText = speak;
   fn.current.prefetchTTS = jest.fn();
-  return { fn: fn.current, state: state.current, snapshot, speak, history, select, realSpeak, speed, cache };
+  return { fn: fn.current, state: state.current, snapshot, speak, history, select, realSpeak, speed, cache, programme, paused };
 }
 afterEach(() => jest.useRealTimers());
 test('starting on story two reads its complete summary without a false category introduction', () => {
@@ -103,5 +105,28 @@ test('recorded clips retain the latest speed through media loading and the next 
   audio.playbackRate = 1;
   audio.onplaying();
   expect(audio.playbackRate).toBe(2);
+  narrationPlayer.mockReturnValue(null);
+});
+
+test('saved recap position is applied after metadata and seeking does not create played intervals', async () => {
+  const audio = { src:'', duration:100, currentTime:0, readyState:0, played:{length:0}, play:jest.fn(()=>Promise.resolve()), pause:jest.fn() };
+  narrationPlayer.mockReturnValue(audio);
+  const h=harness();h.cache.current.set('Recap.', {src:'https://example.com/recap.mp3'});
+  h.state.pendingResumeFraction=.4;
+  h.realSpeak('Recap.',jest.fn());audio.onloadedmetadata();
+  expect(audio.currentTime).toBe(40);
+  audio.ontimeupdate();
+  expect(h.programme.media).toHaveBeenCalledWith(audio);
+  expect(audio.played.length).toBe(0);
+  narrationPlayer.mockReturnValue(null);
+});
+test('a native audio interruption pauses the interface and flushes saved progress', () => {
+  const audio = {src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};
+  narrationPlayer.mockReturnValue(audio);
+  const h=harness();h.cache.current.set('Recap.',{src:'https://example.com/recap.mp3'});
+  h.realSpeak('Recap.',jest.fn());h.state.ignorePauseUntil=0;audio.onpause();
+  expect(h.state.paused).toBe(true);
+  expect(h.paused).toHaveBeenCalledWith(true);
+  expect(h.programme.flush).toHaveBeenCalled();
   narrationPlayer.mockReturnValue(null);
 });

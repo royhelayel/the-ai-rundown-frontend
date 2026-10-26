@@ -149,6 +149,7 @@ export function createPlaybackControls({
     const next = SPEEDS_LIST[(si + 1) % SPEEDS_LIST.length];
     playbackSpeedRef.current = next;
     setPlaybackSpeed(next);
+    try { localStorage.setItem('radionews_playback_speed', String(next)); } catch {}
     // The audio element re-rates in place; the browser voice has to be restarted.
     if (narrationStateRef.current.audio) {
       narrationStateRef.current.audio.defaultPlaybackRate = next;

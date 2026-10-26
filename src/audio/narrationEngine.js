@@ -15,7 +15,7 @@ export function createNarrationEngine({
   ttsAudioCacheRef, ttsUrlPromisesRef, handleSelectCategoryRef, snapshotPlayRef, feedCategories,
   newsLanguage, setListenCounts, currentNarratingStoryRef, playlistCatsRef, setPlayerVisible,
   setPlayerMinimized, setPlayerContextCategories, addToHistory, location, defaultCategories,
-  setPhoneVoice, narrationLimitRef, setNarrationCharOffset,
+  setPhoneVoice, narrationLimitRef, setNarrationCharOffset, programmeRef,
 }) {
   // Where this topic's stories end for the narration: all of them, or in Listen only the ones
   // the batch shows — past those it moves to the next topic (Roy, 2026-10-18).
@@ -34,10 +34,13 @@ export function createNarrationEngine({
     if (st.audio) { st.audio.onended = null; st.audio.pause(); st.audio = null; }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setNarrationCharOffset?.(-1);
+    programmeRef?.current?.flush?.();
     st.active = false;
     st.pendingLoad = false;
     st.pendingCategoryName = null;
     st.pendingSessionOpening = null;
+    st.pendingResumeFraction = null;
+    st.pendingResumeMessage = null;
     st.browserSeek = null;
     st.paused = false;
     playlistCatsRef.current = null; // reset playlist on stop
@@ -56,6 +59,7 @@ export function createNarrationEngine({
     if (st.audio) st.audio.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.pause();
     st.paused = true;
+    programmeRef?.current?.flush?.();
     setIsPaused(true);
   };
   narrateFnRef.current.pause = pauseNarration;
@@ -139,6 +143,15 @@ export function createNarrationEngine({
   // against the whole thing.
   const speakWithBrowser = (text, onDone, offset = 0, fullText = null) => {
     if (!('speechSynthesis' in window)) { narrateFnRef.current.stop(); return; }
+    const savedFraction = narrationStateRef.current.pendingResumeFraction;
+    if (!narrationStateRef.current.isTransition && offset === 0 && !fullText && savedFraction > 0) {
+      fullText = text;
+      offset = narrationSeekOffset(text, savedFraction * 100);
+      text = text.slice(offset);
+      narrationStateRef.current.pendingResumeFraction = null;
+    }
+    if (!narrationStateRef.current.isTransition) programmeRef?.current?.speechStart?.(offset / Math.max(1, (fullText || text).length));
+
     // The phone's own voice obeys the silent switch; the narration voice doesn't. Say so.
     setPhoneVoice?.(true);
     window.speechSynthesis.cancel();
@@ -185,6 +198,7 @@ export function createNarrationEngine({
       utter.onboundary = (e) => {
         if (utterGen === narrationGenRef.current && e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
           hasBoundary = true;
+          programmeRef?.current?.speech?.((offset + e.charIndex) / whole.length);
           narrationStateRef.current.browserCharIndex = offset + e.charIndex;
           setNarrationCharOffset?.(offset + e.charIndex);
           setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
@@ -193,6 +207,7 @@ export function createNarrationEngine({
       utter.onend = () => {
         if (utterGen !== narrationGenRef.current) return;
         clearInterval(narrationStateRef.current.browserProgressTimer);
+        if (!narrationStateRef.current.isTransition) { programmeRef?.current?.speech?.(1); programmeRef?.current?.end?.(); }
         setNarrationProgress(0);
         narrationDurationRef.current = 0;
         if (narrationStateRef.current.active && !narrationStateRef.current.canceling) onDone();
@@ -262,7 +277,7 @@ export function createNarrationEngine({
     // their URL; the element they were made with is not played.
     const shared = narrationPlayer();
     const audio = shared || ((audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn);
-    if (shared && audioIn.src && shared.src !== audioIn.src) { shared.pause(); shared.src = audioIn.src; }
+    if (shared && audioIn.src) { narrationStateRef.current.ignorePauseUntil = Date.now() + 300; shared.pause(); shared.src = audioIn.src; }
     narrationStateRef.current.audio = audio;
     audio.currentTime = 0;
     const applySpeed = () => {
@@ -271,26 +286,42 @@ export function createNarrationEngine({
       audio.playbackRate = playbackSpeedRef.current;
     };
     applySpeed();
-    audio.onplaying = applySpeed;
+    audio.onplaying = () => { applySpeed(); setIsAudioLoading(false); };
+    audio.onwaiting = () => { if (narrationStateRef.current.active && !narrationStateRef.current.paused) setIsAudioLoading(true); };
+    audio.onpause = () => {
+      const st = narrationStateRef.current;
+      if (st.active && st.audio === audio && !audio.ended && !st.paused && Date.now() > (st.ignorePauseUntil || 0)) {
+        st.paused = true; setIsPaused(true); programmeRef?.current?.flush?.();
+      }
+    };
     // Clear any stale handlers from prior use of the same Audio element
     audio.onloadedmetadata = null;
     audio.ontimeupdate = null;
     audio.onended = null;
     audio.onerror = null;
+    const restorePosition = () => {
+      const st = narrationStateRef.current;
+      if (!isTransition && st.pendingResumeFraction > 0 && Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = Math.min(audio.duration - .05, st.pendingResumeFraction * audio.duration);
+        st.pendingResumeFraction = null;
+      }
+    };
     audio.onloadedmetadata = () => {
-      applySpeed();
+      applySpeed(); restorePosition();
       if (!isTransition && audio.duration > 0) narrationDurationRef.current = audio.duration;
     };
     let lastPct = -1;
     let halfwayFired = false;
     audio.ontimeupdate = () => {
+      if (!narrationStateRef.current.active || capturedGen !== narrationGenRef.current) return;
       if (!isTransition && audio.duration > 0) {
+        programmeRef?.current?.media?.(audio);
         const pct = (audio.currentTime / audio.duration) * 100;
         if (pct !== lastPct) { lastPct = pct; setNarrationProgress(pct); }
         // Track listen for Popular rankings:
         // full stories → 50% threshold; headlines → 100% (they're too short for 50% to be meaningful)
         const threshold = depthLevelRef.current === 'headlines' ? 99 : 50;
-        if (!halfwayFired && pct >= threshold) {
+        if (!currentNarratingStoryRef.current.isRecap && !halfwayFired && pct >= threshold) {
           halfwayFired = true;
           const key = headlineKey(currentNarratingStoryRef.current.headline);
           if (key) {
@@ -305,6 +336,8 @@ export function createNarrationEngine({
       }
     };
     audio.onended = () => {
+      if (!narrationStateRef.current.active || capturedGen !== narrationGenRef.current) return;
+      if (!isTransition) { programmeRef?.current?.media?.(audio); programmeRef?.current?.end?.(); }
       narrationStateRef.current.audio = null;
       if (!isTransition) { setNarrationProgress(0); narrationDurationRef.current = 0; }
       // Gen check: if stop() or cancelAudioKeepActive() was called since this audio
@@ -317,11 +350,13 @@ export function createNarrationEngine({
     audio.onerror = () => {
       if (narrationStateRef.current.canceling) return;
       narrationStateRef.current.audio = null;
+      programmeRef?.current?.fail?.();
       narrateFnRef.current.stop();
     };
+    if (audio.readyState >= 1) restorePosition();
     audio.play()
       .then(() => { setIsAudioLoading(false); })
-      .catch(() => { setIsAudioLoading(false); if (!narrationStateRef.current.canceling) narrateFnRef.current.stop(); });
+      .catch(() => { setIsAudioLoading(false); if (!narrationStateRef.current.canceling && capturedGen === narrationGenRef.current) { programmeRef?.current?.fail?.(); narrateFnRef.current.stop(); } });
   };
 
   // Returns a shared promise for a blob: URL containing the audio bytes.
@@ -410,7 +445,8 @@ export function createNarrationEngine({
         setStoryIndex(0);
         storyNavRef.current = { idx: 0, stories: nextStories, cats, cat: nextCat };
         setTimeout(() => narrateFnRef.current.narrateStory(0), 0);
-      } else if (snap.headlineProgramme && narrationStateRef.current.active) {
+      } else if ((snap.headlineProgramme || snap.radio) && narrationStateRef.current.active) {
+        if (!snap.headlineProgramme) programmeRef?.current?.finish?.(snap);
         const closing = newsLanguage === 'ar' ? 'هذه آخر الأخبار. شكراً لاستماعك إلى راديو نيوز.' : "That's your news for now. Thanks for listening to RadioNews.";
         narrateFnRef.current.speakText(closing, () => narrateFnRef.current.stop(), { isTransition: true });
       } else {
@@ -444,7 +480,7 @@ export function createNarrationEngine({
     }
     const story = stories[idx];
     setStoryIndex(idx);
-    currentNarratingStoryRef.current = { headline: story.headline }; // for listen tracking
+    currentNarratingStoryRef.current = { headline: story.headline, isRecap: !!story._isBriefing }; // for listen tracking
     // A recap is not a story: playing one must not tick off whichever story sits at index 0.
     if (!story._isBriefing) addToHistory(story, storyNavRef.current.cat, idx, selectedTime || null);
     const isHeadlines = depthLevel === 'headlines' && !story._isBriefing;
@@ -453,6 +489,12 @@ export function createNarrationEngine({
     // script the backend pre-records, so the saved audio is found.
     const cl = cleanForTTS;
     const script = isHeadlines ? endSentence(cl(story.headline)) : cl(storyParagraph(story));
+    programmeRef?.current?.begin?.(snapshotPlayRef.current, storyNavRef.current.cat, story.summary || script);
+    if (narrationStateRef.current.pendingResumeMessage) {
+      programmeRef?.current?.notify?.(narrationStateRef.current.pendingResumeMessage);
+      narrationStateRef.current.pendingResumeMessage = null;
+    }
+
 
     const playStory = () => {
       narrateFnRef.current.speakText(script, () => {

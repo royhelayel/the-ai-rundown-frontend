@@ -137,6 +137,7 @@ const chooseSummary = async (currentLabel, nextLabel) => {
 };
 
 test('summary choice is independent of Listen/Read, retains topic, and includes daily and period recaps', async () => {
+  localStorage.setItem('radionews_summary_type', 'Headlines');
   localStorage.setItem(ONBOARDING_KEY, '1');
   window.history.pushState({}, '', '/listen');
   installSummaryFixtures();
@@ -154,7 +155,7 @@ test('summary choice is independent of Listen/Read, retains topic, and includes 
   expect(screen.queryByRole('button', { name: 'Story order' })).not.toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   await waitFor(() => expect(window.location.pathname).toBe('/recaps'));
-  expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument());
   expect(screen.queryByRole('slider', { name: 'Audio progress' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Swipe', exact: true })).not.toBeInTheDocument();
   await chooseSummary('Daily recap', 'Last week');
@@ -187,4 +188,13 @@ test('Read headlines exposes summary choices and restores its previous reading r
   await chooseSummary('Daily recap', 'Headlines');
   await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
+});
+
+test('first-time listeners open daily recaps and returning listeners keep their summary choice', async () => {
+ localStorage.setItem(ONBOARDING_KEY,'1');window.history.pushState({},'', '/listen');installSummaryFixtures();
+ const first=render(<App />);
+ expect(await screen.findByRole('button',{name:'Daily recap',exact:true})).toHaveAttribute('aria-pressed','true');
+ await chooseSummary('Daily recap','Headlines');first.unmount();
+ render(<App />);
+ expect(await screen.findByRole('button',{name:'Headlines',exact:true})).toHaveAttribute('aria-pressed','true');
 });

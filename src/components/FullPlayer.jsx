@@ -153,6 +153,7 @@ export default function FullPlayer({
   visible,
   isExiting,
   asPage = false,
+  programmeMeta, programmeNotice, resumeProgramme, onResumeProgramme,
   narrationLimitRef,   // how many of this topic's stories are shown; narration moves on after them
   loading = false,   // the day's news is on its way: the loader takes the card's place
   // Rendered at the bottom of the page shell (the dark BottomNav). Page mode only — the
@@ -903,6 +904,7 @@ export default function FullPlayer({
           <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
         </div>
           <h1 style={{ ...h1, marginTop: 10 }}>{recapPeriod === 'Daily' ? fmtDay(selectedDay) : recapPeriod === 'Weekly' ? weekLabel : monthLabel}</h1>
+          {!readOnly && programmeMeta && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--card-sub)' }}>{programmeMeta}</p>}
     </header>;
 
     const recapCard = (
@@ -957,6 +959,8 @@ export default function FullPlayer({
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
+          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
+          {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: 13, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
           {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!loading && !recapView && pageDots.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>

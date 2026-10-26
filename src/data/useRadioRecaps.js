@@ -7,6 +7,10 @@ export default function useRadioRecaps({ active, categories, period, day, today,
   const [remote, setRemote] = useState({ key: '', rows: {}, loading: false, error: false });
   const catsKey = categories.join('|');
   const [daily, setDaily] = useState({ key: '', rows: {} });
+  const dailyBriefing = c => {
+    const row = briefingData[c];
+    return row && (!row.editionDay || row.editionDay === day) && (!row.language || row.language === language) ? row : null;
+  };
   const end = useMemo(() => {
     const d = new Date(`${day || today}T00:00:00Z`);
     if (period === 'Weekly') d.setUTCDate(d.getUTCDate() - d.getUTCDay());
@@ -24,7 +28,7 @@ export default function useRadioRecaps({ active, categories, period, day, today,
     const controller = new AbortController();
     // Headline caches may predate a recap backfill. Refresh missing recap fields directly
     // rather than treating the day's originally empty briefing as immutable.
-    let rows = Object.fromEntries(categories.map(c => [c, daily.key === key && daily.rows[c]?.text ? daily.rows[c] : { text: cleanForTTS(briefingData[c]?.briefing || ''), sources: briefingData[c]?.briefingSources, day }]));
+    let rows = Object.fromEntries(categories.map(c => [c, daily.key === key && daily.rows[c]?.text ? daily.rows[c] : { text: cleanForTTS(dailyBriefing(c)?.briefing || ''), sources: dailyBriefing(c)?.briefingSources, day }]));
     const load = async () => {
       const missing = categories.filter(c => !rows[c]?.text);
       const updates = await Promise.all(missing.map(async category => {
@@ -64,9 +68,9 @@ export default function useRadioRecaps({ active, categories, period, day, today,
     return () => { canceled = true; controller.abort(); };
   }, [active, key]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows = period === 'Headlines' ? {} : period === 'Daily'
-    ? Object.fromEntries(categories.map(c => [c, daily.key === key && daily.rows[c]?.text ? daily.rows[c] : { text: cleanForTTS(briefingData[c]?.briefing || ''), sources: briefingData[c]?.briefingSources, day }]))
+    ? Object.fromEntries(categories.map(c => [c, daily.key === key && daily.rows[c]?.text ? daily.rows[c] : { text: cleanForTTS(dailyBriefing(c)?.briefing || ''), sources: dailyBriefing(c)?.briefingSources, day }]))
     : remote.key === key ? remote.rows : {};
-  return { rows, loading: active && period !== 'Daily' && period !== 'Headlines' && (remote.key !== key || remote.loading), error: period !== 'Daily' && period !== 'Headlines' && remote.key === key && remote.error, end };
+  return { rows, loading: active && (period === 'Daily' ? daily.key !== key && !categories.some(c => dailyBriefing(c)?.briefing) : period !== 'Headlines' && (remote.key !== key || remote.loading)), error: period !== 'Daily' && period !== 'Headlines' && remote.key === key && remote.error, end };
 }
 
 export function radioSnapshot(categories, rows, period) {

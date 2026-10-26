@@ -14,6 +14,7 @@ export default function useBriefingData({
   // Cache key includes which slots are present so it self-invalidates when Evening arrives.
   useEffect(() => {
     if (!selectedDay || !slotsLoaded) return;
+    let canceled = false;
     // Determine which slots have completed for this day
     const slotOrder = ['Evening', 'Daily', 'Morning'];
     const presentSlots = slotOrder.filter(t => completedSlots.has(`${selectedDay}|${t}`));
@@ -88,14 +89,16 @@ export default function useBriefingData({
           return acc + fields.join(' ').split(/\s+/).filter(Boolean).length;
         }, 0);
         const estimatedSec = Math.max(10, Math.round((totalWords / 200) * 60));
-        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s, briefing, briefingSources }];
+        return [cat, { storyCount: s.length, estimatedSec, previewStories: s.slice(0, 3), allStories: s, briefing, briefingSources, editionDay: selectedDay, language: newsLanguage }];
       } catch { return [cat, null]; }
     })).then(results => {
+      if (canceled) return;
       const out = {};
       results.forEach((r, i) => { if (r.status === 'fulfilled' && r.value[1]) out[cats[i]] = r.value[1]; });
       briefingCacheRef.current[cacheKey] = out; // store in cache for this session
       setBriefingData(out);
       setBriefingLoading(false);
     });
+    return () => { canceled = true; };
   }, [selectedDay, newsLanguage, slotsLoaded, completedSlots, feedCategories]); // eslint-disable-line react-hooks/exhaustive-deps
 }

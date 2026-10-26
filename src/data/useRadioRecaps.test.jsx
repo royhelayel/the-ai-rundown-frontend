@@ -17,3 +17,12 @@ test('a missing daily recap refreshes independently of the cached headline rows'
   unmount();
   jest.useRealTimers();
 });
+
+test('a changed edition never seeds its recap from the previous day or language',async()=>{
+ let complete;
+ global.fetch=jest.fn(()=>new Promise(resolve=>{complete=resolve;}));
+ const {result}=renderHook(()=>useRadioRecaps({active:true,categories:['World News'],period:'Daily',day:'2026-10-26',today:'2026-10-26',language:'en',briefingData:{'World News':{editionDay:'2026-10-25',language:'en',briefing:'Yesterday recap.'}}}));
+ expect(result.current.loading).toBe(true);expect(result.current.rows['World News'].text).toBe('');
+ await act(async()=>{complete({ok:true,json:async()=>[{time_slot:'Morning',briefing:'Correct edition recap.'}]});});
+ expect(result.current.loading).toBe(false);expect(result.current.rows['World News'].text).toBe('Correct edition recap.');
+});

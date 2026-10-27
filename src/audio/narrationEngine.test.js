@@ -1,5 +1,6 @@
 import { narrationPlayer } from './narrationPlayer';
 jest.mock('./narrationPlayer', () => ({ narrationPlayer: jest.fn(() => null) }));
+jest.mock('./programmeSounds', () => ({ programmeCueUrl: kind => `blob:quiet-${kind}` }));
 import { createNarrationEngine } from './narrationEngine';
 jest.mock('../components/PopularTab', () => ({ headlineKey: text => text }));
 const ref = current => ({ current });
@@ -140,4 +141,25 @@ test('pausing during an audio load prevents a late recording from starting itsel
 test('pausing between clips holds the next story until the user resumes',()=>{
  const h=harness();h.state.paused=true;h.fn.narrateStory(1);expect(h.speak).not.toHaveBeenCalled();
  h.fn.resume();expect(h.speak.mock.calls[0][0]).toBe('Verified summary 2.');
+});
+
+test('the approved opening cue precedes a new radio mix and never credits listening coverage',()=>{
+ const audio={src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn(),duration:1,currentTime:.9};narrationPlayer.mockReturnValue(audio);
+ const h=harness();h.snapshot.current.radio=true;h.state.pendingSessionOpening='Welcome.';h.speed.current=2;h.fn.narrateStory(0);
+ expect(audio.src).toBe('blob:quiet-opening');expect(audio.playbackRate).toBe(1);expect(h.speak).not.toHaveBeenCalled();
+ audio.ontimeupdate();expect(h.programme.media).not.toHaveBeenCalled();audio.onended();expect(h.speak.mock.calls[0][0]).toBe('Welcome.');
+ narrationPlayer.mockReturnValue(null);
+});
+test('a failed optional cue continues into narration and stopping cancels a pending cue',()=>{
+ const audio={src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};narrationPlayer.mockReturnValue(audio);
+ const h=harness();h.snapshot.current.radio=true;h.state.pendingSessionOpening='Welcome.';h.fn.narrateStory(0);audio.onerror();
+ expect(h.speak.mock.calls[0][0]).toBe('Welcome.');expect(h.programme.fail).not.toHaveBeenCalled();
+ h.state.pendingSessionOpening='Another mix.';h.fn.narrateStory(0);const ended=audio.onended;h.fn.stop();ended();
+ expect(h.speak).toHaveBeenCalledTimes(1);narrationPlayer.mockReturnValue(null);
+});
+test('the closing cue follows the final spoken sign-off',()=>{
+ const audio={src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};narrationPlayer.mockReturnValue(audio);
+ const h=harness();h.snapshot.current.radio=true;h.snapshot.current.category='UAE';h.fn.goNext();
+ expect(audio.play).not.toHaveBeenCalled();h.speak.mock.calls[0][1]();expect(audio.src).toBe('blob:quiet-closing');audio.onended();expect(h.state.active).toBe(false);
+ narrationPlayer.mockReturnValue(null);
 });

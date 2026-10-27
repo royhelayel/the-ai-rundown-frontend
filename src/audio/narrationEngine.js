@@ -6,6 +6,7 @@ import { cleanForTTS, endSentence, categoryTransition, narrationSeekOffset } fro
 import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
 import { narrationPlayer } from './narrationPlayer';
+import { programmeCueUrl } from './programmeSounds';
 
 export function createNarrationEngine({
   setSelectedCategory, selectedTime, newsSummary, viewMode, depthLevel, depthLevelRef, storyIndex,
@@ -272,7 +273,7 @@ export function createNarrationEngine({
   };
 
   // Pass isTransition:true to suppress all progress-bar updates (seamless between stories)
-  const setupAndPlayAudio = (audioIn, onDone, { isTransition = false } = {}) => {
+  const setupAndPlayAudio = (audioIn, onDone, { isTransition = false, optional = false, fixedSpeed = false } = {}) => {
     if (!narrationStateRef.current.active) return;
     if (!isTransition) setPhoneVoice?.(false);
     // Capture generation so stale onended callbacks from prior sessions can't fire.
@@ -286,11 +287,12 @@ export function createNarrationEngine({
     const audio = shared || ((audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn);
     if (shared && audioIn.src) { narrationStateRef.current.ignorePauseUntil = Date.now() + 300; shared.pause(); shared.src = audioIn.src; }
     narrationStateRef.current.audio = audio;
+    narrationStateRef.current.audioFixedSpeed = fixedSpeed;
     audio.currentTime = 0;
     const applySpeed = () => {
       if (narrationGenRef.current !== capturedGen || narrationStateRef.current.audio !== audio) return;
-      audio.defaultPlaybackRate = playbackSpeedRef.current;
-      audio.playbackRate = playbackSpeedRef.current;
+      audio.defaultPlaybackRate = fixedSpeed ? 1 : playbackSpeedRef.current;
+      audio.playbackRate = fixedSpeed ? 1 : playbackSpeedRef.current;
     };
     applySpeed();
     audio.onplaying = () => { applySpeed(); setIsAudioLoading(false); if (narrationStateRef.current.paused) audio.pause(); };
@@ -354,17 +356,20 @@ export function createNarrationEngine({
           && !narrationStateRef.current.canceling
           && narrationGenRef.current === capturedGen) onDone();
     };
-    audio.onerror = () => {
-      if (narrationStateRef.current.canceling) return;
-      narrationStateRef.current.audio = null;
-      programmeRef?.current?.fail?.();
-      narrateFnRef.current.stop();
+    let failed = false;
+    const onAudioFailure = () => {
+      const st = narrationStateRef.current;
+      if (failed || st.canceling || capturedGen !== narrationGenRef.current || !st.active) return;
+      failed = true; st.audio = null; setIsAudioLoading(false);
+      if (optional) { onDone(); return; }
+      programmeRef?.current?.fail?.(); narrateFnRef.current.stop();
     };
+    audio.onerror = onAudioFailure;
     if (audio.readyState >= 1) restorePosition();
     if (narrationStateRef.current.paused) { setIsAudioLoading(false); return; }
     audio.play()
       .then(() => { setIsAudioLoading(false); })
-      .catch(() => { setIsAudioLoading(false); if (!narrationStateRef.current.canceling && capturedGen === narrationGenRef.current) { programmeRef?.current?.fail?.(); narrateFnRef.current.stop(); } });
+      .catch(onAudioFailure);
   };
 
   // Returns a shared promise for a blob: URL containing the audio bytes.
@@ -434,6 +439,14 @@ export function createNarrationEngine({
   };
   narrateFnRef.current.speakText = speakText;
 
+  const playProgrammeCue = (kind, onDone) => {
+    if (!narrationStateRef.current.active) return;
+    if (!narrationPlayer()) { onDone(); return; }
+    narrationStateRef.current.isTransition = true;
+    setNarrationCharOffset?.(-2);
+    setupAndPlayAudio({ src: programmeCueUrl(kind) }, onDone, { isTransition: true, optional: true, fixedSpeed: true });
+  };
+
   const goNextCategoryNarration = () => {
     // Snapshot feeds (My Saves / Interesting): advance within the snapshot map so
     // we don't drop into live news between categories.
@@ -456,7 +469,10 @@ export function createNarrationEngine({
       } else if ((snap.headlineProgramme || snap.radio) && narrationStateRef.current.active) {
         if (!snap.headlineProgramme) programmeRef?.current?.finish?.(snap);
         const closing = newsLanguage === 'ar' ? 'هذه آخر الأخبار. شكراً لاستماعك إلى راديو نيوز.' : "That's your news for now. Thanks for listening to RadioNews.";
-        narrateFnRef.current.speakText(closing, () => narrateFnRef.current.stop(), { isTransition: true });
+        narrateFnRef.current.speakText(closing, () => {
+          if (snap.radio) playProgrammeCue('closing', () => narrateFnRef.current.stop());
+          else narrateFnRef.current.stop();
+        }, { isTransition: true });
       } else {
         narrateFnRef.current.stop();
       }
@@ -534,9 +550,11 @@ export function createNarrationEngine({
     const opening = narrationStateRef.current.pendingSessionOpening;
     if (opening) {
       narrationStateRef.current.pendingSessionOpening = null;
-      narrateFnRef.current.speakText(opening, () => {
+      const introduce = () => narrateFnRef.current.speakText(opening, () => {
         if (narrationStateRef.current.active) playStory();
       }, { isTransition: true });
+      if (snapshotPlayRef.current?.radio) playProgrammeCue('opening', introduce);
+      else introduce();
       return;
     }
 

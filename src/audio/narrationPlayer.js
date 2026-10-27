@@ -9,7 +9,7 @@ let player = null;
 let unlocked = false;
 
 // A tenth of a second of silence, as a WAV made here rather than shipped.
-function wavUrl(samples, rate = 22050) {
+export function wavUrl(samples, rate = 22050) {
   const data = new Int16Array(samples.length);
   for (let i = 0; i < samples.length; i++) data[i] = Math.max(-1, Math.min(1, samples[i])) * 32767;
   const buf = new ArrayBuffer(44 + data.length * 2), v = new DataView(buf);

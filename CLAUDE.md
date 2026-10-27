@@ -118,5 +118,8 @@ Guest progress stays on the device. Signed-in progress syncs to the backend `/ap
 using the verified Supabase session. Account scopes stay separate. `Continue listening` restores the
 saved edition, topic, speed and position; changed recap text starts from the beginning with a message.
 Media Session maps native play/pause/next/previous/seek where supported; external pauses update the UI.
-Programme openings include the selected edition date. Sound-mark comparisons are review artifacts;
-no background music or new default sound mark has been enabled.
+Programme openings include the selected edition date. The approved Option A sound mark is enabled
+at the start and end of a radio mix via `programmeSounds.js`. It is synthesized locally, plays
+at its original pitch/speed through the existing unlocked audio element, and never counts
+toward recap coverage. Optional cue failures continue into the narration. Resuming skips the
+opening; category transitions remain spoken. No background music or per-story chime.

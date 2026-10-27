@@ -152,8 +152,9 @@ export function createPlaybackControls({
     try { localStorage.setItem('radionews_playback_speed', String(next)); } catch {}
     // The audio element re-rates in place; the browser voice has to be restarted.
     if (narrationStateRef.current.audio) {
-      narrationStateRef.current.audio.defaultPlaybackRate = next;
-      narrationStateRef.current.audio.playbackRate = next;
+      const rate = narrationStateRef.current.audioFixedSpeed ? 1 : next;
+      narrationStateRef.current.audio.defaultPlaybackRate = rate;
+      narrationStateRef.current.audio.playbackRate = rate;
     }
     else applySpeedToBrowserVoice();
   };

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Headphones, Play, ArrowUp, AlignLeft, Check, ArrowRight, Newspaper } from 'lucide-react';
 import './OnboardingTour.css';
 import Wordmark from './Wordmark';
+import Logo from './Logo';
 
 export const ONBOARDING_KEY = 'rundown_onboarding_seen';
 
@@ -19,7 +20,7 @@ function TourPreview({ index }) {
   const [period, setPeriod] = useState('Last week');
   const [categories, setCategories] = useState(['World', 'Technology']);
   if (index === 0) return <div className="intro-demo intro-listen">
-    <Headphones size={32} aria-hidden="true" />
+    <Logo size={48} decorative />
     <span className="intro-small">YOUR DAILY NEWS MIX</span>
     <strong>The world moves.<br />Stay in the know.</strong>
     <div className="intro-player" aria-hidden="true"><span className="intro-wave">{[12, 24, 17, 32, 22, 14, 28, 19, 34, 16, 24, 12].map((height, i) => <i key={i} style={{ height }} />)}</span><span className="intro-play"><Play size={22} fill="currentColor" /></span></div>

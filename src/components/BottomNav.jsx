@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
 import ProgressPill, { AWARDS } from './ProgressPill';
+import { ListenIcon, ReadIcon } from './Logo';
 
 // Read unfolds into Swipe / Scroll in the same track. Finish the motion before
 // changing routes, so the new page inherits the settled navigation.
@@ -71,10 +72,12 @@ export default function BottomNav({
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
         onClick={() => !on && go(value)} {...extra.props}
         style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           cursor: on ? 'default' : 'pointer', background: 'transparent',
           color: lit ? 'var(--ink)' : 'var(--sub)', fontWeight: lit ? 650 : 500,
           transition: motion || 'color 0.2s ease, opacity 0.2s ease', ...extra.style }}>
+        {label === 'Listen' && <ListenIcon />}
+        {label === 'Read' && <ReadIcon />}
         {label}
       </button>
     );
@@ -133,10 +136,10 @@ export default function BottomNav({
                 tabIndex={open ? -1 : 0} aria-hidden={open ? true : undefined}
                 onClick={() => go('swipe')}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: 13, fontWeight: 500,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--sub)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'transparent', color: 'var(--sub)',
                   opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto',
                   transition: motion || 'opacity 0.15s ease' }}>
-                Read
+                <ReadIcon />Read
               </button>
             </div>
           </div>

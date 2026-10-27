@@ -1,5 +1,7 @@
 import { LogOut, User, Loader, ChevronLeft, ChevronRight, History, SunMoon, Globe2, Type, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import Logo from '../components/Logo';
+import Wordmark from '../components/Wordmark';
 
 export default function SettingsPage({
   user, setUser, openOnboarding, setShowAuth, setAuthMode, setSignOutLoading, signOutLoading,
@@ -67,6 +69,9 @@ export default function SettingsPage({
       }} style={{ ...action, width: 'auto', alignSelf: 'flex-start', color: 'var(--sub)', padding: '0 4px', minHeight: 44, opacity: signOutLoading ? .6 : 1 }}>
         {signOutLoading ? <Loader size={18} style={{ animation: 'spin .8s linear infinite' }} /> : <LogOut size={18} />}{signOutLoading ? 'Signing out…' : 'Sign out'}
       </button>}
+      <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 0', color: 'var(--sub)' }}>
+        <Logo size={36} decorative /><Wordmark />
+      </footer>
     </div>
   </main>;
 }

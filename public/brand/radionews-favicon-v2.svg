@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">RadioNews — flat headphones enclosing a newspaper</title>
+  <style>.mark { fill: #000; } @media (prefers-color-scheme: dark) { .mark { fill: #f5f5ed; } }</style>
+  <g class="mark">
+    <path d="M52 290v-40C52 131 142 44 256 44s204 87 204 206v40h-36v-40c0-99-72-170-168-170S88 151 88 250v40Z"/>
+    <rect x="28" y="294" width="48" height="120" rx="23"/>
+    <rect x="54" y="264" width="88" height="184" rx="39"/>
+    <rect x="436" y="294" width="48" height="120" rx="23"/>
+    <rect x="370" y="264" width="88" height="184" rx="39"/>
+    <g id="newspaper" transform="translate(257 295) scale(1.12) translate(-257 -315)">
+      <path fill-rule="evenodd" d="M176 216h144a12 12 0 0 1 12 12v166a20 20 0 0 1-20 20H176a12 12 0 0 1-12-12V228a12 12 0 0 1 12-12Zm8 20v158h128a6 6 0 0 0 6-6V236Z"/>
+      <path d="M332 248h18v146a20 20 0 0 1-20 20h-22v-20h22V268h2Z"/>
+      <rect x="198" y="258" width="104" height="22" rx="3"/>
+      <rect x="198" y="306" width="104" height="18" rx="3"/>
+      <rect x="198" y="350" width="80" height="18" rx="3"/>
+    </g>
+  </g>
+</svg>

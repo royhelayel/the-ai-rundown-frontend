@@ -3,6 +3,11 @@ import { FileText, Server, Smartphone, Tablet, Newspaper, ShieldCheck } from 'lu
 
 const between = (n, a, b) => Math.max(0, Math.min(1, (n - a) / Math.max(.02, b - a)));
 
+function ReportedFigure({ literal }) {
+  const qualified = literal.match(/^((?:about|roughly|nearly|over|under|at least|up to|more than|less than|approximately))\s+(.+)$/i);
+  return <strong className="rn-recap-figure">{qualified ? <><small>{qualified[1]}</small><span>{qualified[2]}</span></> : literal}</strong>;
+}
+
 export default function RecapIllustration({ illustration: art, phase, animate }) {
   const p = animate ? phase : 1;
   const figure = art.figures[0];
@@ -13,8 +18,8 @@ export default function RecapIllustration({ illustration: art, phase, animate })
     return <div className="rn-recap-people" aria-hidden="true">
       <div className="rn-recap-workforce">{Array.from({ length: 100 }, (_, i) => <span key={i} className={i < count ? 'is-highlighted' : ''} />)}</div>
       <div className="rn-recap-workforce-values">
-        {employees && <strong className="rn-recap-figure">{employees.literal}</strong>}
-        <span className="rn-recap-percent" style={{ opacity: reveal }}><strong>{art.percentLiteral}</strong><small>of its workforce</small></span>
+        {employees && <ReportedFigure literal={employees.literal} />}
+        <span className="rn-recap-percent" style={{ opacity: reveal }}><strong>{art.percentLiteral.replace(/percent/i, '%')}</strong><small>of its workforce</small></span>
       </div>
     </div>;
   }

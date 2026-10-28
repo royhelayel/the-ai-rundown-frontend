@@ -80,7 +80,7 @@ export default function AnimatedRecap({ text, sourcesMap, allSources = [], categ
         {animations ? <Video size={14} /> : <VideoOff size={14} />}<span>Animation {animations ? 'on' : 'off'}</span>
       </button>
     </div>
-    <h1 className="rn-animated-recap-title" dir="auto">{scene.headline}</h1>
+    <h1 className="rn-animated-recap-title" dir="auto">{scene.displayHeadline}</h1>
     <div className="rn-animated-recap-stage" data-scene={scene.illustration.type}>
       <RecapIllustration illustration={scene.illustration} phase={phase} animate={moving} />
     </div>

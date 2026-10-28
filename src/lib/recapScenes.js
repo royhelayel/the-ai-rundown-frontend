@@ -83,8 +83,14 @@ export function buildRecapScenes(rawText, sourceMap) {
     const charStart = text.indexOf(row.text, cursor);
     cursor = Math.max(cursor, charStart + row.text.length);
     const stories = row.stories.filter(story => story && typeof story.headline === 'string');
+    const headline = stories[0]?.headline || row.text;
+    const illustration = illustrationFor(row.text);
+    // A literal headline prefix can introduce the update while the graphic carries
+    // the exact figures. Keep the complete original headline in the sources sheet.
+    const displayHeadline = illustration.type === 'workforce'
+      ? headline.match(/^(.+?\b(?:offers?|offering|offered)\s+(?:voluntary\s+)?buyouts)\b/i)?.[1] || headline : headline;
     return { ...row, stories, index, start, end: weight / total, charStart: Math.max(0, charStart), charEnd: cursor,
-      headline: stories[0]?.headline || row.text, phrases: captionPhrases(row.text), illustration: illustrationFor(row.text) };
+      headline, displayHeadline, phrases: captionPhrases(row.text), illustration };
   });
 }
 

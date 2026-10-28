@@ -31,6 +31,11 @@ test('percentages must explicitly describe a workforce share before using a peop
   expect(illustrationFor(sources[0].text)).toMatchObject({ type: 'workforce', percent: 27, percentLiteral: 'roughly 27 percent' });
   expect(illustrationFor('Revenue increased 27 percent.').type).toBe('figures');
   expect(illustrationFor('120 percent of its workforce.').type).toBe('figures');
+  const originalHeadline = 'Microsoft reportedly offers buyouts to 60,000 employees';
+  const [scene] = buildRecapScenes(sources[0].text, [{ ...sources[0], stories: [{ headline: originalHeadline, sources: [] }] }]);
+  expect(scene.displayHeadline).toBe('Microsoft reportedly offers buyouts');
+  expect(originalHeadline.startsWith(scene.displayHeadline)).toBe(true);
+  expect(scene.headline).toBe(originalHeadline);
 });
 
 test('figures remain literal and hypothetical diagrams are never inferred', () => {

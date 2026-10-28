@@ -12,6 +12,7 @@ import { cleanForTTS } from '../audio/narrationText';
 import AudioSeekBar from './AudioSeekBar';
 import RadioTranscript from './RadioTranscript';
 import RecapSourcesSheet from './RecapSourcesSheet';
+import AnimatedRecap from './AnimatedRecap';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 
@@ -233,6 +234,7 @@ export default function FullPlayer({
   isTodaySelected = true,
   phoneVoice = false,
   radioOnly = false, narrationCharOffset = -1, recapError = false, recapSources = [], radioQueueCategories = [], recapEnd,
+  recapAttributions, getRecapStoryAction,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const dayPickerRef = useRef(null);
@@ -910,9 +912,14 @@ export default function FullPlayer({
     const recapCard = (
       <article key={cardKey} ref={cardRef} className="rn-tp" onTouchStart={onTouchStart} onTouchMove={pageTouchMove} onTouchEnd={pageTouchEnd}
         onAnimationEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.style.animation = 'none'; }}
-        style={{ ...cardFrame, touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
+        style={{ ...cardFrame, ...(!readOnly && recapText ? { flex: '0 1 430px', minHeight: 180, padding: '12px 16px 8px', gap: 0 } : {}), touchAction: 'pan-y', animation: enterRef.current ? `rn-enter-${enterRef.current} 0.24s ease-out backwards` : 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {recapText ? (
+            !readOnly ? <AnimatedRecap key={`${category}|${recapPeriod}|${selectedDay}|${recapText}`} text={recapText} sourcesMap={recapAttributions} allSources={recapSources}
+              category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
+              playing={isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
+              getStoryAction={getRecapStoryAction}
+              onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })} /> :
             <RadioTranscript key={`${category}|${recapPeriod}|${selectedDay}`} text={recapText} progress={readOnly ? 0 : pct} before={recapHeading} highlight={!readOnly} compact={!readOnly}
               charOffset={narrationCharOffset} active={!readOnly && isNarrating && playingThis && !isLoading && narrationCharOffset !== -2}
               after={recapSources.length > 0 && (

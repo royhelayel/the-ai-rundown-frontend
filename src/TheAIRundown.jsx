@@ -41,7 +41,7 @@ import useHeartbeat from './data/useHeartbeat';
 import usePlaybackWakeLock from './hooks/usePlaybackWakeLock';
 import useAudioProgramme from './hooks/useAudioProgramme';
 import useProgrammeMediaSession from './hooks/useProgrammeMediaSession';
-import { programmeKey, completedMixDays } from './audio/programmeProgress';
+import { programmeKey, completedMixDays, contentSignature } from './audio/programmeProgress';
 import useModePageMotion from './hooks/useModePageMotion';
 import useSavesFeeds from './data/useSavesFeeds';
 import useCompletedSlots from './data/useCompletedSlots';
@@ -1306,7 +1306,7 @@ const TheAIRundown = () => {
     : recapPeriod === 'Headlines' ? "You're listening to RadioNews. Here are your headlines."
     : `This is RadioNews. Here's your ${recapPeriod === 'Daily' ? 'news mix for ' + editionDate : recapPeriod === 'Weekly' ? 'weekly news mix' : 'monthly news mix'}. First, ${CATEGORY_SHORT[selectedCategory] || selectedCategory}.`;
   useEffect(() => {
-    if (location.pathname === '/listen' && !isNarrating && Object.keys(radioMap).length) narrateFnRef.current.prefetchTTS?.(programmeOpening);
+    if (location.pathname === '/listen' && recapPeriod === 'Headlines' && !isNarrating && Object.keys(radioMap).length) narrateFnRef.current.prefetchTTS?.(programmeOpening);
   }, [location.pathname, programmeOpening, isNarrating, Object.keys(radioMap).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const cueRadio = (cat, play = false, index = 0, opening = false) => {
     narrateFnRef.current.stop();
@@ -1325,7 +1325,9 @@ const TheAIRundown = () => {
       narrationStateRef.current.active = true;
       narrationStateRef.current.paused = false;
       setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
-      if (opening) narrationStateRef.current.pendingSessionOpening = programmeOpening;
+      // Animated recaps begin with the news. Topic transitions and the single mix
+      // ending are still owned by the existing programme, outside the recap content.
+      if (opening && recapPeriod === 'Headlines') narrationStateRef.current.pendingSessionOpening = programmeOpening;
       setTimeout(() => narrateFnRef.current.narrateStory(idx), 0);
     }
   };
@@ -1367,7 +1369,7 @@ const TheAIRundown = () => {
   };
   radioSkipRef.current = skipRadio;
   const playTopicRecap = (cat) => cueRadio(cat, true);
-  const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${topicsForReading.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories.map(st => `${st.headline}:${storyParagraph(st).length}`).join(',')}`).join('|')}`;
+  const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${topicsForReading.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories.map(st => `${st.headline}:${contentSignature(storyParagraph(st))}`).join(',')}`).join('|')}`;
   const radioCueRef = useRef(null);
   useEffect(() => {
     if (location.pathname !== '/listen') { radioCueRef.current = null; return; }
@@ -1389,6 +1391,10 @@ const TheAIRundown = () => {
     radioCueRef.current = radioCueKey;
     const first = topicsForReading.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
     if (first) cueRadio(first, false, recapPeriod === 'Headlines' && keepCursor ? (focusRef.current?.category === first ? focusRef.current.index : 0) : 0);
+    if (sameRecapEdition && isNarrating && recapPeriod !== 'Headlines' && snap?.category === selectedCategory
+        && snap.stories?.[0]?.summary !== radioMap[selectedCategory]?.allStories?.[0]?.summary) {
+      programmeRef.current.notify('This recap has been updated. Press play to hear the latest version.');
+    }
   }, [location.pathname, authReady, briefingLoading, radio.loading, radioCueKey, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
   // Back to the stories after a recap played: stop it and put the topic's stories back.
   const leaveRecapPlayback = (cat = selectedCategory) => {
@@ -2300,7 +2306,6 @@ const TheAIRundown = () => {
           onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
           onEditCategories={openCategoryPicker}
           onGuestEdit={openCategoryPicker}
-          user={user}
           isStoryRead={isReadStory(currentStory, selectedCategory, storyIndex)}
           // Summary opens the story in the reader with its sheet already up — the same sheet
           // the Summary button opens from a card, rather than a second copy of it here.
@@ -2330,6 +2335,16 @@ const TheAIRundown = () => {
           // tab does it.
           periodReady={{ Headlines: true, Weekly: !!periodRecaps.Weekly, Monthly: !!periodRecaps.Monthly }}
           recapText={radio.rows[selectedCategory]?.text || null}
+          recapAttributions={radio.rows[selectedCategory]?.sources}
+          getRecapStoryAction={headline => {
+            if (recapPeriod !== 'Daily') return null;
+            const list = briefingData[selectedCategory]?.allStories || [];
+            const index = list.findIndex(item => headlineKey(item.headline || '') === headlineKey(headline));
+            if (index < 0) return null;
+            const item = list[index];
+            return { interesting: savedStories.some(saved => headlineKey(saved.headline || '') === headlineKey(item.headline || '')),
+              toggle: () => handleToggleSaved(item, selectedCategory, index) };
+          }}
           recapError={radio.error}
           recapSources={(() => {
             let sources = radio.rows[selectedCategory]?.sources;

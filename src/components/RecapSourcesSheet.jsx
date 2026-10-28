@@ -33,7 +33,7 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
       <div aria-hidden="true" style={{ width: 34, height: 4, background: 'var(--line)', borderRadius: 4, margin: '10px auto 0' }} />
       <header style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--line)' }}>
         <div style={{ flex: 1 }}>
-          <h2 id="recap-sources-title" style={{ fontSize: 19, margin: '0 0 4px' }}>Stories &amp; sources</h2>
+          <h2 id="recap-sources-title" style={{ fontSize: 19, margin: '0 0 4px' }}>{snapshot.title || 'Stories & sources'}</h2>
           <p style={{ fontSize: 12, color: 'var(--sub)', margin: 0 }}>{snapshot.label}</p>
         </div>
         <button ref={close} className="rn-btn" aria-label="Close stories and sources" onClick={dismiss} style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', flexShrink: 0 }}><X size={20} /></button>
@@ -41,6 +41,7 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
       <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', padding: '0 20px 20px' }}>
         {snapshot.items.map((item, i) => <article key={i} style={{ padding: '18px 0', borderBottom: i < snapshot.items.length - 1 ? '1px solid var(--line)' : undefined }}>
           <h3 dir="auto" style={{ margin: '0 0 10px', fontSize: 16, lineHeight: 1.4 }}>{item.headline}</h3>
+          {item.summary && <p dir="auto" style={{ margin: '0 0 14px', color: 'var(--sub)', fontSize: 15, lineHeight: 1.5 }}>{item.summary}</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 4, color: 'var(--sub)', fontSize: 13 }}>
             {(item.sources || []).map((src, j) => /^https?:\/\//.test(src.url || '')
               ? <a key={j} href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>{src.outlet || src.name || 'Source'} <span aria-hidden="true">↗</span></a>

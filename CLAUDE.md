@@ -123,3 +123,24 @@ at the start and end of a radio mix via `programmeSounds.js`. It is synthesized 
 at its original pitch/speed through the existing unlocked audio element, and never counts
 toward recap coverage. Optional cue failures continue into the narration. Resuming skips the
 opening; category transitions remain spoken. No background music or per-story chime.
+
+## Animated Listen recaps (2026-10-29)
+
+Listen renders `AnimatedRecap` for Daily/Weekly/Monthly recaps; Read keeps the complete text.
+The illustrations are native vector/CSS scenes driven by the existing narration progress and
+speech character boundaries, not independently streamed MP4s. No extra TTS, model or video
+rendering calls are needed. `recapScenes.js` uses only literal recap facts and source maps
+whose full text matches the recording. Corrected text invalidates old maps; do not guess
+sentence-level attributions. Unknown content uses a neutral editorial illustration.
+
+Animation on/off persists as `radionews_recap_animation`. Data-saving/reduced-motion device
+preferences are respected by default; background/disabled scenes do not run a visual clock.
+The toggle never owns or restarts audio. Speed, seeking, 70% coverage, topic transitions and
+the end-of-mix completion stay with the existing programme. Recaps start with the news,
+without a repeated spoken introduction. Same-length text corrections change the programme
+signature, stop the old recording and ask the listener to play the latest version.
+
+The card's outlet button snapshots the current update into `RecapSourcesSheet`; `more` opens
+its complete text. Missing mappings retain a clearly labelled all-topic sources list. Daily
+Interesting actions resolve the original headline back to the actual story, not the recap
+pseudo-story. Keep sources and player controls visible at compact phone heights.

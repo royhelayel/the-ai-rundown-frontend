@@ -1,0 +1,64 @@
+.rn-animated-recap{display:flex;flex-direction:column;flex:1;min-height:0;position:relative;container-type:size;gap:9px}
+.rn-animated-recap-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;flex-shrink:0}
+.rn-animated-recap-top>span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tp-chip)}
+.rn-animated-recap-top button{display:flex;align-items:center;gap:5px;font-size:11.5px;min-height:40px;color:var(--card-sub);white-space:nowrap}
+.rn-animated-recap-title{margin:0;font-size:1.5rem;font-weight:750;line-height:1.12;letter-spacing:-.035em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex-shrink:0}
+.rn-animated-recap-stage{min-height:35px;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rn-animated-recap-caption{display:flex;gap:6px;align-items:flex-end;flex-shrink:0;border-top:1px solid var(--card-line);padding-top:9px;color:var(--card-body)}
+.rn-animated-recap-caption p{margin:0;flex:1;min-width:0;font-size:.9375rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rn-animated-recap-caption button{font-size:12px;font-weight:400;min-height:36px;flex-shrink:0;color:var(--card-sub)}
+.rn-animated-recap-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;flex-shrink:0}
+.rn-animated-recap-source{font-size:11.5px;color:var(--card-sub);display:flex;gap:5px;align-items:center;min-height:44px;min-width:0;text-align:start}
+.rn-animated-recap-source span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rn-animated-recap-interest{height:44px;width:40px;display:grid;place-items:center;flex-shrink:0;margin-inline-start:auto;color:var(--card-sub)}
+.rn-animated-recap-interest[aria-pressed=true]{color:var(--tp-chip)}
+.rn-animated-recap-notice{position:absolute;inset-inline:4px;bottom:48px;font-size:12px;line-height:1.4;border-radius:11px;background:var(--ink);color:var(--paper);text-align:center;pointer-events:none;z-index:2}
+.rn-animated-recap-notice:not(:empty){padding:10px}
+.rn-recap-people{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;width:100%;max-width:430px}
+.rn-recap-workforce{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px 4px;max-width:155px}
+.rn-recap-workforce>span{height:13px;position:relative;color:var(--card-sub);opacity:.3;transition:color .15s linear,opacity .15s linear}
+.rn-recap-workforce>span:before{content:'';position:absolute;left:50%;top:0;width:4px;height:4px;border-radius:50%;transform:translateX(-50%);background:currentColor}
+.rn-recap-workforce>span:after{content:'';position:absolute;left:50%;top:5px;width:7px;height:8px;border-radius:3px 3px 1px 1px;transform:translateX(-50%);background:currentColor}
+.rn-recap-workforce>.is-highlighted{opacity:1;color:var(--tp-chip)}
+.rn-recap-workforce-values{display:flex;flex-direction:column;gap:18px;min-width:0}
+.rn-recap-figure{font-size:42px;font-size:clamp(24px,9cqw,54px);font-weight:850;line-height:1.05;letter-spacing:-.045em;overflow-wrap:anywhere;color:var(--card-ink)}
+.rn-recap-percent{display:flex;flex-direction:column;gap:5px}
+.rn-recap-percent strong{font-size:clamp(19px,6cqw,30px);line-height:1.05;letter-spacing:-.035em}
+.rn-recap-percent small{font-size:11px;color:var(--card-sub)}
+.rn-recap-tv-stage{width:100%;height:100%;max-height:200px;display:flex;align-items:center;justify-content:center;padding:5px 0 16px}
+.rn-recap-tv{border:7px solid var(--card-ink);border-radius:14px;background:var(--paper);position:relative;display:flex;align-items:center;justify-content:center;transition:width .1s linear,height .1s linear;min-height:45px;min-width:65px}
+.rn-recap-tv strong{font-size:clamp(23px,10cqw,54px);letter-spacing:-.05em;color:var(--ink);text-align:center;padding:8px}
+.rn-recap-video-triangle{width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:22px solid var(--ink);margin-inline-start:5px}
+.rn-recap-video-line{position:absolute;left:9px;right:9px;bottom:7px;height:2px;background:var(--line)}
+.rn-recap-video-line>span{display:block;height:100%;background:var(--tp-chip)}
+.rn-recap-tv-foot{position:absolute;width:48px;height:7px;border-radius:3px;bottom:-16px;left:calc(50% - 24px);background:var(--card-ink)}
+.rn-recap-tv-foot:before{content:'';position:absolute;left:18px;bottom:5px;width:12px;height:10px;background:inherit}
+.rn-recap-sandbox{height:100%;max-height:180px;min-height:100px;width:100%;position:relative;direction:ltr}
+.rn-recap-sandbox-boundary{position:absolute;left:0;top:9%;bottom:8%;width:68%;border:1.5px dashed var(--tp-chip);border-radius:13px}
+.rn-recap-sandbox-label{position:absolute;left:10px;top:14%;font-size:11px;color:var(--card-sub)}
+.rn-recap-model{position:absolute;left:5%;top:40%;height:52px;width:52px;border-radius:12px;background:var(--card-ink);color:var(--tp-card);font-size:12px;font-weight:700;display:grid;place-items:center;z-index:1}
+.rn-recap-transfer-line{position:absolute;left:20%;right:15%;top:57%;height:1px;background:var(--card-line)}
+.rn-recap-packet{position:absolute;top:47%;width:27px;height:31px;display:grid;place-items:center;border-radius:5px;background:var(--tp-chip);color:var(--paper);transition:left .1s linear}
+.rn-recap-server{position:absolute;right:0;top:41%;display:flex;align-items:center;flex-direction:column;gap:4px;color:var(--card-sub)}
+.rn-recap-server svg{color:var(--card-ink)}
+.rn-recap-server span{font-size:11px;max-width:65px;text-align:center;line-height:1.15}
+.rn-recap-gate{position:absolute;left:calc(68% - 3px);top:45%;height:30px;width:5px;border-radius:3px;background:var(--card-ink)}
+.rn-recap-blocked{position:absolute;left:34%;top:72%;font-size:11px;padding:3px 8px;border-radius:10px;background:var(--card-ink);color:var(--tp-card)}
+.rn-recap-device{display:flex;align-items:center;justify-content:center;gap:20px;max-width:100%;width:100%;height:100%}
+.rn-recap-device-drawing{position:relative;display:flex;align-items:center;justify-content:center;height:100%;transition:transform .1s linear;flex:0 1 140px}
+.rn-recap-device-drawing>svg{max-height:100%;max-width:100%}
+.rn-recap-device>.rn-recap-figure{flex:0 1 50%;min-width:0}
+.rn-recap-crack{position:absolute;width:15px;height:45%;left:48%;top:28%;background:var(--tp-chip);clip-path:polygon(45% 0,80% 30%,36% 50%,80% 73%,25% 100%,52% 72%,10% 49%,52% 29%)}
+.rn-recap-figure-stage{width:100%;display:flex;flex-direction:column;gap:20px;align-items:center;text-align:center}
+.rn-recap-figure-stage>.rn-recap-figure{font-size:clamp(30px,14cqw,76px)}
+.rn-recap-figure-marks{display:flex;gap:6px}
+.rn-recap-figure-marks>span{height:3px;width:15px;border-radius:3px;background:var(--card-line)}
+.rn-recap-figure-marks>.is-current{background:var(--tp-chip)}
+.rn-recap-editorial{display:flex;gap:20px;align-items:center;justify-content:center;width:100%;height:100%}
+.rn-recap-editorial>svg{height:100%;max-height:140px;max-width:47%;transition:transform .1s linear}
+.rn-recap-editorial-lines{display:flex;flex-direction:column;gap:12px;width:35%}
+.rn-recap-editorial-lines>span{height:5px;border-radius:4px;background:var(--tp-chip);opacity:.6;transition:width .1s linear}
+.rn-animated-recap[data-animation=off] *{transition:none!important}
+@container (max-height:290px){.rn-animated-recap-title{-webkit-line-clamp:2;font-size:21px}.rn-recap-workforce>span{height:9px}.rn-recap-workforce>span:before{width:3px;height:3px}.rn-recap-workforce>span:after{top:4px;width:5px;height:5px}.rn-recap-workforce{gap:2px 4px}.rn-recap-workforce-values{gap:9px}.rn-animated-recap-caption p{font-size:14px}.rn-recap-sandbox{min-height:65px}.rn-recap-sandbox-label{display:none}.rn-recap-model{width:35px;height:35px}.rn-recap-server svg{height:28px}.rn-recap-blocked{top:80%}}
+@container (max-height:215px){.rn-animated-recap-stage{display:none}.rn-animated-recap-title{-webkit-line-clamp:1}.rn-animated-recap-caption{flex:1;align-items:center}.rn-animated-recap-caption p{-webkit-line-clamp:2}.rn-animated-recap-footer{min-height:40px}}
+@media(prefers-reduced-motion:reduce){.rn-animated-recap *{transition:none!important;animation:none!important}}

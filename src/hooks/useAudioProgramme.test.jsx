@@ -34,3 +34,16 @@ test('the next topic remains resumable even if playback stops before its first w
  const second=renderHook(()=>useAudioProgramme());
  expect(second.result.current.resume.category).toBe('Tech');expect(second.result.current.resume.position).toBe(0);second.unmount();
 });
+
+test('split Quick clips share parent coverage: skipping ahead never earns credit and completion remains 70%',()=>{
+ const {result,unmount}=renderHook(()=>useAudioProgramme());
+ const parent='World recap.', parts=[{text:parent,start:0,end:.5},{text:parent,start:.5,end:1}];
+ const segmented={...snap,map:{World:{allStories:[{_isBriefing:true,summary:'Part one.',_quickRecap:parts[0]}]}}};
+ act(()=>{result.current.ref.current.begin(segmented,'World',parent,parts[0]);result.current.ref.current.media(media(100,100));result.current.ref.current.end();});
+ let record=Object.values(result.current.records)[0];expect(record.completed).toBe(false);expect(record.finished).toBe(false);expect(record.position).toBe(.5);
+ act(()=>{result.current.ref.current.begin(segmented,'World',parent,parts[1]);result.current.ref.current.media(media(99,0));result.current.ref.current.flush();});
+ expect(Object.values(result.current.records)).toHaveLength(1);expect(Object.values(result.current.records)[0].completed).toBe(false);
+ act(()=>{result.current.ref.current.media(media(40,40));result.current.ref.current.flush();});
+ record=Object.values(result.current.records)[0];expect(record.completed).toBe(true);expect(record.position).toBeCloseTo(.7);
+ unmount();
+});

@@ -198,3 +198,29 @@ period recaps, missing records and network failures retain their existing visual
 so a partial art rollout cannot blank working cards. Do not claim those older visuals are
 newly generated. Future news needs new reviewed drawings; paid Anthropic generation remains
 disabled. Keep the role-based typography hierarchy described above.
+
+## Story-by-story Quick and Full briefs (2026-10-30)
+
+Quick (`Daily`) now queues each checked recap update as an independent short narration;
+Full (`Headlines`) keeps the existing longer summaries. `radioSnapshot` uses the exact
+matching attribution map via `buildRecapScenes`, retaining its headline/outlets. Stale maps
+fall back to sentence updates without inventing source associations. Weekly/monthly stay
+topic recordings. No news rewriting or animation generation is involved.
+
+`_quickRecap` retains the original complete recap text, fixed spoken-content spans, and
+source stories. Playback uses the existing per-text TTS/cache/fallback pipeline, including
+current/next prefetch. Progress and sync retain the parent recap key; only actual played
+clip intervals map onto its fixed spans. Skips/seeks earn nothing, and the 70% threshold
+still applies to the parent recap across all short clips. Resume maps parent position
+back to the correct clip/local seek. Unchanged topics finishing a refresh cannot restart
+the active clip. Memoized recap rows/queues avoid rebuilding every update on audio ticks.
+
+The unified Listen card handles horizontal pointer swipes: left next, right previous,
+with the existing smooth slide and player buttons. Short/vertical/diagonal gestures,
+button/link drags, and gestures on the player scrubber do not change stories. Read retains
+vertical navigation. Pointer cancellation restores the card; rapid inputs are guarded and
+pending slide callbacks are cancelled on story/topic/date/type changes. Pinch zoom and
+reduced motion remain supported. Boundaries cross available topics without wrapping.
+Paused navigation stays paused and keeps native playback controls usable. Switching Quick
+and Full keeps the same headline when both include it. Late skipped-clip audio responses
+cannot reset current loading state. Existing speed persistence remains in force.

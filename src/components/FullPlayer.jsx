@@ -17,6 +17,7 @@ import RecapSourcesSheet from './RecapSourcesSheet';
 import AnimatedRecap from './AnimatedRecap';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
+import { storySwipeDirection, canSkipStory } from '../lib/storySwipe';
 
 // Lift a category colour toward white so it stays legible over the dark photo — the same
 // helper Swipe mode uses for its pills, copied so the two strips tint identically.
@@ -278,7 +279,7 @@ export default function FullPlayer({
   const translateY = mounted ? 0 : '100%';
 
   const headline = story?.headline || '';
-  const isRecap  = !!story?._isBriefing;
+  const isRecap  = !!story?._isBriefing && !story?._quickRecap;
   const excerpt  = storyParagraph(story);
   const outlets  = (story?.storySources || []).filter(so => so.outlet);
 
@@ -318,7 +319,8 @@ export default function FullPlayer({
     // A horizontal drag that starts inside something that scrolls sideways belongs to that
     // thing, not to us — the outlets row above all, which used to drag the whole card with it
     // (Roy, 2026-10-18). The card is swiped from anywhere else on it.
-    const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll], .rn-hscroll');
+    const inScroller = !!e.target?.closest?.('.fp-cat-strip, [data-hscroll], .rn-hscroll')
+      || (unified && !!e.target?.closest?.('button,a,input,[role="slider"]'));
     touchRef.current = t && !inScroller ? { x: t.clientX, y: t.clientY } : null;
   };
 
@@ -332,6 +334,8 @@ export default function FullPlayer({
   const enterRef = useRef(null);
   const reduceMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const SLIDE_OUT_MS = 170;
+  const slideBusy = useRef(false), slideTimers=useRef([]);
+  useEffect(()=>()=>{slideTimers.current.forEach(clearTimeout);slideTimers.current=[];slideBusy.current=false;},[category,storyIndex,recapPeriod,selectedDay]);
 
   // The progress pills live under the card, not on it, so they stay put while cards slide past —
   // they used to leave with the old card and reappear on the new one (Roy, 2026-10-18). While the
@@ -359,24 +363,27 @@ export default function FullPlayer({
   };
 
   const slideTo = (dir, go) => {
+    if(slideBusy.current) return;
     const el = cardRef.current;
     if (!el || reduceMotion) { go?.(); return; }
+    slideBusy.current=true;
     el.style.transition = `transform ${SLIDE_OUT_MS}ms ease-in, opacity ${SLIDE_OUT_MS}ms ease-in`;
     el.style.transform = `translateX(${dir === 'next' ? '-110%' : '110%'})`;
     el.style.opacity = '0';
-    setTimeout(() => {
+    slideTimers.current.push(setTimeout(() => {
       slideDirRef.current = dir;
       go?.();
       // Nowhere to go (the first story, say): the same card is still here, so bring it back.
-      setTimeout(() => {
+      slideTimers.current.push(setTimeout(() => {
+        slideBusy.current=false;
         if (cardRef.current !== el) return;
         slideDirRef.current = null;
         settleDots(storyIndex);
         el.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
         el.style.transform = 'none';
         el.style.opacity = '1';
-      }, 250);
-    }, SLIDE_OUT_MS);
+      }, 250));
+    }, SLIDE_OUT_MS));
   };
   // The recap moves along the topic row, as Swipe's recaps do.
   const topicRow = contextCategories || [];
@@ -394,7 +401,8 @@ export default function FullPlayer({
     }
     // Where there is nothing to pull in, the card resists: past the end of a batch, or past
     // the first or last topic in the recap.
-    const blocked = recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd && !topicAt(1));
+    const blocked = unified ? !canSkipStory(storyIndex,storyCount,category,radioQueueCategories,dx<0?1:-1)
+      : recapView ? !topicAt(dx < 0 ? 1 : -1) : (dx < 0 && atBatchEnd && !topicAt(1));
     el.style.transition = 'none';
     el.style.transform = `translateX(${blocked ? dx * 0.25 : dx}px)`;
     if (!recapView) followDots(dx, blocked);
@@ -409,6 +417,11 @@ export default function FullPlayer({
     const dy = t ? t.clientY - start.y : 0;
     const settle = () => { el.style.transition = 'transform 0.2s ease-out'; el.style.transform = 'none'; settleDots(storyIndex); };
     if (!start.dragging) return;
+    if(unified) {
+      const direction=storySwipeDirection(dx,dy);
+      if(!direction || !canSkipStory(storyIndex,storyCount,category,radioQueueCategories,direction)) {settle();return;}
+      slideTo(direction>0?'next':'prev',direction>0?onNext:onPrev);return;
+    }
     if ((!recapView && storyCount === 0) || Math.abs(dx) < SWIPE_MIN || Math.abs(dx) <= Math.abs(dy)) { settle(); return; }
     if (recapView) {
       const to = topicAt(dx < 0 ? 1 : -1);
@@ -810,7 +823,7 @@ export default function FullPlayer({
     // some other way, the way it moved — along the topic for the next story starting, along the
     // topic row for a topic picked from it (Roy, 2026-10-17: topics slide too). Switching
     // between the stories and the recap, or the recap's period, doesn't slide.
-    const cardKey = recapView ? `recap|${category}|${recapPeriod}` : `${category}|${storyIndex}`;
+    const cardKey = recapView ? `recap|${category}|${recapPeriod}|${selectedDay}` : `${category}|${recapPeriod}|${selectedDay}|${storyIndex}`;
     if (lastCardRef.current?.key !== cardKey) {
       const before = lastCardRef.current;
       lastCardRef.current = { key: cardKey, recap: recapView, category, storyIndex };
@@ -947,10 +960,18 @@ export default function FullPlayer({
     const nextDisabled = !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1));
     const prevDisabled = radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0);
     const unifiedText = recapView ? recapText : excerpt;
-    const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: [{ headline, sources: outlets }] }] : null;
-    const unifiedCard = <article className="rn-tp rn-unified-card" style={{ ...cardFrame, flex: '1 1 430px', minHeight: 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0 }}>
+    const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: story?._quickRecap?.sources || [{ headline, sources: outlets }] }] : null;
+    const swipeAudio=unified && !readOnly && !recapView;
+    const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"
+      aria-label={swipeAudio?'News update. Swipe left for next story or right for previous story.':undefined}
+      onPointerDown={swipeAudio?e=>{if(e.button>0 || e.isPrimary===false || slideBusy.current)return;onTouchStart({target:e.target,touches:[e]});if(touchRef.current)e.currentTarget.setPointerCapture?.(e.pointerId);}:undefined}
+      onPointerMove={swipeAudio?e=>pageTouchMove({touches:[e]}):undefined}
+      onPointerUp={swipeAudio?e=>pageTouchEnd({changedTouches:[e]}):undefined}
+      onPointerCancel={swipeAudio?()=>{touchRef.current=null;const el=cardRef.current;if(el&&!slideBusy.current){el.style.transform='none';el.style.transition='transform .2s ease-out';}}:undefined}
+      style={{ ...cardFrame, flex: '1 1 430px', minHeight: 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0,
+        touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
-        text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView ? recapSources : fullStoryMap[0].stories}
+        text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
         category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
         externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}
@@ -958,13 +979,13 @@ export default function FullPlayer({
         canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}
         title={recapView ? `${recapPeriod === 'Daily' ? 'Today' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'} in ${topicName}` : headline}
         dateLabel={recapPeriod === 'Weekly' ? weekLabel : recapPeriod === 'Monthly' ? monthLabel : fmtDay(selectedDay)}
-        getStoryAction={recapView ? getRecapStoryAction : () => ({ interesting: isInteresting, toggle: onToggleInteresting })}
+        getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ interesting: isInteresting, toggle: onToggleInteresting })}
         onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
           <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
           <h1 style={h1}>{topicName}</h1>
           <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
-            {recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
+            {recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
           </p>
         </div>}
     </article>;

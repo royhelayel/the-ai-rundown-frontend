@@ -174,6 +174,7 @@ test('summary preference survives reload, old reading preference no longer bypas
   localStorage.setItem(ONBOARDING_KEY, '1'); localStorage.setItem('rundown_read_mode', 'swipe');
   installSummaryFixtures(); const first = render(<App />);
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
+  await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
   await chooseSummary('Quick brief', 'Full brief'); first.unmount();
   render(<App />);
   expect(await screen.findByRole('button', { name: 'Full brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -186,4 +187,54 @@ test('old recap links open text-only on the unified page without audio autoplay'
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
   expect(await screen.findByRole('region', { name: 'Swipeable news text' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
+});
+
+test('Quick and Full navigate individual stories, preserve sources and do not autoplay when skipped while paused',async()=>{
+ localStorage.setItem(ONBOARDING_KEY,'1');window.history.pushState({},'','/listen');installSummaryFixtures();
+ const original=global.fetch;
+ global.fetch=jest.fn(async(url,...args)=>{
+  const r=await original(url,...args),p=new URL(String(url),'http://localhost').searchParams;
+  if(String(url).startsWith('/api/news') && p.get('mode')==='list' && p.get('category')==='World News') {
+   const rows=await r.json();return {ok:true,json:async()=>rows.map(row=>({...row,briefing:'First short update. Second short update.',briefing_sources:[
+    {text:'First short update.',stories:[{headline:'World News story',sources:[{outlet:'AP',url:'https://a.example'}]}]},
+    {text:'Second short update.',stories:[{headline:'Another World story',sources:[{outlet:'BBC',url:'https://b.example'}]}]},
+   ]}))};
+  }return r;
+ });
+ const {container}=render(<App />);
+ await screen.findByRole('heading',{name:'World News story',exact:true});
+ expect(screen.getByRole('button',{name:'Previous story'})).toBeDisabled();
+ userEvent.click(screen.getByRole('button',{name:'Next story',exact:true}));
+ await screen.findByRole('heading',{name:'Another World story',exact:true});
+ expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
+ expect(screen.queryByRole('button',{name:'Pause',exact:true})).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:/Original reporting: BBC/})).toBeInTheDocument();
+ await chooseSummary('Quick brief','Full brief');
+ expect(await screen.findByRole('heading',{name:'Another World story',exact:true})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Read this complete update'})).toBeInTheDocument();
+ expect(container.querySelector('.rn-unified-card')).toHaveAttribute('aria-label',expect.stringContaining('Swipe left for next story'));
+});
+
+test('horizontal pointer gestures skip Quick stories while vertical movement and button drags do not',async()=>{
+ localStorage.setItem(ONBOARDING_KEY,'1');window.history.pushState({},'','/listen');installSummaryFixtures();
+ const pointer=window.PointerEvent;window.PointerEvent=MouseEvent;
+ const {container}=render(<App />);
+ await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
+ const drag=(el,x,y)=>{fireEvent.pointerDown(el,{clientX:240,clientY:100,button:0});fireEvent.pointerMove(el,{clientX:x,clientY:y});fireEvent.pointerUp(el,{clientX:x,clientY:y});};
+ drag(screen.getByRole('button',{name:'Read',exact:true}),20,100);
+ expect(screen.getByRole('heading',{name:'World News daily briefing.',exact:true})).toBeInTheDocument();
+ drag(container.querySelector('.rn-unified-card'),230,260);
+ expect(screen.getByRole('heading',{name:'World News daily briefing.',exact:true})).toBeInTheDocument();
+ drag(container.querySelector('.rn-unified-card'),30,105);
+ await screen.findByRole('heading',{name:'This final sentence must remain visible.',exact:true});
+ expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
+ const el=container.querySelector('.rn-unified-card');
+ fireEvent.pointerDown(el,{clientX:50,clientY:100,button:0});fireEvent.pointerMove(el,{clientX:250,clientY:100});fireEvent.pointerUp(el,{clientX:250,clientY:100});
+ await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
+ drag(container.querySelector('.rn-unified-card'),30,105);
+ await chooseSummary('Quick brief','Full brief');
+ await screen.findByRole('heading',{name:'World News story',exact:true});
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,250));});
+ expect(screen.getByRole('heading',{name:'World News story',exact:true})).toBeInTheDocument();
+ window.PointerEvent=pointer;
 });

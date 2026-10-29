@@ -15,21 +15,44 @@ function harness() {
   const speed = ref(1), cache = ref(new Map());
   const programme = { begin: jest.fn(), media: jest.fn(), flush: jest.fn(), end: jest.fn(), fail: jest.fn() };
   const paused = jest.fn();
+  const loading = jest.fn();
   createNarrationEngine({ narrateFnRef: fn, narrationStateRef: state, snapshotPlayRef: snapshot,
     storyNavRef: nav, repeatModeRef: ref(false), playbackSpeedRef: speed, repeatMode: false, playbackSpeed: 1,
     narrationGenRef: ref(0), narrationDurationRef: ref(0), narrationLimitRef: ref(null),
     currentNarratingStoryRef: ref({}), playlistCatsRef: ref(null), newsLanguage: 'en', depthLevel: 'takeaways', depthLevelRef: ref('takeaways'),
     setSelectedCategory: select, setStories: jest.fn(), setStoryIndex: jest.fn(), addToHistory: history,
-    setIsNarrating: jest.fn(), setIsPaused: paused, programmeRef: ref(programme), setIsAudioLoading: jest.fn(), setNarrationProgress: jest.fn(),
+    setIsNarrating: jest.fn(), setIsPaused: paused, programmeRef: ref(programme), setIsAudioLoading: loading, setNarrationProgress: jest.fn(),
     setNarrationCharOffset: jest.fn(), ttsAudioCacheRef: cache, ttsUrlPromisesRef: ref(new Map()),
   });
   const realSpeak = fn.current.speakText;
   const speak = jest.fn();
   fn.current.speakText = speak;
   fn.current.prefetchTTS = jest.fn();
-  return { fn: fn.current, state: state.current, snapshot, speak, history, select, realSpeak, speed, cache, programme, paused };
+  return { fn: fn.current, state: state.current, snapshot, speak, history, select, realSpeak, speed, cache, programme, paused, loading };
 }
 afterEach(() => jest.useRealTimers());
+test('a late response from a skipped clip cannot clear the new clip loading state',async()=>{
+ const original=global.fetch;let finish;
+ global.fetch=jest.fn().mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;})).mockImplementation(()=>new Promise(()=>{}));
+ const h=harness(),done=jest.fn();
+ h.realSpeak('Skipped short update.',done);h.fn.cancelAudioKeepActive();h.realSpeak('Current short update.',jest.fn());
+ finish({ok:true,json:async()=>({url:'https://example.com/skipped.mp3'})});
+ for(let i=0;i<10;i++)await Promise.resolve();
+ expect(h.loading.mock.calls).toEqual([[true],[true]]);expect(done).not.toHaveBeenCalled();
+ global.fetch=original;
+});
+test('Quick clips advance independently, preserve parent recap identity and do not gain headline-read credit',()=>{
+ jest.useFakeTimers();const h=harness(),parts=[{text:'A complete checked recap.',start:0,end:.5},{text:'A complete checked recap.',start:.5,end:1}];
+ const list=h.snapshot.current.stories;
+ list.splice(0,2,...parts.map((part,i)=>({headline:`Short ${i}`,summary:`Short update ${i}.`,_isBriefing:true,_quickRecap:part})));
+ h.snapshot.current.radio=true;h.snapshot.current.headlineProgramme=false;
+ h.fn.narrateStory(0);
+ expect(h.programme.begin).toHaveBeenCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[0]);
+ h.speak.mock.calls[0][1]();jest.runOnlyPendingTimers();
+ expect(h.speak.mock.calls[1][0]).toBe('Short update 1.');
+ expect(h.programme.begin).toHaveBeenLastCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[1]);
+ expect(h.history).not.toHaveBeenCalled();expect(h.select).not.toHaveBeenCalled();
+});
 test('starting on story two reads its complete summary without a false category introduction', () => {
   const h = harness();
   h.fn.narrateStory(1);

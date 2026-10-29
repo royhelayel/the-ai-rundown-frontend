@@ -1,5 +1,10 @@
 export const RECAP_COMPLETION = 0.70;
 export const fraction = n => Math.max(0, Math.min(1, Number(n) || 0));
+export const programmeText = story => story?._quickRecap?.text || story?.summary || '';
+export function recapSpan(segment) {
+  return segment && segment.start>=0 && segment.end<=1 && segment.end>segment.start ? [segment.start,segment.end] : [0,1];
+}
+export const recapPosition = (position,span=[0,1]) => span[0]+fraction(position)*(span[1]-span[0]);
 export function contentSignature(text) {
   let a = 2166136261, b = 5381;
   for (const c of text) { a = Math.imul(a ^ c.charCodeAt(0), 16777619); b = Math.imul(b, 33) ^ c.charCodeAt(0); }
@@ -21,7 +26,7 @@ export function mergeProgress(a = {}, b = {}) {
     mixCompleted: !!(a.mixCompleted || b.mixCompleted), finished: !!latest.finished };
 }
 export function queueKeys(snap) {
-  return Object.entries(snap.map || {}).filter(([, v]) => v.allStories?.[0]?._isBriefing).map(([category, v]) => programmeKey({ day: snap.day, period: snap.period, language: snap.language, category, text: v.allStories[0].summary || '' }));
+  return Object.entries(snap.map || {}).filter(([, v]) => v.allStories?.[0]?._isBriefing).map(([category, v]) => programmeKey({ day: snap.day, period: snap.period, language: snap.language, category, text: programmeText(v.allStories[0]) }));
 }
 export function completedMixDays(records) {
   return [...new Set(Object.values(records).filter(r => r.mixCompleted && r.period === 'Daily').map(r => r.day))];

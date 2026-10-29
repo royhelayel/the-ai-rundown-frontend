@@ -6,7 +6,7 @@ import BriefingFeed from './components/BriefingFeed';
 import StorySummarySheet from './components/StorySummarySheet';
 import FullPlayer from './components/FullPlayer';
 import { storyParagraph } from './lib/stories';
-import useRadioRecaps, { radioSnapshot, headlineRadioSnapshot } from './data/useRadioRecaps';
+import useRadioRecaps, { radioSnapshot, headlineRadioSnapshot, storyBrief, radioDestination, resumeRadioStory } from './data/useRadioRecaps';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
 import BottomNav from './components/BottomNav';
@@ -41,7 +41,7 @@ import useHeartbeat from './data/useHeartbeat';
 import usePlaybackWakeLock from './hooks/usePlaybackWakeLock';
 import useAudioProgramme from './hooks/useAudioProgramme';
 import useProgrammeMediaSession from './hooks/useProgrammeMediaSession';
-import { programmeKey, completedMixDays, contentSignature } from './audio/programmeProgress';
+import { programmeKey, completedMixDays, contentSignature, programmeText } from './audio/programmeProgress';
 import useModePageMotion from './hooks/useModePageMotion';
 import useSavesFeeds from './data/useSavesFeeds';
 import useCompletedSlots from './data/useCompletedSlots';
@@ -192,7 +192,9 @@ const TheAIRundown = () => {
     return ['Headlines', 'Daily', 'Weekly', 'Monthly'].includes(saved) ? saved : 'Daily';
   });
   const summaryReadFromRef = useRef({ pathname: '/my-feed', state: null });
+  const summaryStoryRef=useRef(null);
   const changeSummaryType = (period) => {
+    summaryStoryRef.current={category:selectedCategory,headline:stories[storyIndex]?.headline};
     narrateFnRef.current.stop();
     setPlayerVisible(false);
     setRecapPeriod(period);
@@ -1304,7 +1306,8 @@ const TheAIRundown = () => {
   // for — and the topic strip keeps every topic rather than shrinking to this one.
   const radio = useRadioRecaps({ active: location.pathname === '/listen' || isReadRecap, categories: topicsForReading,
     period: recapPeriod, day: selectedDay, today, language: newsLanguage, briefingData });
-  const radioMap = recapPeriod === 'Headlines' ? headlineRadioSnapshot(topicsForReading, briefingData) : radioSnapshot(topicsForReading, radio.rows, recapPeriod);
+  const radioTopics=JSON.stringify(topicsForReading);
+  const radioMap = useMemo(()=>recapPeriod === 'Headlines' ? headlineRadioSnapshot(JSON.parse(radioTopics), briefingData) : radioSnapshot(JSON.parse(radioTopics), radio.rows, recapPeriod),[radioTopics,recapPeriod,briefingData,radio.rows]);
   const editionDate = selectedDay ? new Date(`${selectedDay}T12:00:00Z`).toLocaleDateString(newsLanguage === 'ar' ? 'ar' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }) : '';
   const programmeOpening = newsLanguage === 'ar' ? `أنت تستمع إلى راديو نيوز. إليك ملخص الأخبار ليوم ${editionDate}.`
     : recapPeriod === 'Headlines' ? "You're listening to RadioNews. Here are your headlines."
@@ -1313,6 +1316,7 @@ const TheAIRundown = () => {
     if (location.pathname === '/listen' && recapPeriod === 'Headlines' && !isNarrating && Object.keys(radioMap).length) narrateFnRef.current.prefetchTTS?.(programmeOpening);
   }, [location.pathname, programmeOpening, isNarrating, Object.keys(radioMap).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const cueRadio = (cat, play = false, index = 0, opening = false) => {
+    const keepPaused=!play && narrationStateRef.current.active && narrationStateRef.current.paused;
     narrateFnRef.current.stop();
     const cats = Object.keys(radioMap);
     const list = radioMap[cat]?.allStories || [];
@@ -1324,6 +1328,11 @@ const TheAIRundown = () => {
     setViewMode('stories'); setDepthLevel('takeaways'); setPlayerAllScope(false);
     setNarrationProgress(0); setNarrationCharOffset(-1);
     storyNavRef.current = { idx, stories: list, cats, cat };
+    if(keepPaused && list.length) {
+      narrationStateRef.current.active=true; narrationStateRef.current.paused=true;
+      narrationStateRef.current.pendingResumeAction=()=>narrateFnRef.current.narrateStory(idx);
+      setIsNarrating(true);setIsPaused(true);setIsAudioLoading(false);
+    }
     if (play && list.length) {
       unlockSpeech();
       narrationStateRef.current.active = true;
@@ -1348,7 +1357,8 @@ const TheAIRundown = () => {
   useEffect(() => {
     const saved = pendingProgrammeResume.current;
     if (!saved || saved.day !== selectedDay || saved.period !== recapPeriod || saved.language !== newsLanguage || radio.loading || briefingLoading) return;
-    const text = radioMap[saved.category]?.allStories?.[0]?.summary;
+    const savedStories=radioMap[saved.category]?.allStories || [];
+    const text = programmeText(savedStories[0]);
     if (!text) {
       pendingProgrammeResume.current = null;
       programmeRef.current.notify('This recap is no longer available. Choose another topic or date.');
@@ -1359,17 +1369,15 @@ const TheAIRundown = () => {
     const same = programmeKey({ day: selectedDay, period: recapPeriod, language: newsLanguage, category: saved.category, text }) === saved.key;
     const speed = [.75,1,1.25,1.5,2].includes(saved.speed) ? saved.speed : 1;
     setPlaybackSpeed(speed); playbackSpeedRef.current = speed;
-    cueRadio(saved.category, true);
-    narrationStateRef.current.pendingResumeFraction = same ? saved.position : 0;
+    const resume=resumeRadioStory(savedStories,same?saved.position:0);
+    cueRadio(saved.category, true,resume.index);
+    narrationStateRef.current.pendingResumeFraction = resume.position;
     if (!same) narrationStateRef.current.pendingResumeMessage = 'This recap has been updated. Starting it from the beginning.';
   }, [resumeRequest, selectedDay, recapPeriod, newsLanguage, radio.loading, briefingLoading, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
   const skipRadio = (direction) => {
     const play = isNarrating && !isPaused;
-    const nextIndex = storyIndex + direction;
-    if (recapPeriod === 'Headlines' && nextIndex >= 0 && nextIndex < stories.length) { cueRadio(selectedCategory, play, nextIndex); return; }
-    const cats = Object.keys(radioMap);
-    const cat = cats[cats.indexOf(selectedCategory) + direction];
-    if (cat) cueRadio(cat, play, direction < 0 ? radioMap[cat].allStories.length - 1 : 0);
+    const next=radioDestination(radioMap,selectedCategory,storyIndex,direction,recapPeriod);
+    if(next) cueRadio(next.category,play,next.index);
   };
   radioSkipRef.current = skipRadio;
   const playTopicRecap = (cat) => cueRadio(cat, true);
@@ -1382,7 +1390,8 @@ const TheAIRundown = () => {
     const sameRecapEdition = radioCueRef.current?.startsWith(`${selectedDay}|${newsLanguage}|${recapPeriod}|`);
     const snap = snapshotPlayRef.current;
     if (sameRecapEdition && recapPeriod !== 'Headlines' && snap?.stories?.length
-        && snap.category === selectedCategory && snap.stories[0].summary === radioMap[selectedCategory]?.allStories?.[0]?.summary) {
+        && snap.category === selectedCategory && programmeText(snap.stories[0]) === programmeText(radioMap[selectedCategory]?.allStories?.[0])
+        && storyParagraph(snap.stories[storyIndex] || {}) === storyParagraph(radioMap[selectedCategory]?.allStories?.[storyIndex] || {})) {
       // Other topics can finish backfilling while this recap plays. Update the upcoming
       // queue without stopping or rewinding the current recording.
       snapshotPlayRef.current = { ...snap, map: radioMap };
@@ -1394,9 +1403,15 @@ const TheAIRundown = () => {
     const keepCursor = radioCueRef.current === null || radioCueRef.current.startsWith(`${selectedDay}|${newsLanguage}|`);
     radioCueRef.current = radioCueKey;
     const first = topicsForReading.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
-    if (first) cueRadio(first, false, recapPeriod === 'Headlines' && keepCursor ? (focusRef.current?.category === first ? focusRef.current.index : 0) : 0);
+    let nextIndex=storyBrief(recapPeriod) && keepCursor ? (focusRef.current?.category === first ? focusRef.current.index : 0) : 0;
+    const switching=summaryStoryRef.current;
+    if(switching) {
+      nextIndex=storyBrief(recapPeriod) && switching.category===first ? Math.max(0,(radioMap[first]?.allStories || []).findIndex(st=>headlineKey(st.headline || '')===headlineKey(switching.headline || ''))) : 0;
+      summaryStoryRef.current=null;
+    }
+    if (first) cueRadio(first, false,nextIndex);
     if (sameRecapEdition && isNarrating && recapPeriod !== 'Headlines' && snap?.category === selectedCategory
-        && snap.stories?.[0]?.summary !== radioMap[selectedCategory]?.allStories?.[0]?.summary) {
+        && programmeText(snap.stories?.[0]) !== programmeText(radioMap[selectedCategory]?.allStories?.[0])) {
       programmeRef.current.notify('This recap has been updated. Press play to hear the latest version.');
     }
   }, [location.pathname, authReady, briefingLoading, radio.loading, radioCueKey, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1935,7 +1950,7 @@ const TheAIRundown = () => {
       ? (briefingLoading && !briefingData[catFromUrl])
       : newsLoading;
 
-  useProgrammeMediaSession({ active: isNarrating, paused: isPaused, title: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${recapPeriod === 'Headlines' ? 'Headlines' : recapPeriod === 'Daily' ? 'Daily recap' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'}`,
+  useProgrammeMediaSession({ active: isNarrating, paused: isPaused, title: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${recapPeriod === 'Headlines' ? 'Full brief' : recapPeriod === 'Daily' ? 'Quick brief' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'}`,
     edition: editionDate, duration: narrationDurationRef.current, progress: narrationProgress, speed: playbackSpeed,
     onPlay: () => { if (isListenPath) setListenTextOnly(false); if (isPaused) narrateFnRef.current.resume(); else if (isListenPath) cueRadio(selectedCategory, true, storyIndex); },
     onPause: () => narrateFnRef.current.pause(), onStop: () => narrateFnRef.current.stop(),
@@ -1943,11 +1958,13 @@ const TheAIRundown = () => {
   const mixCats = Object.keys(radioMap);
   const mixIndex = Math.max(0, mixCats.indexOf(selectedCategory));
   const secondsRemaining = mixCats.slice(mixIndex).reduce((sum, cat, i) => {
-    const text = radioMap[cat].allStories?.[0]?.summary || '';
-    const script = narrateFnRef.current.buildStoryScript?.(radioMap[cat].allStories[0]);
-    const cached = ttsAudioCacheRef.current.get(script);
-    const duration = i === 0 && narrationDurationRef.current > 0 ? narrationDurationRef.current : cached?.duration > 0 ? cached.duration : text.split(/\s+/).length / 2.5;
-    return sum + duration * (i === 0 ? 1 - narrationProgress / 100 : 1) / playbackSpeed;
+    const list=radioMap[cat].allStories || [];
+    return sum+list.slice(i===0?storyIndex:0).reduce((seconds,item,j)=>{
+      const cached=ttsAudioCacheRef.current.get(narrateFnRef.current.buildStoryScript?.(item));
+      const current=i===0 && j===0;
+      const duration=current && narrationDurationRef.current>0 ? narrationDurationRef.current : cached?.duration>0 ? cached.duration : (item.summary || '').split(/\s+/).length/2.5;
+      return seconds+duration*(current?1-narrationProgress/100:1)/playbackSpeed;
+    },0);
   }, 0);
   const programmeMeta = recapPeriod !== 'Headlines' && mixCats.length ? `${mixCats[mixIndex + 1] ? 'Next: ' + (CATEGORY_SHORT[mixCats[mixIndex + 1]] || mixCats[mixIndex + 1]) : 'Last topic'} · about ${Math.max(1, Math.ceil(secondsRemaining / 60))} min left` : '';
   const readingMode = isListenPath ? 'audio' : isStoriesPage ? 'swipe' : (isReadRecap || isLatestHome || isMyFeedPath || isPopularPath || isImportantPath) ? 'scroll' : null;
@@ -2313,7 +2330,7 @@ const TheAIRundown = () => {
           periodMinutes={periodMinutes}
           onOpenPeriodRecap={openPeriodRecap}
           onPlayPeriodRecap={playPeriodRecap}
-          recapView={isReadRecap || (isListenPath ? recapPeriod !== 'Headlines' : recapView)}
+          recapView={isReadRecap || (isListenPath ? !storyBrief(recapPeriod) : recapView)}
           radioOnly={isListenPath || isReadRecap}
           radioQueueCategories={Object.keys(radioMap)}
           recapEnd={radio.end}

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { storyParagraph } from '../lib/stories';
 import { cleanForTTS } from '../audio/narrationText';
+import { buildRecapScenes } from '../lib/recapScenes';
 
 // Read existing recap records only; generation remains owned by the backend.
 export default function useRadioRecaps({ active, categories, period, day, today, language, briefingData }) {
   const [remote, setRemote] = useState({ key: '', rows: {}, loading: false, error: false });
-  const catsKey = categories.join('|');
+  const catsKey = JSON.stringify(categories);
   const [daily, setDaily] = useState({ key: '', rows: {} });
   const dailyBriefing = c => {
     const row = briefingData[c];
@@ -67,17 +68,50 @@ export default function useRadioRecaps({ active, categories, period, day, today,
       .catch(() => { if (!canceled) setRemote({ key, rows: {}, loading: false, error: true }); });
     return () => { canceled = true; controller.abort(); };
   }, [active, key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rows = period === 'Headlines' ? {} : period === 'Daily'
-    ? Object.fromEntries(categories.map(c => [c, daily.key === key && daily.rows[c]?.text ? daily.rows[c] : { text: cleanForTTS(dailyBriefing(c)?.briefing || ''), sources: dailyBriefing(c)?.briefingSources, day }]))
-    : remote.key === key ? remote.rows : {};
+  const rows = useMemo(()=>{
+    if(period==='Headlines') return {};
+    if(period!=='Daily') return remote.key===key?remote.rows:{};
+    return Object.fromEntries(JSON.parse(catsKey).map(c=>{
+      const cached=briefingData[c];
+      const row=cached && (!cached.editionDay || cached.editionDay===day) && (!cached.language || cached.language===language) ? cached : null;
+      return [c,daily.key===key && daily.rows[c]?.text ? daily.rows[c] : {text:cleanForTTS(row?.briefing || ''),sources:row?.briefingSources,day}];
+    }));
+  },[period,key,daily,remote,catsKey,briefingData,day,language]);
   return { rows, loading: active && (period === 'Daily' ? daily.key !== key && !categories.some(c => dailyBriefing(c)?.briefing) : period !== 'Headlines' && (remote.key !== key || remote.loading)), error: period !== 'Daily' && period !== 'Headlines' && remote.key === key && remote.error, end };
 }
 
 export function radioSnapshot(categories, rows, period) {
+  // Keep the checked recap unchanged, but queue each attributed update as its own
+  // cached narration. The parent text/spans preserve existing completion and resume keys.
+  if (period === 'Daily') return Object.fromEntries(categories.filter(c => rows[c]?.text?.trim()).map(category => {
+    const text=rows[category].text.trim(), scenes=buildRecapScenes(text,rows[category].sources);
+    return [category,{allStories:scenes.map(scene=>({
+      headline:scene.headline,summary:scene.text,tightBullets:[scene.text],allBullets:[scene.text],
+      storySources:scene.stories.flatMap(story=>story.sources || []),_isBriefing:true,_recapPeriod:period,
+      _quickRecap:{text,start:scene.start,end:scene.end,index:scene.index,total:scenes.length,sources:scene.stories},
+    }))}];
+  }));
   return Object.fromEntries(categories.filter(c => rows[c]?.text?.trim()).map(c => [c, { allStories: [{
     headline: `${c} recap`, summary: rows[c].text.trim(), tightBullets: [rows[c].text.trim()], allBullets: [rows[c].text.trim()],
     storySources: [], _isBriefing: true, _recapPeriod: period,
   }] }]));
+}
+
+export const storyBrief = period => period === 'Daily' || period === 'Headlines';
+export function radioDestination(map,category,index,direction,period) {
+  const list=map[category]?.allStories || [], next=index+direction;
+  if(storyBrief(period) && next>=0 && next<list.length) return {category,index:next};
+  const cats=Object.keys(map).filter(c=>map[c]?.allStories?.length), i=cats.indexOf(category);
+  if(i<0 || !cats[i+direction]) return null;
+  const target=cats[i+direction];
+  return {category:target,index:direction<0 ? map[target].allStories.length-1 : 0};
+}
+export function resumeRadioStory(stories,position) {
+  const p=Math.max(0,Math.min(1,Number(position)||0));
+  if(!stories?.[0]?._quickRecap) return {index:0,position:p};
+  const index=Math.max(0,stories.findIndex(st=>st._quickRecap.end>p));
+  const at=p===1?stories.length-1:index, part=stories[at]._quickRecap;
+  return {index:at,position:Math.max(0,Math.min(1,(p-part.start)/(part.end-part.start)))};
 }
 
 // Headline summaries are the daily programme: the same verified text as Read mode.

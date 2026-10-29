@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { BACKEND_URL } from '../lib/backend';
-import { coverage, fraction, mergeProgress, programmeKey, queueKeys } from '../audio/programmeProgress';
+import { coverage, fraction, mergeProgress, programmeKey, queueKeys, recapSpan, recapPosition } from '../audio/programmeProgress';
 
 const bounded = records => Object.fromEntries(Object.entries(records).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0)).slice(0, 120));
 const read = key => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } };
@@ -29,28 +29,33 @@ export default function useAudioProgramme(userId) {
   };
   ref.current = {
     notify(message) { setNotice({ message }); },
-    begin(snap, category, text) {
+    begin(snap, category, text, segment) {
       if (!snap?.radio || snap.headlineProgramme || !snap.day) { state.current.activeKey = null; return; }
       const key = programmeKey({ ...snap, category, text });
       const st = state.current;
       if (st.scope !== storageKey) return;
       st.activeKey = key;
+      st.span = recapSpan(segment);
       st.records[key] = { day: snap.day, period: snap.period, language: snap.language, category, signature: key.split('|').pop(), position: 0, ranges: [], ...st.records[key], finished: false, started: true, updatedAt: Date.now(), queueKeys: queueKeys(snap), missingCount: snap.missingCount || 0 };
+      if(segment) st.records[key].position=st.span[0];
       st.dirty.add(key); persist(); setNotice(null);
     },
     media(audio) {
       if (!audio.duration || !Number.isFinite(audio.duration)) return;
       const ranges = [];
       // HTMLMediaElement.played contains only source intervals that actually played.
-      for (let i = 0; i < (audio.played?.length || 0); i++) ranges.push([audio.played.start(i) / audio.duration, audio.played.end(i) / audio.duration]);
-      save({ ranges, position: fraction(audio.currentTime / audio.duration), duration: audio.duration, speed: audio.playbackRate || 1 });
+      // Split Quick clips occupy fixed spoken-content spans in their parent recap;
+      // map only played intervals, never a skip/seek cursor, onto that shared record.
+      const span=state.current.span || [0,1];
+      for (let i = 0; i < (audio.played?.length || 0); i++) ranges.push([recapPosition(audio.played.start(i)/audio.duration,span),recapPosition(audio.played.end(i)/audio.duration,span)]);
+      save({ ranges, position: recapPosition(audio.currentTime/audio.duration,span), duration: audio.duration/(span[1]-span[0]), speed: audio.playbackRate || 1 });
     },
     speechStart(position) { state.current.speechStart = fraction(position); },
     speech(position) {
-      const to = fraction(position), from = state.current.speechStart;
+      const span=state.current.span || [0,1], to=recapPosition(position,span), from=recapPosition(state.current.speechStart,span);
       save({ position: to, ranges: to > from ? [[from, to]] : [] });
     },
-    end() { save({ position: 1, finished: true }); },
+    end() { const end=state.current.span?.[1] ?? 1; save({ position:end,finished:end===1 }); },
     flush() { persist(); },
     fail() { setNotice({ complete: false, error: true, message: 'Playback stopped. Your listening progress is saved.' }); persist(); },
     finish(snap) {

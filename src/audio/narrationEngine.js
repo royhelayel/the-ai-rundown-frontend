@@ -7,6 +7,7 @@ import { storyParagraph } from '../lib/stories';
 import { BACKEND_URL } from '../lib/backend';
 import { narrationPlayer } from './narrationPlayer';
 import { programmeCueUrl } from './programmeSounds';
+import { programmeText } from './programmeProgress';
 
 export function createNarrationEngine({
   setSelectedCategory, selectedTime, newsSummary, viewMode, depthLevel, depthLevelRef, storyIndex,
@@ -424,7 +425,7 @@ export function createNarrationEngine({
     const gen = narrationGenRef.current;
     getTTSAudio(text.trim())
       .then(url => {
-        if (!narrationStateRef.current.active || narrationGenRef.current !== gen) { setIsAudioLoading(false); return; }
+        if (!narrationStateRef.current.active || narrationGenRef.current !== gen) return;
         if (!url) throw new Error('no url');
         // Recheck cache — prefetch may have stored an element while we awaited bytes
         const fromCache = ttsAudioCacheRef.current.get(text);
@@ -433,8 +434,9 @@ export function createNarrationEngine({
         setupAndPlayAudio(audio, onDone, opts);
       })
       .catch(() => {
+        if (!narrationStateRef.current.active || narrationGenRef.current !== gen) return;
         setIsAudioLoading(false);
-        if (narrationStateRef.current.active && narrationGenRef.current === gen) speakWithBrowser(text, onDone);
+        speakWithBrowser(text, onDone);
       });
   };
   narrateFnRef.current.speakText = speakText;
@@ -517,7 +519,7 @@ export function createNarrationEngine({
     // script the backend pre-records, so the saved audio is found.
     const cl = cleanForTTS;
     const script = isHeadlines ? endSentence(cl(story.headline)) : cl(storyParagraph(story));
-    programmeRef?.current?.begin?.(snapshotPlayRef.current, storyNavRef.current.cat, story.summary || script);
+    programmeRef?.current?.begin?.(snapshotPlayRef.current, storyNavRef.current.cat, programmeText(story) || script,story._quickRecap);
     if (narrationStateRef.current.pendingResumeMessage) {
       programmeRef?.current?.notify?.(narrationStateRef.current.pendingResumeMessage);
       narrationStateRef.current.pendingResumeMessage = null;

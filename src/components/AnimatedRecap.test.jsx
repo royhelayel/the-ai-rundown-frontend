@@ -1,11 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import AnimatedRecap from './AnimatedRecap';
+import { clearStoryAnimationCache } from '../hooks/useStoryAnimations';
 
 const text = 'Company A has made an announcement. Company B says the plan is not final.';
 const sources = [{ text: 'Company A has made an announcement.', stories: [{ headline: 'A announces a plan', sources: [{ outlet: 'Outlet A', url: 'https://a.example' }] }] },
   { text: 'Company B says the plan is not final.', stories: [{ headline: 'B says plan is not final', sources: [{ outlet: 'Outlet B', url: 'https://b.example' }] }] }];
 const props = { text, sourcesMap: sources, category: 'Technology', progress: 0, playing: false, duration: 30, speed: 1 };
-beforeEach(() => { localStorage.clear(); });
+beforeEach(() => { localStorage.clear(); clearStoryAnimationCache(); global.fetch = jest.fn(() => Promise.resolve({ok:true,json:()=>Promise.resolve({version:1,entries:[]})})); });
 
 test('animation toggle stays local and preserves the actual current update and sources', () => {
   const open = jest.fn();

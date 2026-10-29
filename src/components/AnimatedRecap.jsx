@@ -2,7 +2,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, use
 import { ChevronUp, Star, Video, VideoOff, Headphones, Newspaper } from 'lucide-react';
 import { buildRecapScenes, scenePosition } from '../lib/recapScenes';
 import { CATEGORY_SHORT } from '../theme';
-import RecapIllustration from './RecapIllustration';
+import GeneratedStoryAnimation from './GeneratedStoryAnimation';
+import useStoryAnimations from '../hooks/useStoryAnimations';
 import './AnimatedRecap.css';
 
 const PREFERENCE = 'radionews_recap_animation';
@@ -65,6 +66,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const scenes = useMemo(() => buildRecapScenes(text, sourcesMap), [text, sourcesMap]);
   const position = scenePosition(scenes, visualProgress, charOffset);
   const audioIndex = position?.scene.index || 0;
+  const animationFor = useStoryAnimations(scenes.slice(audioIndex,audioIndex+2).map(s=>s.text),animations && !reading && visible);
   // Enter reading exactly at the narrated update. Further reading is independent of
   // the paused audio cursor; returning without a swipe resumes the exact audio position.
   useEffect(() => {
@@ -162,8 +164,8 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       </div>}
     </div> : animations ? <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.displayHeadline}</h1>
-      <div className="rn-animated-recap-stage" data-scene={scene.illustration.type}>
-        <RecapIllustration illustration={scene.illustration} phase={position.phase} animate={moving} />
+      <div className="rn-animated-recap-stage" data-scene="generated">
+        <GeneratedStoryAnimation {...animationFor(scene.text)} text={scene.text} phase={reduced || !visible ? 0 : position.phase} />
       </div>
       <div className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p><button type="button" className="rn-btn" onClick={openText} aria-label="Read this complete update">more</button></div>
     </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">

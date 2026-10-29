@@ -178,3 +178,19 @@ use the 40px stat role; the approved 17px wordmark is a separate brand asset. Us
 roles rather than adding near-duplicate sizes or fluid font clamps. All content roles use rem
 so Settings > Text size scales them together. Large text on short cards prioritises readable
 copy and accessible sources over artwork. `data-text-size` exposes that preference for layout.
+
+## Generated per-update drawings (staged, 2026-10-29)
+
+The proposed replacement removes `RecapIllustration` and `illustrationFor`; no semantic
+story/topic template is selected. `useStoryAnimations` performs only read-only lookups of
+cached generated plans by exact normalized update text. It preloads the current and next
+update only while animation is enabled and visible. Turning animation off or choosing Read
+makes no animation requests. Unknown/missing/rejected drawings are disclosed explicitly.
+
+`GeneratedStoryAnimation` renders a bounded declarative set of vector primitives and motion
+keyframes, driven only by existing audio phase. It never executes model HTML/JS/CSS or loads
+remote model assets. Labels use the shared 14/16px typography roles and quote the update.
+Device reduced-motion freezes motion. Changed narration cannot inherit an old drawing.
+The backend generation run is currently blocked by insufficient Anthropic API credit;
+visually inspect actual generated drawings and remove the initial three-drawing backend
+review limit before rolling this frontend into production.

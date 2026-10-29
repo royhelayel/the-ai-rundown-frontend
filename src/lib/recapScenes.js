@@ -32,52 +32,6 @@ export function captionPhrases(text) {
   return phrases.map(p => { const start = used / total; used += p.weight; return { ...p, start, end: used / total }; });
 }
 
-export function reportedFigures(text) {
-  // Literal excerpts only. Never round values, invent units, infer currencies, or turn
-  // a date into a trend. Qualifiers stay attached to the number on the illustration.
-  const pattern = /(?:(?:about|roughly|nearly|over|under|at least|up to|more than|less than|approximately)\s+)?(?:[$€£]\s*)?\d(?:[\d,.]*\d)?(?:[-\s]?(?:%|percent|billion|million|trillion|minutes?|hours?|days?|years?|inch(?:es)?|degrees?))?/gi;
-  return [...text.matchAll(pattern)].filter(m => !/^\d{4}$/.test(m[0]) && !/[\p{L}\p{N}]/u.test(text[m.index - 1] || ''))
-    .map(m => ({ literal: m[0], at: m.index })).slice(0, 5);
-}
-
-const cueAt = (text, pattern, fallback) => {
-  const at = text.search(pattern);
-  return at < 0 ? fallback : narrationWeight(text.slice(0, at)) / Math.max(1, narrationWeight(text));
-};
-
-export function illustrationFor(text) {
-  const sentences = recapSentences(text);
-  let cursor = 0;
-  const facts = sentences.map(literal => {
-    const at = text.indexOf(literal, cursor); cursor = at + literal.length;
-    return { literal, at, cue: narrationWeight(text.slice(0, at)) / Math.max(1, narrationWeight(text)) };
-  });
-  const figures = reportedFigures(text).map(figure => ({ ...figure,
-    context: facts.find(fact => figure.at >= fact.at && figure.at < fact.at + fact.literal.length)?.literal || text,
-    cue: narrationWeight(text.slice(0, figure.at)) / Math.max(1, narrationWeight(text)) }));
-  const fungi = /((?:(?:about|roughly|nearly|over|under|at least|up to|more than|less than|approximately)\s+)?\d+)\s+waxcap(?:\s+fungal)?\s+species/i.exec(text);
-  if (fungi && /identified|found|discover|survey/i.test(text)) {
-    return { type: 'fungi', figures, literal: `${fungi[1]} waxcap species`,
-      context: facts.find(f => f.literal.includes(fungi[0]))?.literal || text,
-      cue: cueAt(text, /\d+\s+waxcap/i, .2) };
-  }
-  const percent = /((?:(?:about|roughly|approximately)\s+)?(\d+(?:\.\d+)?)\s*(?:percent|%))\s+of\s+(?:its|the|their)\s+workforce/i.exec(text);
-  if (percent && Number(percent[2]) >= 0 && Number(percent[2]) <= 100) {
-    return { type: 'workforce', figures, percent: Number(percent[2]), percentLiteral: percent[1], cue: cueAt(text, /\d+(?:\.\d+)?\s*(?:percent|%)/i, .4) };
-  }
-  if (/Instagram/i.test(text) && /horizontal/i.test(text) && /TV|television/i.test(text) && /test/i.test(text)) {
-    return { type: 'video', figures, duration: figures.find(f => /minutes?/i.test(f.literal))?.literal,
-      cue: cueAt(text, /horizontal/i, .35), durationCue: cueAt(text, /\d+\s*minutes?/i, .6) };
-  }
-  if (/sandbox/i.test(text) && /block/i.test(text) && /external server/i.test(text) && /model/i.test(text)) {
-    return { type: 'sandbox', figures, model: /Qwen/i.test(text) ? text.match(/Qwen/i)[0] : '', cue: cueAt(text, /block/i, .8) };
-  }
-  if (/\b(?:iPhone|phone|handset|iPad|tablet)\b/i.test(text) && /\b(?:screen|display|device|handset|tablet)\b/i.test(text)) {
-    return { type: 'device', figures, tablet: /iPad|tablet/i.test(text), crack: /crack/i.test(text), replacement: /replac/i.test(text) };
-  }
-  return { type: figures.length ? 'figures' : 'editorial', figures, facts };
-}
-
 export function buildRecapScenes(rawText, sourceMap) {
   const text = normalized(rawText);
   if (!text) return [];
@@ -97,13 +51,9 @@ export function buildRecapScenes(rawText, sourceMap) {
     cursor = Math.max(cursor, charStart + row.text.length);
     const stories = row.stories.filter(story => story && typeof story.headline === 'string');
     const headline = stories[0]?.headline || row.text;
-    const illustration = illustrationFor(row.text);
-    // A literal headline prefix can introduce the update while the graphic carries
-    // the exact figures. Keep the complete original headline in the sources sheet.
-    const displayHeadline = illustration.type === 'workforce'
-      ? headline.match(/^(.+?\b(?:offers?|offering|offered)\s+(?:voluntary\s+)?buyouts)\b/i)?.[1] || headline : headline;
+    const displayHeadline = headline;
     return { ...row, stories, index, start, end: weight / total, charStart: Math.max(0, charStart), charEnd: cursor,
-      headline, displayHeadline, phrases: captionPhrases(row.text), illustration };
+      headline, displayHeadline, phrases: captionPhrases(row.text) };
   });
 }
 

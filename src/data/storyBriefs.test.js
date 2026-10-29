@@ -25,4 +25,6 @@ test.each(['Daily','Headlines'])('%s navigation covers story and topic boundarie
  expect(radioDestination(map,'World',1,1,period)).toEqual({category:'Tech',index:0});
  expect(radioDestination(map,'Tech',0,-1,period)).toEqual({category:'World',index:1});
  expect(radioDestination(map,'World',0,-1,period)).toBeNull();expect(radioDestination(map,'Tech',0,1,period)).toBeNull();
+  expect(radioDestination(map,'Missing',0,1,period)).toEqual({category:'World',index:0});
+  expect(radioDestination(map,'Missing',0,-1,period)).toBeNull();
 });

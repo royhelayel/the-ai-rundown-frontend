@@ -102,7 +102,8 @@ export function radioDestination(map,category,index,direction,period) {
   const list=map[category]?.allStories || [], next=index+direction;
   if(storyBrief(period) && next>=0 && next<list.length) return {category,index:next};
   const cats=Object.keys(map).filter(c=>map[c]?.allStories?.length), i=cats.indexOf(category);
-  if(i<0 || !cats[i+direction]) return null;
+  if(i<0) return direction>0 && cats.length ? {category:cats[0],index:0} : null;
+  if(!cats[i+direction]) return null;
   const target=cats[i+direction];
   return {category:target,index:direction<0 ? map[target].allStories.length-1 : 0};
 }

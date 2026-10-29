@@ -163,3 +163,18 @@ test('the closing cue follows the final spoken sign-off',()=>{
  expect(audio.play).not.toHaveBeenCalled();h.speak.mock.calls[0][1]();expect(audio.src).toBe('blob:quiet-closing');audio.onended();expect(h.state.active).toBe(false);
  narrationPlayer.mockReturnValue(null);
 });
+
+
+test('text-only pause/resume retains recording position and speed, while choosing another update seeks without awarding coverage', () => {
+  const h = harness();
+  const audio = { duration: 100, currentTime: 37, playbackRate: 1.5, played: { length: 0 }, pause: jest.fn(), play: jest.fn(() => Promise.resolve()) };
+  h.state.audio = audio;
+  h.fn.pause();
+  expect(h.state.paused).toBe(true); expect(audio.pause).toHaveBeenCalledTimes(1);
+  expect(audio.currentTime).toBe(37);
+  h.fn.resume();
+  expect(audio.currentTime).toBe(37); expect(audio.playbackRate).toBe(1.5);
+  h.fn.pause(); expect(h.fn.seek(65)).toBe(true); h.fn.resume();
+  expect(audio.currentTime).toBe(65); expect(audio.played.length).toBe(0);
+  expect(h.programme.end).not.toHaveBeenCalled();
+});

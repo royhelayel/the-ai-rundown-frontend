@@ -185,6 +185,7 @@ const TheAIRundown = () => {
   // failed). That voice is muted by the silent switch, so the player says so.
   const [phoneVoice, setPhoneVoice] = useState(false);
   const [recapView, setRecapView] = useState(false);
+  const [listenTextOnly, setListenTextOnly] = useState(false);
   const [recapPeriod, setRecapPeriod] = useState(() => {
     const saved = localStorage.getItem('radionews_summary_type');
     if (window.location.pathname === '/recaps' && (!saved || saved === 'Headlines')) return 'Daily';
@@ -410,7 +411,10 @@ const TheAIRundown = () => {
   const location = useLocation();
   const isReadRecap = location.pathname === '/recaps';
   useEffect(() => {
-    if (['/', '/my-feed', '/popular', '/important'].includes(location.pathname) || /\/story\//.test(location.pathname)) {
+    if (location.pathname === '/recaps') { setListenTextOnly(true); navigate('/listen', { replace: true }); }
+  }, [location.pathname, navigate]);
+  useEffect(() => {
+    if (['/popular', '/important'].includes(location.pathname) || /\/story\//.test(location.pathname)) {
       setRecapPeriod('Headlines');
     }
   }, [location.pathname]);
@@ -1754,12 +1758,7 @@ const TheAIRundown = () => {
   // The player on this tab is the screen, not something floating over what you were doing —
   // so switching to Swipe or Scroll is leaving it, not backgrounding it, and a mini bar
   // appearing at the bottom of the next screen reads as something you now have to dismiss.
-  const leaveListenPlayer = () => {
-    narrateFnRef.current.stop();
-    setPlayerVisible(false);
-    setPlayerMinimized(false);
-    setRecapView(false);
-  };
+
 
   const enterStoriesForTab = (tabPath) => {
     const playlist = playlistForTab(tabPath);
@@ -1808,27 +1807,18 @@ const TheAIRundown = () => {
     if (autoModeDoneRef.current || !authReady) return;
     const tabPaths = ['/', '/my-feed', '/popular', '/important'];
     if (!tabPaths.includes(location.pathname)) return;
-    const mode = preferredReadMode();
-    if (mode !== 'swipe' && mode !== 'audio') { autoModeDoneRef.current = true; return; }
-    const playlist = playlistForTab(location.pathname);
-    if (!playlist.length) return; // data still loading — retry on the next render
+    if (briefingLoading) return;
     autoModeDoneRef.current = true;
-    if (mode === 'audio') enterAudioMode(location.pathname);
-    else enterStoriesMode(location.pathname, playlist);
-  }, [authReady, location.pathname, briefingData]); // eslint-disable-line react-hooks/exhaustive-deps
+    enterAudioMode(location.pathname);
+
+  }, [authReady, location.pathname, briefingData, briefingLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Finishing the tour ("Start exploring") goes home — the page the app opens on, in the way you
   // last chose — rather than back to Settings, where a replayed tour was started (Roy,
   // 2026-10-18). Skip just closes it where you are.
   const finishOnboarding = () => {
     dismissOnboarding();
-    const mode = preferredReadMode();
-    if (mode === 'audio') { if (location.pathname !== '/listen') enterAudioMode('/'); return; }
-    if (mode === 'swipe') {
-      const playlist = playlistForTab('/');
-      if (playlist.length) { enterStoriesMode('/', playlist); return; }
-    }
-    if (location.pathname !== '/') navigate('/');
+    if (location.pathname !== '/listen') enterAudioMode('/');
   };
 
   // /saved was the "My Interesting" feed; it now lives in Reading history.
@@ -1947,7 +1937,7 @@ const TheAIRundown = () => {
 
   useProgrammeMediaSession({ active: isNarrating, paused: isPaused, title: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${recapPeriod === 'Headlines' ? 'Headlines' : recapPeriod === 'Daily' ? 'Daily recap' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'}`,
     edition: editionDate, duration: narrationDurationRef.current, progress: narrationProgress, speed: playbackSpeed,
-    onPlay: () => { if (isPaused) narrateFnRef.current.resume(); else if (isListenPath) cueRadio(selectedCategory, true, storyIndex); },
+    onPlay: () => { if (isListenPath) setListenTextOnly(false); if (isPaused) narrateFnRef.current.resume(); else if (isListenPath) cueRadio(selectedCategory, true, storyIndex); },
     onPause: () => narrateFnRef.current.pause(), onStop: () => narrateFnRef.current.stop(),
     onNext: () => isListenPath ? skipRadio(1) : goNext(), onPrev: () => isListenPath ? skipRadio(-1) : goPrev(), onSeek: p => narrateFnRef.current.seek(p) });
   const mixCats = Object.keys(radioMap);
@@ -2267,35 +2257,36 @@ const TheAIRundown = () => {
           resumeProgramme={isListenPath && !isNarrating && recapPeriod !== 'Headlines' ? audioProgramme.resume : null}
           onResumeProgramme={continueProgramme}
           loading={(isListenPath || isReadRecap) && (briefingLoading || radio.loading)}
-          readOnly={isReadRecap}
+          readOnly={isReadRecap || (isListenPath && listenTextOnly)}
+          unified={isListenPath}
+          onChangeReading={(reading, target) => {
+            setListenTextOnly(reading);
+            if (reading) {
+              if (isNarrating && !isPaused) narrateFnRef.current.pause();
+              return;
+            }
+            unlockSpeech();
+            if (isNarrating && isPaused) {
+              if (target !== undefined) narrateFnRef.current.seek?.(target);
+              narrateFnRef.current.resume();
+            } else if (!isNarrating && stories.length) {
+              cueRadio(selectedCategory, true, storyIndex);
+              if (target !== undefined) narrationStateRef.current.pendingResumeFraction = target / 100;
+            }
+          }}
+          onReadUpdate={items => {
+            if (recapPeriod !== 'Headlines') return;
+            const list = briefingData[selectedCategory]?.allStories || [];
+            items.forEach(item => {
+              const index = list.findIndex(st => headlineKey(st.headline || "") === headlineKey(item.headline || ""));
+              if (index >= 0) handleMarkRead(list[index], selectedCategory, index);
+            });
+          }}
           asPage={isListenPath || isReadRecap}
           visible={isListenPath || isReadRecap ? true : !fullPlayerExiting}
           isExiting={isListenPath || isReadRecap ? false : fullPlayerExiting}
-          footer={isReadRecap ? (
-            <BottomNav fixed={false} mode="scroll" compactRead
-              onChangeMode={() => enterAudioMode(playerSourcePath.current || '/my-feed')}
-              challengeStats={challengeStatsFull} user={user}
-              onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
-          ) : isListenPath ? (
-            <BottomNav theme="dark" fixed={false} mode="audio" compactRead={recapPeriod !== 'Headlines'}
-              onChangeMode={(m) => {
-                // Step out of the page's player state before leaving. On /listen the player
-                // is the page, so playerVisible has no bearing on what you see — but the
-                // moment the route changes, that same flag renders the *sheet* over Swipe or
-                // Scroll. Leaving with audio running hands it to the mini player, which is
-                // what "keep listening while I read" already means everywhere else; leaving
-                // silent just closes it.
-                leaveListenPlayer();
-                if (recapPeriod !== 'Headlines') {
-                  rememberReadMode('scroll');
-                  summaryReadFromRef.current = { pathname: playerSourcePath.current || '/', state: null };
-                  navigate('/recaps'); return;
-                }
-                if (m === 'swipe') { rememberReadMode('swipe'); enterStoriesForTab(playerSourcePath.current || '/'); }
-                // Hand the cursor over the same way leaving Swipe does, so Scroll opens on
-                // the story you were listening to rather than at the top of the feed.
-                else if (m === 'scroll') { rememberReadMode('scroll'); setPendingFocus(focusRef.current); navigate(playerSourcePath.current || '/'); }
-              }}
+          footer={isListenPath ? center => (
+            <BottomNav fixed={false} utilitiesOnly center={center}
               challengeStats={challengeStatsFull} user={user}
               onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
           ) : null}
@@ -2417,7 +2408,7 @@ const TheAIRundown = () => {
           })()}
           onSelectCategory={(cat) => {
             if (isReadRecap) { setSelectedCategory(cat); return; }
-            if (isListenPath) { cueRadio(cat, isNarrating && !isPaused); return; }
+            if (isListenPath) { cueRadio(cat, !listenTextOnly && isNarrating && !isPaused); return; }
             // A recap was playing: stop it and go back to live stories for the new topic.
             if (stories[0]?._isBriefing) { narrateFnRef.current.stop(); snapshotPlayRef.current = null; setStories(briefingData[cat]?.allStories || []); }
             // Snapshot feeds: switch category within the snapshot, don't drop to live news

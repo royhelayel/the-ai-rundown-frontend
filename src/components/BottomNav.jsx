@@ -17,6 +17,8 @@ const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?
 
 export default function BottomNav({
   fixed = true,
+  center = null,
+  utilitiesOnly = false,
   compactRead = false,
   mode = 'scroll',
   onChangeMode,
@@ -26,6 +28,23 @@ export default function BottomNav({
 }) {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const challengePanel = useRef(null);
+  useEffect(() => {
+    if (!sheetOpen) return undefined;
+    const previous = document.activeElement;
+    challengePanel.current?.querySelector('button')?.focus();
+    const key = e => {
+      if (e.key === 'Escape') { e.preventDefault(); setSheetOpen(false); }
+      if (e.key !== 'Tab') return;
+      const nodes = challengePanel.current?.querySelectorAll('button,a[href],input');
+      if (!nodes?.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('keydown', key); previous?.focus?.(); };
+  }, [sheetOpen]);
 
   const todayCount = challengeStats?.todayCount || 0;
   const dailyGoal  = challengeStats?.dailyGoal  || 10;
@@ -115,6 +134,7 @@ export default function BottomNav({
           <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
             <UserCircle size={22} strokeWidth={1.8} />
           </button>
+          {utilitiesOnly ? <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>{center}</div> : (
           <div role="group" aria-label="How you take in the news"
             style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
             {/* The highlight: one segment of the track — a half while Read is folded, a third while it
@@ -143,6 +163,7 @@ export default function BottomNav({
               </button>
             </div>
           </div>
+          )}
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
               : challengeStats?.todayAudioComplete ? 'Challenge: listening mix completed' : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
@@ -161,7 +182,7 @@ export default function BottomNav({
       {/* Challenge sheet */}
       <div onClick={() => setSheetOpen(false)}
         style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--overlay)', opacity: sheetOpen ? 1 : 0, pointerEvents: sheetOpen ? 'auto' : 'none', transition: 'opacity 0.3s' }} />
-      <div style={{
+      <div ref={challengePanel} inert={!sheetOpen ? true : undefined} aria-hidden={!sheetOpen} role={sheetOpen ? 'dialog' : undefined} aria-modal={sheetOpen ? 'true' : undefined} aria-label="Reading challenge" style={{
         position: 'fixed', left: '50%', bottom: 0, zIndex: 301,
         width: '100%', maxWidth: 560, transform: `translateX(-50%) translateY(${sheetOpen ? '0' : '100%'})`,
         transition: 'transform 0.34s cubic-bezier(0.32,0.72,0,1)',

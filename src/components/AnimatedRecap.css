@@ -64,3 +64,23 @@
 @container recap-card (max-height:290px){.rn-animated-recap-title{-webkit-line-clamp:2;font-size:21px}.rn-recap-workforce{gap:2px 4px}.rn-recap-workforce-values{gap:9px}.rn-animated-recap-caption p{font-size:14px}.rn-recap-sandbox{min-height:65px}.rn-recap-sandbox-label{display:none}.rn-recap-model{width:35px;height:35px}.rn-recap-server svg{height:28px}.rn-recap-blocked{top:80%}}
 @container recap-card (max-height:235px){.rn-animated-recap-stage{display:none}.rn-animated-recap-title{-webkit-line-clamp:1}.rn-animated-recap-caption{flex:1;align-items:center}.rn-animated-recap-caption p{-webkit-line-clamp:2}.rn-animated-recap-footer{min-height:40px}}
 @media(prefers-reduced-motion:reduce){.rn-animated-recap *{transition:none!important;animation:none!important}}
+
+.rn-brief-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.rn-brief-actions .rn-brief-mode{font-weight:700;font-size:13px;color:var(--card-ink);min-height:44px;padding-inline:4px}
+.rn-brief-transcript{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.rn-brief-transcript h1,.rn-brief-reader h1{margin:0 0 14px;font-size:clamp(21px,1.5rem,29px);line-height:1.15;letter-spacing:-.035em;font-weight:750}
+.rn-brief-transcript p,.rn-brief-reader p{margin:0 0 16px;font-size:1.03125rem;line-height:1.5;color:var(--card-body)}
+.rn-brief-transcript p[data-current=true]{color:var(--card-ink);font-weight:600}
+.rn-brief-transcript .rn-brief-date{font-size:12px;color:var(--card-sub);font-weight:400}
+.rn-brief-reader{position:relative;min-height:0;flex:1;display:flex;flex-direction:column;padding-inline-end:15px;touch-action:pan-x;overscroll-behavior:contain;outline-offset:3px}
+.rn-brief-reader-copy{min-height:0;overflow:hidden;flex:1;animation:rn-brief-in .22s ease-out}
+.rn-brief-reader h1{font-size:1.5rem}
+.rn-brief-more{font-size:13px;align-self:flex-start;min-height:44px;color:var(--card-sub)}
+.rn-brief-dots{position:absolute;right:-12px;top:50%;max-height:75%;transform:translateY(-50%);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
+.rn-brief-dots button{display:grid;place-items:center;min-width:28px;min-height:22px}
+.rn-brief-dots span{height:4px;width:4px;border-radius:3px;background:var(--card-sub);opacity:.25;transition:height .2s,opacity .2s}
+.rn-brief-dots [aria-current=true] span{height:13px;opacity:1;background:var(--card-ink)}
+@keyframes rn-brief-in{from{opacity:.3;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.rn-brief-reader-copy{animation:none}}
+
+@media(max-height:480px){.rn-unified-card{min-height:260px!important;flex-shrink:0!important}}

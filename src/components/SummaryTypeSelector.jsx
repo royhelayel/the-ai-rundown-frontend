@@ -4,8 +4,8 @@ import { centrePill } from '../utils';
 import './SummaryTypeSelector.css';
 
 export const SUMMARY_TYPES = [
-  { value: 'Headlines', label: 'Headlines' },
-  { value: 'Daily', label: 'Daily recap' },
+  { value: 'Daily', label: 'Quick brief' },
+  { value: 'Headlines', label: 'Full brief' },
   { value: 'Weekly', label: 'Last week' },
   { value: 'Monthly', label: 'Last month' },
 ];

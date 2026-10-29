@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -224,6 +224,7 @@ export default function FullPlayer({
   onChangeRecapView,
   recapPeriod = 'Daily',
   readOnly = false,
+  unified = false, onChangeReading, onReadUpdate,
   onChangeRecapPeriod,
   periodReady,
   recapText,
@@ -237,6 +238,8 @@ export default function FullPlayer({
   recapAttributions, getRecapStoryAction,
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
+  const readerRef = useRef(null);
+  const [readerNavigation, setReaderNavigation] = useState({ next: false, previous: false });
   const dayPickerRef = useRef(null);
   useEffect(() => {
     if (!dayPickerOpen) return;
@@ -939,6 +942,31 @@ export default function FullPlayer({
       </article>
     );
 
+    const nextDisabled = !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1));
+    const prevDisabled = radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0);
+    const unifiedText = recapView ? recapText : excerpt;
+    const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: [{ headline, sources: outlets }] }] : null;
+    const unifiedCard = <article className="rn-tp rn-unified-card" style={{ ...cardFrame, flex: '1 1 430px', minHeight: 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0 }}>
+      {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
+        text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView ? recapSources : fullStoryMap[0].stories}
+        category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
+        playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
+        externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}
+        reading={readOnly} onChangeReading={onChangeReading} onNext={onNext} onPrev={onPrev}
+        canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}
+        title={recapView ? `${recapPeriod === 'Daily' ? 'Today' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'} in ${topicName}` : headline}
+        dateLabel={recapPeriod === 'Weekly' ? weekLabel : recapPeriod === 'Monthly' ? monthLabel : fmtDay(selectedDay)}
+        getStoryAction={recapView ? getRecapStoryAction : () => ({ interesting: isInteresting, toggle: onToggleInteresting })}
+        onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
+          <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: 13, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
+          <h1 style={h1}>{topicName}</h1>
+          <p style={{ fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
+            {recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
+          </p>
+        </div>}
+    </article>;
+
     const canPlay = recapView ? !!recapText : storyCount > 0;
     const navBtn = (onClick, label, Icon, disabled) => (
       <button className="rn-btn" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label}
@@ -947,8 +975,23 @@ export default function FullPlayer({
       </button>
     );
 
+    const transport = (<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: unified ? 12 : 36, minHeight: 64 }}>
+                {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
+                <button className="rn-btn" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
+                  title={!canPlay ? 'Audio is available when this recap is ready' : undefined}
+                  style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {isLoading && playingThis
+                    ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
+                    : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
+                </button>
+                {radioOnly ? navBtn(() => slideTo('next', onNext), recapView ? 'Next category recap' : 'Next story', FastForward, !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1))) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
+                  atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
+                  FastForward, recapView || (atBatchEnd && !topicAt(1)))}
+              </div>);
+    const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: 12, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><ChevronUp size={14} />{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe up to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
+
     return (
-      <div data-mode-surface={readOnly ? 'scroll' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
@@ -965,11 +1008,11 @@ export default function FullPlayer({
         </div>
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
-          display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
+          display: 'flex', flexDirection: 'column', padding: '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
           {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
           {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: 13, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
-          {loading ? <NewsLoader day={selectedDay} /> : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
-          {!loading && !recapView && pageDots.length > 1 && (
+          {loading ? <NewsLoader day={selectedDay} /> : unified ? unifiedCard : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
+          {!unified && !loading && !recapView && pageDots.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>
           )}
 
@@ -1004,19 +1047,7 @@ export default function FullPlayer({
                   )}
                 </button>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, minHeight: 64 }}>
-                {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
-                <button className="rn-btn" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
-                  title={!canPlay ? 'Audio is available when this recap is ready' : undefined}
-                  style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {isLoading && playingThis
-                    ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
-                    : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
-                </button>
-                {radioOnly ? navBtn(() => slideTo('next', onNext), recapView ? 'Next category recap' : 'Next story', FastForward, !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1))) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
-                  atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
-                  FastForward, recapView || (atBatchEnd && !topicAt(1)))}
-              </div>
+              {!unified && transport}
               {phoneVoice && (
                 <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.45 }}>
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
@@ -1027,7 +1058,7 @@ export default function FullPlayer({
           )}
           <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />
         </div>
-        {footer}
+        {typeof footer === 'function' ? footer(footerCenter) : footer}
         {sourcesSnapshot && <RecapSourcesSheet snapshot={sourcesSnapshot} onClose={closeSources} />}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>

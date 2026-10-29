@@ -1,4 +1,4 @@
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import { ONBOARDING_KEY } from './components/OnboardingTour';
@@ -78,15 +78,14 @@ test('a first-time visitor sees the onboarding tour', async () => {
   expect(await screen.findByRole('button', { name: 'Skip' })).toBeInTheDocument();
 });
 
-test('a returning guest lands on the home feed with the reading modes', async () => {
+test('a returning guest defaults to the unified audio page even with no generated news', async () => {
   renderForReturningGuest();
-  expect(await screen.findByRole('button', { name: 'Swipe', exact: true })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Listen' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Scroll', exact: true })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Swipe or scroll' })).not.toBeInTheDocument();
+  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
+  expect(await screen.findByRole('button', { name: 'Quick brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByRole('group', { name: 'How you take in the news' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
-  expect(await screen.findByText('No stories available for this day.')).toBeInTheDocument();
+  expect(await screen.findByText(/No quick brief is available/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
 });
 
 test('the edition picker opens on the latest edition and switches to an earlier day', async () => {
@@ -99,6 +98,7 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   renderForReturningGuest();
 
   // With no edition today, the feed jumps to the newest day that has one.
+  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
   const picker = await screen.findByRole('button', { name: 'Sun, Sep 20' });
   userEvent.click(picker);
 
@@ -136,66 +136,54 @@ const chooseSummary = async (currentLabel, nextLabel) => {
   await waitFor(() => expect(within(screen.getByRole('group', { name: 'Summary type' })).getByRole('button', { name: nextLabel, exact: true })).toHaveAttribute('aria-pressed', 'true'));
 };
 
-test('summary choice is independent of Listen/Read, retains topic, and includes daily and period recaps', async () => {
-  localStorage.setItem('radionews_summary_type', 'Headlines');
+test('one page supports animated audio, text/audio and text only across all four briefs', async () => {
   localStorage.setItem(ONBOARDING_KEY, '1');
-  window.history.pushState({}, '', '/listen');
-  installSummaryFixtures();
-  render(<App />);
-  expect(await screen.findByText('reported', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Story 2 of 2' }));
-  expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Next story' }));
-  expect(await screen.findByRole('heading', { name: 'Technology story' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Previous story' }));
-  expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
-  await chooseSummary('Headlines', 'Daily recap');
-  expect(await screen.findByRole('button', { name: 'Turn animation off' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: /daily briefing/ })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Story order' })).not.toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
-  await waitFor(() => expect(window.location.pathname).toBe('/recaps'));
-  await waitFor(() => expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument());
-  expect(screen.queryByRole('slider', { name: 'Audio progress' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Swipe', exact: true })).not.toBeInTheDocument();
-  await chooseSummary('Daily recap', 'Last week');
-  expect(await screen.findByText('weekly', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Tech', exact: true }));
-  expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
-  // An unavailable topic must not silently substitute World, nor retain its text.
-  expect(screen.queryByText('weekly', { exact: true })).not.toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
-  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
-  expect(await screen.findByText(/weekly Tech recap isn't ready yet/)).toBeInTheDocument();
+  window.history.pushState({}, '', '/listen'); installSummaryFixtures(); render(<App />);
+  await screen.findByRole('button', { name: 'Turn animation off' });
+  userEvent.click(screen.getByRole('button', { name: 'Turn animation off' }));
+  expect(screen.getByRole('region', { name: 'Brief transcript' })).toHaveTextContent('daily briefing');
   expect(screen.getByRole('region', { name: 'Player' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
+  expect(window.location.pathname).toBe('/listen');
+  expect(screen.getByRole('region', { name: 'Swipeable news text' })).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
+  await chooseSummary('Quick brief', 'Last week');
+  expect(await screen.findByRole('heading', { name: 'Verified weekly recap.' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Tech', exact: true }));
+  expect(await screen.findByText(/No weekly brief is available for Tech/)).toBeInTheDocument();
+  expect(screen.queryByText('Verified weekly recap.')).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
   expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
   userEvent.click(screen.getByRole('button', { name: 'World', exact: true }));
-  expect(await screen.findByRole('heading', { name: 'Verified weekly recap.' })).toBeInTheDocument();
+  expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('Verified weekly recap.');
   await chooseSummary('Last week', 'Last month');
-  expect(await screen.findByRole('heading', { name: 'Verified monthly recap.' })).toBeInTheDocument();
-  await chooseSummary('Last month', 'Headlines');
-  expect(await screen.findByRole('button', { name: 'Next story' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: /Turn animation/ })).not.toBeInTheDocument();
+  expect(await screen.findByText('Verified monthly recap.')).toBeInTheDocument();
+  await chooseSummary('Last month', 'Full brief');
+  expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('A reported fact.');
+  userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
+  expect(screen.getByRole('heading', { name: 'World News story' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Next reading update' }));
+  expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Next reading update' }));
+  expect(await screen.findByRole('heading', { name: 'Technology story' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
 });
 
-test('Read headlines exposes summary choices and restores its previous reading route', async () => {
-  localStorage.setItem('rundown_read_mode', 'scroll');
-  installSummaryFixtures();
-  renderForReturningGuest();
-  expect(await screen.findByRole('group', { name: 'Summary type' })).toBeInTheDocument();
-  await chooseSummary('Headlines', 'Daily recap');
-  expect(await screen.findByText('daily', { exact: true, ignore: '[aria-hidden="true"] *' })).toBeInTheDocument();
-  await chooseSummary('Daily recap', 'Headlines');
-  await waitFor(() => expect(window.location.pathname).toBe('/'));
-  expect(screen.getByRole('button', { name: 'Story order' })).toBeInTheDocument();
+test('summary preference survives reload, old reading preference no longer bypasses the unified page', async () => {
+  localStorage.setItem(ONBOARDING_KEY, '1'); localStorage.setItem('rundown_read_mode', 'swipe');
+  installSummaryFixtures(); const first = render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
+  await chooseSummary('Quick brief', 'Full brief'); first.unmount();
+  render(<App />);
+  expect(await screen.findByRole('button', { name: 'Full brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await screen.findByRole('button', { name: 'Turn animation off' })).toBeInTheDocument();
 });
 
-test('first-time listeners open daily recaps and returning listeners keep their summary choice', async () => {
- localStorage.setItem(ONBOARDING_KEY,'1');window.history.pushState({},'', '/listen');installSummaryFixtures();
- const first=render(<App />);
- expect(await screen.findByRole('button',{name:'Daily recap',exact:true})).toHaveAttribute('aria-pressed','true');
- await chooseSummary('Daily recap','Headlines');first.unmount();
- render(<App />);
- expect(await screen.findByRole('button',{name:'Headlines',exact:true})).toHaveAttribute('aria-pressed','true');
+test('old recap links open text-only on the unified page without audio autoplay', async () => {
+  localStorage.setItem(ONBOARDING_KEY, '1'); window.history.pushState({}, '', '/recaps');
+  installSummaryFixtures(); render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe('/listen'));
+  expect(await screen.findByRole('region', { name: 'Swipeable news text' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
 });

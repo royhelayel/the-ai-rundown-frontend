@@ -144,3 +144,18 @@ The card's outlet button snapshots the current update into `RecapSourcesSheet`; 
 its complete text. Missing mappings retain a clearly labelled all-topic sources list. Daily
 Interesting actions resolve the original headline back to the actual story, not the recap
 pseudo-story. Keep sources and player controls visible at compact phone heights.
+
+## Unified briefing experience (2026-10-29)
+
+The main entry now opens the unified `/listen` experience, without the bottom Listen/Read
+selector. `BottomNav` uses `utilitiesOnly` with the transport in its center slot; account and
+challenge remain at the ends. Default audio is cued silently, and Play starts it.
+`Headlines` remains the storage/engine value but is labelled **Full brief**; `Daily` is labelled
+**Quick brief**, followed by Last week and Last month. Do not rename persisted engine values.
+
+`AnimatedRecap` supports three presentations: animated audio, complete transcript/audio when
+animation is off, and vertically swipeable text when Read is chosen. Read pauses the existing
+engine; Listen restores the same position unless the reader deliberately selects a different
+update. Animation preferences remain independent of reading. Date/topic/brief changes must
+not start audio while reading. Old `/recaps` URLs redirect to this page in reading mode.
+Reading quick/period recaps does not mark all their full headline summaries as read.

@@ -8,15 +8,15 @@ import Logo from './Logo';
 export const ONBOARDING_KEY = 'rundown_onboarding_seen';
 
 const SLIDES = [
-  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Headline summaries play one after another across your news categories, with natural transitions along the way.' },
+  { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Your news briefs play one after another across your chosen categories. Watch the animation, or turn it off and keep listening.' },
   { label: 'Summaries', eyebrow: 'Less repetition. More understanding.', title: 'Different news outlets. One short summary.', body: 'Related coverage from different news outlets, brought together in short summaries. Get the essentials, with links to the original reporting.' },
-  { label: 'Read', eyebrow: 'Make your scrolling count.', title: 'Prefer to read?', body: 'The familiar swipe and scroll, with more to take away. Browse short news summaries and leave better informed.' },
-  { label: 'Recaps', eyebrow: 'Step back. See what changed.', title: 'Catch up on last week or last month.', body: 'Listen to a category recap of last week or last month. Revisit the main developments over a longer period, beyond the daily headlines.' },
+  { label: 'Read', eyebrow: 'Stay informed. Your way.', title: 'Prefer to read?', body: 'Tap Read on any brief to pause the audio and swipe up through the updates. Tap Listen to pick up where you left off.' },
+  { label: 'Recaps', eyebrow: 'Step back. See what changed.', title: 'A brief that fits your time.', body: 'Choose Quick brief for a short daily overview, or Full brief to hear each story summary. Step back with Last week and Last month. Every option works for listening and reading.' },
   { label: 'Categories', eyebrow: 'Your interests. Your news.', title: 'Follow what matters to you.', body: 'Choose your news categories and build your own news mix. Change it whenever your interests change.' },
 ];
 
 function TourPreview({ index }) {
-  const [readingMode, setReadingMode] = useState('Swipe');
+  const [readingMode, setReadingMode] = useState('Text only');
   const [period, setPeriod] = useState('Last week');
   const [categories, setCategories] = useState(['World', 'Technology']);
   if (index === 0) return <div className="intro-demo intro-listen">
@@ -34,22 +34,22 @@ function TourPreview({ index }) {
     <span className="intro-note">Original sources within reach</span>
   </div>;
   if (index === 2) return <div className="intro-demo">
-    <div className="intro-choices" role="group" aria-label="Preview reading modes">{['Swipe', 'Scroll'].map(mode => <button key={mode} type="button" aria-pressed={mode === readingMode} onClick={() => setReadingMode(mode)}>{mode}</button>)}</div>
-    {readingMode === 'Swipe' ? <ArrowUp size={28} aria-hidden="true" /> : <AlignLeft size={28} aria-hidden="true" />}
-    <strong>{readingMode === 'Swipe' ? 'One story at a time.' : 'Your news, at your pace.'}</strong>
-    <p>{readingMode === 'Swipe' ? 'Swipe up to move to the next story.' : 'Scroll through summaries and stop on what interests you.'}</p>
+    <div className="intro-choices" role="group" aria-label="Preview reading modes">{['Text + audio', 'Text only'].map(mode => <button key={mode} type="button" aria-pressed={mode === readingMode} onClick={() => setReadingMode(mode)}>{mode}</button>)}</div>
+    {readingMode === 'Text only' ? <ArrowUp size={28} aria-hidden="true" /> : <AlignLeft size={28} aria-hidden="true" />}
+    <strong>{readingMode === 'Text only' ? 'One update at a time.' : 'Your audio, with the text.'}</strong>
+    <p>{readingMode === 'Text only' ? 'Swipe up for the next update. Tap Listen to return to audio.' : 'Turn animation off to follow the text while the audio continues.'}</p>
   </div>;
   if (index === 3) return <div className="intro-demo">
-    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
+    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Quick brief', 'Full brief', 'Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
     <span className="intro-small">WORLD · {period.toUpperCase()}</span>
-    <strong>{period === 'Today' ? 'Your daily overview.' : period === 'Last week' ? 'The week in perspective.' : 'The month in perspective.'}</strong>
+    <strong>{period === 'Quick brief' ? 'The essentials, in one go.' : period === 'Full brief' ? 'Every story, one after another.' : period === 'Last week' ? 'The week in perspective.' : 'The month in perspective.'}</strong>
     <div className="intro-queue"><Headphones size={18} aria-hidden="true" /><span>Listen</span><span aria-hidden="true">·</span><AlignLeft size={18} aria-hidden="true" /><span>Read</span></div>
     <span className="intro-note">Recaps appear when available</span>
   </div>;
   return <div className="intro-demo">
     <span className="intro-small">A NEWS MIX THAT FEELS LIKE YOU</span>
     <div className="intro-categories" role="group" aria-label="Example news categories">{['World', 'Technology', 'Business', 'Health', 'Science', 'Sports'].map(category => <button type="button" key={category} aria-pressed={categories.includes(category)} onClick={() => setCategories(current => current.includes(category) ? current.filter(c => c !== category) : [...current, category])}>{category}{categories.includes(category) && <Check size={14} aria-hidden="true" />}</button>)}</div>
-    <span className="intro-note">Try a selection here. Set your categories in My News.</span>
+    <span className="intro-note">Try a selection here. Use the topic controls to choose your mix.</span>
   </div>;
 }
 

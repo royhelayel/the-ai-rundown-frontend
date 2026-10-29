@@ -122,7 +122,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 2400);
   };
   const changeReading = () => {
-    if (reading) onChangeReading?.(false, readerMoved.current ? scene.start * 100 : undefined);
+    if (reading) onChangeReading?.(false, readerMoved.current ? Math.min(99.99, scene.start * 100 + 0.01) : undefined);
     else { setReaderIndex(audioIndex); readerMoved.current = false; onChangeReading?.(true); }
   };
   const begin = e => {

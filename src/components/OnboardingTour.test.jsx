@@ -21,13 +21,13 @@ test('direct navigation, preview choices and back work without changing preferen
   render(<OnboardingTour onClose={onClose} />);
   const previousStorage = { ...localStorage };
   fireEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
-  fireEvent.click(screen.getByRole('button', { name: 'Scroll', exact: true }));
-  expect(screen.getByText('Your news, at your pace.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Text + audio', exact: true }));
+  expect(screen.getByText('Your audio, with the text.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Last month' }));
   expect(screen.getByText('The month in perspective.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-  expect(screen.getByRole('button', { name: 'Scroll', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: 'Text + audio', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect({ ...localStorage }).toEqual(previousStorage);
   fireEvent.click(screen.getByRole('button', { name: 'Skip', exact: true }));
   expect(onClose).toHaveBeenCalledTimes(1);

@@ -1,3 +1,4 @@
+import { HOME_TYPE } from './homeTypography';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
@@ -90,7 +91,7 @@ export default function BottomNav({
     return (
       <button key={value} className="rn-btn" aria-current={on ? 'page' : undefined}
         onClick={() => !on && go(value)} {...extra.props}
-        style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: 13,
+        style={{ position: 'relative', zIndex: 1, flex: 1, minWidth: 0, minHeight: 38, borderRadius: 10, fontSize: HOME_TYPE.ui,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           cursor: on ? 'default' : 'pointer', background: 'transparent',
           color: lit ? 'var(--ink)' : 'var(--sub)', fontWeight: lit ? 650 : 500,
@@ -116,7 +117,7 @@ export default function BottomNav({
           <circle cx="22" cy="22" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
         </svg>
       )}
-      <span style={{ position: 'relative', fontSize: exceeded ? 13 : 10.5, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ position: 'relative', fontSize: HOME_TYPE.meta, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
       </span>
     </>
@@ -155,7 +156,7 @@ export default function BottomNav({
               <button className="rn-btn" aria-label="Read: Swipe or Scroll" aria-expanded={open}
                 tabIndex={open ? -1 : 0} aria-hidden={open ? true : undefined}
                 onClick={() => go('swipe')}
-                style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: 13, fontWeight: 500,
+                style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 10, fontSize: HOME_TYPE.ui, fontWeight: 500,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'transparent', color: 'var(--sub)',
                   opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto',
                   transition: motion || 'opacity 0.15s ease' }}>
@@ -192,7 +193,7 @@ export default function BottomNav({
       }}>
         <div style={{ padding: '10px 18px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ width: 38, height: 5, borderRadius: 5, background: 'var(--line)', position: 'absolute', left: '50%', top: 10, transform: 'translateX(-50%)' }} />
-          <span style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--sub)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Reading challenge</span>
+          <span style={{ fontSize: HOME_TYPE.meta, fontWeight: 650, color: 'var(--sub)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Reading challenge</span>
           <button className="rn-btn" onClick={() => setSheetOpen(false)} aria-label="Close"
             style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--panel)', color: 'var(--sub)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={16} />

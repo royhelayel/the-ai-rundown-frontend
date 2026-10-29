@@ -1,3 +1,4 @@
+import { HOME_TYPE } from './homeTypography';
 /** Shared identity, topics, summary type and headline order across Listen and Read. */
 import React, { useEffect, useRef } from 'react';
 import { Calendar, SlidersHorizontal } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function AppHeader({
 
   const chip = (key, label, on, onClick, ref, style = {}, className) => (
     <button key={key} ref={ref} className={`rn-btn ${className || ''}`} aria-pressed={on} onClick={onClick}
-      style={{ minHeight: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
+      style={{ minHeight: 38, padding: '0 14px', borderRadius: 10, fontSize: HOME_TYPE.ui, whiteSpace: 'nowrap', flexShrink: 0,
         fontWeight: on ? 600 : 500,
         border: on ? '1px solid transparent' : '1px solid var(--line)',
         color: on ? 'var(--chip-on-ink)' : 'var(--sub)', ...style }}>
@@ -74,9 +75,9 @@ export default function AppHeader({
           <Dropdown value={effectiveDay} options={dayOptions} onChange={onSelectDay} width={170}
             label={formatHeaderDate(effectiveDay)} title="Pick a day"
             icon={<Calendar size={16} strokeWidth={1.8} />}
-            buttonStyle={{ fontSize: 14, color: 'var(--ink)', gap: 6 }} />
+            buttonStyle={{ fontSize: HOME_TYPE.ui, color: 'var(--ink)', gap: 6 }} />
         ) : (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: HOME_TYPE.ui, fontWeight: 600 }}>
             <Calendar size={16} strokeWidth={1.8} />{formatHeaderDate(effectiveDay)}
           </span>
         )}
@@ -111,7 +112,7 @@ export default function AppHeader({
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
           <SummaryTypeSelector value={period} onChange={onChangePeriod} category={activeCategory || recapCategory} />
           {period === 'Headlines' && onChangeLens && (
-            <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Story order" buttonStyle={{ fontSize: 12.5 }} />
+            <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Story order" buttonStyle={{ fontSize: HOME_TYPE.ui }} />
           )}
         </div>
       )}

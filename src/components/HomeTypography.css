@@ -1,0 +1,9 @@
+/* Home text roles, at the normal 16px root. rem keeps Settings > Text size working.
+   The existing wordmark is a separate brand asset, not another content style. */
+:root {
+  --rn-home-meta: .75rem;      /* 12: supporting details */
+  --rn-home-ui: .875rem;      /* 14: navigation and controls */
+  --rn-home-body: 1rem;       /* 16: all news copy */
+  --rn-home-title: 1.5rem;    /* 24: headings */
+  --rn-home-stat: 2.5rem;     /* 40: illustrated figures only */
+}

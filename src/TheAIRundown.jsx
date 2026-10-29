@@ -1954,7 +1954,7 @@ const TheAIRundown = () => {
   useModePageMotion(readingMode);
 
   return (
-    <div style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh' }}>
+    <div data-text-size={fontSize} style={{ background: 'var(--paper)', color: 'var(--ink)', minHeight: '100dvh' }}>
       <GlobalStyles />
 
       {/* ── Onboarding Tour ── */}

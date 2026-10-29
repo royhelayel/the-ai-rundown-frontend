@@ -169,3 +169,12 @@ reported sentence with a quiet transition instead of a decorative newspaper. Wax
 with an explicit species count use a labelled fungi motif; its three mushroom shapes are
 illustrative, not a quantitative count. Keep qualifiers and uncertainty; do not invent charts,
 changes, locations or comparisons from limited source material.
+
+## Home typography (2026-10-29)
+
+The unified home uses `HomeTypography.css` and `homeTypography.js`: 12px supporting details,
+14px controls, 16px news copy and 24px headings at normal text size. Illustrated figures may
+use the 40px stat role; the approved 17px wordmark is a separate brand asset. Use the semantic
+roles rather than adding near-duplicate sizes or fluid font clamps. All content roles use rem
+so Settings > Text size scales them together. Large text on short cards prioritises readable
+copy and accessible sources over artwork. `data-text-size` exposes that preference for layout.

@@ -1,3 +1,4 @@
+import { HOME_TYPE } from './homeTypography';
 import { useState } from 'react';
 import './audioSeekBar.css';
 
@@ -14,6 +15,6 @@ export default function AudioSeekBar({ progress = 0, duration = 0, disabled, onS
     onPointerUp={e => { if (draft === null) return; e.stopPropagation(); onSeek?.(Number(e.currentTarget.value)); setDraft(null); }}
     onPointerCancel={() => setDraft(null)}
     onLostPointerCapture={() => setDraft(null)} />
-    {draft !== null && <span aria-hidden="true" style={{ position: 'absolute', bottom: 36, left: `clamp(20px, ${value}%, calc(100% - 20px))`, transform: 'translateX(-50%)', pointerEvents: 'none', background: 'var(--ink)', color: 'var(--paper)', borderRadius: 6, padding: '4px 6px', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{time(duration * value / 100)}</span>}
+    {draft !== null && <span aria-hidden="true" style={{ position: 'absolute', bottom: 36, left: `clamp(20px, ${value}%, calc(100% - 20px))`, transform: 'translateX(-50%)', pointerEvents: 'none', background: 'var(--ink)', color: 'var(--paper)', borderRadius: 6, padding: '4px 6px', fontSize: HOME_TYPE.meta, fontVariantNumeric: 'tabular-nums' }}>{time(duration * value / 100)}</span>}
   </div>;
 }

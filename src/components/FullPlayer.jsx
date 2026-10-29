@@ -1,3 +1,5 @@
+import './HomeTypography.css';
+import { HOME_TYPE } from './homeTypography';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
@@ -840,11 +842,11 @@ export default function FullPlayer({
 
     const cardFrame = { ...topicVars(recapCat), flex: radioOnly ? '1 1 380px' : '0 1 380px', minHeight: radioOnly ? 130 : 250, background: 'var(--tp-card)', color: 'var(--card-ink)',
       borderRadius: 19, padding: '18px 20px 14px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' };
-    const h1 = { margin: 0, fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 };
+    const h1 = { margin: 0, fontSize: HOME_TYPE.title, lineHeight: 1.12, letterSpacing: '-0.045em', fontWeight: 700 };
 
     const storyCard = storyCount === 0 ? (
       <article className="rn-tp" style={{ ...cardFrame, justifyContent: 'center' }}>
-        <p style={{ margin: 0, fontSize: 17, fontWeight: 600, textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: HOME_TYPE.body, fontWeight: 600, textAlign: 'center' }}>
           {lens === 'popular' ? 'Nothing popular yet today.' : lens === 'interesting' ? 'Nothing marked interesting yet today.' : 'No stories available for this day.'}
         </p>
       </article>
@@ -859,7 +861,7 @@ export default function FullPlayer({
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, flex: 1 }}>
           <h1 style={h1}>{headline}</h1>
           {excerpt && (
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            <p style={{ margin: 0, fontSize: HOME_TYPE.body, lineHeight: 1.55, color: 'var(--card-body)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {excerpt}
             </p>
           )}
@@ -905,11 +907,11 @@ export default function FullPlayer({
     );
 
     const recapHeading = <header style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: 11.5, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 24, fontSize: HOME_TYPE.meta, fontWeight: 650, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           <Sparkles size={14} strokeWidth={1.8} />{topicName} · {recapPeriod} recap
         </div>
           <h1 style={{ ...h1, marginTop: 10 }}>{recapPeriod === 'Daily' ? fmtDay(selectedDay) : recapPeriod === 'Weekly' ? weekLabel : monthLabel}</h1>
-          {!readOnly && programmeMeta && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--card-sub)' }}>{programmeMeta}</p>}
+          {!readOnly && programmeMeta && <p style={{ margin: '8px 0 0', fontSize: HOME_TYPE.meta, color: 'var(--card-sub)' }}>{programmeMeta}</p>}
     </header>;
 
     const recapCard = (
@@ -929,12 +931,12 @@ export default function FullPlayer({
                 // At the end of the text, not docked under it (Roy, 2026-10-18).
                 <button className="rn-btn" aria-haspopup="dialog"
                   onClick={() => setSourcesSnapshot({ items: recapSources, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })}
-                  style={{ marginTop: 10, minHeight: 44, color: 'var(--card-sub)', fontSize: 12, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  style={{ marginTop: 10, minHeight: 44, color: 'var(--card-sub)', fontSize: HOME_TYPE.meta, display: 'inline-flex', gap: 4, alignItems: 'center' }}>
                   Stories &amp; sources <ChevronDown size={15} style={{ transform: 'rotate(180deg)' }} />
                 </button>
               )} />
           ) : (
-            <div style={{ overflowY: 'auto' }}>{recapHeading}<p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
+            <div style={{ overflowY: 'auto' }}>{recapHeading}<p style={{ margin: 0, fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
               {recapError ? 'Recaps couldn’t be loaded. Try another period or reload the page.' : recapPeriod === 'Daily' ? `No ${topicName} recap is available for this day. Try another topic or date.` : `The ${recapPeriod.toLowerCase()} ${topicName} recap isn't ready yet.`}
             </p></div>
           )}
@@ -959,9 +961,9 @@ export default function FullPlayer({
         getStoryAction={recapView ? getRecapStoryAction : () => ({ interesting: isInteresting, toggle: onToggleInteresting })}
         onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
-          <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: 13, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
+          <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
           <h1 style={h1}>{topicName}</h1>
-          <p style={{ fontSize: 16, lineHeight: 1.5, color: 'var(--card-sub)' }}>
+          <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
             {recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
           </p>
         </div>}
@@ -988,7 +990,7 @@ export default function FullPlayer({
                   atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
                   FastForward, recapView || (atBatchEnd && !topicAt(1)))}
               </div>);
-    const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: 12, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><ChevronUp size={14} />{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe up to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
+    const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: HOME_TYPE.meta, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><ChevronUp size={14} />{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe up to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
 
     return (
       <div data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1009,8 +1011,8 @@ export default function FullPlayer({
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
-          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: 12.5, fontWeight: 600, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
-          {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: 13, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
+          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.meta, fontWeight: 600, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
+          {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: HOME_TYPE.ui, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
           {loading ? <NewsLoader day={selectedDay} /> : unified ? unifiedCard : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!unified && !loading && !recapView && pageDots.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>
@@ -1020,9 +1022,9 @@ export default function FullPlayer({
               most sit under it, and Play is the one coloured thing on the screen. */}
           {!readOnly && !loading && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: HOME_TYPE.meta, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
                 <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
-                  style={{ width: 40, height: 40, fontSize: 13.5, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
+                  style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
                     ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
                   {playbackSpeed}×
                 </button>
@@ -1041,7 +1043,7 @@ export default function FullPlayer({
                   {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
                   {repeatHint && (
                     <span role="status" style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, whiteSpace: 'nowrap', padding: '5px 10px', borderRadius: 999,
-                      background: 'var(--ink)', color: 'var(--paper)', fontSize: 12, fontWeight: 600, pointerEvents: 'none' }}>
+                      background: 'var(--ink)', color: 'var(--paper)', fontSize: HOME_TYPE.meta, fontWeight: 600, pointerEvents: 'none' }}>
                       {repeatHint}
                     </span>
                   )}
@@ -1049,7 +1051,7 @@ export default function FullPlayer({
               </div>
               {!unified && transport}
               {phoneVoice && (
-                <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.45 }}>
+                <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: HOME_TYPE.ui, lineHeight: 1.45 }}>
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
                 </p>
               )}

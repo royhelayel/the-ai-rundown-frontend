@@ -179,18 +179,18 @@ roles rather than adding near-duplicate sizes or fluid font clamps. All content 
 so Settings > Text size scales them together. Large text on short cards prioritises readable
 copy and accessible sources over artwork. `data-text-size` exposes that preference for layout.
 
-## Generated per-update drawings (staged, 2026-10-29)
+## Generated per-update drawings (2026-10-29)
 
-The proposed replacement removes `RecapIllustration` and `illustrationFor`; no semantic
-story/topic template is selected. `useStoryAnimations` performs only read-only lookups of
-cached generated plans by exact normalized update text. It preloads the current and next
-update only while animation is enabled and visible. Turning animation off or choosing Read
-makes no animation requests. Unknown/missing/rejected drawings are disclosed explicitly.
+`useStoryAnimations` performs read-only cached lookups by exact normalized narration text.
+It loads the current/next update only while animation is enabled and visible. Off, Read,
+and hidden pages make no animation lookups. `GeneratedStoryAnimation` renders only
+bounded vector primitives and numeric keyframes, never model code or external images.
+Device reduced-motion freezes the drawing; seeking forwards/backwards uses audio phase.
 
-`GeneratedStoryAnimation` renders a bounded declarative set of vector primitives and motion
-keyframes, driven only by existing audio phase. It never executes model HTML/JS/CSS or loads
-remote model assets. Labels use the shared 14/16px typography roles and quote the update.
-Device reduced-motion freezes motion. Changed narration cannot inherit an old drawing.
-The backend generation run is currently blocked by insufficient Anthropic API credit;
-visually inspect actual generated drawings and remove the initial three-drawing backend
-review limit before rolling this frontend into production.
+The backend supplies an editorially authored October 27 English edition: 162 quick
+updates and 183 full summaries. No paid generation API was used. On a valid exact-text
+plan the new renderer replaces the previous illustration. Older editions, other languages,
+period recaps, missing records and network failures retain their existing visual behavior
+so a partial art rollout cannot blank working cards. Do not claim those older visuals are
+newly generated. Future news needs new reviewed drawings; paid Anthropic generation remains
+disabled. Keep the existing 12/14/16/24px typography roles.

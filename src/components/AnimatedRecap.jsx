@@ -2,7 +2,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, use
 import { ChevronUp, Star, Video, VideoOff, Headphones, Newspaper } from 'lucide-react';
 import { buildRecapScenes, scenePosition } from '../lib/recapScenes';
 import { CATEGORY_SHORT } from '../theme';
-import GeneratedStoryAnimation from './GeneratedStoryAnimation';
+import GeneratedStoryAnimation, { safeGeneratedAnimation } from './GeneratedStoryAnimation';
+import RecapIllustration from './RecapIllustration';
 import useStoryAnimations from '../hooks/useStoryAnimations';
 import './AnimatedRecap.css';
 
@@ -75,6 +76,8 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   }, [reading, audioIndex]);
   const currentIndex = reading ? Math.min(readerIndex, scenes.length - 1) : audioIndex;
   const scene = scenes[currentIndex];
+  const drawing = scene ? animationFor(scene.text) : null;
+  const hasDrawing = !!drawing?.plan && safeGeneratedAnimation(drawing.plan,scene.text);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
   const step = direction => {
@@ -164,8 +167,9 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       </div>}
     </div> : animations ? <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.displayHeadline}</h1>
-      <div className="rn-animated-recap-stage" data-scene="generated">
-        <GeneratedStoryAnimation {...animationFor(scene.text)} text={scene.text} phase={reduced || !visible ? 0 : position.phase} />
+      <div className="rn-animated-recap-stage" data-scene={hasDrawing ? 'generated' : scene.illustration.type}>
+        {hasDrawing ? <GeneratedStoryAnimation plan={drawing.plan} text={scene.text} phase={reduced || !visible ? 0 : position.phase} />
+          : <RecapIllustration illustration={scene.illustration} phase={position.phase} animate={moving} />}
       </div>
       <div className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p><button type="button" className="rn-btn" onClick={openText} aria-label="Read this complete update">more</button></div>
     </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">

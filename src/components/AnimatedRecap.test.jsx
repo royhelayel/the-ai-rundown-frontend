@@ -1,12 +1,32 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AnimatedRecap from './AnimatedRecap';
 import { clearStoryAnimationCache } from '../hooks/useStoryAnimations';
+import edition from './__fixtures__/editorial-drawings.json';
 
 const text = 'Company A has made an announcement. Company B says the plan is not final.';
 const sources = [{ text: 'Company A has made an announcement.', stories: [{ headline: 'A announces a plan', sources: [{ outlet: 'Outlet A', url: 'https://a.example' }] }] },
   { text: 'Company B says the plan is not final.', stories: [{ headline: 'B says plan is not final', sources: [{ outlet: 'Outlet B', url: 'https://b.example' }] }] }];
 const props = { text, sourcesMap: sources, category: 'Technology', progress: 0, playing: false, duration: 30, speed: 1 };
-beforeEach(() => { localStorage.clear(); clearStoryAnimationCache(); global.fetch = jest.fn(() => Promise.resolve({ok:true,json:()=>Promise.resolve({version:1,entries:[]})})); });
+beforeEach(() => { localStorage.clear(); clearStoryAnimationCache(); global.fetch = jest.fn(() => new Promise(()=>{})); });
+
+test('a reviewed edition drawing replaces the existing visual without changing its text or source action',async()=>{
+  const entry=edition.entries[0], open=jest.fn();
+  global.fetch=jest.fn(async()=>({ok:true,json:async()=>({version:1,entries:[{text:entry.text,plan:entry.plan,status:'ready'}]})}));
+  const {container}=render(<AnimatedRecap {...props} text={entry.text} sourcesMap={[{text:entry.text,stories:[{headline:'Waxcap discovery',sources:[{outlet:'Original outlet',url:'https://source.example'}]}]}]} onOpenSources={open}/>);
+  await waitFor(()=>expect(container.querySelector('[data-generated-animation="true"]')).toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button',{name:/Original reporting/}));
+  expect(open.mock.calls[0][0].items[0].summary).toBe(entry.text);
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test('an unavailable edition retains the existing visual instead of creating a blank or error card',async()=>{
+  global.fetch=jest.fn(async()=>({ok:true,json:async()=>({version:1,entries:[]})}));
+  const {container}=render(<AnimatedRecap {...props}/>);
+  await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
+  expect(container.querySelector('.rn-animated-recap-stage')).not.toHaveAttribute('data-scene','generated');
+  expect(screen.queryByText(/Animation is temporarily unavailable/)).not.toBeInTheDocument();
+  expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
+});
 
 test('animation toggle stays local and preserves the actual current update and sources', () => {
   const open = jest.fn();

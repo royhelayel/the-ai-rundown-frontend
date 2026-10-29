@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Server, Smartphone, Tablet, Newspaper, ShieldCheck } from 'lucide-react';
+import { FileText, Server, Smartphone, Tablet, ShieldCheck } from 'lucide-react';
 
 const between = (n, a, b) => Math.max(0, Math.min(1, (n - a) / Math.max(.02, b - a)));
 
@@ -10,11 +10,11 @@ function ReportedFigure({ literal }) {
 
 export default function RecapIllustration({ illustration: art, phase, animate }) {
   const p = animate ? phase : 1;
-  const figure = art.figures[0];
+
   if (art.type === 'workforce') {
     const reveal = between(p, art.cue, Math.min(1, art.cue + .22));
     const count = Math.floor(art.percent * reveal);
-    const employees = art.figures.find(f => !/percent|%/i.test(f.literal));
+    const employees = art.figures.find(f => !/percent|%/i.test(f.literal) && /employees|workers/i.test(f.context || ''));
     return <div className="rn-recap-people" aria-hidden="true">
       <div className="rn-recap-workforce">{Array.from({ length: 100 }, (_, i) => <span key={i} className={i < count ? 'is-highlighted' : ''} />)}</div>
       <div className="rn-recap-workforce-values">
@@ -48,6 +48,15 @@ export default function RecapIllustration({ illustration: art, phase, animate })
       <span className="rn-recap-blocked" style={{ opacity: blocked ? 1 : 0 }}>Blocked</span>
     </div>;
   }
+  if (art.type === 'fungi') {
+    const reveal = between(p, Math.max(0, art.cue - .1), Math.min(1, art.cue + .25));
+    return <div className="rn-recap-fungi" aria-hidden="true">
+      <div className="rn-recap-fungi-drawing">{[0, 1, 2].map(i => <span key={i} className="rn-recap-mushroom"
+        style={{ transform: `translateY(${animate ? (1 - reveal) * (10 + i * 3) : 0}px) scale(${i === 1 ? 1 : .72})`, opacity: .45 + reveal * .55 }}><i /><b /></span>)}</div>
+      <strong className="rn-recap-fungi-label">{art.literal}</strong>
+      <p className="rn-recap-fact-context" dir="auto">{art.context}</p>
+    </div>;
+  }
   if (art.type === 'device') {
     const Icon = art.tablet ? Tablet : Smartphone;
     return <div className="rn-recap-device" aria-hidden="true">
@@ -55,20 +64,21 @@ export default function RecapIllustration({ illustration: art, phase, animate })
         <Icon size={150} strokeWidth={1.2} />
         {art.crack && <span className="rn-recap-crack" style={{ transform: `scaleY(${between(p, .2, .55)})`, transformOrigin: 'top' }} />}
       </div>
-      {figure && <strong className="rn-recap-figure">{figure.literal}</strong>}
     </div>;
   }
   if (art.type === 'figures') {
     const at = animate ? art.figures.reduce((last, value, index) => value.cue <= p ? index : last, 0) : 0;
-    return <div className="rn-recap-figure-stage" aria-hidden="true">
-      <strong key={at} className="rn-recap-figure">{art.figures[at].literal}</strong>
-      <div className="rn-recap-figure-marks">{art.figures.map((f, i) => <span key={i} className={i === at ? 'is-current' : ''} />)}</div>
+    const figure = art.figures[at];
+    return <div className="rn-recap-figure-stage" aria-hidden="true" key={at}>
+      <ReportedFigure literal={figure.literal} />
+      <p className="rn-recap-fact-context" dir="auto">{figure.context}</p>
     </div>;
   }
-  // A neutral editorial illustration is the fallback when the text cannot support a
-  // concrete diagram. No imagined footage, inferred charts, locations, or extra facts.
-  return <div className="rn-recap-editorial" aria-hidden="true">
-    <Newspaper size={130} strokeWidth={1.05} style={{ transform: `translateY(${animate ? 5 - 5 * between(p, 0, .5) : 0}px)` }} />
-    <div className="rn-recap-editorial-lines">{[0, 1, 2, 3].map(i => <span key={i} style={{ width: `${35 + 60 * between(p, i * .14, i * .14 + .3)}%` }} />)}</div>
+  // Unstructured stories get the actual reported sentence, with a quiet transition
+  // as narration advances. A decorative newspaper or an unlabelled number adds no meaning.
+  const at = animate ? (art.facts || []).reduce((last, fact, index) => fact.cue <= p ? index : last, 0) : 0;
+  const fact = art.facts?.[at];
+  return <div className="rn-recap-editorial rn-recap-text-fact" aria-hidden="true" key={at}>
+    <p dir="auto">{fact?.literal}</p>
   </div>;
 }

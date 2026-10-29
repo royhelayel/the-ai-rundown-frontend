@@ -46,8 +46,21 @@ const cueAt = (text, pattern, fallback) => {
 };
 
 export function illustrationFor(text) {
+  const sentences = recapSentences(text);
+  let cursor = 0;
+  const facts = sentences.map(literal => {
+    const at = text.indexOf(literal, cursor); cursor = at + literal.length;
+    return { literal, at, cue: narrationWeight(text.slice(0, at)) / Math.max(1, narrationWeight(text)) };
+  });
   const figures = reportedFigures(text).map(figure => ({ ...figure,
+    context: facts.find(fact => figure.at >= fact.at && figure.at < fact.at + fact.literal.length)?.literal || text,
     cue: narrationWeight(text.slice(0, figure.at)) / Math.max(1, narrationWeight(text)) }));
+  const fungi = /((?:(?:about|roughly|nearly|over|under|at least|up to|more than|less than|approximately)\s+)?\d+)\s+waxcap(?:\s+fungal)?\s+species/i.exec(text);
+  if (fungi && /identified|found|discover|survey/i.test(text)) {
+    return { type: 'fungi', figures, literal: `${fungi[1]} waxcap species`,
+      context: facts.find(f => f.literal.includes(fungi[0]))?.literal || text,
+      cue: cueAt(text, /\d+\s+waxcap/i, .2) };
+  }
   const percent = /((?:(?:about|roughly|approximately)\s+)?(\d+(?:\.\d+)?)\s*(?:percent|%))\s+of\s+(?:its|the|their)\s+workforce/i.exec(text);
   if (percent && Number(percent[2]) >= 0 && Number(percent[2]) <= 100) {
     return { type: 'workforce', figures, percent: Number(percent[2]), percentLiteral: percent[1], cue: cueAt(text, /\d+(?:\.\d+)?\s*(?:percent|%)/i, .4) };
@@ -62,7 +75,7 @@ export function illustrationFor(text) {
   if (/\b(?:iPhone|phone|handset|iPad|tablet)\b/i.test(text) && /\b(?:screen|display|device|handset|tablet)\b/i.test(text)) {
     return { type: 'device', figures, tablet: /iPad|tablet/i.test(text), crack: /crack/i.test(text), replacement: /replac/i.test(text) };
   }
-  return { type: figures.length ? 'figures' : 'editorial', figures };
+  return { type: figures.length ? 'figures' : 'editorial', figures, facts };
 }
 
 export function buildRecapScenes(rawText, sourceMap) {

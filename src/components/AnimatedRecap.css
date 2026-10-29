@@ -84,3 +84,30 @@
 @media(prefers-reduced-motion:reduce){.rn-brief-reader-copy{animation:none}}
 
 @media(max-height:480px){.rn-unified-card{min-height:260px!important;flex-shrink:0!important}}
+
+/* Every generic visual keeps the reported fact attached to its number. */
+.rn-recap-fact-context{margin:0;max-width:100%;font-size:clamp(14px,1rem,18px);line-height:1.4;color:var(--card-body);text-align:start;overflow-y:auto;overscroll-behavior:contain;min-height:0}
+.rn-recap-figure-stage{gap:12px;max-height:100%;overflow:hidden;animation:rn-brief-in .24s ease-out}
+.rn-recap-figure-stage>.rn-recap-figure{flex-shrink:0;font-size:clamp(25px,min(11cqw,24cqh),56px)}
+.rn-recap-figure-stage>.rn-recap-fact-context{font-size:clamp(14px,1rem,18px)}
+.rn-recap-text-fact{align-items:flex-start;overflow-y:auto;overscroll-behavior:contain;animation:rn-brief-in .24s ease-out}
+.rn-recap-text-fact>p{margin:0;font-size:clamp(18px,1.25rem,25px);font-weight:600;line-height:1.4;letter-spacing:-.025em;color:var(--card-ink)}
+.rn-recap-fungi{display:flex;flex-direction:column;align-items:center;gap:10px;max-height:100%;width:100%;overflow:hidden}
+.rn-recap-fungi-drawing{display:flex;align-items:flex-end;justify-content:center;gap:8px;height:75px;min-height:30px;flex:0 1 75px;width:100%}
+.rn-recap-mushroom{position:relative;width:65px;height:75px;transform-origin:bottom;transition:transform .1s linear,opacity .1s linear;color:var(--tp-chip)}
+.rn-recap-mushroom>i{position:absolute;top:0;left:0;right:0;height:40px;border-radius:48px 48px 8px 8px;background:currentColor;z-index:1}
+.rn-recap-mushroom>b{position:absolute;top:30px;left:27px;width:12px;bottom:0;border-radius:0 0 5px 5px;background:var(--card-ink);opacity:.7}
+.rn-recap-fungi-label{font-size:clamp(18px,1.5rem,28px);letter-spacing:-.035em;flex-shrink:0;line-height:1.15}
+.rn-recap-fungi>.rn-recap-fact-context{font-size:14px;line-height:1.4}
+@media(prefers-reduced-motion:reduce){.rn-recap-figure-stage,.rn-recap-text-fact{animation:none}}
+.rn-animated-recap-stage{container-name:recap-stage}
+@container recap-stage (max-height:130px){
+  .rn-recap-fungi{flex-direction:row;gap:10px;justify-content:center;align-items:center;height:100%}
+  .rn-recap-fungi>.rn-recap-fact-context{display:none}
+  .rn-recap-fungi-label{font-size:18px;flex:0 1 55%}
+  .rn-recap-fungi-drawing{flex:0 0 70px;height:40px;min-height:0;gap:0}
+  .rn-recap-mushroom{height:40px;width:24px}
+  .rn-recap-mushroom>i{height:22px}
+  .rn-recap-mushroom>b{top:18px;left:9px;width:6px}
+  .rn-recap-figure-stage>.rn-recap-figure{display:none}
+}

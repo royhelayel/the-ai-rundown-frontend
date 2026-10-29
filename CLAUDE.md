@@ -159,3 +159,13 @@ engine; Listen restores the same position unless the reader deliberately selects
 update. Animation preferences remain independent of reading. Date/topic/brief changes must
 not start audio while reading. Old `/recaps` URLs redirect to this page in reading mode.
 Reading quick/period recaps does not mark all their full headline summaries as read.
+
+## Contextual recap graphics (2026-10-29)
+
+Generic number scenes must always retain the complete reported sentence that explains the
+figure. Never display an isolated extracted number as the entire graphic. Short-height cards
+prioritise the factual context over large numerals. Qualitative stories use the actual
+reported sentence with a quiet transition instead of a decorative newspaper. Waxcap discoveries
+with an explicit species count use a labelled fungi motif; its three mushroom shapes are
+illustrative, not a quantitative count. Keep qualifiers and uncertainty; do not invent charts,
+changes, locations or comparisons from limited source material.

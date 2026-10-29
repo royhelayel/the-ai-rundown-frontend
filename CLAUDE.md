@@ -170,14 +170,18 @@ with an explicit species count use a labelled fungi motif; its three mushroom sh
 illustrative, not a quantitative count. Keep qualifiers and uncertainty; do not invent charts,
 changes, locations or comparisons from limited source material.
 
-## Home typography (2026-10-29)
+## Home typography hierarchy (2026-10-30)
 
-The unified home uses `HomeTypography.css` and `homeTypography.js`: 12px supporting details,
-14px controls, 16px news copy and 24px headings at normal text size. Illustrated figures may
-use the 40px stat role; the approved 17px wordmark is a separate brand asset. Use the semantic
-roles rather than adding near-duplicate sizes or fluid font clamps. All content roles use rem
-so Settings > Text size scales them together. Large text on short cards prioritises readable
-copy and accessible sources over artwork. `data-text-size` exposes that preference for layout.
+Roy clarified that streamlining means a clear hierarchy and removing unnecessary near-
+duplicate sizes, not forcing all elements into four sizes. `HomeTypography.css` and
+`homeTypography.js` define roles: 12px metadata, 14px secondary controls/sources, 16px primary
+navigation and short audio captions, 18px sustained reading copy, 20px sheet titles,
+24px compact animated-card headlines, and 28px reading/transcript headlines. 40px is for
+illustrated statistics only. A given home presentation uses only the roles it needs.
+The approved 17px wordmark remains independent. Use rem so Normal/Large settings scale
+content together. Keep 44px action targets even for small supporting labels. Source and
+more buttons must retain their role against the later `.rn-btn { font: inherit }` reset;
+use scoped specificity rather than changing the global reset or adding `!important`.
 
 ## Generated per-update drawings (2026-10-29)
 
@@ -193,4 +197,4 @@ plan the new renderer replaces the previous illustration. Older editions, other 
 period recaps, missing records and network failures retain their existing visual behavior
 so a partial art rollout cannot blank working cards. Do not claim those older visuals are
 newly generated. Future news needs new reviewed drawings; paid Anthropic generation remains
-disabled. Keep the existing 12/14/16/24px typography roles.
+disabled. Keep the role-based typography hierarchy described above.

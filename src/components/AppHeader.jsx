@@ -56,7 +56,7 @@ export default function AppHeader({
 
   const chip = (key, label, on, onClick, ref, style = {}, className) => (
     <button key={key} ref={ref} className={`rn-btn ${className || ''}`} aria-pressed={on} onClick={onClick}
-      style={{ minHeight: 38, padding: '0 14px', borderRadius: 10, fontSize: HOME_TYPE.ui, whiteSpace: 'nowrap', flexShrink: 0,
+      style={{ minHeight: 38, padding: '0 14px', borderRadius: 10, fontSize: HOME_TYPE.navigation, lineHeight: 1.25, whiteSpace: 'nowrap', flexShrink: 0,
         fontWeight: on ? 600 : 500,
         border: on ? '1px solid transparent' : '1px solid var(--line)',
         color: on ? 'var(--chip-on-ink)' : 'var(--sub)', ...style }}>

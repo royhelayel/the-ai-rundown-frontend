@@ -1011,7 +1011,7 @@ export default function FullPlayer({
 
         <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
-          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.meta, fontWeight: 600, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
+          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.ui, fontWeight: 500, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
           {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: HOME_TYPE.ui, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
           {loading ? <NewsLoader day={selectedDay} /> : unified ? unifiedCard : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!unified && !loading && !recapView && pageDots.length > 1 && (

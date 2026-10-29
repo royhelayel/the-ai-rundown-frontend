@@ -117,7 +117,7 @@ export default function BottomNav({
           <circle cx="22" cy="22" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
         </svg>
       )}
-      <span style={{ position: 'relative', fontSize: HOME_TYPE.meta, fontWeight: 750, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ position: 'relative', fontSize: HOME_TYPE.ui, fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
       </span>
     </>

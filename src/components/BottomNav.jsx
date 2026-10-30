@@ -1,7 +1,7 @@
 import { HOME_TYPE } from './homeTypography';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, UserCircle, Flame, Lightbulb, Zap, Star } from 'lucide-react';
+import { X, Settings, Flame, Lightbulb, Zap, Star } from 'lucide-react';
 import ProgressPill, { AWARDS } from './ProgressPill';
 import { ListenIcon, ReadIcon } from './Logo';
 
@@ -133,7 +133,7 @@ export default function BottomNav({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
           <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
-            <UserCircle size={22} strokeWidth={1.8} />
+            <Settings size={22} strokeWidth={1.8} />
           </button>
           {utilitiesOnly ? <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>{center}</div> : (
           <div role="group" aria-label="How you take in the news"

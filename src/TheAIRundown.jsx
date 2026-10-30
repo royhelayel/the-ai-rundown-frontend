@@ -6,6 +6,7 @@ import BriefingFeed from './components/BriefingFeed';
 import StorySummarySheet from './components/StorySummarySheet';
 import FullPlayer from './components/FullPlayer';
 import { storyParagraph } from './lib/stories';
+import { selectRadioFeed } from './lib/radioFeed';
 import useRadioRecaps, { radioSnapshot, headlineRadioSnapshot, storyBrief, radioDestination, resumeRadioStory } from './data/useRadioRecaps';
 import MiniPlayer from './components/MiniPlayer';
 import CategoryTransition from './components/CategoryTransition';
@@ -186,6 +187,10 @@ const TheAIRundown = () => {
   const [phoneVoice, setPhoneVoice] = useState(false);
   const [recapView, setRecapView] = useState(false);
   const [listenTextOnly, setListenTextOnly] = useState(false);
+  const [listenLens, setListenLens] = useState(() => {
+    const saved = localStorage.getItem('radionews_listen_lens');
+    return ['latest', 'popular', 'interesting'].includes(saved) ? saved : 'latest';
+  });
   const [recapPeriod, setRecapPeriod] = useState(() => {
     const saved = localStorage.getItem('radionews_summary_type');
     if (window.location.pathname === '/recaps' && (!saved || saved === 'Headlines')) return 'Daily';
@@ -497,7 +502,7 @@ const TheAIRundown = () => {
   useHeartbeat({ user });
 
   useSavesFeeds({ user, setMySaves, setInterestingStories, setSavedStories,
-    interestingVersion, onInteresting: location.pathname === '/important' });
+    interestingVersion, onInteresting: location.pathname === '/important' || (location.pathname === '/listen' && listenLens === 'interesting') });
 
   // ── My Saves feed: snapshots for the selected day, shaped like briefingData ──
   const savesBriefingData = useMemo(() => {
@@ -1304,10 +1309,23 @@ const TheAIRundown = () => {
   // path as handleNarrateBriefing, but the topic stays the selected category — the period
   // recap used to swap it for a label like "World · last week", which the header has no chip
   // for — and the topic strip keeps every topic rather than shrinking to this one.
-  const radio = useRadioRecaps({ active: location.pathname === '/listen' || isReadRecap, categories: topicsForReading,
+  const radioBaseCategories = listenLens === 'latest' ? topicsForReading : defaultCategories;
+  const radio = useRadioRecaps({ active: location.pathname === '/listen' || isReadRecap, categories: radioBaseCategories,
     period: recapPeriod, day: selectedDay, today, language: newsLanguage, briefingData });
-  const radioTopics=JSON.stringify(topicsForReading);
-  const radioMap = useMemo(()=>recapPeriod === 'Headlines' ? headlineRadioSnapshot(JSON.parse(radioTopics), briefingData) : radioSnapshot(JSON.parse(radioTopics), radio.rows, recapPeriod),[radioTopics,recapPeriod,briefingData,radio.rows]);
+  const radioTopics=JSON.stringify(radioBaseCategories);
+  const rankedRadioMap = useMemo(() => {
+    const base = recapPeriod === 'Headlines' ? headlineRadioSnapshot(JSON.parse(radioTopics), briefingData) : radioSnapshot(JSON.parse(radioTopics), radio.rows, recapPeriod);
+    return selectRadioFeed(base, listenLens, listenCounts, savedCounts, interestingBriefingData);
+  }, [radioTopics, recapPeriod, briefingData, radio.rows, listenLens, listenCounts, savedCounts, interestingBriefingData]);
+  // Engagement can change while audio plays. Keep that session's queue stable;
+  // switching selection/date/period explicitly builds a new queue, cued silently.
+  const activeRadio = snapshotPlayRef.current;
+  const queuedStory = activeRadio?.stories?.[storyIndex];
+  const freshStory = rankedRadioMap[activeRadio?.category]?.allStories.find(story => story.headline === queuedStory?.headline);
+  const unchangedRecording = !!freshStory && programmeText(freshStory) === programmeText(queuedStory) && storyParagraph(freshStory) === storyParagraph(queuedStory);
+  const radioMap = listenLens !== 'latest' && isNarrating && unchangedRecording && activeRadio?.radio && activeRadio.lens === listenLens && activeRadio.day === selectedDay && activeRadio.period === recapPeriod && activeRadio.language === newsLanguage ? activeRadio.map : rankedRadioMap;
+  const radioCategories = listenLens === 'latest' ? topicsForReading : Object.keys(radioMap);
+
   const editionDate = selectedDay ? new Date(`${selectedDay}T12:00:00Z`).toLocaleDateString(newsLanguage === 'ar' ? 'ar' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }) : '';
   const programmeOpening = newsLanguage === 'ar' ? `أنت تستمع إلى راديو نيوز. إليك ملخص الأخبار ليوم ${editionDate}.`
     : recapPeriod === 'Headlines' ? "You're listening to RadioNews. Here are your headlines."
@@ -1321,9 +1339,9 @@ const TheAIRundown = () => {
     const cats = Object.keys(radioMap);
     const list = radioMap[cat]?.allStories || [];
     const idx = Math.max(0, Math.min(index, list.length - 1));
-    snapshotPlayRef.current = { category: cat, stories: list, map: radioMap, radio: true, headlineProgramme: recapPeriod === 'Headlines', day: selectedDay, period: recapPeriod, language: newsLanguage, missingCount: topicsForReading.filter(c => !radioMap[c]).length };
+    snapshotPlayRef.current = { category: cat, stories: list, map: radioMap, radio: true, lens: listenLens, headlineProgramme: recapPeriod === 'Headlines', day: selectedDay, period: recapPeriod, language: newsLanguage, missingCount: listenLens === 'latest' ? topicsForReading.filter(c => !radioMap[c]).length : 0 };
     playlistCatsRef.current = cats;
-    setPlayerContextCategories(topicsForReading);
+    setPlayerContextCategories(radioCategories);
     setSelectedCategory(cat); setStories(list); setStoryIndex(idx);
     setViewMode('stories'); setDepthLevel('takeaways'); setPlayerAllScope(false);
     setNarrationProgress(0); setNarrationCharOffset(-1);
@@ -1347,7 +1365,7 @@ const TheAIRundown = () => {
   const continueProgramme = () => {
     const saved = audioProgramme.resume;
     if (!saved) return;
-    if (!topicsForReading.includes(saved.category)) { programmeRef.current.notify('Your topic mix has changed. Start your current mix to continue.'); return; }
+    if (!radioCategories.includes(saved.category)) { programmeRef.current.notify('This brief is outside your current selection. Choose Relevant or start your current mix.'); return; }
     unlockSpeech();
     pendingProgrammeResume.current = saved;
     setResumeRequest(n => n + 1);
@@ -1381,7 +1399,7 @@ const TheAIRundown = () => {
   };
   radioSkipRef.current = skipRadio;
   const playTopicRecap = (cat) => cueRadio(cat, true);
-  const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${topicsForReading.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories.map(st => `${st.headline}:${contentSignature(storyParagraph(st))}`).join(',')}`).join('|')}`;
+  const radioCueKey = `${selectedDay}|${newsLanguage}|${recapPeriod}|${listenLens}|${radioCategories.join('|')}|${Object.keys(radioMap).map(c => `${c}:${radioMap[c].allStories.map(st => `${st.headline}:${contentSignature(storyParagraph(st))}`).join(',')}`).join('|')}`;
   const radioCueRef = useRef(null);
   useEffect(() => {
     if (location.pathname !== '/listen') { radioCueRef.current = null; return; }
@@ -1402,7 +1420,7 @@ const TheAIRundown = () => {
     }
     const keepCursor = radioCueRef.current === null || radioCueRef.current.startsWith(`${selectedDay}|${newsLanguage}|`);
     radioCueRef.current = radioCueKey;
-    const first = topicsForReading.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
+    const first = radioCategories.includes(selectedCategory) ? selectedCategory : Object.keys(radioMap)[0] || topicsForReading[0];
     let nextIndex=storyBrief(recapPeriod) && keepCursor ? (focusRef.current?.category === first ? focusRef.current.index : 0) : 0;
     const switching=summaryStoryRef.current;
     if(switching) {
@@ -2314,7 +2332,7 @@ const TheAIRundown = () => {
           onPlayRecap={() => handleNarrateBriefing(selectedCategory, [selectedCategory])}
           onEditCategories={openCategoryPicker}
           onGuestEdit={openCategoryPicker}
-          isStoryRead={isReadStory(currentStory, selectedCategory, storyIndex)}
+          isStoryRead={isReadStory(currentStory, selectedCategory, (briefingData[selectedCategory]?.allStories || []).findIndex(story => headlineKey(story.headline) === headlineKey(currentStory?.headline)))}
           // Summary opens the story in the reader with its sheet already up — the same sheet
           // the Summary button opens from a card, rather than a second copy of it here.
           // Go deeper opens the sheet over the player. It used to navigate to the story's
@@ -2350,7 +2368,7 @@ const TheAIRundown = () => {
             const index = list.findIndex(item => headlineKey(item.headline || '') === headlineKey(headline));
             if (index < 0) return null;
             const item = list[index];
-            return { interesting: savedStories.some(saved => headlineKey(saved.headline || '') === headlineKey(item.headline || '')),
+            return { read: user ? isReadStory(item, selectedCategory, index) : undefined, isNew: item.status === 'New', interesting: savedStories.some(saved => headlineKey(saved.headline || '') === headlineKey(item.headline || '')),
               toggle: () => handleToggleSaved(item, selectedCategory, index) };
           }}
           recapError={radio.error}
@@ -2366,8 +2384,17 @@ const TheAIRundown = () => {
           narrationDuration={narrationDurationRef.current}
           phoneVoice={phoneVoice && isNarrating}
           isTodaySelected={selectedDay === today}
-          lens={playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
+          lens={isListenPath || isReadRecap ? listenLens : playerSourcePath.current === '/popular' ? 'popular' : playerSourcePath.current === '/important' ? 'interesting' : 'latest'}
           onChangeLens={(l) => {
+            if (isListenPath || isReadRecap) {
+              narrateFnRef.current.stop();
+              snapshotPlayRef.current = null;
+              radioCueRef.current = null;
+              focusRef.current = null;
+              setStories([]); setStoryIndex(0);
+              setListenLens(l); localStorage.setItem('radionews_listen_lens', l);
+              return;
+            }
             const tabPath = l === 'popular' ? '/popular' : l === 'interesting' ? '/important' : '/';
             enterAudioMode(tabPath);
           }}
@@ -2416,7 +2443,7 @@ const TheAIRundown = () => {
           // topic list — so the header had no topics. Fall back to the feed's own.
           // Live news shows only the topics with stories on the day showing. The list is set
           // when the player opens and kept every topic, so a day with five showed twelve.
-          contextCategories={isListenPath || isReadRecap ? topicsForReading : (() => {
+          contextCategories={isListenPath || isReadRecap ? radioCategories : (() => {
             const base = playerContextCategories.length ? playerContextCategories
               : (playerSourcePath.current === '/my-feed' ? feedCategories : defaultCategories);
             if (snapshotPlayRef.current) return base;

@@ -1,17 +1,13 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronUp, Star, Video, VideoOff, Headphones, Newspaper } from 'lucide-react';
+import { ChevronUp, Star } from 'lucide-react';
 import { buildRecapScenes, scenePosition, hasExplainerMotion } from '../lib/recapScenes';
 import { CATEGORY_SHORT } from '../theme';
 import GeneratedStoryAnimation, { safeGeneratedAnimation } from './GeneratedStoryAnimation';
 import RecapIllustration from './RecapIllustration';
 import useStoryAnimations from '../hooks/useStoryAnimations';
+import useAnimationPreference from '../hooks/useAnimationPreference';
+import { StatusBadge } from './StoryBits';
 import './AnimatedRecap.css';
-
-const PREFERENCE = 'radionews_recap_animation';
-function preferredAnimation() {
-  try { const saved = localStorage.getItem(PREFERENCE); if (saved === 'on' || saved === 'off') return saved === 'on'; } catch {}
-  return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches && !navigator.connection?.saveData;
-}
 
 // A visual clock only: it never owns audio, changes playback, or awards listen credit.
 // Extrapolate no more than one percentage point between the audio engine's updates;
@@ -45,22 +41,20 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   playing = false, duration = 0, speed = 1, onOpenSources, getStoryAction,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
   title, dateLabel, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect }, ref) {
-  const [animations, setAnimations] = useState(preferredAnimation);
+  const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
-  const [notice, setNotice] = useState('');
   const [readerIndex, setReaderIndex] = useState(() => scenePosition(buildRecapScenes(text, sourcesMap), progress, charOffset)?.scene.index || 0);
   const [overflow, setOverflow] = useState(false);
   const readerMoved = useRef(false);
   const previousReading = useRef(reading);
   const touch = useRef(null), wheelAt = useRef(0), textBox = useRef(null), transcript = useRef(null);
-  const noticeTimer = useRef(null);
   useEffect(() => {
     const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const changed = () => setReduced(!!motion?.matches);
     const visibility = () => setVisible(!document.hidden);
     motion?.addEventListener?.('change', changed); document.addEventListener('visibilitychange', visibility);
-    return () => { motion?.removeEventListener?.('change', changed); document.removeEventListener('visibilitychange', visibility); clearTimeout(noticeTimer.current); };
+    return () => { motion?.removeEventListener?.('change', changed); document.removeEventListener('visibilitychange', visibility); };
   }, []);
   const moving = animations && !reading && !reduced && visible;
   const visualProgress = useVisualProgress(progress, duration, playing, speed, moving);
@@ -115,17 +109,13 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const sources = scene.stories.length ? scene.stories : allSources;
   const outlets = [...new Set(scene.stories.flatMap(story => (story.sources || []).map(source => source.outlet || source.name)).filter(Boolean))];
   const sourceLabel = outlets.length ? outlets.slice(0, 2).join(' · ') + (outlets.length > 2 ? ` +${outlets.length - 2}` : '') : 'Stories & sources';
-  const action = scene.stories.map(story => getStoryAction?.(story.headline)).find(Boolean);
+  const actions = scene.stories.map(story => getStoryAction?.(story.headline)).filter(Boolean);
+  const action = actions[0];
+  const read = actions.length === scene.stories.length && actions.length > 0 && actions.every(a => typeof a.read === 'boolean') ? actions.every(a => a.read) : undefined;
   const openSources = () => onOpenSources?.({ title: 'Original reporting', label: CATEGORY_SHORT[category] || category,
     items: sources.map((story, index) => ({ ...story, summary: index === 0 && scene.stories.length ? scene.text : undefined })) });
   const openText = () => onOpenSources?.({ title: 'Complete update', label: CATEGORY_SHORT[category] || category,
     items: [{ headline: scene.stories[0]?.headline || `${CATEGORY_SHORT[category] || category} brief`, summary: scene.text, sources: scene.stories.flatMap(story => story.sources || []) }] });
-  const toggleAnimation = () => {
-    const next = !animations;
-    setAnimations(next); try { localStorage.setItem(PREFERENCE, next ? 'on' : 'off'); } catch {}
-    setNotice(next ? 'Animation on' : 'Animation off. Audio continues.');
-    clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 2400);
-  };
   const changeReading = () => {
     if (reading) onChangeReading?.(false, readerMoved.current ? Math.min(99.99, scene.start * 100 + 0.01) : undefined);
     else { setReaderIndex(audioIndex); readerMoved.current = false; onChangeReading?.(true); }
@@ -142,14 +132,10 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
   return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading}>
-    <div className="rn-animated-recap-top"><span>{CATEGORY_SHORT[category] || category}</span>
+    <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
       <div className="rn-brief-actions">
-        {!reading && <button className="rn-btn" type="button" onClick={toggleAnimation} aria-pressed={animations}
-          aria-label={animations ? 'Turn animation off' : 'Turn animation on'}>
-          {animations ? <Video size={14} /> : <VideoOff size={14} />}<span>Animation {animations ? 'on' : 'off'}</span>
-        </button>}
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
-          {reading ? <Headphones size={15} /> : <Newspaper size={15} />}{reading ? 'Listen' : 'Read'}
+          {reading ? 'Listen' : 'Read'}
         </button>}
       </div>
     </div>
@@ -171,7 +157,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
         {hasDrawing ? <GeneratedStoryAnimation plan={drawing.plan} text={scene.text} phase={position.phase} motion={!reduced} />
           : <RecapIllustration illustration={scene.illustration} phase={position.phase} animate={!reduced} />}
       </div>
-      <div className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p><button type="button" className="rn-btn" onClick={openText} aria-label="Read this complete update">more</button></div>
+      <div className="rn-animated-recap-caption" dir="auto"><p key={position.caption}>{position.caption}</p></div>
     </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
       <h1>{title || `Today in ${CATEGORY_SHORT[category] || category}`}</h1>
       {dateLabel && <p className="rn-brief-date">{dateLabel}</p>}
@@ -181,7 +167,6 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       {sources.length > 0 && <button type="button" className="rn-btn rn-animated-recap-source" onClick={openSources} aria-haspopup="dialog" aria-label={`Original reporting: ${outlets.join(', ') || 'all stories and sources'}`}><span>{sourceLabel}</span><ChevronUp size={14} /></button>}
       {action && <button type="button" className="rn-btn rn-animated-recap-interest" aria-label="Mark this update interesting" aria-pressed={action.interesting} onClick={action.toggle}><Star size={19} fill={action.interesting ? 'currentColor' : 'none'} /></button>}
     </footer>
-    <span className="rn-animated-recap-notice" role="status">{notice}</span>
   </div>;
 });
 export default AnimatedRecap;

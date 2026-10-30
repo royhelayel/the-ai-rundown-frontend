@@ -979,13 +979,13 @@ export default function FullPlayer({
         canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}
         title={recapView ? `${recapPeriod === 'Daily' ? 'Today' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'} in ${topicName}` : headline}
         dateLabel={recapPeriod === 'Weekly' ? weekLabel : recapPeriod === 'Monthly' ? monthLabel : fmtDay(selectedDay)}
-        getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ interesting: isInteresting, toggle: onToggleInteresting })}
+        getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ read: user ? isStoryRead : undefined, isNew: story?.status === 'New', interesting: isInteresting, toggle: onToggleInteresting })}
         onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
           <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
           <h1 style={h1}>{topicName}</h1>
           <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
-            {recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
+            {lens !== 'latest' ? `No ${lens === 'popular' ? 'popular' : 'interesting'} updates are available for this date and brief. Try Relevant or another date.` : recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
           </p>
         </div>}
     </article>;

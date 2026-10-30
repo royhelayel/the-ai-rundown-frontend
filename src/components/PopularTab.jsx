@@ -8,6 +8,8 @@ import TabRecap from './TabRecap';
 import useScrollRestore from '../hooks/useScrollRestore';
 import { rankStories } from '../utils';
 import { CATEGORY_SHORT } from '../theme';
+import { headlineKey } from '../lib/headlineKey';
+export { headlineKey } from '../lib/headlineKey';
 
 const bg = 'var(--paper)';
 const light = {
@@ -16,11 +18,6 @@ const light = {
   textMuted: 'var(--sub)',
   text: 'var(--ink)',
 };
-
-// Normalize a headline to a stable key for listen counting
-export function headlineKey(headline) {
-  return (headline || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim().slice(0, 50);
-}
 
 // Popular — only the stories that have been read, ranked by most read. The category
 // strip lists just the categories that have read stories (+ All) and filters the list.

@@ -1,7 +1,8 @@
-import { LogOut, User, Loader, ChevronLeft, ChevronRight, History, SunMoon, Globe2, Type, Sparkles } from 'lucide-react';
+import { LogOut, User, Loader, ChevronLeft, ChevronRight, History, SunMoon, Globe2, Type, Sparkles, Video } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import Logo from '../components/Logo';
 import Wordmark from '../components/Wordmark';
+import useAnimationPreference from '../hooks/useAnimationPreference';
 
 export default function SettingsPage({
   user, setUser, openOnboarding, setShowAuth, setAuthMode, setSignOutLoading, signOutLoading,
@@ -10,6 +11,7 @@ export default function SettingsPage({
   setCircleSaves, setCirclePopular, navigate, location, myNewsCategories, MY_FEED_COLOR,
   saveFeedCategories, saveNewsLanguage, preferredReadMode,
 }) {
+  const [animations, setAnimations] = useAnimationPreference();
   const panel = { background: 'var(--surface)', borderRadius: 20, padding: '4px 20px' };
   const row = { display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '14px 0', flexWrap: 'wrap' };
   const label = { flex: '1 1 130px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 600 };
@@ -46,6 +48,7 @@ export default function SettingsPage({
         <h2 id="preferences-title" style={{ fontSize: 12, fontWeight: 650, color: 'var(--sub)', margin: '0 0 10px 4px', letterSpacing: '.06em', textTransform: 'uppercase' }}>Preferences</h2>
         <div style={panel}>
           <div style={row}><div style={label}><Globe2 size={18} color="var(--sub)" />News language</div>{segment('News language', newsLanguage, [['en', 'English'], ['ar', 'عربي']], saveNewsLanguage)}</div>
+          <div style={row}><div style={label}><Video size={18} color="var(--sub)" /><div>Animations<p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 400, color: 'var(--sub)' }}>Moving illustrations while you listen</p></div></div>{segment('Animations', animations ? 'on' : 'off', [['on', 'On'], ['off', 'Off']], value => setAnimations(value === 'on'))}</div>
           <div style={row}><div style={label}><Type size={18} color="var(--sub)" />Text size</div>{segment('Text size', fontSize, [['normal', 'Normal'], ['large', 'Large']], setFontSize)}</div>
           <div style={row}>
             <div style={label}><SunMoon size={18} color="var(--sub)" /><div>Appearance<p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 400, color: 'var(--sub)' }}>System follows your device</p></div></div>

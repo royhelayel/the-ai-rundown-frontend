@@ -91,7 +91,7 @@ export function radioSnapshot(categories, rows, period) {
       _quickRecap:{text,start:scene.start,end:scene.end,index:scene.index,total:scenes.length,sources:scene.stories},
     }))}];
   }));
-  return Object.fromEntries(categories.filter(c => rows[c]?.text?.trim()).map(c => [c, { allStories: [{
+  return Object.fromEntries(categories.filter(c => rows[c]?.text?.trim()).map(c => [c, { rankingStories: buildRecapScenes(rows[c].text, rows[c].sources).flatMap(scene => scene.stories), allStories: [{
     headline: `${c} recap`, summary: rows[c].text.trim(), tightBullets: [rows[c].text.trim()], allBullets: [rows[c].text.trim()],
     storySources: [], _isBriefing: true, _recapPeriod: period,
   }] }]));

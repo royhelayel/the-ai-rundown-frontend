@@ -21,7 +21,7 @@ export function formatHeaderDate(dateStr) {
 }
 
 export const LENS_OPTIONS = [
-  { value: 'latest', label: 'Latest' },
+  { value: 'latest', label: 'Relevant' },
   { value: 'popular', label: 'Popular' },
   { value: 'interesting', label: 'Interesting' },
 ];
@@ -56,7 +56,7 @@ export default function AppHeader({
 
   const chip = (key, label, on, onClick, ref, style = {}, className) => (
     <button key={key} ref={ref} className={`rn-btn ${className || ''}`} aria-pressed={on} onClick={onClick}
-      style={{ minHeight: 38, padding: '0 14px', borderRadius: 10, fontSize: HOME_TYPE.navigation, lineHeight: 1.25, whiteSpace: 'nowrap', flexShrink: 0,
+      style={{ minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: HOME_TYPE.navigation, lineHeight: 1.25, whiteSpace: 'nowrap', flexShrink: 0,
         fontWeight: on ? 600 : 500,
         border: on ? '1px solid transparent' : '1px solid var(--line)',
         color: on ? 'var(--chip-on-ink)' : 'var(--sub)', ...style }}>
@@ -111,8 +111,8 @@ export default function AppHeader({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
           <SummaryTypeSelector value={period} onChange={onChangePeriod} category={activeCategory || recapCategory} />
-          {period === 'Headlines' && onChangeLens && (
-            <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel="Story order" buttonStyle={{ fontSize: HOME_TYPE.ui }} />
+          {onChangeLens && (
+            <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel={`News selection: ${LENS_OPTIONS.find(o => o.value === lens)?.label || 'Relevant'}`} buttonStyle={{ fontSize: HOME_TYPE.ui }} />
           )}
         </div>
       )}

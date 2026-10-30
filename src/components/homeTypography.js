@@ -2,7 +2,7 @@
 export const HOME_TYPE = Object.freeze({
   meta: 'var(--rn-home-meta, .75rem)',
   ui: 'var(--rn-home-ui, .875rem)',
-  navigation: 'var(--rn-home-navigation, 1rem)',
+  navigation: 'var(--rn-home-navigation, .875rem)',
   body: 'var(--rn-home-body, 1rem)',
   reading: 'var(--rn-home-reading, 1.125rem)',
   section: 'var(--rn-home-section, 1.25rem)',

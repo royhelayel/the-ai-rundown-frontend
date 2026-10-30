@@ -242,3 +242,34 @@ connecting arrows, charts, relationships or numeric trends. All animation uses n
 phase, so pause holds its frame and seeking runs reversibly. Reduced motion shows a static
 completed illustration. Typography, independent Quick/Full recordings, source links,
 horizontal audio gestures and 70% progress behavior are unchanged.
+
+
+## Home refinements and listening selections (2026-10-30)
+
+Topic/brief navigation is now 14px (rem-scaled), separate from 16px audio captions.
+Topic action targets remain 44px. The brief strip takes remaining row width; Relevant/
+Popular/Interesting occupies the right of that same row in all four periods. Relevant
+retains storage id `latest`; `radionews_listen_lens` remembers the selection. Relevant
+uses the chosen topic mix; discovery selections show matching available topics. They
+reuse existing read/interest signals, filter/rank exact Quick attribution groups or
+Full headlines, and keep verified text/outlets intact. Weekly/monthly stay whole-topic
+recordings ranked only by their matching original source headlines. No made-up grouping
+or generation calls. Empty selections explain themselves and disable Play. Selection
+changes cue silently, keep Read mode and reset the old feed cursor. Ranked active queues
+stay stable as engagement changes, but corrected current recording text invalidates them.
+Parent recap completion spans and the 70% actual-played threshold are preserved.
+
+Animations moved from the card to Settings > Preferences, persisted under the existing
+`radionews_recap_animation` key. `useAnimationPreference` synchronizes mounted consumers,
+same-tab settings changes and other-tab storage events. Off retains text/audio; Read
+remains independent. Reduced-motion/data-saving defaults are unchanged. The on-card
+Read/Listen action is a quiet 14px regular text action; Settings uses a gear.
+
+Animated captions are complete reported sentences, switching at narration progress/
+speech boundaries, including reverse seeks. There is no animated-caption `more` action
+or two-line clamp; long sentences can scroll in a bounded caption area while sources
+and transport remain accessible. Reader overflow still has its own full-text action.
+Animated headlines allow three lines when space permits. The original signed-in story
+Read/New/Unread badge is restored beside the topic in all presentations. Quick status
+resolves original headlines; reading a short recap never marks the Full summary read.
+Unmapped/period recaps do not fabricate a read status.

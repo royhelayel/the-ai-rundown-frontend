@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AnimatedRecap from './AnimatedRecap';
+import { setAnimationPreference } from '../hooks/useAnimationPreference';
 import { clearStoryAnimationCache } from '../hooks/useStoryAnimations';
 import edition from './__fixtures__/editorial-drawings.json';
 
@@ -41,7 +42,7 @@ test('an unavailable edition retains the existing visual instead of creating a b
 test('animation toggle stays local and preserves the actual current update and sources', () => {
   const open = jest.fn();
   const { rerender, container } = render(<AnimatedRecap {...props} onOpenSources={open} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Turn animation off' }));
+  act(() => setAnimationPreference(false));
   expect(localStorage.getItem('radionews_recap_animation')).toBe('off');
   expect(container.querySelector('video')).toBeNull();
   expect(container.querySelector('audio')).toBeNull();
@@ -53,16 +54,16 @@ test('animation toggle stays local and preserves the actual current update and s
   expect(open.mock.calls[0][0].items[0].summary).toContain('not final');
 });
 
-test('saved data-saving preference survives a new recap and no-source recaps still have a full text action', () => {
+test('saved animation preference survives a new recap without exposing an on-card toggle or more action', () => {
   localStorage.setItem('radionews_recap_animation', 'off');
   const open = jest.fn();
   render(<AnimatedRecap {...props} sourcesMap={null} onOpenSources={open} />);
-  expect(screen.getByRole('button', { name: 'Turn animation on' }).getAttribute('aria-pressed')).toBe('false');
+  expect(screen.queryByRole('button', { name: /Turn animation/ })).not.toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'Brief transcript' })).toHaveTextContent('Company A has made an announcement.');
   expect(screen.getByRole('region', { name: 'Brief transcript' })).toHaveTextContent('Company B says the plan is not final.');
-  fireEvent.click(screen.getByRole('button', { name: 'Turn animation on' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Read this complete update' }));
-  expect(open.mock.calls[0][0].items[0].summary).toBe('Company A has made an announcement.');
+  act(() => setAnimationPreference(true));
+  expect(screen.queryByRole('region', { name: 'Brief transcript' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Read this complete update' })).not.toBeInTheDocument();
 });
 
 
@@ -96,4 +97,31 @@ test('reading update boundaries advance the topic only when one exists', () => {
   fireEvent.keyDown(reader, { key: 'ArrowDown' }); expect(next).toHaveBeenCalledTimes(1);
   rerender(<AnimatedRecap {...props} reading onNext={next} onPrev={previous} />);
   fireEvent.keyDown(reader, { key: 'ArrowDown' }); expect(next).toHaveBeenCalledTimes(1);
+});
+
+
+test('audio captions show the complete current sentence, changing on narration and reverse seeking', () => {
+  const text = 'Officials say the proposed launch could happen in 2027, but the date has not been confirmed by the company. Tests continue next month.';
+  const propsWithText = { ...props, text, sourcesMap: [{ text, stories: [] }] };
+  const { container, rerender } = render(<AnimatedRecap {...propsWithText} />);
+  const caption = () => container.querySelector('.rn-animated-recap-caption p');
+  expect(caption()).toHaveTextContent(text.split('. ')[0] + '.');
+  expect(caption()).not.toHaveTextContent('Tests continue');
+  expect(screen.queryByText('more')).not.toBeInTheDocument();
+  rerender(<AnimatedRecap {...propsWithText} progress={95} />);
+  expect(caption()).toHaveTextContent('Tests continue next month.');
+  rerender(<AnimatedRecap {...propsWithText} progress={0} />);
+  expect(caption()).toHaveTextContent('Officials say');
+});
+
+test('read status follows each original story in animated and reading presentations', () => {
+  const getStoryAction = headline => ({ read: headline.startsWith('A'), interesting: false, toggle: jest.fn() });
+  const { rerender } = render(<AnimatedRecap {...props} getStoryAction={getStoryAction} />);
+  expect(screen.getByText('Read')).toBeInTheDocument();
+  rerender(<AnimatedRecap {...props} progress={95} getStoryAction={getStoryAction} />);
+  expect(screen.getByText('Unread')).toBeInTheDocument();
+  rerender(<AnimatedRecap {...props} progress={95} reading getStoryAction={getStoryAction} />);
+  expect(screen.getByText('Unread')).toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole('region', {name:'Swipeable news text'}), {key:'ArrowUp'});
+  expect(screen.getByText('Read')).toBeInTheDocument();
 });

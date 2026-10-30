@@ -4,7 +4,7 @@
 :root {
   --rn-home-meta: .75rem;       /* 12: topic eyebrow, dates, timestamps, annotations */
   --rn-home-ui: .875rem;        /* 14: sources and secondary controls */
-  --rn-home-navigation: 1rem;   /* 16: topics and summary-type navigation */
+  --rn-home-navigation: .875rem;   /* 14: topics and summary-type navigation */
   --rn-home-body: 1rem;         /* 16: short audio captions and status copy */
   --rn-home-reading: 1.125rem;  /* 18: full transcript and reading text */
   --rn-home-section: 1.25rem;   /* 20: sheet titles */

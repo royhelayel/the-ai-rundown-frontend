@@ -17,16 +17,10 @@ export function recapSentences(text) {
   }, []).filter(Boolean);
 }
 
+// Complete sentences keep qualifiers and context together. Timing follows the same
+// narration weighting used by scenes; browser speech boundaries take precedence.
 export function captionPhrases(text) {
-  const words = [...text.matchAll(/\S+/g)];
-  const phrases = []; let from = 0;
-  words.forEach((word, i) => {
-    if (i === words.length - 1 || (i - from >= 5 && /[,;:—،.!?؟]$/.test(word[0])) || i - from >= 12) {
-      const start = words[from].index, end = word.index + word[0].length;
-      phrases.push({ text: text.slice(start, end), weight: narrationWeight(text.slice(start, end)) });
-      from = i + 1;
-    }
-  });
+  const phrases = recapSentences(text).map(text => ({ text, weight: narrationWeight(text) }));
   let used = 0;
   const total = phrases.reduce((n, p) => n + p.weight, 0) || 1;
   return phrases.map(p => { const start = used / total; used += p.weight; return { ...p, start, end: used / total }; });

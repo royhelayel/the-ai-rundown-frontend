@@ -139,9 +139,12 @@ const chooseSummary = async (currentLabel, nextLabel) => {
 test('one page supports animated audio, text/audio and text only across all four briefs', async () => {
   localStorage.setItem(ONBOARDING_KEY, '1');
   window.history.pushState({}, '', '/listen'); installSummaryFixtures(); render(<App />);
-  await screen.findByRole('button', { name: 'Turn animation off' });
-  userEvent.click(screen.getByRole('button', { name: 'Turn animation off' }));
-  expect(screen.getByRole('region', { name: 'Brief transcript' })).toHaveTextContent('daily briefing');
+  await screen.findByRole('button', { name: 'Read', exact: true });
+  userEvent.click(screen.getByRole('button', { name: 'Settings', exact: true }));
+  const animations = screen.getByRole('group', { name: 'Animations' });
+  userEvent.click(within(animations).getByRole('button', { name: 'Off', exact: true }));
+  userEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));
+  expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('daily briefing');
   expect(screen.getByRole('region', { name: 'Player' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   expect(window.location.pathname).toBe('/listen');
@@ -178,7 +181,8 @@ test('summary preference survives reload, old reading preference no longer bypas
   await chooseSummary('Quick brief', 'Full brief'); first.unmount();
   render(<App />);
   expect(await screen.findByRole('button', { name: 'Full brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  expect(await screen.findByRole('button', { name: 'Turn animation off' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Read', exact: true })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Turn animation/ })).not.toBeInTheDocument();
 });
 
 test('old recap links open text-only on the unified page without audio autoplay', async () => {
@@ -211,7 +215,7 @@ test('Quick and Full navigate individual stories, preserve sources and do not au
  expect(screen.getByRole('button',{name:/Original reporting: BBC/})).toBeInTheDocument();
  await chooseSummary('Quick brief','Full brief');
  expect(await screen.findByRole('heading',{name:'Another World story',exact:true})).toBeInTheDocument();
- expect(screen.getByRole('button',{name:'Read this complete update'})).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Read this complete update'})).not.toBeInTheDocument();
  expect(container.querySelector('.rn-unified-card')).toHaveAttribute('aria-label',expect.stringContaining('Swipe left for next story'));
 });
 
@@ -237,4 +241,45 @@ test('horizontal pointer gestures skip Quick stories while vertical movement and
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,250));});
  expect(screen.getByRole('heading',{name:'World News story',exact:true})).toBeInTheDocument();
  window.PointerEvent=pointer;
+});
+
+test('listening feed choices change the stories and topics, retain Read mode and survive reload', async () => {
+ localStorage.setItem(ONBOARDING_KEY, '1');
+ localStorage.setItem('radionews_summary_type','Headlines');
+ localStorage.setItem('rundown_listen_counts', JSON.stringify({'world news story':1,'another world story':4}));
+ localStorage.setItem('rundown_saved_counts', JSON.stringify({'technology story':2}));
+ window.history.pushState({}, '', '/listen'); installSummaryFixtures();
+ const first=render(<App />);
+ await screen.findByRole('heading',{name:'World News story',exact:true});
+ userEvent.click(screen.getByRole('button',{name:'Read',exact:true}));
+ userEvent.click(screen.getByRole('button',{name:'News selection: Relevant'}));
+ userEvent.click(screen.getByRole('menuitemradio',{name:'Popular',exact:true}));
+ expect(await screen.findByRole('heading',{name:'Another World story',exact:true})).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Tech',exact:true})).not.toBeInTheDocument();
+ expect(screen.getByRole('region',{name:'Swipeable news text'})).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Play',exact:true})).not.toBeInTheDocument();
+ userEvent.click(screen.getByRole('button',{name:'News selection: Popular'}));
+ userEvent.click(screen.getByRole('menuitemradio',{name:'Interesting',exact:true}));
+ expect(await screen.findByRole('heading',{name:'Technology story',exact:true})).toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'World',exact:true})).not.toBeInTheDocument();
+ first.unmount(); render(<App />);
+ expect(await screen.findByRole('button',{name:'News selection: Interesting'})).toBeInTheDocument();
+ expect(await screen.findByRole('heading',{name:'Technology story',exact:true})).toBeInTheDocument();
+ userEvent.click(screen.getByRole('button',{name:'News selection: Interesting'}));
+ userEvent.click(screen.getByRole('menuitemradio',{name:'Relevant',exact:true}));
+ expect(await screen.findByRole('button',{name:'World',exact:true})).toBeInTheDocument();
+});
+
+test('an empty ranked feed explains the selection, disables play and can return to Relevant',async()=>{
+ localStorage.setItem(ONBOARDING_KEY,'1');installSummaryFixtures();render(<App />);
+ await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
+ await screen.findByRole('button',{name:'News selection: Relevant'});
+ userEvent.click(screen.getByRole('button',{name:'News selection: Relevant'}));
+ userEvent.click(screen.getByRole('menuitemradio',{name:'Popular',exact:true}));
+ expect(await screen.findByText(/No popular updates are available/)).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Play',exact:true})).toBeDisabled();
+ userEvent.click(screen.getByRole('button',{name:'News selection: Popular'}));
+ userEvent.click(screen.getByRole('menuitemradio',{name:'Relevant',exact:true}));
+ expect(await screen.findByRole('heading',{name:'World News daily briefing.',exact:true})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
 });

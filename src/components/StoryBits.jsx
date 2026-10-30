@@ -15,7 +15,7 @@ import CategoryIcon from './CategoryIcon';
 // the tinted cards, and a pill behind it was more than it needed.
 export function StatusBadge({ read, isNew }) {
   if (read === undefined) return null;
-  const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
+  const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--rn-home-meta, .75rem)', fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 };
   if (read) return <span style={{ ...base, color: 'var(--read)' }}><Check size={13} strokeWidth={3} />Read</span>;
   if (isNew) return <span style={{ ...base, color: 'inherit' }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />New</span>;

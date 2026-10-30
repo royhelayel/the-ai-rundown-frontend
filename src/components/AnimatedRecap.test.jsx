@@ -10,13 +10,23 @@ const props = { text, sourcesMap: sources, category: 'Technology', progress: 0, 
 beforeEach(() => { localStorage.clear(); clearStoryAnimationCache(); global.fetch = jest.fn(() => new Promise(()=>{})); });
 
 test('a reviewed edition drawing replaces the existing visual without changing its text or source action',async()=>{
-  const entry=edition.entries[0], open=jest.fn();
+  const entry=edition.entries[2], open=jest.fn();
   global.fetch=jest.fn(async()=>({ok:true,json:async()=>({version:1,entries:[{text:entry.text,plan:entry.plan,status:'ready'}]})}));
-  const {container}=render(<AnimatedRecap {...props} text={entry.text} sourcesMap={[{text:entry.text,stories:[{headline:'Waxcap discovery',sources:[{outlet:'Original outlet',url:'https://source.example'}]}]}]} onOpenSources={open}/>);
+  const {container}=render(<AnimatedRecap {...props} text={entry.text} sourcesMap={[{text:entry.text,stories:[{headline:'Trust bank approved',sources:[{outlet:'Original outlet',url:'https://source.example'}]}]}]} onOpenSources={open}/>);
   await waitFor(()=>expect(container.querySelector('[data-generated-animation="true"]')).toBeInTheDocument());
   fireEvent.click(screen.getByRole('button',{name:/Original reporting/}));
   expect(open.mock.calls[0][0].items[0].summary).toBe(entry.text);
   expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test('Microsoft uses its richer workforce explainer even when a generic drawing could exist',()=>{
+ const text='Microsoft is offering buyouts to about 60,000 employees—roughly 27 percent of its workforce.';
+ const {container,rerender}=render(<AnimatedRecap {...props} text={text} sourcesMap={[{text,stories:[]}]}/>);
+ expect(container.querySelector('.rn-animated-recap-stage')).toHaveAttribute('data-scene','workforce');
+ expect(container.querySelectorAll('.rn-recap-workforce>span')).toHaveLength(100);
+ expect(fetch).not.toHaveBeenCalled();
+ rerender(<AnimatedRecap {...props} text={text} sourcesMap={[{text,stories:[]}]} progress={90}/>);
+ expect(container.querySelectorAll('.rn-recap-workforce>.is-highlighted')).toHaveLength(27);
 });
 
 test('an unavailable edition retains the existing visual instead of creating a blank or error card',async()=>{

@@ -224,3 +224,21 @@ reduced motion remain supported. Boundaries cross available topics without wrapp
 Paused navigation stays paused and keeps native playback controls usable. Switching Quick
 and Full keeps the same headline when both include it. Late skipped-clip audio responses
 cannot reset current loading state. Existing speed persistence remains in force.
+
+## Restore explainer motion (2026-10-30)
+
+Roy preferred the earlier Microsoft animation to the basic vector pairs. Source-supported
+explainer scenes now have priority over cached drawings: workforce shares, horizontal TV
+video, blocked sandbox transfers, counted waxcap discoveries and reported phone damage/
+replacement. `hasExplainerMotion` deliberately excludes isolated figures, ordinary text,
+and a generic device with no supported action. A cached pair must not override a richer
+scene. No extra generation API is involved.
+
+Microsoft's workforce grid uses staged row arrival and sequential highlighting of the
+reported share; 100 symbols represent the complete workforce, not 100 employees. Literal
+employee counts/qualifiers stay visible. Generic reviewed drawings use a source-cued
+storyboard: the hero enters, moves aside and the supporting object reveals. Do not invent
+connecting arrows, charts, relationships or numeric trends. All animation uses narration
+phase, so pause holds its frame and seeking runs reversibly. Reduced motion shows a static
+completed illustration. Typography, independent Quick/Full recordings, source links,
+horizontal audio gestures and 70% progress behavior are unchanged.

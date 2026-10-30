@@ -12,14 +12,24 @@ export default function RecapIllustration({ illustration: art, phase, animate })
   const p = animate ? phase : 1;
 
   if (art.type === 'workforce') {
-    const reveal = between(p, art.cue, Math.min(1, art.cue + .22));
-    const count = Math.floor(art.percent * reveal);
+    const cue=Math.min(.7,art.cue), reveal = between(p, cue, Math.min(1, cue + .25));
+    const count = art.percent * reveal;
     const employees = art.figures.find(f => !/percent|%/i.test(f.literal) && /employees|workers/i.test(f.context || ''));
     return <div className="rn-recap-people" aria-hidden="true">
-      <div className="rn-recap-workforce">{Array.from({ length: 100 }, (_, i) => <span key={i} className={i < count ? 'is-highlighted' : ''} />)}</div>
+      <div className="rn-recap-workforce-view">
+        <div className="rn-recap-workforce">{Array.from({ length: 100 }, (_, i) => {
+          const arrival=between(p,.015*Math.floor(i/10),.16+.015*Math.floor(i/10));
+          const highlight=Math.max(0,Math.min(1,count-i));
+          const pop=1+Math.sin(highlight*Math.PI)*.2;
+          return <span key={i} className={highlight>0?'is-highlighted':''} style={{opacity:.25+.75*arrival,
+            transform:`translateY(${(1-arrival)*9}px) scale(${(.78+.22*arrival)*pop})`,
+            color:`color-mix(in srgb,var(--tp-chip) ${highlight*100}%,var(--card-sub))`}} />;
+        })}</div>
+        <span className="rn-recap-grid-note">100 symbols = whole workforce</span>
+      </div>
       <div className="rn-recap-workforce-values">
-        {employees && <ReportedFigure literal={employees.literal} />}
-        <span className="rn-recap-percent" style={{ opacity: reveal }}><strong>{art.percentLiteral.replace(/percent/i, '%')}</strong><small>of its workforce</small></span>
+        {employees && <div className="rn-recap-employee-count"><ReportedFigure literal={employees.literal} /><span>{art.employeeUnit}</span></div>}
+        <span className="rn-recap-percent" style={{ opacity:.2+.8*reveal,transform:`translateY(${(1-reveal)*12}px)` }}><strong>{art.percentLiteral.replace(/percent/i, '%')}</strong><small>of its workforce</small></span>
       </div>
     </div>;
   }
@@ -59,11 +69,13 @@ export default function RecapIllustration({ illustration: art, phase, animate })
   }
   if (art.type === 'device') {
     const Icon = art.tablet ? Tablet : Smartphone;
+    const replacement=art.replacement?between(p,.5,.88):0;
     return <div className="rn-recap-device" aria-hidden="true">
-      <div className="rn-recap-device-drawing" style={{ transform: `rotate(${animate ? -4 + 4 * between(p, 0, .45) : 0}deg)` }}>
+      <div className="rn-recap-device-drawing" style={{opacity:1-replacement,transform: `translateX(${-70*replacement}px) rotate(${animate ? -4 + 4 * between(p, 0, .45) : 0}deg)` }}>
         <Icon size={150} strokeWidth={1.2} />
         {art.crack && <span className="rn-recap-crack" style={{ transform: `scaleY(${between(p, .2, .55)})`, transformOrigin: 'top' }} />}
       </div>
+      {art.replacement && <div className="rn-recap-device-replacement" style={{opacity:replacement,transform:`translateX(${70*(1-replacement)}px)`}}><Icon size={150} strokeWidth={1.2}/><span>{art.replacementLabel}</span></div>}
     </div>;
   }
   if (art.type === 'figures') {

@@ -33,12 +33,33 @@ export function animationPose(frames,phase) {
   const fraction=a===b?0:(p-a.t)/(b.t-a.t), ease=fraction*fraction*(3-2*fraction);
   return Object.fromEntries(['x','y','scale','rotate','opacity'].map(key=>[key,a[key]+(b[key]-a[key])*ease]));
 }
-export default function GeneratedStoryAnimation({plan,text,phase=0,status='pending'}) {
+const reveal = (p,a,b) => {const t=Math.max(0,Math.min(1,(p-a)/(b-a)));return t*t*(3-2*t);};
+export function storyMotionPoses(plan,text,phase,motion=true) {
+  const p=motion?Math.max(0,Math.min(1,Number(phase)||0)):1;
+  const groups=[...new Set(plan.elements.map(e=>e.evidence))];
+  if(groups.length<2) return plan.elements.map(el=>animationPose(el.frames,p));
+  const source=String(text || '');
+  const cue=group=>Math.max(.22,Math.min(.62,source.toLowerCase().indexOf(group.toLowerCase())/Math.max(1,source.length)));
+  const context=reveal(p,cue(groups[1])-.08,cue(groups[1])+.18);
+  const hero=plan.elements.find(e=>e.type==='label'&&e.evidence===groups[0]);
+  const centering=Math.max(-90,Math.min(90,180-(hero?.x || 100)));
+  return plan.elements.map(el=>{
+    // Use the reviewed final geometry. The story's main object enters first,
+    // then makes room as the next source-supported object is introduced.
+    // No invented connecting arrows, numeric trends or causal links are drawn.
+    const base=animationPose(el.frames,1),index=groups.indexOf(el.evidence);
+    if(index===0){const arrival=reveal(p,0,.16);return {...base,x:base.x+centering*(1-context)-24*(1-arrival),y:base.y+12*(1-arrival),scale:base.scale*(1+.12*(1-context)),opacity:base.opacity*(.35+.65*arrival)};}
+    const at=Math.min(.8,cue(el.evidence)+(index-1)*.06),arrival=reveal(p,at-.08,Math.min(.98,at+.18));
+    return {...base,x:base.x+70*(1-arrival),y:base.y+8*(1-arrival),opacity:base.opacity*arrival};
+  });
+}
+export default function GeneratedStoryAnimation({plan,text,phase=0,status='pending',motion=true}) {
   if (!safeGeneratedAnimation(plan,text)) return <div className="rn-generated-status" role="status">
     {status==='pending' && <Loader size={22} aria-hidden="true" />}
     <span>{status==='pending'?'Animation is being prepared.':'Animation is temporarily unavailable.'}</span>
   </div>;
-  const visuals=plan.elements.map((el,i)=>({el,i,pose:animationPose(el.frames,phase)}));
+  const poses=storyMotionPoses(plan,text,phase,motion);
+  const visuals=plan.elements.map((el,i)=>({el,i,pose:poses[i]}));
   return <div className="rn-generated-stage" data-generated-animation="true" aria-hidden="true"><div className="rn-generated-canvas">
     <svg viewBox="0 0 360 240" width="100%" height="100%" focusable="false">
       {visuals.filter(item=>item.el.type!=='label').map(({el,i,pose:p})=>{

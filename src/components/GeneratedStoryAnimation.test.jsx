@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import GeneratedStoryAnimation, { animationPose, safeGeneratedAnimation } from './GeneratedStoryAnimation';
+import GeneratedStoryAnimation, { animationPose, safeGeneratedAnimation, storyMotionPoses } from './GeneratedStoryAnimation';
 const text='Researchers identified 18 waxcap species on the island.';
 const frames=[{t:0,x:0,y:0,scale:1,rotate:0,opacity:1},{t:1,x:20,y:10,scale:1.1,rotate:5,opacity:.8}];
 const plan={version:1,elements:[
@@ -35,4 +35,13 @@ test('a pending animation is disclosed instead of substituting a preset',()=>{
  const {container}=render(<GeneratedStoryAnimation text={text}/>);
  expect(screen.getByRole('status')).toHaveTextContent('being prepared');
  expect(container.querySelector('[data-generated-animation]')).toBeNull();
+});
+
+test('fallback drawings stage their source-supported objects instead of barely bobbing both icons',()=>{
+ const text='A bank has approved a stablecoin.';
+ const drawing={...plan,elements:plan.elements.map((el,i)=>({...el,evidence:i<2?'bank':'stablecoin'}))};
+ const start=storyMotionPoses(drawing,text,0),end=storyMotionPoses(drawing,text,1);
+ expect(start[0].x).not.toBe(end[0].x);expect(start[2].opacity).toBe(0);expect(end[2].opacity).toBeGreaterThan(0);
+ expect(storyMotionPoses(drawing,text,0)).toEqual(start);
+ expect(storyMotionPoses(drawing,text,.2,false)).toEqual(end);
 });

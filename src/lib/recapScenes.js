@@ -63,7 +63,8 @@ export function illustrationFor(text) {
   }
   const percent = /((?:(?:about|roughly|approximately)\s+)?(\d+(?:\.\d+)?)\s*(?:percent|%))\s+of\s+(?:its|the|their)\s+workforce/i.exec(text);
   if (percent && Number(percent[2]) >= 0 && Number(percent[2]) <= 100) {
-    return { type: 'workforce', figures, percent: Number(percent[2]), percentLiteral: percent[1], cue: cueAt(text, /\d+(?:\.\d+)?\s*(?:percent|%)/i, .4) };
+    return { type: 'workforce', figures, percent: Number(percent[2]), percentLiteral: percent[1],
+      employeeUnit:text.match(/employees|workers/i)?.[0],cue: cueAt(text, /\d+(?:\.\d+)?\s*(?:percent|%)/i, .4) };
   }
   if (/Instagram/i.test(text) && /horizontal/i.test(text) && /TV|television/i.test(text) && /test/i.test(text)) {
     return { type: 'video', figures, duration: figures.find(f => /minutes?/i.test(f.literal))?.literal,
@@ -73,10 +74,14 @@ export function illustrationFor(text) {
     return { type: 'sandbox', figures, model: /Qwen/i.test(text) ? text.match(/Qwen/i)[0] : '', cue: cueAt(text, /block/i, .8) };
   }
   if (/\b(?:iPhone|phone|handset|iPad|tablet)\b/i.test(text) && /\b(?:screen|display|device|handset|tablet)\b/i.test(text)) {
-    return { type: 'device', figures, tablet: /iPad|tablet/i.test(text), crack: /crack/i.test(text), replacement: /replac/i.test(text) };
+    return { type: 'device', figures, tablet: /iPad|tablet/i.test(text), crack: /crack/i.test(text), replacement: /replac/i.test(text),replacementLabel:text.match(/\breplac\w*/i)?.[0] };
   }
   return { type: figures.length ? 'figures' : 'editorial', figures, facts };
 }
+
+// The original fact-led motion scenes take precedence over generic vector drawings.
+// A number by itself is not an explainer scene and never earns this priority.
+export const hasExplainerMotion = art => ['workforce','video','sandbox','fungi'].includes(art?.type) || art?.type==='device' && (art.crack || art.replacement);
 
 export function buildRecapScenes(rawText, sourceMap) {
   const text = normalized(rawText);

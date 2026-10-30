@@ -47,11 +47,13 @@ test('Microsoft uses its richer workforce explainer even when a generic drawing 
  expect(container.querySelectorAll('.rn-recap-workforce>.is-highlighted')).toHaveLength(27);
 });
 
-test('an unavailable edition retains the existing visual instead of creating a blank or error card',async()=>{
+test('an unavailable edition uses a compact text card without an empty stage or error',async()=>{
   global.fetch=jest.fn(async()=>({ok:true,json:async()=>({version:1,entries:[]})}));
   const {container}=render(<AnimatedRecap {...props}/>);
   await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(1));
-  expect(container.querySelector('.rn-animated-recap-stage')).not.toHaveAttribute('data-scene','generated');
+  expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
+  expect(container.querySelector('[data-presentation="text"]')).toBeInTheDocument();
+  expect(container.querySelector('.rn-animated-recap-caption')).toHaveTextContent('Company A has made an announcement.');
   expect(screen.queryByText(/Animation is temporarily unavailable/)).not.toBeInTheDocument();
   expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
 });
@@ -141,4 +143,25 @@ test('read status follows each original story in animated and reading presentati
   expect(screen.getByText('Unread')).toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole('region', {name:'Swipeable news text'}), {key:'ArrowUp'});
   expect(screen.getByText('Read')).toBeInTheDocument();
+});
+
+
+test('late artwork waits until a new playback session and never interrupts playback or pause',async()=>{
+  const entry=edition.entries[2];
+  let resolve;
+  global.fetch=jest.fn(()=>new Promise(done=>{resolve=done;}));
+  const row={...props,text:entry.text,sourcesMap:[{text:entry.text,stories:[]}]};
+  const {container,rerender}=render(<AnimatedRecap {...row} playbackActive playing/>);
+  await waitFor(()=>expect(resolve).toBeDefined());
+  await act(async()=>resolve({ok:true,json:async()=>({version:1,entries:[{text:entry.text,plan:entry.plan,status:'ready'}]})}));
+  expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
+  rerender(<AnimatedRecap {...row} playbackActive playing={false}/>);
+  expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
+  rerender(<AnimatedRecap {...row} playbackActive={false} playing={false}/>);
+  expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
+  rerender(<AnimatedRecap {...row} playbackActive playing/>);
+  expect(container.querySelector('[data-generated-animation="true"]')).toBeInTheDocument();
+  rerender(<AnimatedRecap {...props} playbackActive playing/>);
+  expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
+  expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
 });

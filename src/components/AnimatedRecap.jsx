@@ -7,6 +7,7 @@ import RecapIllustration from './RecapIllustration';
 import StoryLedAnimation from './storyLed/StoryLedAnimation';
 import useStoryAnimations from '../hooks/useStoryAnimations';
 import useAnimationPreference from '../hooks/useAnimationPreference';
+import useIllustrationSelection from '../hooks/useIllustrationSelection';
 import { StatusBadge } from './StoryBits';
 import './AnimatedRecap.css';
 
@@ -39,7 +40,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 }
 
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
-  playing = false, duration = 0, speed = 1, onOpenSources, getStoryAction,
+  playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
   title, dateLabel, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect }, ref) {
   const [animations] = useAnimationPreference();
@@ -72,7 +73,14 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const currentIndex = reading ? Math.min(readerIndex, scenes.length - 1) : audioIndex;
   const scene = scenes[currentIndex];
   const drawing = scene ? animationFor(scene.text) : null;
-  const hasDrawing = !hasExplainerMotion(scene?.illustration) && !!drawing?.plan && safeGeneratedAnimation(drawing.plan,scene.text);
+  const native = hasExplainerMotion(scene?.illustration) ? scene.illustration : null;
+  const plan = !native && drawing?.plan && safeGeneratedAnimation(drawing.plan,scene.text) ? drawing.plan : null;
+  const visual = useIllustrationSelection(scene?.text, { native, plan }, playbackActive, reading);
+  const hasIllustration = !!(visual.native || visual.plan);
+  const compact = animations && !reading && !hasIllustration;
+  useLayoutEffect(() => {
+    onPresentationChange?.({ text, compact, storyLed: !reading && animations && visual.native?.type === 'story-led' });
+  }, [text, compact, reading, animations, visual.native?.type, onPresentationChange]);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
   const step = direction => {
@@ -132,7 +140,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
-  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-story-led={animations && !reading && scene.illustration.type === 'story-led'}>
+  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && visual.native?.type === 'story-led'}>
     <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
       <div className="rn-brief-actions">
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
@@ -154,11 +162,11 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       </div>}
     </div> : animations ? <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
-      <div className="rn-animated-recap-stage" data-scene={hasDrawing ? 'generated' : scene.illustration.type}>
-        {hasDrawing ? <GeneratedStoryAnimation plan={drawing.plan} text={scene.text} phase={position.phase} motion={!reduced} />
-          : scene.illustration.type === 'story-led' ? <StoryLedAnimation illustration={scene.illustration} phase={position.phase} reduced={reduced} />
-          : <RecapIllustration illustration={scene.illustration} phase={position.phase} animate={!reduced} />}
-      </div>
+      {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
+        {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
+          : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}
+      </div>}
       <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
     </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
       <h1>{title || `Today in ${CATEGORY_SHORT[category] || category}`}</h1>

@@ -8,6 +8,9 @@
 .rn-animated-recap-caption{display:flex;min-height:48px;max-height:48%;overflow-y:auto;overscroll-behavior:contain;flex-shrink:1;border-top:1px solid var(--card-line);padding-top:9px;color:var(--card-body)}
 .rn-animated-recap-caption p{margin:0;flex:1;min-width:0;font-size:var(--rn-home-body);line-height:1.5;overflow-wrap:anywhere}
 .rn-animated-recap-caption button{font-size:var(--rn-home-ui);font-weight:400;min-height:36px;flex-shrink:0;color:var(--card-sub)}
+.rn-animated-recap[data-presentation=text]{container-type:inline-size;flex:0 0 auto;gap:12px}
+.rn-animated-recap[data-presentation=text] .rn-animated-recap-title{display:block;-webkit-line-clamp:unset}
+.rn-animated-recap[data-presentation=text] .rn-animated-recap-caption{min-height:0;max-height:none;overflow:visible;border:0;padding:0;flex-shrink:0}
 .rn-animated-recap-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;flex-shrink:0}
 .rn-animated-recap-source.rn-btn{font-size:var(--rn-home-ui);line-height:1.35;color:var(--card-sub);display:flex;gap:5px;align-items:center;min-height:44px;min-width:0;text-align:start}
 .rn-animated-recap-source span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

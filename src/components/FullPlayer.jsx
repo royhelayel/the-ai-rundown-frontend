@@ -244,6 +244,7 @@ export default function FullPlayer({
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const readerRef = useRef(null);
+  const [visualPresentation, setVisualPresentation] = useState(null);
   const [animationsEnabled] = useAnimationPreference();
   const [readerNavigation, setReaderNavigation] = useState({ next: false, previous: false });
   const dayPickerRef = useRef(null);
@@ -963,6 +964,9 @@ export default function FullPlayer({
     const nextDisabled = !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1));
     const prevDisabled = radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0);
     const unifiedText = recapView ? recapText : excerpt;
+    const presentationMatches = visualPresentation?.text === unifiedText;
+    const compactAudio = unified && !readOnly && animationsEnabled && presentationMatches && visualPresentation.compact;
+    const storyLedAudio = !readOnly && animationsEnabled && (presentationMatches ? visualPresentation.storyLed : storyLedFor(unifiedText));
     const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: story?._quickRecap?.sources || [{ headline, sources: outlets }] }] : null;
     const swipeAudio=unified && !readOnly && !recapView;
     const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"
@@ -971,12 +975,13 @@ export default function FullPlayer({
       onPointerMove={swipeAudio?e=>pageTouchMove({touches:[e]}):undefined}
       onPointerUp={swipeAudio?e=>pageTouchEnd({changedTouches:[e]}):undefined}
       onPointerCancel={swipeAudio?()=>{touchRef.current=null;const el=cardRef.current;if(el&&!slideBusy.current){el.style.transform='none';el.style.transition='transform .2s ease-out';}}:undefined}
-      style={{ ...cardFrame, flex: '1 1 430px', minHeight: !readOnly && animationsEnabled && storyLedFor(unifiedText) ? 430 : 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0,
+      style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
         category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
+        playbackActive={isNarrating && playingThis} onPresentationChange={setVisualPresentation}
         externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}
         reading={readOnly} onChangeReading={onChangeReading} onNext={onNext} onPrev={onPrev}
         canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}

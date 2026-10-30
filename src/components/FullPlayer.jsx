@@ -1,5 +1,6 @@
 import './HomeTypography.css';
 import { HOME_TYPE } from './homeTypography';
+import { stagedFor } from '../lib/stagedAnimations';
 import { storyLedFor } from '../lib/storyLedAnimations';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import React, { useEffect, useRef, useState } from 'react';
@@ -966,7 +967,7 @@ export default function FullPlayer({
     const unifiedText = recapView ? recapText : excerpt;
     const presentationMatches = visualPresentation?.text === unifiedText;
     const compactAudio = unified && !readOnly && animationsEnabled && presentationMatches && visualPresentation.compact;
-    const storyLedAudio = !readOnly && animationsEnabled && (presentationMatches ? visualPresentation.storyLed : storyLedFor(unifiedText));
+    const storyLedAudio = !readOnly && animationsEnabled && (presentationMatches ? visualPresentation.storyLed : (stagedFor(unifiedText) || storyLedFor(unifiedText)));
     const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: story?._quickRecap?.sources || [{ headline, sources: outlets }] }] : null;
     const swipeAudio=unified && !readOnly && !recapView;
     const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"

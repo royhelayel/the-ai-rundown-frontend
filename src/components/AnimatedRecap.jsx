@@ -5,6 +5,7 @@ import { CATEGORY_SHORT } from '../theme';
 import GeneratedStoryAnimation, { safeGeneratedAnimation } from './GeneratedStoryAnimation';
 import RecapIllustration from './RecapIllustration';
 import StoryLedAnimation from './storyLed/StoryLedAnimation';
+import StagedAnimation from './storyLed/StagedAnimation';
 import useStoryAnimations from '../hooks/useStoryAnimations';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import useIllustrationSelection from '../hooks/useIllustrationSelection';
@@ -79,7 +80,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const hasIllustration = !!(visual.native || visual.plan);
   const compact = animations && !reading && !hasIllustration;
   useLayoutEffect(() => {
-    onPresentationChange?.({ text, compact, storyLed: !reading && animations && visual.native?.type === 'story-led' });
+    onPresentationChange?.({ text, compact, storyLed: !reading && animations && ['story-led','staged'].includes(visual.native?.type) });
   }, [text, compact, reading, animations, visual.native?.type, onPresentationChange]);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
@@ -140,7 +141,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
-  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && visual.native?.type === 'story-led'}>
+  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged'].includes(visual.native?.type)}>
     <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
       <div className="rn-brief-actions">
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
@@ -164,6 +165,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
       {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
         {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : visual.native.type === 'staged' ? <StagedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}
       </div>}

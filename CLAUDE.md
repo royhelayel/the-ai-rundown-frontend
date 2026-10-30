@@ -302,3 +302,14 @@ existing artwork outside these four reviewed storyboards; do not claim all345 we
 Phone QA: the four animated cards use concise story headings and tighter internal gaps to
 reserve space for the complete current sentence and artwork. Read and Sources retain the
 complete original headlines; shared Quick/Full artwork is unchanged.
+
+## Limited staged-motion rollout (2026-10-31)
+
+Roy approved deploying the three motion review samples. Exact 30 Oct World Full scripts
+(Binance, Hong Kong fire accountability, China party expulsions) resolve locally through
+`stagedFor` before generic drawings. Their bundled validated plans share the pilot renderer
+and use existing narration phase, no visual playback timer or API generation. Corrections
+invalidate exact matches. Off, Read, reduced motion, sources and progress tracking retain
+existing behavior. No Quick recap exists for this edition; do not fabricate an alias.
+Independent automated image rejections remain historical evidence; user approval is a
+limited rollout, not certification of the remaining nine stories or ongoing generation.

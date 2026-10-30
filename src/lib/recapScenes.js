@@ -1,5 +1,6 @@
 import { cleanForTTS } from '../audio/narrationText';
 import { narrationWeight } from './narrationTiming';
+import { stagedFor } from './stagedAnimations';
 import { storyLedFor } from './storyLedAnimations';
 export { narrationWeight } from './narrationTiming';
 
@@ -42,7 +43,7 @@ const cueAt = (text, pattern, fallback) => {
 };
 
 export function illustrationFor(text) {
-  const approved = storyLedFor(text);
+  const approved = stagedFor(text) || storyLedFor(text);
   if (approved) return approved;
   const sentences = recapSentences(text);
   let cursor = 0;
@@ -79,7 +80,7 @@ export function illustrationFor(text) {
 
 // The original fact-led motion scenes take precedence over generic vector drawings.
 // A number by itself is not an explainer scene and never earns this priority.
-export const hasExplainerMotion = art => ['story-led','workforce','video','sandbox','fungi'].includes(art?.type) || art?.type==='device' && (art.crack || art.replacement);
+export const hasExplainerMotion = art => ['staged','story-led','workforce','video','sandbox','fungi'].includes(art?.type) || art?.type==='device' && (art.crack || art.replacement);
 
 export function buildRecapScenes(rawText, sourceMap) {
   const text = normalized(rawText);

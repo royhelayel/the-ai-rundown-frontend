@@ -4,6 +4,7 @@ import { narrationWeight } from './narrationTiming';
 
 const normalize = text => cleanForTTS(String(text || '')).replace(/\s+/g, ' ').trim();
 const kinds = ['devices', 'phobos', 'election', 'lockdown'];
+const titles = { devices: 'Keystone key breach', phobos: 'Mission to Phobos', election: 'Brazil’s runoff result', lockdown: 'iPhone Lockdown Mode' };
 const records = new Map(approved.map(record => {
   const text = normalize(record.text), total = narrationWeight(text) || 1;
   let previous = 0;
@@ -15,7 +16,7 @@ const records = new Map(approved.map(record => {
     previous = audio;
     return { audio, phase: anchor.phase };
   });
-  return [text, { type: 'story-led', story: record.story, index: kinds.indexOf(record.story),
+  return [text, { type: 'story-led', story: record.story, title: titles[record.story], index: kinds.indexOf(record.story),
     anchors: [{ audio: 0, phase: 0 }, ...anchors, { audio: 1, phase: 1 }] }];
 }));
 

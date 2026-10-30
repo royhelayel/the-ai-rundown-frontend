@@ -298,3 +298,7 @@ Phobos has a 12px DOM scale note. Story-led audio cards reserve 430px minimum wi
 existing scrolling content area, keeping the bottom transport fixed. Captions reset their
 scroll position when the narrated sentence changes. The wider edition still retains its
 existing artwork outside these four reviewed storyboards; do not claim all345 were redone.
+
+Phone QA: the four animated cards use concise story headings and tighter internal gaps to
+reserve space for the complete current sentence and artwork. Read and Sources retain the
+complete original headlines; shared Quick/Full artwork is unchanged.

@@ -4,3 +4,4 @@
 .rn-story-led-svg [data-led-note=true]{display:none}
 .rn-story-led-note{font-size:var(--rn-home-meta);color:var(--card-sub);line-height:1.25;text-align:center;flex-shrink:0}
 .rn-animated-recap-stage[data-scene=story-led]{min-height:160px;flex-shrink:0}
+.rn-animated-recap[data-story-led=true]{gap:0}

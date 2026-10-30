@@ -132,7 +132,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
-  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading}>
+  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-story-led={animations && !reading && scene.illustration.type === 'story-led'}>
     <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
       <div className="rn-brief-actions">
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
@@ -153,7 +153,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
           onClick={() => { readerMoved.current = true; if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }}><span /></button>)}
       </div>}
     </div> : animations ? <>
-      <h1 className="rn-animated-recap-title" dir="auto">{scene.displayHeadline}</h1>
+      <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
       <div className="rn-animated-recap-stage" data-scene={hasDrawing ? 'generated' : scene.illustration.type}>
         {hasDrawing ? <GeneratedStoryAnimation plan={drawing.plan} text={scene.text} phase={position.phase} motion={!reduced} />
           : scene.illustration.type === 'story-led' ? <StoryLedAnimation illustration={scene.illustration} phase={position.phase} reduced={reduced} />

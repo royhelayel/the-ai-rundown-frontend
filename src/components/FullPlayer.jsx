@@ -1,5 +1,7 @@
 import './HomeTypography.css';
 import { HOME_TYPE } from './homeTypography';
+import { storyLedFor } from '../lib/storyLedAnimations';
+import useAnimationPreference from '../hooks/useAnimationPreference';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
@@ -242,6 +244,7 @@ export default function FullPlayer({
 }) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const readerRef = useRef(null);
+  const [animationsEnabled] = useAnimationPreference();
   const [readerNavigation, setReaderNavigation] = useState({ next: false, previous: false });
   const dayPickerRef = useRef(null);
   useEffect(() => {
@@ -968,7 +971,7 @@ export default function FullPlayer({
       onPointerMove={swipeAudio?e=>pageTouchMove({touches:[e]}):undefined}
       onPointerUp={swipeAudio?e=>pageTouchEnd({changedTouches:[e]}):undefined}
       onPointerCancel={swipeAudio?()=>{touchRef.current=null;const el=cardRef.current;if(el&&!slideBusy.current){el.style.transform='none';el.style.transition='transform .2s ease-out';}}:undefined}
-      style={{ ...cardFrame, flex: '1 1 430px', minHeight: 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0,
+      style={{ ...cardFrame, flex: '1 1 430px', minHeight: !readOnly && animationsEnabled && storyLedFor(unifiedText) ? 430 : 170, maxHeight: readOnly ? undefined : 500, padding: '12px 16px 8px', gap: 0,
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}

@@ -4,6 +4,7 @@ import { buildRecapScenes, scenePosition, hasExplainerMotion } from '../lib/reca
 import { CATEGORY_SHORT } from '../theme';
 import GeneratedStoryAnimation, { safeGeneratedAnimation } from './GeneratedStoryAnimation';
 import RecapIllustration from './RecapIllustration';
+import StoryLedAnimation from './storyLed/StoryLedAnimation';
 import useStoryAnimations from '../hooks/useStoryAnimations';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import { StatusBadge } from './StoryBits';
@@ -155,9 +156,10 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       <h1 className="rn-animated-recap-title" dir="auto">{scene.displayHeadline}</h1>
       <div className="rn-animated-recap-stage" data-scene={hasDrawing ? 'generated' : scene.illustration.type}>
         {hasDrawing ? <GeneratedStoryAnimation plan={drawing.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : scene.illustration.type === 'story-led' ? <StoryLedAnimation illustration={scene.illustration} phase={position.phase} reduced={reduced} />
           : <RecapIllustration illustration={scene.illustration} phase={position.phase} animate={!reduced} />}
       </div>
-      <div className="rn-animated-recap-caption" dir="auto"><p key={position.caption}>{position.caption}</p></div>
+      <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
     </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
       <h1>{title || `Today in ${CATEGORY_SHORT[category] || category}`}</h1>
       {dateLabel && <p className="rn-brief-date">{dateLabel}</p>}

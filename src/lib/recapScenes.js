@@ -1,8 +1,10 @@
 import { cleanForTTS } from '../audio/narrationText';
+import { narrationWeight } from './narrationTiming';
+import { storyLedFor } from './storyLedAnimations';
+export { narrationWeight } from './narrationTiming';
 
 const normalized = text => cleanForTTS(String(text || '')).replace(/\s+/g, ' ').trim();
-export const narrationWeight = text => [...String(text).matchAll(/\S+/g)].reduce((sum, word) =>
-  sum + Math.max(2, word[0].length) + (/[.!?؟]$/.test(word[0]) ? 7 : /[,;:،]$/.test(word[0]) ? 3 : 0), 0);
+
 
 export function recapSentences(text) {
   if (typeof Intl.Segmenter === 'function') {
@@ -40,6 +42,8 @@ const cueAt = (text, pattern, fallback) => {
 };
 
 export function illustrationFor(text) {
+  const approved = storyLedFor(text);
+  if (approved) return approved;
   const sentences = recapSentences(text);
   let cursor = 0;
   const facts = sentences.map(literal => {
@@ -75,7 +79,7 @@ export function illustrationFor(text) {
 
 // The original fact-led motion scenes take precedence over generic vector drawings.
 // A number by itself is not an explainer scene and never earns this priority.
-export const hasExplainerMotion = art => ['workforce','video','sandbox','fungi'].includes(art?.type) || art?.type==='device' && (art.crack || art.replacement);
+export const hasExplainerMotion = art => ['story-led','workforce','video','sandbox','fungi'].includes(art?.type) || art?.type==='device' && (art.crack || art.replacement);
 
 export function buildRecapScenes(rawText, sourceMap) {
   const text = normalized(rawText);

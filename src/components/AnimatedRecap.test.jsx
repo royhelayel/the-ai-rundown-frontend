@@ -3,12 +3,29 @@ import AnimatedRecap from './AnimatedRecap';
 import { setAnimationPreference } from '../hooks/useAnimationPreference';
 import { clearStoryAnimationCache } from '../hooks/useStoryAnimations';
 import edition from './__fixtures__/editorial-drawings.json';
+import approvedStories from './storyLed/approvedStories.json';
 
 const text = 'Company A has made an announcement. Company B says the plan is not final.';
 const sources = [{ text: 'Company A has made an announcement.', stories: [{ headline: 'A announces a plan', sources: [{ outlet: 'Outlet A', url: 'https://a.example' }] }] },
   { text: 'Company B says the plan is not final.', stories: [{ headline: 'B says plan is not final', sources: [{ outlet: 'Outlet B', url: 'https://b.example' }] }] }];
 const props = { text, sourcesMap: sources, category: 'Technology', progress: 0, playing: false, duration: 30, speed: 1 };
 beforeEach(() => { localStorage.clear(); clearStoryAnimationCache(); global.fetch = jest.fn(() => new Promise(()=>{})); });
+
+test('approved story-led scenes keep source access and bypass the generic drawing lookup',()=>{
+ const row=approvedStories.find(s=>s.story==='devices'),open=jest.fn();
+ const {container,rerender}=render(<AnimatedRecap {...props} text={row.text} sourcesMap={[{text:row.text,stories:[{headline:'Keystone report',sources:[{outlet:'Original source',url:'https://source.example'}]}]}]} onOpenSources={open}/>);
+ expect(container.querySelector('.rn-animated-recap-stage')).toHaveAttribute('data-scene','story-led');
+ expect(container.querySelector('.rn-story-led')).toHaveAttribute('data-story','devices');
+ expect(fetch).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Original reporting: Original source'}));
+ expect(open.mock.calls[0][0].items[0].summary).toBe(row.text);
+ const value=container.querySelector('.rn-story-led').dataset.phase;
+ rerender(<AnimatedRecap {...props} text={row.text} sourcesMap={[{text:row.text,stories:[]}]} progress={80}/>);
+ expect(Number(container.querySelector('.rn-story-led').dataset.phase)).toBeGreaterThan(Number(value));
+ act(()=>setAnimationPreference(false));
+ expect(container.querySelector('.rn-story-led')).not.toBeInTheDocument();
+ expect(screen.getByRole('region',{name:'Brief transcript'})).toHaveTextContent(row.text);
+});
 
 test('a reviewed edition drawing replaces the existing visual without changing its text or source action',async()=>{
   const entry=edition.entries[2], open=jest.fn();

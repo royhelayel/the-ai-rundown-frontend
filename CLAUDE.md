@@ -273,3 +273,28 @@ Animated headlines allow three lines when space permits. The original signed-in 
 Read/New/Unread badge is restored beside the topic in all presentations. Quick status
 resolves original headlines; reading a short recap never marks the Full summary read.
 Unmapped/period recaps do not fabricate a read status.
+
+## Approved story-led scenes (2026-10-30)
+
+Roy approved the four motion studies and explicitly wants the SAME illustration/sequence
+for Quick and Full. Integrated Keystone inventory/key theft, Phobos sample mission, Brazil
+runoff results and iPhone Lockdown Mode. `storyLedAnimations` resolves eight exact reviewed
+texts to four shared scenes; phrase anchors map each version's narration phase into the
+same storyboard. The existing clock, browser speech boundaries and audio engine remain
+owners of timing. No looping or new generation/TTS/video requests. Corrections invalidate
+exact-text records; never guess based on a topic/keyword and show stale numbers.
+
+Shared underlying-story facts are supplied by the reviewed Quick/Full pair. The Keystone
+label says affected units/planned destruction, preserving the Full version's future tense.
+The Phobos future actions remain planned/expected and explicitly not to scale. Reuse of
+one illustration must not invent details in either script. Microsoft/workforce, cracked
+phones, Instagram and other previous approved explainers retain their priority.
+
+The new renderer precedes generic drawing lookups. Pause holds its phase, reverse seeks
+rewind, reduced motion shows a completed static composition, Settings Off shows text/audio,
+and Read/sources/Interesting/read status remain unchanged. Theme colors inherit existing
+category/card variables. Compact SVG viewBox and minimum label size preserve phone legibility;
+Phobos has a 12px DOM scale note. Story-led audio cards reserve 430px minimum within the
+existing scrolling content area, keeping the bottom transport fixed. Captions reset their
+scroll position when the narrated sentence changes. The wider edition still retains its
+existing artwork outside these four reviewed storyboards; do not claim all345 were redone.

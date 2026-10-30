@@ -1,0 +1,268 @@
+[
+  {
+    "story": "devices",
+    "version": "quick",
+    "text": "Hardware wallet maker Keystone disclosed that attackers stole an authentication key used to verify its devices, forcing it to destroy 18,835 compromised units in inventory.",
+    "anchors": [
+      {
+        "phase": 0.2,
+        "phrase": "attackers stole",
+        "edge": "start"
+      },
+      {
+        "phase": 0.43,
+        "phrase": "authentication key",
+        "edge": "end"
+      },
+      {
+        "phase": 0.51,
+        "phrase": "destroy",
+        "edge": "start"
+      },
+      {
+        "phase": 0.76,
+        "phrase": "18,835",
+        "edge": "start"
+      },
+      {
+        "phase": 0.94,
+        "phrase": "compromised units",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "phobos",
+    "version": "quick",
+    "text": "Japan's space agency launched a half-billion-dollar mission expected to land on Phobos, Mars's largest moon, and return samples by 2031.",
+    "anchors": [
+      {
+        "phase": 0.02,
+        "phrase": "launched",
+        "edge": "start"
+      },
+      {
+        "phase": 0.24,
+        "phrase": "mission",
+        "edge": "end"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "land on Phobos",
+        "edge": "end"
+      },
+      {
+        "phase": 0.56,
+        "phrase": "Mars's largest moon",
+        "edge": "end"
+      },
+      {
+        "phase": 0.71,
+        "phrase": "return samples",
+        "edge": "start"
+      },
+      {
+        "phase": 0.96,
+        "phrase": "2031",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "lockdown",
+    "version": "quick",
+    "text": "iPhone's Lockdown Mode, available since 2022, offers extreme security against commercial spyware but blocks many features including most message attachments, link previews and FaceTime calls.",
+    "anchors": [
+      {
+        "phase": 0.13,
+        "phrase": "Lockdown Mode",
+        "edge": "start"
+      },
+      {
+        "phase": 0.3,
+        "phrase": "Lockdown Mode",
+        "edge": "end"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "most message attachments",
+        "edge": "start"
+      },
+      {
+        "phase": 0.57,
+        "phrase": "most message attachments",
+        "edge": "end"
+      },
+      {
+        "phase": 0.7,
+        "phrase": "link previews",
+        "edge": "end"
+      },
+      {
+        "phase": 0.83,
+        "phrase": "FaceTime calls",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "election",
+    "version": "quick",
+    "text": "In Brazil, Lula won 51.79 percent to Flávio Bolsonaro's 48.21 percent in a second-round presidential election, overturning a first-round defeat and securing a fourth term as the country's longest-serving leader.",
+    "anchors": [
+      {
+        "phase": 0.23,
+        "phrase": "Lula won",
+        "edge": "start"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "51.79",
+        "edge": "start"
+      },
+      {
+        "phase": 0.74,
+        "phrase": "48.21 percent",
+        "edge": "end"
+      },
+      {
+        "phase": 0.94,
+        "phrase": "fourth term",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "devices",
+    "version": "full",
+    "text": "Hardware wallet maker Keystone disclosed that an attacker breached its website and stole a key used to verify the authenticity of its devices. The stolen authentication key could allow attackers to produce counterfeit wallets that pass Keystone's authenticity checks and be sold to customers unknowingly. Keystone plans to destroy 18,835 devices containing the compromised key and suspended production shipments of all devices using it.",
+    "anchors": [
+      {
+        "phase": 0.2,
+        "phrase": "stole a key",
+        "edge": "start"
+      },
+      {
+        "phase": 0.43,
+        "phrase": "authenticity of its devices",
+        "edge": "end"
+      },
+      {
+        "phase": 0.51,
+        "phrase": "plans to destroy",
+        "edge": "start"
+      },
+      {
+        "phase": 0.76,
+        "phrase": "18,835",
+        "edge": "start"
+      },
+      {
+        "phase": 0.94,
+        "phrase": "compromised key",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "phobos",
+    "version": "full",
+    "text": "Japan's space agency launched a half-billion-dollar spacecraft called MMX toward Mars's moon Phobos, which is expected to arrive in August 2027. After three years orbiting Mars, the spacecraft will send a rover to spend 100 days studying Phobos's surface, then attempt its own landings to collect samples. The mission aims to return 10 grams of material to Earth by 2031. Scientists hope the samples will reveal whether Phobos was once an asteroid captured by Mars or formed from debris after a collision with the planet.",
+    "anchors": [
+      {
+        "phase": 0.02,
+        "phrase": "launched",
+        "edge": "start"
+      },
+      {
+        "phase": 0.24,
+        "phrase": "toward Mars",
+        "edge": "end"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "Phobos's surface",
+        "edge": "end"
+      },
+      {
+        "phase": 0.56,
+        "phrase": "collect samples",
+        "edge": "end"
+      },
+      {
+        "phase": 0.71,
+        "phrase": "return 10 grams",
+        "edge": "start"
+      },
+      {
+        "phase": 0.96,
+        "phrase": "2031",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "lockdown",
+    "version": "full",
+    "text": "Apple's Lockdown Mode, available since 2022 on iPhones running iOS 16 and later, provides extreme security against commercial spyware like NSO's Pegasus at the cost of reduced functionality. The feature blocks many iPhone capabilities including attachments, link previews, FaceTime calls and automatic connection to unsecured networks. Most people do not need Lockdown Mode, but it is designed for journalists, activists and politicians who may be targeted by spyware.",
+    "anchors": [
+      {
+        "phase": 0.13,
+        "phrase": "Lockdown Mode",
+        "edge": "start"
+      },
+      {
+        "phase": 0.3,
+        "phrase": "Lockdown Mode",
+        "edge": "end"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "including attachments",
+        "edge": "start"
+      },
+      {
+        "phase": 0.57,
+        "phrase": "including attachments",
+        "edge": "end"
+      },
+      {
+        "phase": 0.7,
+        "phrase": "link previews",
+        "edge": "end"
+      },
+      {
+        "phase": 0.83,
+        "phrase": "FaceTime calls",
+        "edge": "end"
+      }
+    ]
+  },
+  {
+    "story": "election",
+    "version": "full",
+    "text": "Luiz Inácio Lula da Silva won Brazil's presidential runoff against Flávio Bolsonaro with 51.79% of the vote after losing the first round, making history as the first time a first-round result has been overturned in a Brazilian presidential election. The Supreme Court extended voting by two hours after Lula's campaign accused opponents of sabotaging public transport. Bolsonaro refused to concede, echoing his father's rejection of the 2022 result, and Lula will face a hostile Congress packed with Bolsonaro allies as he becomes the country's longest-serving leader.",
+    "anchors": [
+      {
+        "phase": 0.23,
+        "phrase": "won Brazil's",
+        "edge": "start"
+      },
+      {
+        "phase": 0.42,
+        "phrase": "51.79%",
+        "edge": "start"
+      },
+      {
+        "phase": 0.74,
+        "phrase": "after losing the first round",
+        "edge": "end"
+      },
+      {
+        "phase": 0.94,
+        "phrase": "result has been overturned",
+        "edge": "end"
+      }
+    ]
+  }
+]

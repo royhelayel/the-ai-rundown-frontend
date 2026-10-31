@@ -3,6 +3,7 @@ import { DESIGN_CSS } from '../design';
 export default function GlobalStyles() {
   return (
       <style>{`
+        @font-face { font-family:'RadioNews Editorial'; src:url('/pilot-assets/Inter.ttf') format('truetype'); font-weight:100 900; font-style:normal; font-display:swap; }
         :root { --body-max: 600px; }
         ${DESIGN_CSS}
         * { box-sizing: border-box; }

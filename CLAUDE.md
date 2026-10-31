@@ -341,3 +341,15 @@ RemoteRemotion frame URLs include presentation epoch v=2 so cached frame HTML ca
 up shared readability styles without regenerating paid artwork. Neutral SVG text remains
 high contrast; the iframe blends with the topic card in light mode and uses inverted
 screen blending in dark/system-dark mode. One visible sandboxed Player remains the limit.
+
+## Open editorial Listen layout (2026-10-31)
+
+Roy approved the Editorial mock: unwrapped story on the page, text topic tabs, a compact
+brief strip with edition date alongside, Relevant/Popular/Interesting and Settings in the
+masthead. `/listen` uses scoped `EditorialListen.css`; other reading routes retain their
+existing navigation. The same playback engine, source sheet, Read mode, animation lookup,
+read status, topic picker and challenge sheet remain. Transport now lives beneath the
+story; BottomNav's `editorial` variant shows a small labelled challenge progress track
+instead of utility circles. Do not reintroduce the Listen/Read bottom selector.
+Inter is self-hosted from the existing public font; headlines are 32px, captions 18px,
+navigation 14px and metadata/sources 12px, with rem sizing and compact-height adjustments.

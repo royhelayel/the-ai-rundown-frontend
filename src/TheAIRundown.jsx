@@ -2286,6 +2286,7 @@ const TheAIRundown = () => {
           everywhere else it's the sheet, which only exists while something is playing. */}
       {(isListenPath || isReadRecap || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
+          onOpenSettings={() => navigate('/settings', { state: { from: location.pathname } })}
           newsLanguage={newsLanguage}
           narrationLimitRef={narrationLimitRef}
           programmeMeta={programmeMeta}
@@ -2322,7 +2323,7 @@ const TheAIRundown = () => {
           visible={isListenPath || isReadRecap ? true : !fullPlayerExiting}
           isExiting={isListenPath || isReadRecap ? false : fullPlayerExiting}
           footer={isListenPath ? center => (
-            <BottomNav fixed={false} utilitiesOnly center={center}
+            <BottomNav fixed={false} utilitiesOnly editorial center={center}
               challengeStats={challengeStatsFull} user={user}
               onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
           ) : null}

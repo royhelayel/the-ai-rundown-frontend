@@ -20,6 +20,7 @@ export default function BottomNav({
   fixed = true,
   center = null,
   utilitiesOnly = false,
+  editorial = false,
   compactRead = false,
   mode = 'scroll',
   onChangeMode,
@@ -125,16 +126,16 @@ export default function BottomNav({
 
   return (
     <>
-      <nav style={{
+      <nav className={editorial ? 'rn-editorial-challenge' : undefined} style={{
         ...(fixed ? { position: 'fixed', bottom: 0, left: 0, right: 0 } : { position: 'relative' }),
         zIndex: 45, flexShrink: 0, background: 'var(--paper)',
         padding: '4px 20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         display: 'flex', justifyContent: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
-          <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
+          {!editorial && <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
             <Settings size={22} strokeWidth={1.8} />
-          </button>
+          </button>}
           {utilitiesOnly ? <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>{center}</div> : (
           <div role="group" aria-label="How you take in the news"
             style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', gap: 2, padding: 3, background: 'var(--panel)', borderRadius: 13 }}>
@@ -168,8 +169,8 @@ export default function BottomNav({
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
               : challengeStats?.todayAudioComplete ? 'Challenge: listening mix completed' : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
-            style={end}>
-            {user ? ring : <Flame size={20} strokeWidth={1.8} />}
+            style={editorial ? undefined : end}>
+            {editorial ? <><span className="rn-editorial-goal-track" aria-hidden="true"><span style={{ width: `${frac * 100}%` }} /></span><span>Today’s challenge</span><strong>{challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}</strong></> : user ? ring : <Flame size={20} strokeWidth={1.8} />}
             {earnedBadge && <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2,
               width: 19, height: 19, borderRadius: '50%', background: 'var(--paper)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,

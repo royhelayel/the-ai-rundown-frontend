@@ -1,4 +1,5 @@
 import './HomeTypography.css';
+import './EditorialListen.css';
 import { HOME_TYPE } from './homeTypography';
 import { stagedFor } from '../lib/stagedAnimations';
 import { storyLedFor } from '../lib/storyLedAnimations';
@@ -166,6 +167,7 @@ export default function FullPlayer({
   // Rendered at the bottom of the page shell (the dark BottomNav). Page mode only — the
   // sheet covers the nav rather than carrying one.
   footer = null,
+  onOpenSettings,
   onMinimize,
   onClose,
   // Current story data
@@ -297,7 +299,7 @@ export default function FullPlayer({
   // stretched to the feed's 600px the artwork went wide and letterboxed while the controls
   // drifted apart. 480 is the width the sheet already uses, so the page and the sheet are
   // now the same object at the same size rather than two sizes of the same design.
-  const PAGE_MAX = 480;
+  const PAGE_MAX = unified ? 440 : 480;
 
   // Swipe left / right to move through stories — on a screen whose whole job is one story at
   // a time, reaching for a button to advance is the odd part. The buttons stay: this is an
@@ -978,6 +980,7 @@ export default function FullPlayer({
       onPointerUp={swipeAudio?e=>pageTouchEnd({changedTouches:[e]}):undefined}
       onPointerCancel={swipeAudio?()=>{touchRef.current=null;const el=cardRef.current;if(el&&!slideBusy.current){el.style.transform='none';el.style.transition='transform .2s ease-out';}}:undefined}
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
+        ...(unified ? { background: 'transparent', borderRadius: 0, padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
@@ -1024,9 +1027,10 @@ export default function FullPlayer({
     const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: HOME_TYPE.meta, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><ChevronUp size={14} />{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe up to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
 
     return (
-      <div data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className={unified ? 'rn-editorial-listen' : undefined} data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
+            editorial={unified} onOpenSettings={onOpenSettings}
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={onSelectCategory}
@@ -1040,7 +1044,7 @@ export default function FullPlayer({
           />
         </div>
 
-        <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
+        <div className={unified ? 'rn-editorial-body' : undefined} style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
           display: 'flex', flexDirection: 'column', padding: '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
           {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.ui, fontWeight: 500, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
           {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: HOME_TYPE.ui, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
@@ -1080,7 +1084,7 @@ export default function FullPlayer({
                   )}
                 </button>
               </div>
-              {!unified && transport}
+              {transport}
               {phoneVoice && (
                 <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: HOME_TYPE.ui, lineHeight: 1.45 }}>
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
@@ -1089,9 +1093,10 @@ export default function FullPlayer({
 
             </section>
           )}
-          <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />
+          {unified && readOnly && <div style={{ display: 'flex', justifyContent: 'center' }}>{footerCenter}</div>}
+          {!unified && <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />}
         </div>
-        {typeof footer === 'function' ? footer(footerCenter) : footer}
+        {typeof footer === 'function' ? footer(unified ? null : footerCenter) : footer}
         {sourcesSnapshot && <RecapSourcesSheet snapshot={sourcesSnapshot} onClose={closeSources} />}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>

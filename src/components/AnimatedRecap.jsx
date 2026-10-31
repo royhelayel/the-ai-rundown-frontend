@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { ChevronUp, Star } from 'lucide-react';
 import { buildRecapScenes, scenePosition, hasExplainerMotion } from '../lib/recapScenes';
 import { CATEGORY_SHORT } from '../theme';
@@ -7,6 +7,8 @@ import RecapIllustration from './RecapIllustration';
 import StoryLedAnimation from './storyLed/StoryLedAnimation';
 import StagedAnimation from './storyLed/StagedAnimation';
 import useStoryAnimations from '../hooks/useStoryAnimations';
+import useDailyMotion from '../hooks/useDailyMotion';
+import RemoteRemotion from './RemoteRemotion';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import useIllustrationSelection from '../hooks/useIllustrationSelection';
 import { StatusBadge } from './StoryBits';
@@ -43,12 +45,14 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
   const [readerIndex, setReaderIndex] = useState(() => scenePosition(buildRecapScenes(text, sourcesMap), progress, charOffset)?.scene.index || 0);
   const [overflow, setOverflow] = useState(false);
+  const [failedFrame,setFailedFrame]=useState(null);
+  const frameUnavailable=useCallback(id=>setFailedFrame(id),[]);
   const readerMoved = useRef(false);
   const previousReading = useRef(reading);
   const touch = useRef(null), wheelAt = useRef(0), textBox = useRef(null), transcript = useRef(null);
@@ -64,6 +68,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const scenes = useMemo(() => buildRecapScenes(text, sourcesMap), [text, sourcesMap]);
   const position = scenePosition(scenes, visualProgress, charOffset);
   const audioIndex = position?.scene.index || 0;
+  const dailyFor=useDailyMotion(scenes.slice(audioIndex,audioIndex+2).map(s=>s.text),{category,day,language,enabled:dailyMotion&&animations&&!reading&&visible});
   const animationFor = useStoryAnimations(scenes.slice(audioIndex,audioIndex+2).filter(s=>!hasExplainerMotion(s.illustration)).map(s=>s.text),animations && !reading && visible);
   // Enter reading exactly at the narrated update. Further reading is independent of
   // the paused audio cursor; returning without a swipe resumes the exact audio position.
@@ -74,13 +79,14 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const currentIndex = reading ? Math.min(readerIndex, scenes.length - 1) : audioIndex;
   const scene = scenes[currentIndex];
   const drawing = scene ? animationFor(scene.text) : null;
-  const native = hasExplainerMotion(scene?.illustration) ? scene.illustration : null;
+  const daily=scene?dailyFor(scene.text):null;
+  const native = daily?.artifact ? {type:'remotion',...daily.artifact} : hasExplainerMotion(scene?.illustration) ? scene.illustration : null;
   const plan = !native && drawing?.plan && safeGeneratedAnimation(drawing.plan,scene.text) ? drawing.plan : null;
   const visual = useIllustrationSelection(scene?.text, { native, plan }, playbackActive, reading);
-  const hasIllustration = !!(visual.native || visual.plan);
+  const hasIllustration = !!(visual.native || visual.plan) && !(visual.native?.type==='remotion'&&failedFrame===visual.native.id);
   const compact = animations && !reading && !hasIllustration;
   useLayoutEffect(() => {
-    onPresentationChange?.({ text, compact, storyLed: !reading && animations && ['story-led','staged'].includes(visual.native?.type) });
+    onPresentationChange?.({ text, compact, storyLed: !reading && animations && ['story-led','staged','remotion'].includes(visual.native?.type) });
   }, [text, compact, reading, animations, visual.native?.type, onPresentationChange]);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
@@ -141,7 +147,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
-  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged'].includes(visual.native?.type)}>
+  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion'].includes(visual.native?.type)}>
     <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
       <div className="rn-brief-actions">
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
@@ -165,6 +171,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
       {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
         {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : visual.native.type === 'remotion' ? <RemoteRemotion artifact={visual.native} phase={position.phase} reduced={reduced} visible={visible} onUnavailable={frameUnavailable} />
           : visual.native.type === 'staged' ? <StagedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}

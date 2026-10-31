@@ -313,3 +313,24 @@ invalidate exact matches. Off, Read, reduced motion, sources and progress tracki
 existing behavior. No Quick recap exists for this edition; do not fabricate an alias.
 Independent automated image rejections remain historical evidence; user approval is a
 limited rollout, not certification of the remaining nine stories or ongoing generation.
+
+## Daily Haiku Remotion rollout (2026-10-31)
+
+World News and Business only initially. `useDailyMotion` reads cached manifests scoped by
+category/day/language/exact narration text; it never creates an animation. Eligible daily
+Quick and Full scenes can resolve to the same saved Remotion asset, with explicit alias
+phase ranges. Corrections invalidate exact-text lookups. The existing illustration
+selection lock prevents a late result rearranging an active narration.
+
+Generated code is never evaluated in the host app. `RemoteRemotion` mounts a sandboxed
+cross-origin iframe for the current scene only, with no same-origin permission. The
+backend supplies checked, compiled code and a cached shared Remotion Player runtime;
+iframe CSP blocks network/media/other assets. Narration phase messages seek a paused
+Player; it never owns audio. Frame window/id checks reject unrelated messages. Read,
+Settings Off, hidden tabs and offscreen cards unload it. Load errors/timeouts retain
+text/audio and sources. Daily lookups are disabled for weekly/monthly recaps.
+
+The category allowlist in useDailyMotion currently mirrors the backend's limited rollout;
+update both when Roy enables more topics. Backend daily-motion/README.md documents the
+worker, durable caches/claims, one repair limit, and reserved daily cost ceiling. Do not
+re-enable the old shape/JSON generator or consumer-triggered generation.

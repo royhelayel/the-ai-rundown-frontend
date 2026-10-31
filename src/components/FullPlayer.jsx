@@ -207,6 +207,7 @@ export default function FullPlayer({
   // Page-mode header: the day picker, so Listen isn't a dead end you have to leave to
   // change which day you are reading.
   selectedDay,
+  newsLanguage = 'en',
   availableDays = [],
   onSelectDay,
   onOpenRecap,
@@ -939,7 +940,7 @@ export default function FullPlayer({
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {recapText ? (
             !readOnly ? <AnimatedRecap key={`${category}|${recapPeriod}|${selectedDay}|${recapText}`} text={recapText} sourcesMap={recapAttributions} allSources={recapSources}
-              category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
+              category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
               playing={isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
               getStoryAction={getRecapStoryAction}
               onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${recapPeriod} recap · ${fmtDay(selectedDay)}` })} /> :
@@ -980,7 +981,7 @@ export default function FullPlayer({
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
-        category={category} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
+        category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
         playbackActive={isNarrating && playingThis} onPresentationChange={setVisualPresentation}
         externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}

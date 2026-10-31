@@ -2286,6 +2286,7 @@ const TheAIRundown = () => {
           everywhere else it's the sheet, which only exists while something is playing. */}
       {(isListenPath || isReadRecap || (playerVisible && (!playerMinimized || fullPlayerExiting))) && (
         <FullPlayer
+          newsLanguage={newsLanguage}
           narrationLimitRef={narrationLimitRef}
           programmeMeta={programmeMeta}
           programmeNotice={isListenPath ? audioProgramme.notice : null}

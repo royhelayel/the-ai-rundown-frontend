@@ -1,13 +1,14 @@
 import { HOME_TYPE } from './homeTypography';
 /** Shared identity, topics, summary type and headline order across Listen and Read. */
 import React, { useEffect, useRef } from 'react';
-import { Calendar, SlidersHorizontal, Settings2 } from 'lucide-react';
+import { Calendar, SlidersHorizontal } from 'lucide-react';
 import { CATEGORY_SHORT } from '../theme';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 import Dropdown from './Dropdown';
 import Wordmark from './Wordmark';
 import SummaryTypeSelector from './SummaryTypeSelector';
+import GroupedBriefingHeader from './GroupedBriefingHeader';
 
 export function formatHeaderDate(dateStr) {
   if (!dateStr) return '';
@@ -46,7 +47,7 @@ export default function AppHeader({
   lens = 'latest', onChangeLens,
   period = 'Headlines', onChangePeriod, periodReady = {},
   gutter = 20,
-  editorial = false, onOpenSettings,
+  editorial = false, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme,
 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
@@ -66,16 +67,17 @@ export default function AppHeader({
   );
 
 
+  if (editorial) return <GroupedBriefingHeader categories={categories} activeCategory={activeCategory || recapCategory} onSelectCategory={onSelectCategory} onEditCategories={onEditCategories}
+    lens={lens} onChangeLens={onChangeLens} period={period} onChangePeriod={onChangePeriod} onOpenSettings={onOpenSettings}
+    onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={repeatLabel} resumeProgramme={resumeProgramme} onResumeProgramme={onResumeProgramme} />;
+
   return (
-    <div className={editorial ? 'rn-editorial-header' : undefined} style={{ color: 'var(--ink)' }}>
+    <div style={{ color: 'var(--ink)' }}>
       {/* ── Identity and day ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 50,
         padding: `calc(env(safe-area-inset-top, 0px) + 6px) ${gutter}px 0` }}>
         <Wordmark />
-        {editorial ? <div className="rn-editorial-masthead-actions">
-          {onChangeLens && <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel={`News selection: ${LENS_OPTIONS.find(o => o.value === lens)?.label || 'Relevant'}`} buttonStyle={{ fontSize: HOME_TYPE.ui, fontWeight: 400 }} />}
-          <button className="rn-btn" aria-label="Settings" onClick={onOpenSettings}><Settings2 size={18} strokeWidth={1.6} /></button>
-        </div> : dayOptions.length > 0 ? (
+        {dayOptions.length > 0 ? (
           <Dropdown value={effectiveDay} options={dayOptions} onChange={onSelectDay} width={170}
             label={formatHeaderDate(effectiveDay)} title="Pick a day"
             icon={<Calendar size={16} strokeWidth={1.8} />}
@@ -115,9 +117,7 @@ export default function AppHeader({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
           margin: '2px 0 6px', padding: `0 ${gutter}px` }}>
           <SummaryTypeSelector value={period} onChange={onChangePeriod} category={activeCategory || recapCategory} />
-          {editorial ? <Dropdown value={effectiveDay} options={dayOptions} onChange={onSelectDay} width={170}
-            label={formatHeaderDate(effectiveDay)} title="Pick a day"
-            buttonStyle={{ fontSize: HOME_TYPE.meta, fontWeight: 400 }} /> : onChangeLens && (
+          {onChangeLens && (
             <Dropdown value={lens} onChange={onChangeLens} options={LENS_OPTIONS} ariaLabel={`News selection: ${LENS_OPTIONS.find(o => o.value === lens)?.label || 'Relevant'}`} buttonStyle={{ fontSize: HOME_TYPE.ui }} />
           )}
         </div>

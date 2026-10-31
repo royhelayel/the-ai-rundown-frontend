@@ -21,6 +21,7 @@ export default function BottomNav({
   center = null,
   utilitiesOnly = false,
   editorial = false,
+  modeControl = null,
   compactRead = false,
   mode = 'scroll',
   onChangeMode,
@@ -133,6 +134,7 @@ export default function BottomNav({
         display: 'flex', justifyContent: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
+          {editorial && modeControl}
           {!editorial && <button className="rn-btn" aria-label="Settings" onClick={goSettings} style={end}>
             <Settings size={22} strokeWidth={1.8} />
           </button>}
@@ -170,7 +172,7 @@ export default function BottomNav({
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
               : challengeStats?.todayAudioComplete ? 'Challenge: listening mix completed' : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
             style={editorial ? undefined : end}>
-            {editorial ? <><span className="rn-editorial-goal-track" aria-hidden="true"><span style={{ width: `${frac * 100}%` }} /></span><span>Today’s challenge</span><strong>{challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}</strong></> : user ? ring : <Flame size={20} strokeWidth={1.8} />}
+            {editorial ? <><span className="rn-editorial-goal-track" aria-hidden="true"><span style={{ width: `${frac * 100}%` }} /></span><strong>{challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}</strong><span className="rn-editorial-goal-label">Challenge</span></> : user ? ring : <Flame size={20} strokeWidth={1.8} />}
             {earnedBadge && <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2,
               width: 19, height: 19, borderRadius: '50%', background: 'var(--paper)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,

@@ -45,7 +45,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, dateControl }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
@@ -97,7 +97,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     if (next >= 0 && next < scenes.length) setReaderIndex(next);
     else (direction > 0 ? onNext : onPrev)?.();
   };
-  useImperativeHandle(ref, () => ({ next: () => step(1), previous: () => step(-1) }));
+  useImperativeHandle(ref, () => ({ next: () => step(1), previous: () => step(-1), changeReading: () => changeReading() }));
   useEffect(() => { onNavigationChange?.({ next: nextAvailable, previous: prevAvailable }); }, [nextAvailable, prevAvailable, onNavigationChange]);
   useEffect(() => {
     if (reading && scene) onReadUpdate?.(scene.stories);
@@ -147,10 +147,21 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
+  const animatedBody = <>
+      <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
+      {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
+        {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : visual.native.type === 'remotion' ? <RemoteRemotion artifact={visual.native} phase={position.phase} reduced={reduced} visible={visible} onUnavailable={frameUnavailable} />
+          : visual.native.type === 'staged' ? <StagedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
+          : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
+          : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}
+      </div>}
+      <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
+    </>;
   return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion'].includes(visual.native?.type)}>
-    <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} /></div>
+    <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact={editorial} /></div>
       <div className="rn-brief-actions">
-        {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
+        {editorial ? dateControl : onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
           {reading ? 'Listen' : 'Read'}
         </button>}
       </div>
@@ -167,17 +178,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
         {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
           onClick={() => { readerMoved.current = true; if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }}><span /></button>)}
       </div>}
-    </div> : animations ? <>
-      <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
-      {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
-        {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
-          : visual.native.type === 'remotion' ? <RemoteRemotion artifact={visual.native} phase={position.phase} reduced={reduced} visible={visible} onUnavailable={frameUnavailable} />
-          : visual.native.type === 'staged' ? <StagedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
-          : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
-          : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}
-      </div>}
-      <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
-    </> : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
+    </div> : animations ? (editorial ? <div className="rn-editorial-story-scroll">{animatedBody}</div> : animatedBody) : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
       <h1>{title || `Today in ${CATEGORY_SHORT[category] || category}`}</h1>
       {dateLabel && <p className="rn-brief-date">{dateLabel}</p>}
       {scenes.map(s => <p key={s.index} data-current={s.index === audioIndex} dir="auto">{s.text}</p>)}

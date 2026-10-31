@@ -353,3 +353,20 @@ story; BottomNav's `editorial` variant shows a small labelled challenge progress
 instead of utility circles. Do not reintroduce the Listen/Read bottom selector.
 Inter is self-hosted from the existing public font; headlines are 32px, captions 18px,
 navigation 14px and metadata/sources 12px, with rem sizing and compact-height adjustments.
+
+## Grouped briefing controls (2026-10-31)
+
+Roy approved the Two pickers mock. Unified Listen now uses GroupedBriefingHeader:
+Topic and brief are text triggers on one row. The topic sheet owns Relevant/Popular/
+Interesting, available topics and Customise your mix (existing sign-in gate). The brief
+sheet keeps the existing Daily/Headlines/Weekly/Monthly engine ids. Overflow holds
+settings, speed, repeat and Continue listening. Date sits beside the story label and
+opens a portal sheet, so it cannot be clipped by the animated story container.
+Read/Listen moves into the player dock beside transport and compact challenge progress;
+it calls AnimatedRecap's imperative changeReading method to preserve deliberate reader
+navigation and audio position. Read status uses a quiet check; other reading screens
+keep their previous badges. Topic/brief/date sheets animate out before applying changes,
+trap focus and support Escape. Existing source attribution and playback stay unchanged.
+The animation stage now wins the later remote-scene CSS rule that previously allowed
+it to collapse to ~16px. Reserve 180px (150px on short screens), up to 230px, and keep
+long content scrollable rather than hiding reporting links. Do not undo this specificity.

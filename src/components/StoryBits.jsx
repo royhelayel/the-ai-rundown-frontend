@@ -13,8 +13,9 @@ import CategoryIcon from './CategoryIcon';
 // pass `read` as undefined for guests and nothing renders. Read is a bright green so it can be
 // told apart at a glance in every mode (Roy, 2026-10-17): the old dark green all but vanished on
 // the tinted cards, and a pill behind it was more than it needed.
-export function StatusBadge({ read, isNew }) {
+export function StatusBadge({ read, isNew, compact = false }) {
   if (read === undefined) return null;
+  if (compact) return read ? <span role="img" aria-label="Read" style={{ display: 'inline-flex', color: 'var(--sub)' }}><Check size={13} strokeWidth={1.8} /></span> : isNew ? <span role="img" aria-label="New" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sub)' }} /> : null;
   const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--rn-home-meta, .75rem)', fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 };
   if (read) return <span style={{ ...base, color: 'var(--read)' }}><Check size={13} strokeWidth={3} />Read</span>;

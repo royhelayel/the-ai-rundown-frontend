@@ -2322,8 +2322,8 @@ const TheAIRundown = () => {
           asPage={isListenPath || isReadRecap}
           visible={isListenPath || isReadRecap ? true : !fullPlayerExiting}
           isExiting={isListenPath || isReadRecap ? false : fullPlayerExiting}
-          footer={isListenPath ? center => (
-            <BottomNav fixed={false} utilitiesOnly editorial center={center}
+          footer={isListenPath ? (center, modeControl) => (
+            <BottomNav fixed={false} utilitiesOnly editorial center={center} modeControl={modeControl}
               challengeStats={challengeStatsFull} user={user}
               onShowAuth={() => { setShowAuth(true); setAuthMode('signin'); }} />
           ) : null}

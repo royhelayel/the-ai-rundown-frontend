@@ -11,6 +11,7 @@ import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
 import CategoryIcon from './CategoryIcon';
 import InterestingButton from './InterestingButton';
 import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
+import { BriefingDatePicker } from './GroupedBriefingHeader';
 import { StoryTopRow, SourcesRow, StarButton, NextLink } from './StoryBits';
 import { storyParagraph } from '../lib/stories';
 import NewsLoader from './NewsLoader';
@@ -973,6 +974,9 @@ export default function FullPlayer({
     const storyLedAudio = !readOnly && animationsEnabled && (presentationMatches ? visualPresentation.storyLed : (stagedFor(unifiedText) || storyLedFor(unifiedText)));
     const fullStoryMap = !recapView && unifiedText ? [{ text: unifiedText, stories: story?._quickRecap?.sources || [{ headline, sources: outlets }] }] : null;
     const swipeAudio=unified && !readOnly && !recapView;
+    const dateControl = <BriefingDatePicker selectedDay={selectedDay} availableDays={availableDays.map(d => ({ ...d, label: fmtDay(d.fullDate) }))} onSelectDay={onSelectDay}
+      shortLabel={fmtDay(selectedDay).replace(/^[A-Za-z]{3}, /, '')} label={fmtDay(selectedDay)} />;
+    const modeControl = <button className="rn-btn rn-grouped-mode" onClick={() => readerRef.current?.changeReading ? readerRef.current.changeReading() : onChangeReading?.(!readOnly)} disabled={loading}>{readOnly ? 'Listen' : 'Read'}</button>;
     const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"
       aria-label={swipeAudio?'News update. Swipe left for next story or right for previous story.':undefined}
       onPointerDown={swipeAudio?e=>{if(e.button>0 || e.isPrimary===false || slideBusy.current)return;onTouchStart({target:e.target,touches:[e]});if(touchRef.current)e.currentTarget.setPointerCapture?.(e.pointerId);}:undefined}
@@ -982,7 +986,7 @@ export default function FullPlayer({
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
         ...(unified ? { background: 'transparent', borderRadius: 0, padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
-      {unifiedText ? <AnimatedRecap ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
+      {unifiedText ? <AnimatedRecap editorial={unified} dateControl={dateControl} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
         category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
@@ -995,7 +999,7 @@ export default function FullPlayer({
         getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ read: user ? isStoryRead : undefined, isNew: story?.status === 'New', interesting: isInteresting, toggle: onToggleInteresting })}
         onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
-          <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>
+          {unified ? <div className="rn-grouped-empty-date">{dateControl}</div> : <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>}
           <h1 style={h1}>{topicName}</h1>
           <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
             {lens !== 'latest' ? `No ${lens === 'popular' ? 'popular' : 'interesting'} updates are available for this date and brief. Try Relevant or another date.` : recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
@@ -1006,16 +1010,16 @@ export default function FullPlayer({
     const canPlay = recapView ? !!recapText : storyCount > 0;
     const navBtn = (onClick, label, Icon, disabled) => (
       <button className="rn-btn" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label}
-        style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.3 : 1 }}>
+        style={{ width: unified ? 44 : 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.3 : 1 }}>
         <Icon size={24} strokeWidth={1.9} />
       </button>
     );
 
-    const transport = (<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: unified ? 12 : 36, minHeight: 64 }}>
+    const transport = (<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: unified ? 8 : 36, minHeight: 64 }}>
                 {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
                 <button className="rn-btn" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
                   title={!canPlay ? 'Audio is available when this recap is ready' : undefined}
-                  style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: 56, height: 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: unified ? 52 : 56, height: unified ? 52 : 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
                     ? <Loader size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
                     : isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />}
@@ -1030,7 +1034,7 @@ export default function FullPlayer({
       <div className={unified ? 'rn-editorial-listen' : undefined} data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
-            editorial={unified} onOpenSettings={onOpenSettings}
+            editorial={unified} onOpenSettings={onOpenSettings} onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={REPEAT_LABEL[repeatMode || 'off']} resumeProgramme={!readOnly ? resumeProgramme : null} onResumeProgramme={onResumeProgramme}
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={onSelectCategory}
@@ -1045,8 +1049,8 @@ export default function FullPlayer({
         </div>
 
         <div className={unified ? 'rn-editorial-body' : undefined} style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', maxWidth: PAGE_MAX, margin: '0 auto',
-          display: 'flex', flexDirection: 'column', padding: '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
-          {!readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.ui, fontWeight: 500, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
+          display: 'flex', flexDirection: 'column', padding: unified ? '0 26px' : '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
+          {!unified && !readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.ui, fontWeight: 500, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
           {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: HOME_TYPE.ui, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
           {loading ? <NewsLoader day={selectedDay} /> : unified ? unifiedCard : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!unified && !loading && !recapView && pageDots.length > 1 && (
@@ -1058,18 +1062,18 @@ export default function FullPlayer({
           {!readOnly && !loading && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: HOME_TYPE.meta, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
-                <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
+                {!unified && <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
                   style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
                     ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
                   {playbackSpeed}×
-                </button>
+                </button>}
                 <span>{fmt((totalSec * pct) / 100)}</span>
                 <AudioSeekBar key={`${selectedDay}|${cardKey}`} progress={pct} duration={totalSec}
                   disabled={!onSeek || !isNarrating || !playingThis || isLoading || narrationCharOffset === -2} onSeek={onSeek} />
                 <span>{fmt(totalSec)}</span>
                 {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
                     under it, and says which for a moment — a colour change alone was invisible. */}
-                <button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
+                {!unified && <button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
                   {...whilePlaying(isNarrating).props}
                   style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',
@@ -1082,9 +1086,9 @@ export default function FullPlayer({
                       {repeatHint}
                     </span>
                   )}
-                </button>
+                </button>}
               </div>
-              {transport}
+              {!unified && transport}
               {phoneVoice && (
                 <p role="status" style={{ margin: '0 0 6px', padding: '9px 12px', borderRadius: 12, background: 'var(--panel)', color: 'var(--ink)', fontSize: HOME_TYPE.ui, lineHeight: 1.45 }}>
                   The narration voice isn't available right now, so your phone's own voice is reading. Turn off silent mode to hear it.
@@ -1093,10 +1097,9 @@ export default function FullPlayer({
 
             </section>
           )}
-          {unified && readOnly && <div style={{ display: 'flex', justifyContent: 'center' }}>{footerCenter}</div>}
           {!unified && <div style={{ flex: radioOnly ? '0 0 12px' : 1, minHeight: 12 }} />}
         </div>
-        {typeof footer === 'function' ? footer(unified ? null : footerCenter) : footer}
+        {typeof footer === 'function' ? footer(footerCenter, unified ? modeControl : null) : footer}
         {sourcesSnapshot && <RecapSourcesSheet snapshot={sourcesSnapshot} onClose={closeSources} />}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>

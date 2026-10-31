@@ -83,7 +83,7 @@ test('a returning guest defaults to the unified audio page even with no generate
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
   expect(await screen.findByRole('button', { name: 'Quick brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.queryByRole('group', { name: 'How you take in the news' })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument();
   expect(await screen.findByText(/No quick brief is available/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
 });
@@ -103,11 +103,12 @@ test('the edition picker opens on the latest edition and switches to an earlier 
   userEvent.click(picker);
 
   // The picker lists the week ending on that day.
-  expect(screen.getByRole('menuitemradio', { name: 'Mon, Sep 14' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('menuitemradio', { name: 'Sat, Sep 19' }));
+  expect(screen.getByRole('button', { name: 'Mon, Sep 14' })).toBeInTheDocument();
+  userEvent.click(screen.getByRole('button', { name: 'Sat, Sep 19' }));
 
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(await screen.findByRole('button', { name: 'Sat, Sep 19' })).toBeInTheDocument();
-  expect(screen.queryByRole('menuitemradio', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Mon, Sep 14' })).not.toBeInTheDocument();
 });
 
 const installSummaryFixtures = () => {
@@ -132,16 +133,35 @@ const installSummaryFixtures = () => {
 const chooseSummary = async (currentLabel, nextLabel) => {
   const strip = await screen.findByRole('group', { name: 'Summary type' });
   expect(within(strip).getByRole('button', { name: currentLabel, exact: true })).toHaveAttribute('aria-pressed', 'true');
-  userEvent.click(within(strip).getByRole('button', { name: nextLabel, exact: true }));
+  userEvent.click(within(strip).getByRole('button', { name: currentLabel, exact: true }));
+  const choices = await screen.findByRole('dialog', { name: 'Choose your brief' });
+  userEvent.click(within(choices).getByRole('button', { name: nextLabel, exact: true }));
   await waitFor(() => expect(within(screen.getByRole('group', { name: 'Summary type' })).getByRole('button', { name: nextLabel, exact: true })).toHaveAttribute('aria-pressed', 'true'));
+};
+
+const openTopics = async () => {
+  userEvent.click(await screen.findByRole('button', { name: /^Topic:/ }));
+  return screen.findByRole('dialog', { name: 'Choose your news' });
+};
+const chooseTopic = async name => {
+  const panel = await openTopics();
+  userEvent.click(within(panel).getByRole('button', { name, exact: true }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+};
+const chooseLens = async name => {
+  const panel = await openTopics();
+  userEvent.click(within(panel).getByRole('button', { name, exact: true }));
+  userEvent.click(within(panel).getByRole('button', { name: 'Close briefing options' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 };
 
 test('one page supports animated audio, text/audio and text only across all four briefs', async () => {
   localStorage.setItem(ONBOARDING_KEY, '1');
   window.history.pushState({}, '', '/listen'); installSummaryFixtures(); render(<App />);
   await screen.findByRole('button', { name: 'Read', exact: true });
-  userEvent.click(screen.getByRole('button', { name: 'Settings', exact: true }));
-  const animations = screen.getByRole('group', { name: 'Animations' });
+  userEvent.click(screen.getByRole('button', { name: 'More options', exact: true }));
+  userEvent.click(await screen.findByRole('button', { name: 'Settings', exact: true }));
+  const animations = await screen.findByRole('group', { name: 'Animations' });
   userEvent.click(within(animations).getByRole('button', { name: 'Off', exact: true }));
   userEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));
   expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('daily briefing');
@@ -153,12 +173,12 @@ test('one page supports animated audio, text/audio and text only across all four
   expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
   await chooseSummary('Quick brief', 'Last week');
   expect(await screen.findByRole('heading', { name: 'Verified weekly recap.' })).toBeInTheDocument();
-  userEvent.click(screen.getByRole('button', { name: 'Tech', exact: true }));
+  await chooseTopic('Tech');
   expect(await screen.findByText(/No weekly brief is available for Tech/)).toBeInTheDocument();
   expect(screen.queryByText('Verified weekly recap.')).not.toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
   expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
-  userEvent.click(screen.getByRole('button', { name: 'World', exact: true }));
+  await chooseTopic('World');
   expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('Verified weekly recap.');
   await chooseSummary('Last week', 'Last month');
   expect(await screen.findByText('Verified monthly recap.')).toBeInTheDocument();
@@ -252,34 +272,33 @@ test('listening feed choices change the stories and topics, retain Read mode and
  const first=render(<App />);
  await screen.findByRole('heading',{name:'World News story',exact:true});
  userEvent.click(screen.getByRole('button',{name:'Read',exact:true}));
- userEvent.click(screen.getByRole('button',{name:'News selection: Relevant'}));
- userEvent.click(screen.getByRole('menuitemradio',{name:'Popular',exact:true}));
+ await chooseLens('Popular');
  expect(await screen.findByRole('heading',{name:'Another World story',exact:true})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'Tech',exact:true})).not.toBeInTheDocument();
  expect(screen.getByRole('region',{name:'Swipeable news text'})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'Play',exact:true})).not.toBeInTheDocument();
- userEvent.click(screen.getByRole('button',{name:'News selection: Popular'}));
- userEvent.click(screen.getByRole('menuitemradio',{name:'Interesting',exact:true}));
+ await chooseLens('Interesting');
  expect(await screen.findByRole('heading',{name:'Technology story',exact:true})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'World',exact:true})).not.toBeInTheDocument();
  first.unmount(); render(<App />);
- expect(await screen.findByRole('button',{name:'News selection: Interesting'})).toBeInTheDocument();
+ const persistedChoices = await openTopics();
+ expect(within(persistedChoices).getByRole('button', {name:'Interesting',exact:true})).toHaveAttribute('aria-pressed','true');
+ userEvent.click(within(persistedChoices).getByRole('button', {name:'Close briefing options'}));
+ await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
  expect(await screen.findByRole('heading',{name:'Technology story',exact:true})).toBeInTheDocument();
- userEvent.click(screen.getByRole('button',{name:'News selection: Interesting'}));
- userEvent.click(screen.getByRole('menuitemradio',{name:'Relevant',exact:true}));
- expect(await screen.findByRole('button',{name:'World',exact:true})).toBeInTheDocument();
+ await chooseLens('Relevant');
+ const restoredTopics = await openTopics();
+ expect(within(restoredTopics).getByRole('button',{name:'World',exact:true})).toBeInTheDocument();
 });
 
 test('an empty ranked feed explains the selection, disables play and can return to Relevant',async()=>{
  localStorage.setItem(ONBOARDING_KEY,'1');installSummaryFixtures();render(<App />);
  await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
- await screen.findByRole('button',{name:'News selection: Relevant'});
- userEvent.click(screen.getByRole('button',{name:'News selection: Relevant'}));
- userEvent.click(screen.getByRole('menuitemradio',{name:'Popular',exact:true}));
+ await screen.findByRole('button',{name:/^Topic:/});
+ await chooseLens('Popular');
  expect(await screen.findByText(/No popular updates are available/)).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeDisabled();
- userEvent.click(screen.getByRole('button',{name:'News selection: Popular'}));
- userEvent.click(screen.getByRole('menuitemradio',{name:'Relevant',exact:true}));
+ await chooseLens('Relevant');
  expect(await screen.findByRole('heading',{name:'World News daily briefing.',exact:true})).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
 });

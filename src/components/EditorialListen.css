@@ -1,61 +1,96 @@
-/* Open editorial briefing: product controls stay quiet; the story owns the page. */
+/* Grouped editorial Listen: two pickers, open content, and one player dock. */
 .rn-editorial-listen {
   font-family:'RadioNews Editorial',Inter,-apple-system,BlinkMacSystemFont,sans-serif;
-  --play-bg: var(--ink);
-  --play-fg: var(--paper);
+  --play-bg:var(--ink); --play-fg:var(--paper);
 }
-.rn-editorial-header > div:first-child { min-height: 48px !important; }
-.rn-editorial-masthead-actions { display:flex; align-items:center; gap:14px; }
-.rn-editorial-masthead-actions > .rn-btn { display:grid; place-items:center; min-width:32px; min-height:44px; }
-.rn-editorial-header [aria-label="RadioNews"] { font-size:15px !important; letter-spacing:.14em !important; font-weight:700 !important; }
-.rn-editorial-header .rn-hscroll { gap:22px !important; }
-.rn-editorial-header .rn-hscroll > .rn-btn {
-  border:0 !important; border-radius:0 !important; background:none !important;
-  padding:0 !important; color:var(--sub) !important; font-weight:400 !important;
-}
-.rn-editorial-header .rn-hscroll > .rn-btn[aria-pressed=true] { color:var(--ink) !important; font-weight:600 !important; }
-.rn-editorial-header .rn-summary-choice[aria-pressed=true] { color:var(--ink); }
-.rn-editorial-header .rn-summary-choice::after { background:var(--ink); height:2px; }
-.rn-editorial-header .rn-summary-strip { gap:21px; }
-.rn-editorial-header > div:last-child { gap:18px !important; margin:0 0 4px !important; }
-.rn-editorial-header .rn-dropdown-trigger { font-weight:400; }
-.rn-editorial-listen .rn-animated-recap { gap:8px; }
+.rn-grouped-header { padding:calc(env(safe-area-inset-top,0px) + 6px) 26px 16px; }
+.rn-grouped-masthead { display:flex; align-items:center; justify-content:space-between; min-height:50px; }
+.rn-grouped-masthead [aria-label="RadioNews"] { font-size:15px!important; letter-spacing:.14em!important; font-weight:700!important; }
+.rn-grouped-more.rn-btn { display:grid; place-items:center; min-width:44px; min-height:44px; margin-right:-10px; }
+.rn-grouped-context { display:flex; align-items:center; gap:16px; min-height:48px; }
+.rn-grouped-context .rn-btn { display:flex; align-items:center; gap:7px; min-height:44px; font-size:.9375rem; font-weight:400; white-space:nowrap; }
+.rn-grouped-context svg { color:var(--sub); flex-shrink:0; }
+.rn-grouped-brief.rn-btn { color:var(--sub); }
+.rn-grouped-divider { height:14px; width:1px; background:var(--line); }
+.rn-grouped-overlay { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,.48); display:flex; justify-content:center; align-items:flex-end; }
+.rn-grouped-sheet { width:100%; max-width:480px; max-height:85dvh; display:flex; flex-direction:column; background:var(--paper); color:var(--ink); border-radius:24px 24px 0 0; padding:0 26px calc(env(safe-area-inset-bottom,0px) + 24px); }
+.rn-grouped-grip { width:32px; height:3px; border-radius:3px; background:var(--line); margin:10px auto 8px; flex-shrink:0; }
+.rn-grouped-sheet header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0 14px; flex-shrink:0; }
+.rn-grouped-sheet h2 { margin:0; font-size:1.25rem; font-weight:600; letter-spacing:-.025em; }
+.rn-grouped-sheet header .rn-btn { width:44px; min-height:44px; display:grid; place-items:center; margin-right:-10px; }
+.rn-grouped-sheet-body { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.rn-grouped-lenses { display:flex; gap:8px; flex-wrap:wrap; }
+.rn-grouped-lenses .rn-btn { padding:0 13px; min-height:44px; border-radius:8px; font-size:.875rem; background:var(--panel); color:var(--sub); }
+.rn-grouped-lenses [aria-pressed=true] { background:var(--ink); color:var(--paper); }
+.rn-grouped-label { margin:24px 0 8px; font-size:.75rem; color:var(--sub); }
+.rn-grouped-option.rn-btn { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; min-height:52px; text-align:start; font-size:.9375rem; font-weight:400; }
+.rn-grouped-option small { display:block; margin:4px 0 10px; font-size:.75rem; color:var(--sub); font-weight:400; }
+.rn-grouped-option svg { flex-shrink:0; }
+.rn-grouped-customise { border-top:1px solid var(--line)!important; margin-top:12px; color:var(--sub); }
+.rn-grouped-empty { font-size:.9375rem; line-height:1.5; color:var(--sub); }
+.rn-editorial-listen .rn-animated-recap { gap:0; }
 .rn-editorial-listen .rn-animated-recap-category { color:var(--sub); font-weight:600; letter-spacing:.09em; }
+.rn-editorial-listen .rn-animated-recap-topic { gap:7px; }
+.rn-editorial-listen .rn-brief-actions .rn-btn { font-size:.75rem; font-weight:400; }
 .rn-editorial-listen .rn-animated-recap-title,
 .rn-editorial-listen .rn-brief-reader h1,
-.rn-editorial-listen .rn-brief-transcript h1 {
-  font-size:2rem; line-height:1.08; letter-spacing:-.04em; font-weight:700;
-}
-.rn-editorial-listen .rn-animated-recap-title { -webkit-line-clamp:unset; display:block; }
-.rn-editorial-listen .rn-animated-recap-stage { padding:12px 0; min-height:85px; }
-.rn-editorial-listen .rn-animated-recap-caption { padding-top:16px; }
-.rn-editorial-listen .rn-animated-recap-caption p { font-size:1.125rem; line-height:1.43; letter-spacing:-.018em; }
+.rn-editorial-listen .rn-brief-transcript h1 { font-size:2rem; line-height:1.08; letter-spacing:-.04em; font-weight:700; }
+.rn-editorial-listen .rn-animated-recap-title { display:block; -webkit-line-clamp:unset; margin-top:12px; max-height:40%; overflow-y:auto; }
+.rn-editorial-listen .rn-animated-recap .rn-animated-recap-stage { margin:24px 0; padding:0; min-height:180px; max-height:230px; flex:1 0 180px; }
+.rn-editorial-listen .rn-animated-recap-caption { padding-top:18px; flex:0 1 auto; min-height:48px; max-height:36%; overflow-y:auto; }
+.rn-editorial-listen .rn-animated-recap-caption p { font-size:1.125rem; line-height:1.43; letter-spacing:-.018em; display:block; -webkit-line-clamp:unset; overflow:visible; }
+.rn-editorial-listen .rn-animated-recap-footer { margin-top:6px; }
 .rn-editorial-listen .rn-animated-recap-source.rn-btn { font-size:.75rem; font-weight:400; }
-.rn-editorial-listen .rn-animated-recap-footer { margin-top:2px; }
 .rn-editorial-listen .rn-animated-recap-interest[aria-pressed=true] { color:var(--ink); }
-.rn-editorial-listen [aria-label="Player"] { margin-top:18px !important; padding-bottom:3px; }
-.rn-editorial-challenge { padding-top:0 !important; }
-.rn-editorial-challenge > div { justify-content:center; max-width:400px !important; }
-.rn-editorial-challenge > div > div { display:none !important; }
-.rn-editorial-challenge > div > .rn-btn {
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  min-height:44px; position:relative; color:var(--sub); font-size:.75rem;
-}
-.rn-editorial-challenge strong { color:var(--ink); font-weight:600; }
-.rn-editorial-goal-track { width:42px; height:3px; background:var(--line); border-radius:3px; overflow:hidden; }
+.rn-editorial-listen .rn-animated-recap[data-presentation=text] .rn-animated-recap-caption { margin-top:24px; padding:0; overflow:visible; max-height:none; }
+.rn-editorial-listen .rn-animated-recap-stage[data-scene=remotion]+.rn-animated-recap-caption { flex:0 1 auto; min-height:48px; max-height:36%; overflow-y:auto; }
+.rn-editorial-listen .rn-animated-recap-stage[data-scene=remotion]+.rn-animated-recap-caption p { display:block; -webkit-line-clamp:unset; overflow:visible; }
+.rn-editorial-listen .rn-brief-reader { margin-top:12px; }
+.rn-editorial-listen [aria-label="Player"] { margin-top:20px!important; padding-bottom:4px; }
+.rn-grouped-empty-date { align-self:flex-end; }
+.rn-editorial-challenge { padding:6px 26px calc(env(safe-area-inset-bottom,0px) + 14px)!important; }
+.rn-editorial-challenge > div { max-width:388px!important; gap:8px!important; }
+.rn-editorial-challenge .rn-grouped-mode.rn-btn { width:44px; flex-shrink:0; min-height:44px; color:var(--sub); font-size:.8125rem; font-weight:400; }
+.rn-editorial-challenge > div > .rn-btn:last-child { min-width:52px; min-height:48px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; position:relative; color:var(--sub); font-size:.6875rem; flex-shrink:0; }
+.rn-editorial-challenge strong { font-size:.8125rem; color:var(--ink); font-weight:500; order:1; }
+.rn-editorial-challenge .rn-editorial-goal-label { order:3; }
+.rn-editorial-goal-track { width:24px; height:2px; background:var(--line); border-radius:3px; overflow:hidden; order:2; }
 .rn-editorial-goal-track > span { display:block; height:100%; background:var(--ink); }
 @media(max-width:360px) {
-  .rn-editorial-masthead-actions { gap:7px; }
-  .rn-editorial-header [aria-label="RadioNews"] { font-size:13px !important; letter-spacing:.11em !important; }
+  .rn-grouped-header { padding-inline:21px; }
+  .rn-grouped-context { gap:12px; }
+  .rn-grouped-context .rn-btn { font-size:.875rem; }
   .rn-editorial-listen .rn-animated-recap-title,.rn-editorial-listen .rn-brief-reader h1,.rn-editorial-listen .rn-brief-transcript h1 { font-size:1.75rem; }
+  .rn-editorial-challenge { padding-inline:20px!important; }
 }
-@media(max-height:700px) {
-  .rn-editorial-listen .rn-animated-recap-title { font-size:1.5rem; }
+@media(max-height:820px) {
+  .rn-grouped-header { padding-bottom:6px; }
+  .rn-editorial-listen .rn-animated-recap-title { font-size:1.625rem; }
+  .rn-editorial-listen .rn-animated-recap .rn-animated-recap-stage { min-height:150px; flex-basis:150px; margin:18px 0; }
   .rn-editorial-listen .rn-animated-recap-caption p { font-size:1rem; }
-  .rn-editorial-listen .rn-animated-recap-stage { padding:4px 0; min-height:60px; }
-  .rn-editorial-listen [aria-label="Player"] { margin-top:8px !important; }
+  .rn-editorial-listen [aria-label="Player"] { margin-top:12px!important; }
 }
-/* Complete narrated sentences remain available even for remotely rendered scenes. */
-.rn-editorial-listen .rn-animated-recap-stage[data-scene=remotion]+.rn-animated-recap-caption { flex:0 1 auto; min-height:48px; max-height:42%; overflow-y:auto; }
-.rn-editorial-listen .rn-animated-recap-stage[data-scene=remotion]+.rn-animated-recap-caption p { display:block; -webkit-line-clamp:unset; overflow:visible; }
-.rn-editorial-listen .rn-animated-recap[data-presentation=standard] > .rn-animated-recap-title { max-height:42%; overflow-y:auto; }
+@media(max-height:600px) { .rn-editorial-listen .rn-unified-card { min-height:420px!important; flex-shrink:0!important; } }
+.rn-grouped-overlay { font-family:'RadioNews Editorial',Inter,-apple-system,BlinkMacSystemFont,sans-serif; }
+.rn-grouped-date.rn-btn { display:flex; align-items:center; gap:5px; min-height:44px; color:var(--sub); font-size:.75rem; font-weight:400; }
+
+
+/* Keep reporting links above long captions while the open story can scroll. */
+
+
+/* The story scrolls independently; reporting and the audio dock remain accessible. */
+.rn-editorial-story-scroll { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-title { max-height:none; overflow:visible; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { height:200px; min-height:200px; flex:0 0 200px; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-caption { flex:0 0 auto; max-height:none; overflow:visible; margin-bottom:12px; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-caption p { display:block; -webkit-line-clamp:unset; overflow:visible; }
+.rn-editorial-listen .rn-animated-recap-footer { flex-shrink:0; background:var(--paper); }
+@media(max-height:820px) { .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { height:150px; min-height:150px; flex-basis:150px; } }
+@media(max-height:740px) {
+  .rn-grouped-header { padding-bottom:0; }
+  .rn-grouped-masthead { min-height:44px; }
+  .rn-grouped-context { min-height:44px; }
+  .rn-editorial-listen .rn-animated-recap-top { min-height:28px; height:28px; position:relative; }
+  .rn-editorial-listen .rn-brief-actions { position:absolute; right:0; top:-8px; }
+}
+.rn-editorial-listen .rn-animated-recap[data-presentation=text] { flex:1; min-height:0; }

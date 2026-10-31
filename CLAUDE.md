@@ -334,3 +334,10 @@ The category allowlist in useDailyMotion currently mirrors the backend's limited
 update both when Roy enables more topics. Backend daily-motion/README.md documents the
 worker, durable caches/claims, one repair limit, and reserved daily cost ceiling. Do not
 re-enable the old shape/JSON generator or consumer-triggered generation.
+
+## Generated illustration presentation
+
+RemoteRemotion frame URLs include presentation epoch v=2 so cached frame HTML can pick
+up shared readability styles without regenerating paid artwork. Neutral SVG text remains
+high contrast; the iframe blends with the topic card in light mode and uses inverted
+screen blending in dark/system-dark mode. One visible sandboxed Player remains the limit.

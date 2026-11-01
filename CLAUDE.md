@@ -407,3 +407,7 @@ new reader instances, since each headline remounts AnimatedRecap.
 The backend also reconciles the latest published English World edition at startup,
 within existing job/dollar limits. Ready assets are reused; same-signature failed reviews
 and budget rejections are not retried. Changed evidence still requires a new review.
+
+A verified daily Remotion scene can fill an empty presentation even when its lookup
+finishes after Play. Once any illustration is selected, playback and pause keep it stable.
+Read mode still does not adopt artwork until returning to Listen.

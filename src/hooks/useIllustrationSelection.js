@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
-// Lock the presentation once playback starts, including loading and pause. A late
-// lookup may be cached for the next visit/session, but cannot rearrange this one.
+// Keep an existing illustration stable throughout playback and pause. A verified
+// daily scene may fill an empty presentation when its lookup finishes after Play.
 export default function useIllustrationSelection(key, candidate, active, reading) {
   const current = useRef(null);
   let state = current.current;
@@ -11,7 +11,8 @@ export default function useIllustrationSelection(key, candidate, active, reading
   }
   const returning = state.reading && !reading;
   const restarting = active && !state.active && state.hasPlayed;
-  if (returning || restarting || (!state.frozen && !reading)) state.selected = candidate;
+  const firstDailyScene = !reading && !state.selected?.native && !state.selected?.plan && candidate?.native?.type === 'remotion';
+  if (returning || restarting || firstDailyScene || (!state.frozen && !reading)) state.selected = candidate;
   if (active && !reading) { state.frozen = true; state.hasPlayed = true; }
   state.active = active;
   state.reading = reading;

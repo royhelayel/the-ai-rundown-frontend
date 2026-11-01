@@ -34,3 +34,9 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* A briefing is an app surface. Its text regions scroll; the document must not refresh. */
+html.rn-briefing-gestures, html.rn-briefing-gestures body {
+  overscroll-behavior-y:none;
+  overflow-y:hidden;
+}

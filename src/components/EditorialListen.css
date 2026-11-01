@@ -104,3 +104,9 @@
 .rn-grouped-edition { margin-left:auto; flex-shrink:0; }
 .rn-editorial-listen .rn-animated-recap-source { flex:1; }
 @media(max-width:360px) { .rn-grouped-context { gap:10px; } .rn-grouped-context .rn-grouped-topic { font-size:.75rem; } }
+/* Reading progress occupies the page gutter, not the text column. */
+.rn-editorial-listen .rn-brief-reader { padding-inline-end:0; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots { right:-23px; width:22px; gap:0; z-index:3; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots .rn-btn { min-height:14px; min-width:22px; padding:0; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots span { width:4px; height:4px; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots [aria-current=true] span { height:12px; }

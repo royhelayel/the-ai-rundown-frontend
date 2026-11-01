@@ -23,6 +23,7 @@ import AnimatedRecap from './AnimatedRecap';
 import { topicVars } from '../design';
 import { centrePill } from '../utils';
 import { storySwipeDirection, canSkipStory } from '../lib/storySwipe';
+import useStorySwipeTouch from '../hooks/useStorySwipeTouch';
 
 // Lift a category colour toward white so it stays legible over the dark photo — the same
 // helper Swipe mode uses for its pills, copied so the two strips tint identically.
@@ -311,6 +312,11 @@ export default function FullPlayer({
   // committed flick. There is nothing to drag here — the card doesn't travel with the finger
   // — so tracking one would promise a transition the player doesn't perform.
   const touchRef = useRef(null);
+  useEffect(() => {
+    if (!asPage || !unified) return undefined;
+    document.documentElement.classList.add('rn-briefing-gestures');
+    return () => document.documentElement.classList.remove('rn-briefing-gestures');
+  }, [asPage, unified]);
   const SWIPE_MIN = 55;      // px of travel before a flick counts
 
   // What the Repeat button just switched to, shown for a moment above it.
@@ -445,6 +451,17 @@ export default function FullPlayer({
     }
     else { if (storyIndex > 0) settleDots(storyIndex - 1); slideTo('prev', onPrev); }
   };
+  const cancelStorySwipe = () => {
+    touchRef.current = null;
+    const el = cardRef.current;
+    if (el && !slideBusy.current) { el.style.transform = 'none'; el.style.transition = 'transform .2s ease-out'; }
+  };
+  useStorySwipeTouch(cardRef, asPage && unified && !readOnly && !recapView && !loading,
+    `${category}|${recapPeriod}|${selectedDay}|${storyIndex}`, {
+      start: e => { if (!slideBusy.current) onTouchStart(e); },
+      move: pageTouchMove, end: pageTouchEnd, cancel: cancelStorySwipe,
+    });
+
 
   // The recap row's colour: the category's own tint, and the exact value the active topic tab
   // is drawn in. One source means the tab and the pills cannot drift apart — which is what
@@ -979,12 +996,12 @@ export default function FullPlayer({
     const modeControl = <button className="rn-btn rn-grouped-mode" onClick={() => readerRef.current?.changeReading ? readerRef.current.changeReading() : onChangeReading?.(!readOnly)} disabled={loading}>{readOnly ? 'Listen' : 'Read'}</button>;
     const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"
       aria-label={swipeAudio?'News update. Swipe left for next story or right for previous story.':undefined}
-      onPointerDown={swipeAudio?e=>{if(e.button>0 || e.isPrimary===false || slideBusy.current)return;onTouchStart({target:e.target,touches:[e]});if(touchRef.current)e.currentTarget.setPointerCapture?.(e.pointerId);}:undefined}
-      onPointerMove={swipeAudio?e=>pageTouchMove({touches:[e]}):undefined}
-      onPointerUp={swipeAudio?e=>pageTouchEnd({changedTouches:[e]}):undefined}
-      onPointerCancel={swipeAudio?()=>{touchRef.current=null;const el=cardRef.current;if(el&&!slideBusy.current){el.style.transform='none';el.style.transition='transform .2s ease-out';}}:undefined}
+      onPointerDown={swipeAudio?e=>{if(e.pointerType==='touch' || e.button>0 || e.isPrimary===false || slideBusy.current)return;onTouchStart({target:e.target,touches:[e]});if(touchRef.current)e.currentTarget.setPointerCapture?.(e.pointerId);}:undefined}
+      onPointerMove={swipeAudio?e=>{if(e.pointerType!=='touch')pageTouchMove({touches:[e]});}:undefined}
+      onPointerUp={swipeAudio?e=>{if(e.pointerType!=='touch')pageTouchEnd({changedTouches:[e]});}:undefined}
+      onPointerCancel={swipeAudio?e=>{if(e.pointerType!=='touch')cancelStorySwipe();}:undefined}
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
-        ...(unified ? { background: 'transparent', borderRadius: 0, padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
+        ...(unified ? { background: 'transparent', borderRadius: 0, overflow: readOnly ? 'visible' : 'hidden', padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap editorial={unified} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}

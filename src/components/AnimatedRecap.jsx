@@ -147,6 +147,10 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
   };
+  const progressRail = ((externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
+        {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
+          onClick={() => { readerMoved.current = true; if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }}><span /></button>)}
+      </div>);
   const animatedBody = <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
       {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
@@ -174,15 +178,13 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
         <h1 dir="auto">{scene.displayHeadline}</h1><p dir="auto">{scene.text}</p>
       </div>
       {overflow && <button className="rn-btn rn-brief-more" onClick={openText} aria-label="Read this complete update">more</button>}
-      {(externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
-        {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
-          onClick={() => { readerMoved.current = true; if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }}><span /></button>)}
-      </div>}
+      {!editorial && progressRail}
     </div> : animations ? (editorial ? <div className="rn-editorial-story-scroll">{animatedBody}</div> : animatedBody) : <div className="rn-brief-transcript" ref={transcript} tabIndex={0} role="region" aria-label="Brief transcript">
       <h1>{title || `Today in ${CATEGORY_SHORT[category] || category}`}</h1>
       {dateLabel && <p className="rn-brief-date">{dateLabel}</p>}
       {scenes.map(s => <p key={s.index} data-current={s.index === audioIndex} dir="auto">{s.text}</p>)}
     </div>}
+    {editorial && reading && progressRail}
     <footer className="rn-animated-recap-footer">
       {sources.length > 0 && <button type="button" className="rn-btn rn-animated-recap-source" onClick={openSources} aria-haspopup="dialog" aria-label={`Original reporting: ${outlets.join(', ') || 'all stories and sources'}`}><span>{sourceLabel}</span><ChevronUp size={14} /></button>}
       {editorial && <StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact />}

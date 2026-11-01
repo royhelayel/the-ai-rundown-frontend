@@ -380,3 +380,17 @@ right of the topic/brief picker row, including loading and empty states. Quiet R
 Unread/New status lives beside reporting links. Guest session reads now trigger a
 render so that status updates immediately; this does not add guest history or metrics.
 Light paper is restored to warm ivory #f7f6eb; dark mode retains its existing palette.
+
+## Swipe ownership and reading progress gutter (2026-11-01)
+
+Unified briefings now add rn-briefing-gestures to html while mounted, suppressing root
+overscroll/pull-to-refresh and restoring normal document behavior on exit. Touch input
+uses useStorySwipeTouch with a native non-passive touchmove listener, early direction
+locking, and boundary containment. Vertical drags remain native when an inner text or
+briefing scroller can consume them. Controls are excluded; multi-touch cancels the
+custom gesture without cancelling pinch zoom. Mouse/pen keep the existing pointer path;
+touch pointers are excluded from it to prevent duplicate navigation. Gesture listeners
+reattach when the keyed story changes and clean up on Read/route/loading changes.
+Read progress remains vertical and tappable, but is a sibling of the reader in the
+outer right gutter. Unified text no longer reserves 15px for it; 14px pill slots replace
+the previous 22px slots. The story allows gutter overflow only in Read mode.

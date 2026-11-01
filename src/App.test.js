@@ -169,6 +169,7 @@ test('one page supports animated audio, text/audio and text only across all four
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   expect(window.location.pathname).toBe('/listen');
   expect(screen.getByRole('region', { name: 'Swipeable news text' })).toBeInTheDocument();
+  expect(within(screen.getByRole('region', { name: 'Swipeable news text' })).queryByLabelText('Updates in this brief')).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
   await chooseSummary('Quick brief', 'Last week');
@@ -257,7 +258,11 @@ test('horizontal pointer gestures skip Quick stories while vertical movement and
  const el=container.querySelector('.rn-unified-card');
  fireEvent.pointerDown(el,{clientX:50,clientY:100,button:0});fireEvent.pointerMove(el,{clientX:250,clientY:100});fireEvent.pointerUp(el,{clientX:250,clientY:100});
  await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
- drag(container.querySelector('.rn-unified-card'),30,105);
+ const text=container.querySelector('.rn-unified-card h1');
+ fireEvent.touchStart(text,{touches:[{clientX:240,clientY:100}]});
+ expect(fireEvent.touchMove(text,{touches:[{clientX:30,clientY:110}],cancelable:true})).toBe(false);
+ fireEvent.touchEnd(text,{changedTouches:[{clientX:30,clientY:110}]});
+ await screen.findByRole('heading',{name:'This final sentence must remain visible.',exact:true});
  await chooseSummary('Quick brief','Full brief');
  await screen.findByRole('heading',{name:'World News story',exact:true});
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,250));});

@@ -70,7 +70,7 @@
 
   .rn-editorial-listen [aria-label="Player"] { margin-top:12px!important; }
 }
-@media(max-height:600px) { .rn-editorial-listen .rn-unified-card { min-height:420px!important; flex-shrink:0!important; } }
+@media(max-height:600px) { .rn-editorial-listen .rn-unified-card { min-height:0!important; flex-shrink:1!important; } }
 .rn-grouped-overlay { font-family:'RadioNews Editorial',Inter,-apple-system,BlinkMacSystemFont,sans-serif; }
 .rn-grouped-date.rn-btn { display:flex; align-items:center; gap:5px; min-height:44px; color:var(--sub); font-size:.75rem; font-weight:400; }
 

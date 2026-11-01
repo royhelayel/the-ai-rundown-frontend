@@ -22,3 +22,8 @@ test('reading does not pick up late animation until returning to Listen', () => 
  rerender({ candidate: ready, reading: false });
  expect(result.current).toBe(ready);
 });
+test('approved image can upgrade an old scene once during playback and then stays stable',()=>{
+ const old=scene('old');const {result,rerender}=renderHook(({candidate})=>useIllustrationSelection('story',candidate,true,false),{initialProps:{candidate:old}});
+ const image={native:{type:'illustration',id:'approved'},plan:null};rerender({candidate:image});expect(result.current).toBe(image);
+ rerender({candidate:{native:{type:'illustration',id:'different'},plan:null}});expect(result.current).toBe(image);
+});

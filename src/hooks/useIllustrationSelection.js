@@ -11,8 +11,9 @@ export default function useIllustrationSelection(key, candidate, active, reading
   }
   const returning = state.reading && !reading;
   const restarting = active && !state.active && state.hasPlayed;
-  const firstDailyScene = !reading && !state.selected?.native && !state.selected?.plan && candidate?.native?.type === 'remotion';
-  if (returning || restarting || firstDailyScene || (!state.frozen && !reading)) state.selected = candidate;
+  const firstDailyScene = !reading && !state.selected?.native && !state.selected?.plan && ['remotion','illustration'].includes(candidate?.native?.type);
+  const firstIllustration = !reading && candidate?.native?.type === 'illustration' && state.selected?.native?.type !== 'illustration';
+  if (returning || restarting || firstIllustration || firstDailyScene || (!state.frozen && !reading)) state.selected = candidate;
   if (active && !reading) { state.frozen = true; state.hasPlayed = true; }
   state.active = active;
   state.reading = reading;

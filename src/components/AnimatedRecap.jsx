@@ -9,6 +9,7 @@ import StagedAnimation from './storyLed/StagedAnimation';
 import useStoryAnimations from '../hooks/useStoryAnimations';
 import useDailyMotion from '../hooks/useDailyMotion';
 import RemoteRemotion from './RemoteRemotion';
+import IllustratedNews from './IllustratedNews';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import useIllustrationSelection from '../hooks/useIllustrationSelection';
 import { StatusBadge } from './StoryBits';
@@ -87,13 +88,13 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const scene = scenes[currentIndex];
   const drawing = scene ? animationFor(scene.text) : null;
   const daily=scene?dailyFor(scene.text):null;
-  const native = daily?.artifact ? {type:'remotion',...daily.artifact} : hasExplainerMotion(scene?.illustration) ? scene.illustration : null;
+  const native = daily?.artifact ? {...daily.artifact} : hasExplainerMotion(scene?.illustration) ? scene.illustration : null;
   const plan = !native && drawing?.plan && safeGeneratedAnimation(drawing.plan,scene.text) ? drawing.plan : null;
   const visual = useIllustrationSelection(scene?.text, { native, plan }, playbackActive, reading);
-  const hasIllustration = !!(visual.native || visual.plan) && !(visual.native?.type==='remotion'&&failedFrame===visual.native.id);
+  const hasIllustration = !!(visual.native || visual.plan) && !(['remotion','illustration'].includes(visual.native?.type)&&failedFrame===visual.native.id);
   const compact = animations && !reading && !hasIllustration;
   useLayoutEffect(() => {
-    onPresentationChange?.({ text, compact, storyLed: !reading && animations && ['story-led','staged','remotion'].includes(visual.native?.type) });
+    onPresentationChange?.({ text, compact, storyLed: !reading && animations && ['story-led','staged','remotion','illustration'].includes(visual.native?.type) });
   }, [text, compact, reading, animations, visual.native?.type, onPresentationChange]);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
@@ -194,6 +195,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
       {hasIllustration && <div className="rn-animated-recap-stage" data-scene={visual.plan ? 'generated' : visual.native.type}>
         {visual.plan ? <GeneratedStoryAnimation plan={visual.plan} text={scene.text} phase={position.phase} motion={!reduced} />
+          : visual.native.type === 'illustration' ? <IllustratedNews artifact={visual.native} phase={position.phase} reduced={reduced} onUnavailable={frameUnavailable} />
           : visual.native.type === 'remotion' ? <RemoteRemotion artifact={visual.native} phase={position.phase} reduced={reduced} visible={visible} onUnavailable={frameUnavailable} />
           : visual.native.type === 'staged' ? <StagedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
@@ -201,7 +203,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       </div>}
       <div key={position.caption} className="rn-animated-recap-caption" dir="auto">{editorial ? <NarratedCaption text={position.caption} progress={position.captionProgress}/> : <p>{position.caption}</p>}</div>
     </>;
-  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion'].includes(visual.native?.type)}>
+  return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion','illustration'].includes(visual.native?.type)}>
     {!editorial && <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact={editorial} /></div>
       <div className="rn-brief-actions">
         {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>

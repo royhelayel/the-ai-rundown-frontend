@@ -1079,7 +1079,7 @@ export default function FullPlayer({
           {!readOnly && !loading && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: HOME_TYPE.meta, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
-                {!unified && <button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
+                {<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
                   style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
                     ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
                   {playbackSpeed}×
@@ -1090,7 +1090,7 @@ export default function FullPlayer({
                 <span>{fmt(totalSec)}</span>
                 {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
                     under it, and says which for a moment — a colour change alone was invisible. */}
-                {!unified && <button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
+                {<button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
                   {...whilePlaying(isNarrating).props}
                   style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',

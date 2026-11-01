@@ -51,7 +51,7 @@ export default function GroupedBriefingHeader({ categories, activeCategory, onSe
   const currentBrief = SUMMARY_TYPES.find(item => item.value === period)?.label || 'Full brief';
   const currentTopic = CATEGORY_SHORT[activeCategory] || activeCategory || 'Topics';
   return <div className="rn-grouped-header">
-    <header className="rn-grouped-masthead"><Wordmark /><button className="rn-btn rn-grouped-more" aria-label="More options" aria-haspopup="dialog" aria-expanded={sheet === 'menu'} onClick={() => setSheet('menu')}><Ellipsis size={21} /></button></header>
+    <header className="rn-grouped-masthead"><Wordmark /><button className="rn-btn rn-grouped-more" aria-label="More options" title="Settings" onClick={onOpenSettings}><Ellipsis size={21} /></button></header>
     <nav className="rn-grouped-context" aria-label="Current briefing">
       <button className="rn-btn rn-grouped-topic" aria-label={`Topic: ${currentTopic}`} aria-haspopup="dialog" aria-expanded={sheet === 'topics'} onClick={() => setSheet('topics')}><span>{currentTopic}</span><ChevronDown size={13} /></button>
       <span className="rn-grouped-divider" aria-hidden="true" />

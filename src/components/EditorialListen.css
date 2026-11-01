@@ -126,3 +126,5 @@
 @media(max-height:740px) {
  .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { min-height:180px; flex-basis:180px; }
 }
+
+.rn-editorial-challenge > div > .rn-btn:last-child { min-width:44px; min-height:44px; flex-direction:row; gap:0; }

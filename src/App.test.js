@@ -160,7 +160,7 @@ test('one page supports animated audio, text/audio and text only across all four
   window.history.pushState({}, '', '/listen'); installSummaryFixtures(); render(<App />);
   await screen.findByRole('button', { name: 'Read', exact: true });
   userEvent.click(screen.getByRole('button', { name: 'More options', exact: true }));
-  userEvent.click(await screen.findByRole('button', { name: 'Settings', exact: true }));
+  await waitFor(()=>expect(window.location.pathname).toBe('/settings'));
   const animations = await screen.findByRole('group', { name: 'Animations' });
   userEvent.click(within(animations).getByRole('button', { name: 'Off', exact: true }));
   userEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));

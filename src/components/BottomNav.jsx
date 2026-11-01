@@ -171,8 +171,8 @@ export default function BottomNav({
           <button className="rn-btn" onClick={() => setSheetOpen(true)}
             aria-label={`${earnedBadge ? `${earnedBadge.title} earned. ` : ''}${!user ? 'Reading challenge — sign in to track progress'
               : challengeStats?.todayAudioComplete ? 'Challenge: listening mix completed' : exceeded ? `Reading challenge: ${todayCount} stories today, past the goal` : `Reading challenge: ${todayCount} of ${dailyGoal} stories today`}`}
-            style={editorial ? undefined : end}>
-            {editorial ? <><span className="rn-editorial-goal-track" aria-hidden="true"><span style={{ width: `${frac * 100}%` }} /></span><strong>{challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}</strong><span className="rn-editorial-goal-label">Challenge</span></> : user ? ring : <Flame size={20} strokeWidth={1.8} />}
+            style={end}>
+            {editorial ? ring : user ? ring : <Flame size={20} strokeWidth={1.8} />}
             {earnedBadge && <span aria-hidden="true" style={{ position: 'absolute', top: -2, right: -2,
               width: 19, height: 19, borderRadius: '50%', background: 'var(--paper)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,

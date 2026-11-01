@@ -46,16 +46,17 @@ export function BriefingDatePicker({ selectedDay, availableDays, onSelectDay, la
 }
 
 export default function GroupedBriefingHeader({ categories, activeCategory, onSelectCategory, onEditCategories,
-  lens, onChangeLens, period, onChangePeriod, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme }) {
+  lens, onChangeLens, period, onChangePeriod, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme, dateControl }) {
   const [sheet, setSheet] = useState(null);
   const currentBrief = SUMMARY_TYPES.find(item => item.value === period)?.label || 'Full brief';
   const currentTopic = CATEGORY_SHORT[activeCategory] || activeCategory || 'Topics';
   return <div className="rn-grouped-header">
     <header className="rn-grouped-masthead"><Wordmark /><button className="rn-btn rn-grouped-more" aria-label="More options" aria-haspopup="dialog" aria-expanded={sheet === 'menu'} onClick={() => setSheet('menu')}><Ellipsis size={21} /></button></header>
     <nav className="rn-grouped-context" aria-label="Current briefing">
-      <button className="rn-btn" aria-label={`Topic: ${currentTopic}`} aria-haspopup="dialog" aria-expanded={sheet === 'topics'} onClick={() => setSheet('topics')}><span>{currentTopic}</span><ChevronDown size={13} /></button>
+      <button className="rn-btn rn-grouped-topic" aria-label={`Topic: ${currentTopic}`} aria-haspopup="dialog" aria-expanded={sheet === 'topics'} onClick={() => setSheet('topics')}><span>{currentTopic}</span><ChevronDown size={13} /></button>
       <span className="rn-grouped-divider" aria-hidden="true" />
       <div role="group" aria-label="Summary type"><button className="rn-btn rn-grouped-brief" aria-pressed="true" aria-haspopup="dialog" aria-expanded={sheet === 'brief'} onClick={() => setSheet('brief')}>{currentBrief}<ChevronDown size={13} /></button></div>
+      <div className="rn-grouped-edition">{dateControl}</div>
     </nav>
     {sheet && <PickerSheet key={sheet} title={sheet === 'topics' ? 'Choose your news' : sheet === 'brief' ? 'Choose your brief' : 'Options'} onClose={() => setSheet(null)}>{dismiss => <>
       {sheet === 'topics' && <>

@@ -47,7 +47,7 @@ export default function AppHeader({
   lens = 'latest', onChangeLens,
   period = 'Headlines', onChangePeriod, periodReady = {},
   gutter = 20,
-  editorial = false, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme,
+  editorial = false, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme, dateControl,
 }) {
   const stripRef = useRef(null);
   const activeRef = useRef(null);
@@ -69,7 +69,7 @@ export default function AppHeader({
 
   if (editorial) return <GroupedBriefingHeader categories={categories} activeCategory={activeCategory || recapCategory} onSelectCategory={onSelectCategory} onEditCategories={onEditCategories}
     lens={lens} onChangeLens={onChangeLens} period={period} onChangePeriod={onChangePeriod} onOpenSettings={onOpenSettings}
-    onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={repeatLabel} resumeProgramme={resumeProgramme} onResumeProgramme={onResumeProgramme} />;
+    onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={repeatLabel} resumeProgramme={resumeProgramme} onResumeProgramme={onResumeProgramme} dateControl={dateControl} />;
 
   return (
     <div style={{ color: 'var(--ink)' }}>

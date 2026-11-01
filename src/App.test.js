@@ -186,6 +186,8 @@ test('one page supports animated audio, text/audio and text only across all four
   expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('A reported fact.');
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   expect(screen.getByRole('heading', { name: 'World News story' })).toBeInTheDocument();
+  expect(await screen.findByText('Read', { selector: '.rn-quiet-read-status' })).toBeInTheDocument();
+  expect(within(screen.getByRole('navigation', { name: 'Current briefing' })).getByRole('button', { name: 'Sun, Sep 20' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Next reading update' }));
   expect(await screen.findByRole('heading', { name: 'Another World story' })).toBeInTheDocument();
   userEvent.click(screen.getByRole('button', { name: 'Next reading update' }));

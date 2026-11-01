@@ -15,7 +15,7 @@ import CategoryIcon from './CategoryIcon';
 // the tinted cards, and a pill behind it was more than it needed.
 export function StatusBadge({ read, isNew, compact = false }) {
   if (read === undefined) return null;
-  if (compact) return read ? <span role="img" aria-label="Read" style={{ display: 'inline-flex', color: 'var(--sub)' }}><Check size={13} strokeWidth={1.8} /></span> : isNew ? <span role="img" aria-label="New" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sub)' }} /> : null;
+  if (compact) return <span className="rn-quiet-read-status" style={{ display:'inline-flex', alignItems:'center', gap:4, flexShrink:0, color:'var(--sub)', fontSize:'var(--rn-home-meta, .75rem)', fontWeight:400 }}>{read && <Check size={12} strokeWidth={1.8} />}{read ? 'Read' : isNew ? 'New' : 'Unread'}</span>;
   const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--rn-home-meta, .75rem)', fontWeight: 600,
     letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 };
   if (read) return <span style={{ ...base, color: 'var(--read)' }}><Check size={13} strokeWidth={3} />Read</span>;

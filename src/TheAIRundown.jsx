@@ -171,7 +171,13 @@ const TheAIRundown = () => {
   const focusRef = useRef(null); // { category, index }
   // Stories seen this session in either mode — read badges stay consistent for guests too.
   const sessionSeenRef = useRef(new Set());
-  const markSeen = (cat, idx) => { sessionSeenRef.current.add(`${cat}|${idx}`); };
+  const [, setSessionSeenVersion] = useState(0);
+  const markSeen = (cat, idx) => {
+    const key = `${cat}|${idx}`;
+    if (sessionSeenRef.current.has(key)) return;
+    sessionSeenRef.current.add(key);
+    setSessionSeenVersion(version => version + 1);
+  };
   const setFocus = (category, index) => { focusRef.current = { category, index }; };
   // A one-shot handoff, set only when leaving Swipe mode. focusRef itself is rewritten
   // continuously by whichever feed you happen to be scrolling, so handing it to every list
@@ -2370,7 +2376,7 @@ const TheAIRundown = () => {
             const index = list.findIndex(item => headlineKey(item.headline || '') === headlineKey(headline));
             if (index < 0) return null;
             const item = list[index];
-            return { read: user ? isReadStory(item, selectedCategory, index) : undefined, isNew: item.status === 'New', interesting: savedStories.some(saved => headlineKey(saved.headline || '') === headlineKey(item.headline || '')),
+            return { read: isReadStory(item, selectedCategory, index), isNew: item.status === 'New', interesting: savedStories.some(saved => headlineKey(saved.headline || '') === headlineKey(item.headline || '')),
               toggle: () => handleToggleSaved(item, selectedCategory, index) };
           }}
           recapError={radio.error}

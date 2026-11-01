@@ -11,7 +11,7 @@
 import { CATEGORY_COLORS } from './theme';
 
 export const LIGHT = {
-  '--paper': '#f5f5ef',
+  '--paper': '#f7f6eb',
   '--ink': '#172015',
   '--sub': '#596253',
   '--panel': '#e7eadd',

@@ -45,7 +45,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, dateControl }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
@@ -159,13 +159,13 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
     </>;
   return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion'].includes(visual.native?.type)}>
-    <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact={editorial} /></div>
+    {!editorial && <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact={editorial} /></div>
       <div className="rn-brief-actions">
-        {editorial ? dateControl : onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
+        {onChangeReading && <button className="rn-btn rn-brief-mode" type="button" onClick={changeReading}>
           {reading ? 'Listen' : 'Read'}
         </button>}
       </div>
-    </div>
+    </div>}
     {reading ? <div className="rn-brief-reader" tabIndex={0} role="region" aria-label="Swipeable news text"
       onPointerDown={begin} onPointerUp={finish} onPointerCancel={() => { touch.current = null; }}
       onWheel={e => { if (Math.abs(e.deltaY) < 25 || performance.now() - wheelAt.current < 650) return; wheelAt.current = performance.now(); step(e.deltaY > 0 ? 1 : -1); }}
@@ -185,6 +185,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     </div>}
     <footer className="rn-animated-recap-footer">
       {sources.length > 0 && <button type="button" className="rn-btn rn-animated-recap-source" onClick={openSources} aria-haspopup="dialog" aria-label={`Original reporting: ${outlets.join(', ') || 'all stories and sources'}`}><span>{sourceLabel}</span><ChevronUp size={14} /></button>}
+      {editorial && <StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact />}
       {action && <button type="button" className="rn-btn rn-animated-recap-interest" aria-label="Mark this update interesting" aria-pressed={action.interesting} onClick={action.toggle}><Star size={19} fill={action.interesting ? 'currentColor' : 'none'} /></button>}
     </footer>
   </div>;

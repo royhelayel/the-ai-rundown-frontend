@@ -370,3 +370,13 @@ trap focus and support Escape. Existing source attribution and playback stay unc
 The animation stage now wins the later remote-scene CSS rule that previously allowed
 it to collapse to ~16px. Reserve 180px (150px on short screens), up to 230px, and keep
 long content scrollable rather than hiding reporting links. Do not undo this specificity.
+
+## Typography and header polish (2026-11-01)
+
+Read and Listen share --rn-editorial-headline/--rn-editorial-copy, including narrow and
+short viewport breakpoints. Topic trigger uses the previous 12px uppercase eyebrow
+style; the repeated topic row is removed from unified stories. Date now lives at the
+right of the topic/brief picker row, including loading and empty states. Quiet Read/
+Unread/New status lives beside reporting links. Guest session reads now trigger a
+render so that status updates immediately; this does not add guest history or metrics.
+Light paper is restored to warm ivory #f7f6eb; dark mode retains its existing palette.

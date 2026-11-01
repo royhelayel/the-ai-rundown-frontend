@@ -986,7 +986,7 @@ export default function FullPlayer({
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
         ...(unified ? { background: 'transparent', borderRadius: 0, padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
-      {unifiedText ? <AnimatedRecap editorial={unified} dateControl={dateControl} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
+      {unifiedText ? <AnimatedRecap editorial={unified} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
         category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
@@ -996,10 +996,10 @@ export default function FullPlayer({
         canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}
         title={recapView ? `${recapPeriod === 'Daily' ? 'Today' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'} in ${topicName}` : headline}
         dateLabel={recapPeriod === 'Weekly' ? weekLabel : recapPeriod === 'Monthly' ? monthLabel : fmtDay(selectedDay)}
-        getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ read: user ? isStoryRead : undefined, isNew: story?.status === 'New', interesting: isInteresting, toggle: onToggleInteresting })}
+        getStoryAction={recapView || story?._quickRecap ? getRecapStoryAction : () => ({ read: (unified || user) ? isStoryRead : undefined, isNew: story?.status === 'New', interesting: isInteresting, toggle: onToggleInteresting })}
         onOpenSources={snapshot => setSourcesSnapshot({ ...snapshot, label: `${topicName} · ${fmtDay(selectedDay)}` })} /> :
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', gap: 16 }}>
-          {unified ? <div className="rn-grouped-empty-date">{dateControl}</div> : <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>}
+          {!unified && <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>}
           <h1 style={h1}>{topicName}</h1>
           <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
             {lens !== 'latest' ? `No ${lens === 'popular' ? 'popular' : 'interesting'} updates are available for this date and brief. Try Relevant or another date.` : recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
@@ -1034,7 +1034,7 @@ export default function FullPlayer({
       <div className={unified ? 'rn-editorial-listen' : undefined} data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: PAGE_MAX, margin: '0 auto', flexShrink: 0, position: 'relative', zIndex: 20 }}>
           <AppHeader
-            editorial={unified} onOpenSettings={onOpenSettings} onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={REPEAT_LABEL[repeatMode || 'off']} resumeProgramme={!readOnly ? resumeProgramme : null} onResumeProgramme={onResumeProgramme}
+            editorial={unified} dateControl={dateControl} onOpenSettings={onOpenSettings} onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={REPEAT_LABEL[repeatMode || 'off']} resumeProgramme={!readOnly ? resumeProgramme : null} onResumeProgramme={onResumeProgramme}
             selectedDay={selectedDay} availableDays={availableDays} onSelectDay={onSelectDay}
             categories={contextCategories} activeCategory={allScope && !recapView ? null : category}
             onSelectCategory={onSelectCategory}

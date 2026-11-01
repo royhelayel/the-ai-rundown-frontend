@@ -55,6 +55,7 @@ const TheAIRundown = () => {
   const programmeRef = audioProgramme.ref;
   const pendingProgrammeResume = useRef(null);
   const [resumeRequest, setResumeRequest] = useState(0);
+  const initialResumeScope = useRef(null);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [onboardingKey, setOnboardingKey] = useState(0);
   const openOnboarding = () => { setOnboardingKey(k => k + 1); setShowOnboarding(true); };
@@ -1368,33 +1369,49 @@ const TheAIRundown = () => {
       setTimeout(() => narrateFnRef.current.narrateStory(idx), 0);
     }
   };
-  const continueProgramme = () => {
-    const saved = audioProgramme.resume;
+  const continueProgramme = (saved = audioProgramme.resume, autoplay = true) => {
     if (!saved) return;
-    if (!radioCategories.includes(saved.category)) { programmeRef.current.notify('This brief is outside your current selection. Choose Relevant or start your current mix.'); return; }
-    unlockSpeech();
-    pendingProgrammeResume.current = saved;
+    if (!radioCategories.includes(saved.category)) { if(autoplay) programmeRef.current.notify('This brief is outside your current selection. Choose Relevant or start your current mix.'); return; }
+    if(autoplay) unlockSpeech();
+    pendingProgrammeResume.current = {...saved,autoplay};
     setResumeRequest(n => n + 1);
     setSelectedDay(saved.day); setRecapPeriod(saved.period); setSelectedCategory(saved.category);
     setNewsLanguage(saved.language);
+    if(saved.lens) setListenLens(saved.lens);
   };
+  useEffect(()=>{
+    if(!authReady || !audioProgramme.ready || location.pathname!=='/listen' || briefingLoading || radio.loading)return;
+    const scope=user?.id || 'guest';
+    if(initialResumeScope.current===scope)return;
+    initialResumeScope.current=scope;
+    if(!isNarrating && audioProgramme.resume) continueProgramme(audioProgramme.resume,false);
+  },[authReady,user?.id,location.pathname,briefingLoading,radio.loading,audioProgramme.resume,audioProgramme.ready]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const saved = pendingProgrammeResume.current;
     if (!saved || saved.day !== selectedDay || saved.period !== recapPeriod || saved.language !== newsLanguage || radio.loading || briefingLoading) return;
     const savedStories=radioMap[saved.category]?.allStories || [];
-    const text = programmeText(savedStories[0]);
+    const savedIndex=saved.clip ? Math.max(0,savedStories.findIndex(st=>st.headline===saved.headline)) : 0;
+    const text = saved.clip ? storyParagraph(savedStories[savedIndex] || {}) : programmeText(savedStories[0]);
     if (!text) {
       pendingProgrammeResume.current = null;
-      programmeRef.current.notify('This recap is no longer available. Choose another topic or date.');
+      if(saved.autoplay!==false) programmeRef.current.notify('This recap is no longer available. Choose another topic or date.');
       return;
     }
     pendingProgrammeResume.current = null;
     radioCueRef.current = radioCueKey;
     const same = programmeKey({ day: selectedDay, period: recapPeriod, language: newsLanguage, category: saved.category, text }) === saved.key;
-    const speed = [.75,1,1.25,1.5,2].includes(saved.speed) ? saved.speed : 1;
+    const speed = [.75,1,1.25,1.5,2].includes(saved.speed) ? saved.speed : playbackSpeedRef.current;
     setPlaybackSpeed(speed); playbackSpeedRef.current = speed;
-    const resume=resumeRadioStory(savedStories,same?saved.position:0);
-    cueRadio(saved.category, true,resume.index);
+    const resume=saved.clip ? {index:savedIndex,position:same?saved.position:0} : resumeRadioStory(savedStories,same?saved.position:0);
+    cueRadio(saved.category, saved.autoplay!==false,resume.index);
+    if(saved.autoplay===false) {
+      narrationStateRef.current.active=true; narrationStateRef.current.paused=true;
+      narrationStateRef.current.pendingResumeAction=()=>narrateFnRef.current.narrateStory(resume.index);
+      setIsNarrating(true);setIsPaused(true);setIsAudioLoading(false);
+      setNarrationProgress(resume.position*100);
+      const segment=savedStories[resume.index]?._quickRecap;
+      narrationDurationRef.current=same?(saved.duration || 0)*(!saved.clip && segment ? segment.end-segment.start : 1):0;
+    }
     narrationStateRef.current.pendingResumeFraction = resume.position;
     if (!same) narrationStateRef.current.pendingResumeMessage = 'This recap has been updated. Starting it from the beginning.';
   }, [resumeRequest, selectedDay, recapPeriod, newsLanguage, radio.loading, briefingLoading, radio.rows]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2298,7 +2315,7 @@ const TheAIRundown = () => {
           programmeMeta={programmeMeta}
           programmeNotice={isListenPath ? audioProgramme.notice : null}
           resumeProgramme={isListenPath && !isNarrating && recapPeriod !== 'Headlines' ? audioProgramme.resume : null}
-          onResumeProgramme={continueProgramme}
+          onResumeProgramme={() => continueProgramme()}
           loading={(isListenPath || isReadRecap) && (briefingLoading || radio.loading)}
           readOnly={isReadRecap || (isListenPath && listenTextOnly)}
           unified={isListenPath}

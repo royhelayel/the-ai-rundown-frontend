@@ -155,7 +155,7 @@ export function createNarrationEngine({
       text = text.slice(offset);
       narrationStateRef.current.pendingResumeFraction = null;
     }
-    if (!narrationStateRef.current.isTransition) programmeRef?.current?.speechStart?.(offset / Math.max(1, (fullText || text).length));
+    if (!narrationStateRef.current.isTransition) programmeRef?.current?.speechStart?.(offset / Math.max(1, (fullText || text).length),playbackSpeedRef.current);
 
     // The phone's own voice obeys the silent switch; the narration voice doesn't. Say so.
     setPhoneVoice?.(true);
@@ -247,6 +247,10 @@ export function createNarrationEngine({
     const st = narrationStateRef.current;
     if (!st.active || st.isTransition || !Number.isFinite(percent)) return false;
     const fraction = Math.max(0, Math.min(100, percent)) / 100;
+    if(st.paused && st.pendingResumeAction && !st.audio) {
+      st.pendingResumeFraction=fraction;setNarrationProgress(fraction*100);setNarrationCharOffset?.(-1);
+      programmeRef?.current?.seek?.(fraction);return true;
+    }
     if (st.audio) {
       const duration = st.audio.duration;
       if (!Number.isFinite(duration) || duration <= 0) return false;
@@ -519,7 +523,7 @@ export function createNarrationEngine({
     // script the backend pre-records, so the saved audio is found.
     const cl = cleanForTTS;
     const script = isHeadlines ? endSentence(cl(story.headline)) : cl(storyParagraph(story));
-    programmeRef?.current?.begin?.(snapshotPlayRef.current, storyNavRef.current.cat, programmeText(story) || script,story._quickRecap);
+    programmeRef?.current?.begin?.(snapshotPlayRef.current, storyNavRef.current.cat, programmeText(story) || script,story._quickRecap,{index:idx,headline:story.headline,text:storyParagraph(story),speed:playbackSpeedRef.current,position:narrationStateRef.current.pendingResumeFraction || 0});
     if (narrationStateRef.current.pendingResumeMessage) {
       programmeRef?.current?.notify?.(narrationStateRef.current.pendingResumeMessage);
       narrationStateRef.current.pendingResumeMessage = null;

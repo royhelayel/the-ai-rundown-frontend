@@ -422,3 +422,16 @@ width, displays one fitted line, and advances through its literal words using th
 existing narration position. It refits after resizing/font loading, supports reverse
 seeking, and never changes the spoken script. Read and animation-off transcripts
 retain complete text. Missing artwork keeps its existing text fallback.
+
+## Quiet resume on reopening (2026-11-01)
+
+Playback failures persist progress without the “Playback stopped” banner. A device-local,
+account-scoped cursor also tracks Full briefs independently of recap coverage. It saves
+the exact clip headline/content signature, topic, edition, summary type, lens, local audio
+fraction, duration and speed. Quick clip offsets remain separate from whole-recap coverage.
+On initial /listen load, restore the recent unfinished cursor silently into a paused player;
+Play starts from that position. No autoplay or extra resume banner. Legacy recap records
+remain resumable. Changed text starts at zero; expired/unavailable content is not seeked.
+Restore runs once per account after auth/data are ready. Seeking before Play updates the
+pending position without loading audio or earning listening credit. Resume never changes
+the 70% actual-played coverage rule or mixes account histories.

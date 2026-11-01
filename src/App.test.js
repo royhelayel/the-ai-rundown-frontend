@@ -309,3 +309,20 @@ test('an empty ranked feed explains the selection, disables play and can return 
  expect(await screen.findByRole('heading',{name:'World News daily briefing.',exact:true})).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
 });
+
+test('reopening restores a Full brief paused at its saved story and offset without a banner or autoplay',async()=>{
+ const now=jest.spyOn(Date,'now').mockReturnValue(Date.parse('2026-09-20T12:00:00Z'));
+ installSummaryFixtures();
+ const {programmeKey}=require('./audio/programmeProgress');
+ const saved={day:'2026-09-20',period:'Headlines',language:'en',category:'World News',text:'A second verified fact.',headline:'Another World story',index:1,clip:true,position:.42,duration:100,speed:1.25,lens:'latest',finished:false,updatedAt:Date.now()};
+ saved.key=programmeKey(saved);
+ localStorage.setItem('radionews_audio_progress:guest:cursor',JSON.stringify(saved));
+ const app=renderForReturningGuest();
+ try {
+  expect(await screen.findByRole('heading',{name:'Another World story'})).toBeInTheDocument();
+  await waitFor(()=>expect(screen.getByRole('slider',{name:'Audio progress'})).toHaveValue('42'));
+  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
+  expect(window.HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Playback stopped|listening progress is saved/)).not.toBeInTheDocument();
+ } finally { app.unmount();now.mockRestore(); }
+});

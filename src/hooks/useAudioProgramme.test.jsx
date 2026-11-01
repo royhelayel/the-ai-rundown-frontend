@@ -47,3 +47,25 @@ test('split Quick clips share parent coverage: skipping ahead never earns credit
  record=Object.values(result.current.records)[0];expect(record.completed).toBe(true);expect(record.position).toBeCloseTo(.7);
  unmount();
 });
+
+test('Full brief failures save the exact clip silently and restore it after reopening',()=>{
+ const clip={index:3,headline:'Fourth update',text:'A complete headline summary.',speed:1.25};
+ const headlineSnap={...snap,headlineProgramme:true,period:'Headlines',lens:'popular'};
+ const first=renderHook(()=>useAudioProgramme());
+ act(()=>{first.result.current.ref.current.begin(headlineSnap,'World',clip.text,null,clip);first.result.current.ref.current.media(media(42,12));first.result.current.ref.current.fail();});
+ expect(first.result.current.notice).toBeNull();
+ expect(Object.keys(first.result.current.records)).toHaveLength(0);
+ first.unmount();
+ const second=renderHook(()=>useAudioProgramme());
+ expect(second.result.current.resume).toMatchObject({clip:true,index:3,headline:'Fourth update',period:'Headlines',position:.42,speed:2,lens:'popular'});
+ second.unmount();
+ const other=renderHook(()=>useAudioProgramme('different-user'));
+ expect(other.result.current.resume).toBeNull();other.unmount();
+});
+test('Quick resume retains the local clip offset rather than treating it as the whole recap',()=>{
+ const first=renderHook(()=>useAudioProgramme());
+ act(()=>{first.result.current.ref.current.begin(snap,'World','World recap.',{start:.5,end:1},{index:1,headline:'Second update',text:'Second short update.'});first.result.current.ref.current.media(media(30,10));first.result.current.ref.current.flush();});
+ expect(first.result.current.resume.position).toBe(.3);
+ expect(Object.values(first.result.current.records)[0].position).toBe(.65);
+ first.unmount();
+});

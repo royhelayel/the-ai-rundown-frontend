@@ -7,15 +7,20 @@ const bounded = records => Object.fromEntries(Object.entries(records).sort((a, b
 const read = key => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } };
 export default function useAudioProgramme(userId) {
   const storageKey = `radionews_audio_progress:${userId || 'guest'}`;
+  const cursorKey = `${storageKey}:cursor`;
+  const [cursor,setCursor] = useState(()=>read(cursorKey));
+  const [recordsScope,setRecordsScope] = useState(storageKey);
   const [records, setRecords] = useState(() => read(storageKey));
   const [notice, setNotice] = useState(null);
   const ref = useRef({});
-  const state = useRef({ records, activeKey: null, speechStart: 0, dirty: new Set(), lastUI: 0, scope: storageKey });
+  const state = useRef({ records, activeKey: null, speechStart: 0, dirty: new Set(), lastUI: 0, scope: storageKey, cursor: read(cursorKey) });
   const persist = () => {
     if (state.current.scope !== storageKey) return;
     state.current.records = bounded(state.current.records);
     try { localStorage.setItem(storageKey, JSON.stringify(state.current.records)); } catch {}
     setRecords({ ...state.current.records });
+    try { localStorage.setItem(cursorKey,JSON.stringify(state.current.cursor || {})); } catch {}
+    setCursor(state.current.cursor || {});
   };
   const save = patch => {
     const st = state.current, key = st.activeKey;
@@ -27,9 +32,19 @@ export default function useAudioProgramme(userId) {
     const completedNow = next.completed && !previous.completed;
     if (completedNow || Date.now() - st.lastUI > 1500 || patch.finished) { st.lastUI = Date.now(); persist(); }
   };
+  const saveCursor = patch => {
+    const st=state.current; if(st.scope!==storageKey || !st.cursor?.key)return;
+    st.cursor={...st.cursor,...patch,updatedAt:Date.now()};
+    if(Date.now()-st.lastUI>1500 || patch.finished) {st.lastUI=Date.now();persist();}
+  };
   ref.current = {
     notify(message) { setNotice({ message }); },
-    begin(snap, category, text, segment) {
+    begin(snap, category, text, segment, clip) {
+      setNotice(null);
+      if(snap?.radio && snap.day && state.current.scope===storageKey && clip) {
+        state.current.cursor={...clip,clip:true,key:programmeKey({...snap,category,text:clip.text}),day:snap.day,period:snap.period,language:snap.language,lens:snap.lens || 'latest',category,position:fraction(clip.position),finished:false,updatedAt:Date.now()};
+        persist();
+      }
       if (!snap?.radio || snap.headlineProgramme || !snap.day) { state.current.activeKey = null; return; }
       const key = programmeKey({ ...snap, category, text });
       const st = state.current;
@@ -42,6 +57,7 @@ export default function useAudioProgramme(userId) {
     },
     media(audio) {
       if (!audio.duration || !Number.isFinite(audio.duration)) return;
+      saveCursor({position:fraction(audio.currentTime/audio.duration),duration:audio.duration,speed:audio.playbackRate || 1});
       const ranges = [];
       // HTMLMediaElement.played contains only source intervals that actually played.
       // Split Quick clips occupy fixed spoken-content spans in their parent recap;
@@ -50,14 +66,16 @@ export default function useAudioProgramme(userId) {
       for (let i = 0; i < (audio.played?.length || 0); i++) ranges.push([recapPosition(audio.played.start(i)/audio.duration,span),recapPosition(audio.played.end(i)/audio.duration,span)]);
       save({ ranges, position: recapPosition(audio.currentTime/audio.duration,span), duration: audio.duration/(span[1]-span[0]), speed: audio.playbackRate || 1 });
     },
-    speechStart(position) { state.current.speechStart = fraction(position); },
+    speechStart(position,speed) { state.current.speechStart = fraction(position); if(speed) saveCursor({speed}); },
     speech(position) {
+      saveCursor({position:fraction(position)});
       const span=state.current.span || [0,1], to=recapPosition(position,span), from=recapPosition(state.current.speechStart,span);
       save({ position: to, ranges: to > from ? [[from, to]] : [] });
     },
-    end() { const end=state.current.span?.[1] ?? 1; save({ position:end,finished:end===1 }); },
+    end() { saveCursor({position:1,finished:true}); const end=state.current.span?.[1] ?? 1; save({ position:end,finished:end===1 }); },
+    seek(position) { saveCursor({position:fraction(position)}); persist(); },
     flush() { persist(); },
-    fail() { setNotice({ complete: false, error: true, message: 'Playback stopped. Your listening progress is saved.' }); persist(); },
+    fail() { setNotice(null); persist(); },
     finish(snap) {
       const keys = queueKeys(snap);
       const complete = keys.length > 0 && keys.every(k => coverage(state.current.records[k]?.ranges || []) + 1e-8 >= .70);
@@ -68,8 +86,8 @@ export default function useAudioProgramme(userId) {
     },
   };
   useEffect(() => {
-    state.current = { records: read(storageKey), activeKey: null, speechStart: 0, dirty: new Set(), lastUI: 0, scope: storageKey };
-    setRecords({ ...state.current.records }); setNotice(null);
+    state.current = { records: read(storageKey), activeKey: null, speechStart: 0, dirty: new Set(), lastUI: 0, scope: storageKey, cursor:read(cursorKey) };
+    setRecordsScope(storageKey);setRecords({ ...state.current.records }); setCursor(state.current.cursor); setNotice(null);
     let canceled = false, syncing = false;
     const sync = async () => {
       if (!userId || syncing) return;
@@ -110,5 +128,6 @@ export default function useAudioProgramme(userId) {
   }, [storageKey, userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const cutoff = new Date(Date.now() + 4 * 3600000 - 7 * 86400000).toISOString().slice(0, 10);
   const latest = Object.entries(records).filter(([, r]) => r.day >= cutoff && (r.started || r.position > .01) && !r.finished).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0))[0];
-  return { ref, records, resume: latest ? { key: latest[0], ...latest[1] } : null, notice };
+  const savedCursor=cursor?.key && cursor.day>=cutoff && !cursor.finished ? cursor : null;
+  return { ref, records, ready:recordsScope===storageKey, resume: recordsScope!==storageKey ? null : savedCursor || (!cursor?.key && latest ? { key: latest[0], ...latest[1] } : null), notice };
 }

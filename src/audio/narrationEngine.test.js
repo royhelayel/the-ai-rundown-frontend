@@ -47,10 +47,10 @@ test('Quick clips advance independently, preserve parent recap identity and do n
  list.splice(0,2,...parts.map((part,i)=>({headline:`Short ${i}`,summary:`Short update ${i}.`,_isBriefing:true,_quickRecap:part})));
  h.snapshot.current.radio=true;h.snapshot.current.headlineProgramme=false;
  h.fn.narrateStory(0);
- expect(h.programme.begin).toHaveBeenCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[0]);
+ expect(h.programme.begin).toHaveBeenCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[0],{index:0,headline:'Short 0',text:'Short update 0.',speed:1,position:0});
  h.speak.mock.calls[0][1]();jest.runOnlyPendingTimers();
  expect(h.speak.mock.calls[1][0]).toBe('Short update 1.');
- expect(h.programme.begin).toHaveBeenLastCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[1]);
+ expect(h.programme.begin).toHaveBeenLastCalledWith(h.snapshot.current,'World News','A complete checked recap.',parts[1],{index:1,headline:'Short 1',text:'Short update 1.',speed:1,position:0});
  expect(h.history).not.toHaveBeenCalled();expect(h.select).not.toHaveBeenCalled();
 });
 test('starting on story two reads its complete summary without a false category introduction', () => {
@@ -200,4 +200,10 @@ test('text-only pause/resume retains recording position and speed, while choosin
   h.fn.pause(); expect(h.fn.seek(65)).toBe(true); h.fn.resume();
   expect(audio.currentTime).toBe(65); expect(audio.played.length).toBe(0);
   expect(h.programme.end).not.toHaveBeenCalled();
+});
+
+test('a silently restored player can seek before loading audio without starting playback',()=>{
+ const h=harness();h.state.paused=true;h.state.pendingResumeFraction=.4;h.state.pendingResumeAction=jest.fn();
+ expect(h.fn.seek(65)).toBe(true);expect(h.state.pendingResumeFraction).toBe(.65);
+ expect(h.state.pendingResumeAction).not.toHaveBeenCalled();expect(h.speak).not.toHaveBeenCalled();
 });

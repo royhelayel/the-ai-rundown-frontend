@@ -45,7 +45,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, readerEntryDirection = 0 }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
@@ -54,6 +54,12 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const [failedFrame,setFailedFrame]=useState(null);
   const frameUnavailable=useCallback(id=>setFailedFrame(id),[]);
   const readerMoved = useRef(false);
+  const readerEntry = useRef(readerEntryDirection);
+  const readerMotion = useRef({ timer:null, busy:false });
+  useEffect(() => () => clearTimeout(readerMotion.current.timer), []);
+  useEffect(() => {
+    if (!reading) { clearTimeout(readerMotion.current.timer); readerMotion.current.busy = false; }
+  }, [reading]);
   const previousReading = useRef(reading);
   const touch = useRef(null), wheelAt = useRef(0), textBox = useRef(null), transcript = useRef(null);
   useEffect(() => {
@@ -90,12 +96,32 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   }, [text, compact, reading, animations, visual.native?.type, onPresentationChange]);
   const nextAvailable = currentIndex < scenes.length - 1 || canNext;
   const prevAvailable = currentIndex > 0 || canPrev;
-  const step = direction => {
-    if (!reading || (direction > 0 ? !nextAvailable : !prevAvailable)) return;
+  const resetReaderDrag = () => {
+    if (!textBox.current) return;
+    textBox.current.style.transition = reduced ? 'none' : 'transform .18s ease-out, opacity .18s ease-out';
+    textBox.current.style.transform = 'none'; textBox.current.style.opacity = '1';
+  };
+  const moveReader = (direction, go) => {
+    if (readerMotion.current.busy) return;
     readerMoved.current = true;
+    readerEntry.current = direction;
+    const box = textBox.current;
+    if (reduced || !box) { go(); return; }
+    readerMotion.current.busy = true;
+    box.style.animation = 'none';
+    box.style.transition = 'transform .16s ease-in, opacity .16s ease-in';
+    box.style.transform = `translateY(${-direction * 100}%)`;
+    box.style.opacity = '.25';
+    readerMotion.current.timer = setTimeout(() => { readerMotion.current.busy = false; go(); }, 160);
+  };
+  const step = direction => {
+    if (!reading || readerMotion.current.busy) return;
+    if (direction > 0 ? !nextAvailable : !prevAvailable) { resetReaderDrag(); return; }
     const next = currentIndex + direction;
-    if (next >= 0 && next < scenes.length) setReaderIndex(next);
-    else (direction > 0 ? onNext : onPrev)?.();
+    moveReader(direction, () => {
+      if (next >= 0 && next < scenes.length) setReaderIndex(next);
+      else (direction > 0 ? onNext : onPrev)?.();
+    });
   };
   useImperativeHandle(ref, () => ({ next: () => step(1), previous: () => step(-1), changeReading: () => changeReading() }));
   useEffect(() => { onNavigationChange?.({ next: nextAvailable, previous: prevAvailable }); }, [nextAvailable, prevAvailable, onNavigationChange]);
@@ -133,23 +159,35 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const openText = () => onOpenSources?.({ title: 'Complete update', label: CATEGORY_SHORT[category] || category,
     items: [{ headline: scene.stories[0]?.headline || `${CATEGORY_SHORT[category] || category} brief`, summary: scene.text, sources: scene.stories.flatMap(story => story.sources || []) }] });
   const changeReading = () => {
+    clearTimeout(readerMotion.current.timer); readerMotion.current.busy = false;
     if (reading) onChangeReading?.(false, readerMoved.current ? Math.min(99.99, scene.start * 100 + 0.01) : undefined);
     else { setReaderIndex(audioIndex); readerMoved.current = false; onChangeReading?.(true); }
   };
   const begin = e => {
-    if (!reading || e.target.closest('button,a')) return;
+    if (!reading || readerMotion.current.busy || e.button > 0 || e.isPrimary === false || e.target.closest('button,a')) return;
     touch.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const followReader = e => {
+    if (!touch.current || readerMotion.current.busy || reduced || !textBox.current) return;
+    const dx = e.clientX - touch.current.x, dy = e.clientY - touch.current.y;
+    if (Math.abs(dy) < 8 || Math.abs(dy) <= Math.abs(dx) * 1.2) return;
+    const blocked = dy < 0 ? !nextAvailable : !prevAvailable;
+    const box = textBox.current;
+    box.style.animation = 'none'; box.style.transition = 'none';
+    box.style.transform = `translateY(${dy * (blocked ? .15 : .65)}px)`;
+    box.style.opacity = String(Math.max(.5, 1 - Math.abs(dy) / 700));
   };
   const finish = e => {
     if (!touch.current) return;
     const { x, y } = touch.current; touch.current = null;
     const dy = e.clientY - y;
     if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
+    else resetReaderDrag();
   };
   const progressRail = ((externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
         {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
-          onClick={() => { readerMoved.current = true; if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }}><span /></button>)}
+          onClick={() => { const from = externalCount ? externalIndex : currentIndex; if (i !== from) moveReader(i > from ? 1 : -1, () => { if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }); }}><span /></button>)}
       </div>);
   const animatedBody = <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
@@ -171,10 +209,10 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       </div>
     </div>}
     {reading ? <div className="rn-brief-reader" tabIndex={0} role="region" aria-label="Swipeable news text"
-      onPointerDown={begin} onPointerUp={finish} onPointerCancel={() => { touch.current = null; }}
+      onPointerDown={begin} onPointerMove={followReader} onPointerUp={finish} onPointerCancel={() => { touch.current = null; if (!readerMotion.current.busy) resetReaderDrag(); }}
       onWheel={e => { if (Math.abs(e.deltaY) < 25 || performance.now() - wheelAt.current < 650) return; wheelAt.current = performance.now(); step(e.deltaY > 0 ? 1 : -1); }}
       onKeyDown={e => { if (e.target !== e.currentTarget) return; if (['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) { e.preventDefault(); step(['ArrowDown','PageDown'].includes(e.key) ? 1 : -1); } }}>
-      <div className="rn-brief-reader-copy" ref={textBox} key={currentIndex}>
+      <div className="rn-brief-reader-copy" ref={textBox} key={currentIndex} style={{ animation: reduced || !readerEntry.current ? 'none' : `${readerEntry.current > 0 ? 'rn-reader-enter-next' : 'rn-reader-enter-prev'} .3s cubic-bezier(.22,1,.36,1) both` }}>
         <h1 dir="auto">{scene.displayHeadline}</h1><p dir="auto">{scene.text}</p>
       </div>
       {overflow && <button className="rn-btn rn-brief-more" onClick={openText} aria-label="Read this complete update">more</button>}

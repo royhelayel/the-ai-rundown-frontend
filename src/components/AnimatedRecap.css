@@ -129,3 +129,8 @@
 }
 
 @container recap-card (max-height:290px){[data-text-size=large] .rn-animated-recap-stage{display:none}}
+
+/* Real page travel, in the direction of the reading gesture. Sources and progress stay put. */
+.rn-brief-reader { overflow:hidden; touch-action:pan-x pinch-zoom; }
+@keyframes rn-reader-enter-next { from { transform:translateY(100%); opacity:.25; } to { transform:translateY(0); opacity:1; } }
+@keyframes rn-reader-enter-prev { from { transform:translateY(-100%); opacity:.25; } to { transform:translateY(0); opacity:1; } }

@@ -1003,7 +1003,7 @@ export default function FullPlayer({
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
         ...(unified ? { background: 'transparent', borderRadius: 0, overflow: readOnly ? 'visible' : 'hidden', padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
-      {unifiedText ? <AnimatedRecap editorial={unified} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
+      {unifiedText ? <AnimatedRecap editorial={unified} readerEntryDirection={enterRef.current === 'next' ? 1 : enterRef.current === 'prev' ? -1 : 0} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         text={unifiedText} sourcesMap={recapView ? recapAttributions : fullStoryMap} allSources={recapView || story?._quickRecap ? recapSources : fullStoryMap[0].stories}
         category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}

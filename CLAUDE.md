@@ -394,3 +394,16 @@ reattach when the keyed story changes and clean up on Read/route/loading changes
 Read progress remains vertical and tappable, but is a sibling of the reader in the
 outer right gutter. Unified text no longer reserves 15px for it; 14px pill slots replace
 the previous 22px slots. The story allows gutter overflow only in Read mode.
+
+## Reading swipe motion (2026-11-01)
+
+Reading text follows vertical pointer drags, then exits over160ms before selecting the
+next update. Incoming text travels from the matching top/bottom edge over300ms. Sources,
+progress rail and player remain still. Keyboard, wheel, Next and pill taps share the same
+navigation path; short/diagonal/boundary drags spring back. Reduced motion switches
+immediately. A pending exit is cancelled on unmount or returning to Listen so it cannot
+change an unrelated topic/date/mode. FullPlayer passes the external story direction into
+new reader instances, since each headline remounts AnimatedRecap.
+The backend also reconciles the latest published English World edition at startup,
+within existing job/dollar limits. Ready assets are reused; same-signature failed reviews
+and budget rejections are not retried. Changed evidence still requires a new review.

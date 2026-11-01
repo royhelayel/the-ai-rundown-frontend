@@ -86,13 +86,13 @@ test('saved animation preference survives a new recap without exposing an on-car
 });
 
 
-test('reading swipes vertically, preserves the source of the chosen update, and returns a seek target', () => {
+test('reading swipes vertically, preserves the source of the chosen update, and returns a seek target', async () => {
   const change = jest.fn(), open = jest.fn();
   render(<AnimatedRecap {...props} reading onChangeReading={change} onOpenSources={open} />);
   const reader = screen.getByRole('region', { name: 'Swipeable news text' });
   expect(screen.queryByRole('button', { name: /Turn animation/ })).not.toBeInTheDocument();
   fireEvent.keyDown(reader, { key: 'ArrowDown' });
-  expect(screen.getByRole('heading')).toHaveTextContent('B says plan is not final');
+  expect(await screen.findByRole('heading', {name:'B says plan is not final'})).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Original reporting: Outlet B/ }));
   expect(open.mock.calls[0][0].items[0].sources[0].outlet).toBe('Outlet B');
   fireEvent.click(screen.getByRole('button', { name: 'Listen', exact: true }));
@@ -107,13 +107,15 @@ test('returning to Listen without a reading swipe preserves the exact audio posi
   expect(change).toHaveBeenCalledWith(false, undefined);
 });
 
-test('reading update boundaries advance the topic only when one exists', () => {
+test('reading update boundaries advance the topic only when one exists', async () => {
   const next = jest.fn(), previous = jest.fn();
   const { rerender } = render(<AnimatedRecap {...props} reading onNext={next} onPrev={previous} canNext />);
   const reader = screen.getByRole('region', { name: 'Swipeable news text' });
   fireEvent.keyDown(reader, { key: 'ArrowUp' }); expect(previous).not.toHaveBeenCalled();
   fireEvent.keyDown(reader, { key: 'ArrowDown' });
-  fireEvent.keyDown(reader, { key: 'ArrowDown' }); expect(next).toHaveBeenCalledTimes(1);
+  await screen.findByRole('heading', {name:'B says plan is not final'});
+  fireEvent.keyDown(reader, { key: 'ArrowDown' });
+  await waitFor(() => expect(next).toHaveBeenCalledTimes(1));
   rerender(<AnimatedRecap {...props} reading onNext={next} onPrev={previous} />);
   fireEvent.keyDown(reader, { key: 'ArrowDown' }); expect(next).toHaveBeenCalledTimes(1);
 });
@@ -133,7 +135,7 @@ test('audio captions show the complete current sentence, changing on narration a
   expect(caption()).toHaveTextContent('Officials say');
 });
 
-test('read status follows each original story in animated and reading presentations', () => {
+test('read status follows each original story in animated and reading presentations', async () => {
   const getStoryAction = headline => ({ read: headline.startsWith('A'), interesting: false, toggle: jest.fn() });
   const { rerender } = render(<AnimatedRecap {...props} getStoryAction={getStoryAction} />);
   expect(screen.getByText('Read')).toBeInTheDocument();
@@ -142,7 +144,7 @@ test('read status follows each original story in animated and reading presentati
   rerender(<AnimatedRecap {...props} progress={95} reading getStoryAction={getStoryAction} />);
   expect(screen.getByText('Unread')).toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole('region', {name:'Swipeable news text'}), {key:'ArrowUp'});
-  expect(screen.getByText('Read')).toBeInTheDocument();
+  expect(await screen.findByText('Read')).toBeInTheDocument();
 });
 
 
@@ -164,4 +166,34 @@ test('late artwork waits until a new playback session and never interrupts playb
   rerender(<AnimatedRecap {...props} playbackActive playing/>);
   expect(container.querySelector('.rn-animated-recap-stage')).toBeNull();
   expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
+});
+
+test('reading follows a vertical drag, exits before changing text, and enters from the matching side',()=>{
+ jest.useFakeTimers();const original=window.PointerEvent;window.PointerEvent=MouseEvent;
+ const {container,unmount}=render(<AnimatedRecap {...props} reading/>);
+ const reader=screen.getByRole('region',{name:'Swipeable news text'});
+ fireEvent.pointerDown(reader,{clientX:120,clientY:240,button:0});
+ fireEvent.pointerMove(reader,{clientX:123,clientY:130});
+ expect(container.querySelector('.rn-brief-reader-copy').style.transform).toContain('translateY(-');
+ fireEvent.pointerUp(reader,{clientX:123,clientY:100});
+ expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
+ act(()=>jest.advanceTimersByTime(160));
+ expect(screen.getByRole('heading')).toHaveTextContent('B says plan is not final');
+ expect(container.querySelector('.rn-brief-reader-copy').style.animation).toContain('rn-reader-enter-next');
+ fireEvent.keyDown(reader,{key:'ArrowUp'});act(()=>jest.advanceTimersByTime(160));
+ expect(screen.getByRole('heading')).toHaveTextContent('A announces a plan');
+ expect(container.querySelector('.rn-brief-reader-copy').style.animation).toContain('rn-reader-enter-prev');
+ unmount();window.PointerEvent=original;jest.useRealTimers();
+});
+test('leaving a reading update during its exit cancels the pending navigation',()=>{
+ jest.useFakeTimers();const next=jest.fn();const{unmount}=render(<AnimatedRecap {...props} reading progress={95} canNext onNext={next}/>);
+ fireEvent.keyDown(screen.getByRole('region',{name:'Swipeable news text'}),{key:'ArrowDown'});
+ unmount();act(()=>jest.advanceTimersByTime(500));expect(next).not.toHaveBeenCalled();jest.useRealTimers();
+});
+test('reduced motion switches reading updates immediately without a travel animation',()=>{
+ const original=window.matchMedia;window.matchMedia=jest.fn(query=>({matches:query.includes('prefers-reduced-motion'),addEventListener:()=>{},removeEventListener:()=>{}}));
+ const{container,unmount}=render(<AnimatedRecap {...props} reading/>);
+ fireEvent.keyDown(screen.getByRole('region',{name:'Swipeable news text'}),{key:'ArrowDown'});
+ expect(screen.getByRole('heading')).toHaveTextContent('B says plan is not final');expect(container.querySelector('.rn-brief-reader-copy').style.animation).toBe('none');
+ unmount();window.matchMedia=original;
 });

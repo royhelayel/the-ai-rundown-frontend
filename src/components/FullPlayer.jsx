@@ -1046,7 +1046,7 @@ export default function FullPlayer({
                   atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
                   FastForward, recapView || (atBatchEnd && !topicAt(1)))}
               </div>);
-    const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: HOME_TYPE.meta, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><ChevronUp size={14} />{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe up to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
+    const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: HOME_TYPE.meta, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><span aria-hidden="true">‹</span>{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe left to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
 
     return (
       <div className={unified ? 'rn-editorial-listen' : undefined} data-mode-surface={readOnly ? 'swipe' : 'audio'} style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'var(--paper)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

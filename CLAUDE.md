@@ -435,3 +435,11 @@ remain resumable. Changed text starts at zero; expired/unavailable content is no
 Restore runs once per account after auth/data are ready. Seeking before Play updates the
 pending position without loading audio or earning listening credit. Resume never changes
 the 70% actual-played coverage rule or mixes account histories.
+
+## Shared horizontal navigation (2026-11-01)
+
+Listen and Read use left=next, right=previous. Read drag-follow, exit/entry,
+keyboard arrows and horizontal trackpad input follow this axis. Vertical input
+no longer changes reading stories. Editorial progress pills sit above the headline
+in both modes, using a wider active pill. Listen story pills select the external
+story through existing playback navigation; period-recap pills are indicators.

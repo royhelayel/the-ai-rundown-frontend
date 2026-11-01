@@ -89,7 +89,7 @@
 .rn-brief-transcript p,.rn-brief-reader p{margin:0 0 18px;font-size:var(--rn-home-reading);line-height:1.5;color:var(--card-body)}
 .rn-brief-transcript p[data-current=true]{color:var(--card-ink);font-weight:600}
 .rn-brief-transcript .rn-brief-date{font-size:var(--rn-home-meta);color:var(--card-sub);font-weight:400}
-.rn-brief-reader{position:relative;min-height:0;flex:1;display:flex;flex-direction:column;padding-inline-end:15px;touch-action:pan-x;overscroll-behavior:contain;outline-offset:3px}
+.rn-brief-reader{position:relative;min-height:0;flex:1;display:flex;flex-direction:column;padding-inline-end:15px;touch-action:pan-y;overscroll-behavior:contain;outline-offset:3px}
 .rn-brief-reader-copy{min-height:0;overflow:hidden;flex:1;animation:rn-brief-in .22s ease-out}
 .rn-brief-more.rn-btn{font-size:var(--rn-home-ui);align-self:flex-start;min-height:44px;color:var(--card-sub)}
 .rn-brief-dots{position:absolute;right:-12px;top:50%;max-height:75%;transform:translateY(-50%);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
@@ -131,6 +131,6 @@
 @container recap-card (max-height:290px){[data-text-size=large] .rn-animated-recap-stage{display:none}}
 
 /* Real page travel, in the direction of the reading gesture. Sources and progress stay put. */
-.rn-brief-reader { overflow:hidden; touch-action:pan-x pinch-zoom; }
-@keyframes rn-reader-enter-next { from { transform:translateY(100%); opacity:.25; } to { transform:translateY(0); opacity:1; } }
-@keyframes rn-reader-enter-prev { from { transform:translateY(-100%); opacity:.25; } to { transform:translateY(0); opacity:1; } }
+.rn-brief-reader { overflow:hidden; touch-action:pan-y pinch-zoom; }
+@keyframes rn-reader-enter-next { from { transform:translateX(100%); opacity:.25; } to { transform:translateX(0); opacity:1; } }
+@keyframes rn-reader-enter-prev { from { transform:translateX(-100%); opacity:.25; } to { transform:translateX(0); opacity:1; } }

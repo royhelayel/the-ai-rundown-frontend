@@ -111,7 +111,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     readerMotion.current.busy = true;
     box.style.animation = 'none';
     box.style.transition = 'transform .16s ease-in, opacity .16s ease-in';
-    box.style.transform = `translateY(${-direction * 100}%)`;
+    box.style.transform = `translateX(${-direction * 100}%)`;
     box.style.opacity = '.25';
     readerMotion.current.timer = setTimeout(() => { readerMotion.current.busy = false; go(); }, 160);
   };
@@ -172,23 +172,23 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const followReader = e => {
     if (!touch.current || readerMotion.current.busy || reduced || !textBox.current) return;
     const dx = e.clientX - touch.current.x, dy = e.clientY - touch.current.y;
-    if (Math.abs(dy) < 8 || Math.abs(dy) <= Math.abs(dx) * 1.2) return;
-    const blocked = dy < 0 ? !nextAvailable : !prevAvailable;
+    if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy) * 1.2) return;
+    const blocked = dx < 0 ? !nextAvailable : !prevAvailable;
     const box = textBox.current;
     box.style.animation = 'none'; box.style.transition = 'none';
-    box.style.transform = `translateY(${dy * (blocked ? .15 : .65)}px)`;
-    box.style.opacity = String(Math.max(.5, 1 - Math.abs(dy) / 700));
+    box.style.transform = `translateX(${dx * (blocked ? .15 : .65)}px)`;
+    box.style.opacity = String(Math.max(.5, 1 - Math.abs(dx) / 700));
   };
   const finish = e => {
     if (!touch.current) return;
     const { x, y } = touch.current; touch.current = null;
-    const dy = e.clientY - y;
-    if (Math.abs(dy) > 45 && Math.abs(dy) > Math.abs(e.clientX - x) * 1.2) step(dy < 0 ? 1 : -1);
+    const dx = e.clientX - x;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(e.clientY - y) * 1.2) step(dx < 0 ? 1 : -1);
     else resetReaderDrag();
   };
   const progressRail = ((externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
         {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
-          onClick={() => { const from = externalCount ? externalIndex : currentIndex; if (i !== from) moveReader(i > from ? 1 : -1, () => { if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }); }}><span /></button>)}
+          disabled={!reading && !externalCount} onClick={() => { const from = externalCount ? externalIndex : currentIndex; if (!reading && externalCount) { if(i !== from) onExternalSelect?.(i); return; } if (i !== from) moveReader(i > from ? 1 : -1, () => { if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }); }}><span /></button>)}
       </div>);
   const animatedBody = <>
       <h1 className="rn-animated-recap-title" dir="auto">{scene.illustration.title || scene.displayHeadline}</h1>
@@ -209,10 +209,11 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
         </button>}
       </div>
     </div>}
+    {editorial && progressRail}
     {reading ? <div className="rn-brief-reader" tabIndex={0} role="region" aria-label="Swipeable news text"
       onPointerDown={begin} onPointerMove={followReader} onPointerUp={finish} onPointerCancel={() => { touch.current = null; if (!readerMotion.current.busy) resetReaderDrag(); }}
-      onWheel={e => { if (Math.abs(e.deltaY) < 25 || performance.now() - wheelAt.current < 650) return; wheelAt.current = performance.now(); step(e.deltaY > 0 ? 1 : -1); }}
-      onKeyDown={e => { if (e.target !== e.currentTarget) return; if (['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) { e.preventDefault(); step(['ArrowDown','PageDown'].includes(e.key) ? 1 : -1); } }}>
+      onWheel={e => { if (Math.abs(e.deltaX) < 25 || performance.now() - wheelAt.current < 650) return; wheelAt.current = performance.now(); step(e.deltaX > 0 ? 1 : -1); }}
+      onKeyDown={e => { if (e.target !== e.currentTarget) return; if (['ArrowRight','ArrowLeft','PageDown','PageUp'].includes(e.key)) { e.preventDefault(); step(['ArrowRight','PageDown'].includes(e.key) ? 1 : -1); } }}>
       <div className="rn-brief-reader-copy" ref={textBox} key={currentIndex} style={{ animation: reduced || !readerEntry.current ? 'none' : `${readerEntry.current > 0 ? 'rn-reader-enter-next' : 'rn-reader-enter-prev'} .3s cubic-bezier(.22,1,.36,1) both` }}>
         <h1 dir="auto">{scene.displayHeadline}</h1><p dir="auto">{scene.text}</p>
       </div>
@@ -223,7 +224,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
       {dateLabel && <p className="rn-brief-date">{dateLabel}</p>}
       {scenes.map(s => <p key={s.index} data-current={s.index === audioIndex} dir="auto">{s.text}</p>)}
     </div>}
-    {editorial && reading && progressRail}
+
     <footer className="rn-animated-recap-footer">
       {sources.length > 0 && <button type="button" className="rn-btn rn-animated-recap-source" onClick={openSources} aria-haspopup="dialog" aria-label={`Original reporting: ${outlets.join(', ') || 'all stories and sources'}`}><span>{sourceLabel}</span><ChevronUp size={14} /></button>}
       {editorial && <StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact />}

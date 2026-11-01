@@ -132,3 +132,9 @@
 .rn-editorial-challenge { padding-bottom:calc(env(safe-area-inset-bottom,0px) + 26px)!important; }
 .rn-editorial-challenge .rn-grouped-mode.rn-btn { position:relative; height:44px; min-height:44px; border-radius:50%; background:var(--panel); color:var(--ink); display:flex; justify-content:center; align-items:center; }
 .rn-dock-button-label { position:absolute; top:calc(100% + 5px); left:50%; transform:translateX(-50%); font-size:.6875rem; line-height:1; font-weight:400; color:var(--sub); white-space:nowrap; }
+
+/* One horizontal story position strip above the headline in Listen and Read. */
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots { position:relative; top:auto; right:auto; transform:none; flex-direction:row; align-items:center; width:100%; max-height:none; flex-shrink:0; overflow-x:auto; overflow-y:hidden; margin:0 0 4px; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots .rn-btn { min-width:18px; min-height:24px; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots span { width:4px; height:4px; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots [aria-current=true] span { width:14px; height:4px; }

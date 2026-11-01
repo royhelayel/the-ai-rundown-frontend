@@ -411,3 +411,14 @@ and budget rejections are not retried. Changed evidence still requires a new rev
 A verified daily Remotion scene can fill an empty presentation even when its lookup
 finishes after Play. Once any illustration is selected, playback and pause keep it stable.
 Read mode still does not adopt artwork until returning to Listen.
+
+## Larger Listen artwork and one-line captions (2026-11-01)
+
+Editorial Listen no longer fixes its artwork at 150/200px. The stage grows into the
+remaining story space, with a 220px minimum (180px on short screens), no maximum,
+and 12px of additional width on each side. Sources and the player remain outside
+the story scroller. NarratedCaption measures each sentence at the current font and
+width, displays one fitted line, and advances through its literal words using the
+existing narration position. It refits after resizing/font loading, supports reverse
+seeking, and never changes the spoken script. Read and animation-off transcripts
+retain complete text. Missing artwork keeps its existing text fallback.

@@ -13,6 +13,7 @@ import useAnimationPreference from '../hooks/useAnimationPreference';
 import useIllustrationSelection from '../hooks/useIllustrationSelection';
 import { StatusBadge } from './StoryBits';
 import './AnimatedRecap.css';
+import NarratedCaption from './NarratedCaption';
 
 // A visual clock only: it never owns audio, changes playback, or awards listen credit.
 // Extrapolate no more than one percentage point between the audio engine's updates;
@@ -198,7 +199,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
           : visual.native.type === 'story-led' ? <StoryLedAnimation illustration={visual.native} phase={position.phase} reduced={reduced} />
           : <RecapIllustration illustration={visual.native} phase={position.phase} animate={!reduced} />}
       </div>}
-      <div key={position.caption} className="rn-animated-recap-caption" dir="auto"><p>{position.caption}</p></div>
+      <div key={position.caption} className="rn-animated-recap-caption" dir="auto">{editorial ? <NarratedCaption text={position.caption} progress={position.captionProgress}/> : <p>{position.caption}</p>}</div>
     </>;
   return <div className="rn-animated-recap" data-animation={moving ? 'on' : 'off'} data-reading={reading} data-presentation={compact ? 'text' : 'standard'} data-story-led={animations && !reading && ['story-led','staged','remotion'].includes(visual.native?.type)}>
     {!editorial && <div className="rn-animated-recap-top"><div className="rn-animated-recap-topic"><span className="rn-animated-recap-category">{CATEGORY_SHORT[category] || category}</span><StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact={editorial} /></div>

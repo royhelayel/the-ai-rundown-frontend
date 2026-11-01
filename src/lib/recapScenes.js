@@ -121,5 +121,6 @@ export function scenePosition(scenes, progress = 0, charOffset = -1) {
     ? narrationWeight(scene.text.slice(0, Math.max(0, charOffset - scene.charStart))) / Math.max(1, narrationWeight(scene.text))
     : (fraction - scene.start) / Math.max(.00001, scene.end - scene.start);
   const phase = Math.max(0, Math.min(1, local));
-  return { scene, phase, caption: (scene.phrases.find(p => p.end > phase) || scene.phrases[scene.phrases.length - 1])?.text || scene.text };
+  const phrase = scene.phrases.find(p => p.end > phase) || scene.phrases[scene.phrases.length - 1];
+  return { scene, phase, caption: phrase?.text || scene.text, captionProgress: phrase ? Math.max(0,Math.min(1,(phase-phrase.start)/Math.max(.00001,phrase.end-phrase.start))) : phase };
 }

@@ -37,7 +37,7 @@
 .rn-editorial-listen .rn-brief-reader h1,
 .rn-editorial-listen .rn-brief-transcript h1 { font-size:var(--rn-editorial-headline); line-height:1.08; letter-spacing:-.04em; font-weight:700; }
 .rn-editorial-listen .rn-animated-recap-title { display:block; -webkit-line-clamp:unset; margin-top:12px; max-height:40%; overflow-y:auto; }
-.rn-editorial-listen .rn-animated-recap .rn-animated-recap-stage { margin:24px 0; padding:0; min-height:180px; max-height:230px; flex:1 0 180px; }
+.rn-editorial-listen .rn-animated-recap .rn-animated-recap-stage { margin:12px 0 16px; padding:0; min-height:220px; max-height:none; flex:1 0 220px; }
 .rn-editorial-listen .rn-animated-recap-caption { padding-top:18px; flex:0 1 auto; min-height:48px; max-height:36%; overflow-y:auto; }
 .rn-editorial-listen .rn-animated-recap-caption p { font-size:var(--rn-editorial-copy); line-height:1.43; letter-spacing:-.018em; display:block; -webkit-line-clamp:unset; overflow:visible; }
 .rn-editorial-listen .rn-animated-recap-footer { margin-top:6px; }
@@ -67,7 +67,7 @@
 @media(max-height:820px) {
   .rn-grouped-header { padding-bottom:6px; }
   .rn-editorial-listen { --rn-editorial-headline:1.625rem; --rn-editorial-copy:1rem; }
-  .rn-editorial-listen .rn-animated-recap .rn-animated-recap-stage { min-height:150px; flex-basis:150px; margin:18px 0; }
+
   .rn-editorial-listen [aria-label="Player"] { margin-top:12px!important; }
 }
 @media(max-height:600px) { .rn-editorial-listen .rn-unified-card { min-height:420px!important; flex-shrink:0!important; } }
@@ -81,11 +81,11 @@
 /* The story scrolls independently; reporting and the audio dock remain accessible. */
 .rn-editorial-story-scroll { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
 .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-title { max-height:none; overflow:visible; }
-.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { height:200px; min-height:200px; flex:0 0 200px; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { height:auto; min-height:220px; flex:1 0 220px; }
 .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-caption { flex:0 0 auto; max-height:none; overflow:visible; margin-bottom:12px; }
 .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-caption p { display:block; -webkit-line-clamp:unset; overflow:visible; }
 .rn-editorial-listen .rn-animated-recap-footer { flex-shrink:0; background:var(--paper); }
-@media(max-height:820px) { .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { height:150px; min-height:150px; flex-basis:150px; } }
+
 @media(max-height:740px) {
   .rn-grouped-header { padding-bottom:0; }
   .rn-grouped-masthead { min-height:44px; }
@@ -110,3 +110,19 @@
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots .rn-btn { min-height:14px; min-width:22px; padding:0; }
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots span { width:4px; height:4px; }
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots [aria-current=true] span { height:12px; }
+
+/* Let the drawing fill the story; one synchronized subtitle line keeps the dock clear. */
+.rn-editorial-listen .rn-animated-recap[data-presentation=standard] .rn-animated-recap-caption {
+ flex:0 0 auto; min-height:0; max-height:none; overflow:hidden; padding-top:12px; margin-bottom:8px;
+}
+.rn-editorial-listen .rn-animated-recap-caption p.rn-listen-caption-line {
+ position:relative; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+ line-height:1.43; height:1.43em; flex:0 0 auto; width:100%;
+}
+.rn-caption-measure { position:absolute; visibility:hidden; pointer-events:none; white-space:pre; inset-inline-start:0; }
+.rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage {
+ width:calc(100% + 24px); margin-inline:-12px;
+}
+@media(max-height:740px) {
+ .rn-editorial-listen .rn-editorial-story-scroll .rn-animated-recap-stage { min-height:180px; flex-basis:180px; }
+}

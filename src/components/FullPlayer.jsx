@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastFo
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
+import { ListenIcon, ReadIcon } from './Logo';
 import InterestingButton from './InterestingButton';
 import AppHeader, { formatHeaderDate as fmtDay } from './AppHeader';
 import { BriefingDatePicker } from './GroupedBriefingHeader';
@@ -993,7 +994,7 @@ export default function FullPlayer({
     const swipeAudio=unified && !readOnly && !recapView;
     const dateControl = <BriefingDatePicker selectedDay={selectedDay} availableDays={availableDays.map(d => ({ ...d, label: fmtDay(d.fullDate) }))} onSelectDay={onSelectDay}
       shortLabel={fmtDay(selectedDay).replace(/^[A-Za-z]{3}, /, '')} label={fmtDay(selectedDay)} />;
-    const modeControl = <button className="rn-btn rn-grouped-mode" onClick={() => readerRef.current?.changeReading ? readerRef.current.changeReading() : onChangeReading?.(!readOnly)} disabled={loading}>{readOnly ? 'Listen' : 'Read'}</button>;
+    const modeControl = <button className="rn-btn rn-grouped-mode" onClick={() => readerRef.current?.changeReading ? readerRef.current.changeReading() : onChangeReading?.(!readOnly)} disabled={loading} aria-label={readOnly ? 'Listen' : 'Read'}>{readOnly ? <ListenIcon size={22}/> : <ReadIcon size={22}/>}<span className="rn-dock-button-label">{readOnly ? 'Listen' : 'Read'}</span></button>;
     const unifiedCard = <article key={cardKey} ref={cardRef} className="rn-tp rn-unified-card"
       aria-label={swipeAudio?'News update. Swipe left for next story or right for previous story.':undefined}
       onPointerDown={swipeAudio?e=>{if(e.pointerType==='touch' || e.button>0 || e.isPrimary===false || slideBusy.current)return;onTouchStart({target:e.target,touches:[e]});if(touchRef.current)e.currentTarget.setPointerCapture?.(e.pointerId);}:undefined}

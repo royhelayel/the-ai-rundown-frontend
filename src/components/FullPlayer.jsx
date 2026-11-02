@@ -872,7 +872,7 @@ export default function FullPlayer({
       return (
         <button key={i} className="rn-btn" onClick={() => { if (i !== storyIndex) slideTo(i > storyIndex ? 'next' : 'prev', () => onGoToStory?.(i)); }}
           aria-label={`Story ${i + 1} of ${radioOnly ? stories.length : listenLimit}`} aria-current={current ? 'true' : undefined}
-          style={{ padding: '6px 2.5px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          style={{ padding: unified ? '6px 2px' : '6px 2.5px', minWidth: unified ? 0 : undefined, minHeight: unified ? 24 : undefined, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <span ref={el => { dotRefs.current[i] = el; }}
             style={{ display: 'block', height: 5, width: current ? 16 : 5, borderRadius: 5, background: 'currentColor',
               opacity: current ? 1 : i < storyIndex ? 0.45 : 0.2, transition: DOT_TRANSITION }} />
@@ -1010,7 +1010,7 @@ export default function FullPlayer({
         category={category} day={selectedDay} language={newsLanguage} dailyMotion={['Daily','Headlines'].includes(recapPeriod)} progress={pct} charOffset={narrationCharOffset} duration={narrationDuration || totalSec} speed={playbackSpeed || 1}
         playing={!readOnly && isNarrating && playingThis && !isPaused && !isLoading && narrationCharOffset !== -2}
         playbackActive={isNarrating && playingThis} onPresentationChange={setVisualPresentation}
-        externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}
+        hideProgressRail={unified && !recapView} externalCount={recapView ? 0 : storyCount} externalIndex={storyIndex} onExternalSelect={onGoToStory}
         reading={readOnly} onChangeReading={onChangeReading} onNext={onNext} onPrev={onPrev}
         canNext={!nextDisabled} canPrev={!prevDisabled} onNavigationChange={setReaderNavigation} onReadUpdate={onReadUpdate}
         title={recapView ? `${recapPeriod === 'Daily' ? 'Today' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'} in ${topicName}` : headline}
@@ -1071,6 +1071,7 @@ export default function FullPlayer({
           display: 'flex', flexDirection: 'column', padding: unified ? '0 26px' : '0 20px', overflowY: unified ? 'auto' : undefined, overscrollBehavior: 'contain' }}>
           {!unified && !readOnly && resumeProgramme && <button className="rn-btn" onClick={onResumeProgramme} style={{ textAlign: 'start', minHeight: 38, fontSize: HOME_TYPE.ui, fontWeight: 500, color: 'var(--sub)' }}>Continue listening · {CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</button>}
           {programmeNotice?.message && <p role="status" style={{ margin: '2px 0 10px', fontSize: HOME_TYPE.ui, lineHeight: 1.4, color: 'var(--sub)' }}>{programmeNotice.complete ? '✓ ' : ''}{programmeNotice.message}</p>}
+          {unified && !loading && !recapView && pageDots.length > 1 && <nav className="rn-stationary-progress" aria-label="Updates in this brief">{pageDots}</nav>}
           {loading ? <NewsLoader day={selectedDay} /> : unified ? unifiedCard : recapView ? recapCard : radioOnly ? headlineCard : storyCard}
           {!unified && !loading && !recapView && pageDots.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 6, color: 'var(--ink)', flexShrink: 0 }}>{pageDots}</div>

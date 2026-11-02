@@ -47,7 +47,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, day, language='en', dailyMotion=true, upcomingTexts=[], onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, readerEntryDirection = 0 }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, hideProgressRail=false, upcomingTexts=[], onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, readerEntryDirection = 0 }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
@@ -187,7 +187,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(e.clientY - y) * 1.2) step(dx < 0 ? 1 : -1);
     else resetReaderDrag();
   };
-  const progressRail = ((externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
+  const progressRail = (!hideProgressRail && (externalCount || scenes.length) > 1 && <div className="rn-brief-dots" aria-label="Updates in this brief">
         {Array.from({ length: externalCount || scenes.length }, (_, i) => <button key={i} className="rn-btn" aria-label={`Update ${i + 1} of ${externalCount || scenes.length}`} aria-current={i === (externalCount ? externalIndex : currentIndex) ? 'true' : undefined}
           disabled={!reading && !externalCount} onClick={() => { const from = externalCount ? externalIndex : currentIndex; if (!reading && externalCount) { if(i !== from) onExternalSelect?.(i); return; } if (i !== from) moveReader(i > from ? 1 : -1, () => { if (externalCount) onExternalSelect?.(i); else setReaderIndex(i); }); }}><span /></button>)}
       </div>);

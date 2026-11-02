@@ -138,3 +138,8 @@
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots .rn-btn { min-width:18px; min-height:24px; }
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots span { width:4px; height:4px; }
 .rn-editorial-listen .rn-animated-recap > .rn-brief-dots [aria-current=true] span { width:14px; height:4px; }
+
+/* Outside the keyed/swiped article: only the active pill changes, never the rail. */
+.rn-stationary-progress { display:flex; justify-content:center; align-items:center; flex-shrink:0; gap:0; min-height:24px; margin:0 0 4px; overflow-x:auto; scrollbar-width:none; color:var(--ink); }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots { justify-content:center; }
+.rn-editorial-listen .rn-animated-recap > .rn-brief-dots .rn-btn { min-width:12px; padding:0; }

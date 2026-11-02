@@ -197,3 +197,12 @@ test('reduced motion switches reading updates immediately without a travel anima
  expect(screen.getByRole('heading')).toHaveTextContent('B says plan is not final');expect(container.querySelector('.rn-brief-reader-copy').style.animation).toBe('none');
  unmount();window.matchMedia=original;
 });
+
+test('parent-owned story progress is not duplicated inside the moving article in Listen or Read',()=>{
+ const {container,rerender}=render(<AnimatedRecap {...props} editorial externalCount={12} hideProgressRail/>);
+ expect(container.querySelector('.rn-brief-dots')).toBeNull();
+ rerender(<AnimatedRecap {...props} editorial externalCount={12} hideProgressRail reading/>);
+ expect(container.querySelector('.rn-brief-dots')).toBeNull();
+ rerender(<AnimatedRecap {...props} editorial externalCount={12} reading/>);
+ expect(screen.getAllByRole('button',{name:/Update \d+ of 12/})).toHaveLength(12);
+});

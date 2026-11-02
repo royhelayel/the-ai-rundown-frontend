@@ -1002,7 +1002,7 @@ export default function FullPlayer({
       onPointerUp={swipeAudio?e=>{if(e.pointerType!=='touch')pageTouchEnd({changedTouches:[e]});}:undefined}
       onPointerCancel={swipeAudio?e=>{if(e.pointerType!=='touch')cancelStorySwipe();}:undefined}
       style={{ ...cardFrame, flex: compactAudio ? '0 0 auto' : '1 1 430px', minHeight: compactAudio ? 0 : storyLedAudio ? 430 : 170, maxHeight: readOnly || compactAudio ? undefined : 500, padding: '12px 16px 8px', gap: 0,
-        ...(unified ? { background: 'transparent', borderRadius: 0, overflow: readOnly ? 'visible' : 'hidden', padding: '10px 0 0', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
+        ...(unified ? { background: 'var(--rn-story-paper)', borderRadius: 24, overflow: 'hidden', padding: '18px 18px 8px', flex: '1 1 0', minHeight: 260, maxHeight: 'none', '--card-ink': 'var(--ink)', '--card-body': 'var(--ink)', '--card-sub': 'var(--sub)', '--card-line': 'var(--line)' } : {}),
         touchAction:swipeAudio?'pan-y pinch-zoom':undefined,animation:!readOnly&&enterRef.current?`rn-enter-${enterRef.current} .24s ease-out backwards`:'none' }}>
       {unifiedText ? <AnimatedRecap editorial={unified} readerEntryDirection={enterRef.current === 'next' ? 1 : enterRef.current === 'prev' ? -1 : 0} ref={readerRef} key={`${category}|${recapPeriod}|${selectedDay}|${unifiedText}`}
         upcomingTexts={recapView ? [] : (stories || []).slice(storyIndex + 1, storyIndex + 2).map(storyParagraph)}
@@ -1034,9 +1034,30 @@ export default function FullPlayer({
       </button>
     );
 
-    const transport = (<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: unified ? 8 : 36, minHeight: 64 }}>
+    const speedControl = (<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(unified || isNarrating).props}
+                  style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
+                    ...whilePlaying(unified || isNarrating).style, transition: 'opacity 0.25s ease' }}>
+                  {playbackSpeed}×
+                </button>);
+    const repeatControl = (<button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
+                  {...whilePlaying(unified || isNarrating).props}
+                  style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',
+                    ...whilePlaying(unified || isNarrating).style, transition: 'background 0.2s ease, color 0.2s ease, opacity 0.25s ease' }}>
+                  {repeatMode === 'one' ? <Repeat1 size={20} strokeWidth={2.1} /> : <Repeat size={20} strokeWidth={repeatMode ? 2.1 : 1.8} />}
+                  {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
+                  {repeatHint && (
+                    <span role="status" style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, whiteSpace: 'nowrap', padding: '5px 10px', borderRadius: 999,
+                      background: 'var(--ink)', color: 'var(--paper)', fontSize: HOME_TYPE.meta, fontWeight: 600, pointerEvents: 'none' }}>
+                      {repeatHint}
+                    </span>
+                  )}
+                </button>);
+
+    const transport = (<div className={unified ? 'rn-soft-transport' : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: unified ? 8 : 36, minHeight: 64 }}>
+                {unified && speedControl}
                 {navBtn(() => slideTo('prev', onPrev), radioOnly && recapView ? 'Previous category recap' : 'Previous story', Rewind, radioOnly ? (radioQueueCategories.indexOf(category) <= 0 && (recapView || storyIndex <= 0)) : recapView)}
-                <button className="rn-btn" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
+                <button className="rn-btn rn-main-play" onClick={onPlayButton} disabled={!canPlay} aria-label={isPlaying ? 'Pause' : 'Play'}
                   title={!canPlay ? 'Audio is available when this recap is ready' : undefined}
                   style={{ opacity: canPlay ? 1 : 0.35, cursor: canPlay ? 'pointer' : 'default', width: unified ? 52 : 56, height: unified ? 52 : 56, borderRadius: '50%', background: 'var(--play-bg)', color: 'var(--play-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {isLoading && playingThis
@@ -1046,6 +1067,7 @@ export default function FullPlayer({
                 {radioOnly ? navBtn(() => slideTo('next', onNext), recapView ? 'Next category recap' : 'Next story', FastForward, !radioQueueCategories.length || (radioQueueCategories.indexOf(category) >= radioQueueCategories.length - 1 && (recapView || storyIndex >= storyCount - 1))) : navBtn(() => (atBatchEnd ? slideTo('next', () => onSelectCategory?.(topicAt(1))) : slideTo('next', onNext)),
                   atBatchEnd ? (topicAt(1) ? `Next topic: ${CATEGORY_SHORT[topicAt(1)] || topicAt(1)}` : 'Last topic') : 'Next story',
                   FastForward, recapView || (atBatchEnd && !topicAt(1)))}
+                {unified && repeatControl}
               </div>);
     const footerCenter = readOnly ? <button className="rn-btn" aria-label="Next reading update" disabled={!unifiedText || !readerNavigation.next} onClick={() => readerRef.current?.next()} style={{ display: 'flex', gap: 5, alignItems: 'center', minHeight: 48, fontSize: HOME_TYPE.meta, color: 'var(--sub)', opacity: unifiedText && readerNavigation.next ? 1 : .5 }}><span aria-hidden="true">‹</span>{!unifiedText ? 'Choose another topic' : readerNavigation.next ? 'Swipe left to continue' : 'You’re all caught up'}</button> : loading ? null : transport;
 
@@ -1081,32 +1103,15 @@ export default function FullPlayer({
               most sit under it, and Play is the one coloured thing on the screen. */}
           {!readOnly && !loading && (
             <section aria-label="Player" style={{ marginTop: 10, flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: HOME_TYPE.meta, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
-                {<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
-                  style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
-                    ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
-                  {playbackSpeed}×
-                </button>}
+              <div className={unified ? 'rn-soft-seek' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: HOME_TYPE.meta, color: 'var(--sub)', fontVariantNumeric: 'tabular-nums' }}>
+                {!unified && speedControl}
                 <span>{fmt((totalSec * pct) / 100)}</span>
                 <AudioSeekBar key={`${selectedDay}|${cardKey}`} progress={pct} duration={totalSec}
                   disabled={!onSeek || !isNarrating || !playingThis || isLoading || narrationCharOffset === -2} onSeek={onSeek} />
                 <span>{fmt(totalSec)}</span>
                 {/* Repeat: off, this topic, or this story. On, it sits in a filled circle with a dot
                     under it, and says which for a moment — a colour change alone was invisible. */}
-                {<button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
-                  {...whilePlaying(isNarrating).props}
-                  style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',
-                    ...whilePlaying(isNarrating).style, transition: 'background 0.2s ease, color 0.2s ease, opacity 0.25s ease' }}>
-                  {repeatMode === 'one' ? <Repeat1 size={20} strokeWidth={2.1} /> : <Repeat size={20} strokeWidth={repeatMode ? 2.1 : 1.8} />}
-                  {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
-                  {repeatHint && (
-                    <span role="status" style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, whiteSpace: 'nowrap', padding: '5px 10px', borderRadius: 999,
-                      background: 'var(--ink)', color: 'var(--paper)', fontSize: HOME_TYPE.meta, fontWeight: 600, pointerEvents: 'none' }}>
-                      {repeatHint}
-                    </span>
-                  )}
-                </button>}
+                {!unified && repeatControl}
               </div>
               {!unified && transport}
               {phoneVoice && (

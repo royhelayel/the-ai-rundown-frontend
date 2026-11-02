@@ -3,7 +3,7 @@ import useAudioProgramme from './useAudioProgramme';
 import { completedMixDays } from '../audio/programmeProgress';
 jest.mock('../lib/supabaseClient', () => ({ supabase: { auth: { getSession: async () => ({data:{session:null}}) } } }));
 beforeEach(() => localStorage.clear());
-const snap = { radio:true, day:'2026-10-26', period:'Daily',language:'en', map:{ World:{allStories:[{_isBriefing:true,summary:'World recap.'}]}, Tech:{allStories:[{_isBriefing:true,summary:'Tech recap.'}]} } };
+const snap = { radio:true, day:new Date().toISOString().slice(0,10), period:'Daily',language:'en', map:{ World:{allStories:[{_isBriefing:true,summary:'World recap.'}]}, Tech:{allStories:[{_isBriefing:true,summary:'Tech recap.'}]} } };
 const media = (position, heard) => ({duration:100,currentTime:position,playbackRate:2,played:{length:1,start:()=>0,end:()=>heard}});
 test('mix completion requires actual coverage for every topic, independent of seek position', () => {
   const { result, unmount }=renderHook(()=>useAudioProgramme());
@@ -13,7 +13,7 @@ test('mix completion requires actual coverage for every topic, independent of se
   expect(result.current.notice.complete).toBe(false);
   act(()=>{result.current.ref.current.media(media(70,70));result.current.ref.current.finish(snap);});
   expect(result.current.notice.complete).toBe(true);
-  expect(completedMixDays(result.current.records)).toEqual(['2026-10-26']);
+  expect(completedMixDays(result.current.records)).toEqual([snap.day]);
   unmount();
 });
 test('partial progress is available after reopening and stays isolated by account', () => {

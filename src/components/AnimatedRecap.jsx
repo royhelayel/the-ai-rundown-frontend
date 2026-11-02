@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ChevronUp, Star } from 'lucide-react';
+import { ChevronUp, Star, Check } from 'lucide-react';
 import { buildRecapScenes, scenePosition, hasExplainerMotion } from '../lib/recapScenes';
 import { CATEGORY_SHORT } from '../theme';
 import GeneratedStoryAnimation, { safeGeneratedAnimation } from './GeneratedStoryAnimation';
@@ -152,7 +152,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   if (!position || !scene) return null;
   const sources = scene.stories.length ? scene.stories : allSources;
   const outlets = [...new Set(scene.stories.flatMap(story => (story.sources || []).map(source => source.outlet || source.name)).filter(Boolean))];
-  const sourceLabel = outlets.length ? outlets.slice(0, 2).join(' · ') + (outlets.length > 2 ? ` +${outlets.length - 2}` : '') : 'Stories & sources';
+  const sourceLabel = outlets.length ? editorial ? outlets[0] + (outlets.length > 1 ? ` +${outlets.length - 1}` : '') : outlets.slice(0, 2).join(' · ') + (outlets.length > 2 ? ` +${outlets.length - 2}` : '') : 'Stories & sources';
   const actions = scene.stories.map(story => getStoryAction?.(story.headline)).filter(Boolean);
   const action = actions[0];
   const read = actions.length === scene.stories.length && actions.length > 0 && actions.every(a => typeof a.read === 'boolean') ? actions.every(a => a.read) : undefined;
@@ -229,7 +229,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
 
     <footer className="rn-animated-recap-footer">
       {sources.length > 0 && <button type="button" className="rn-btn rn-animated-recap-source" onClick={openSources} aria-haspopup="dialog" aria-label={`Original reporting: ${outlets.join(', ') || 'all stories and sources'}`}><span>{sourceLabel}</span><ChevronUp size={14} /></button>}
-      {editorial && <StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact />}
+      {editorial && (read ? <span className="rn-soft-read" role="img" aria-label="Read"><Check size={14} aria-hidden="true" /></span> : <StatusBadge read={read} isNew={actions.some(a => a.isNew)} compact />)}
       {action && <button type="button" className="rn-btn rn-animated-recap-interest" aria-label="Mark this update interesting" aria-pressed={action.interesting} onClick={action.toggle}><Star size={19} fill={action.interesting ? 'currentColor' : 'none'} /></button>}
     </footer>
   </div>;

@@ -13,7 +13,8 @@ export default function useIllustrationSelection(key, candidate, active, reading
   const restarting = active && !state.active && state.hasPlayed;
   const firstDailyScene = !reading && !state.selected?.native && !state.selected?.plan && ['remotion','illustration'].includes(candidate?.native?.type);
   const firstIllustration = !reading && candidate?.native?.type === 'illustration' && state.selected?.native?.type !== 'illustration';
-  if (returning || restarting || firstIllustration || firstDailyScene || (!state.frozen && !reading)) state.selected = candidate;
+  const firstStyledScene = !reading && candidate?.native?.policy === 'world-three-families-v2' && state.selected?.native?.policy !== 'world-three-families-v2';
+  if (returning || restarting || firstStyledScene || firstIllustration || firstDailyScene || (!state.frozen && !reading)) state.selected = candidate;
   if (active && !reading) { state.frozen = true; state.hasPlayed = true; }
   state.active = active;
   state.reading = reading;

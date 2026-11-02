@@ -27,3 +27,4 @@ test('approved image can upgrade an old scene once during playback and then stay
  const image={native:{type:'illustration',id:'approved'},plan:null};rerender({candidate:image});expect(result.current).toBe(image);
  rerender({candidate:{native:{type:'illustration',id:'different'},plan:null}});expect(result.current).toBe(image);
 });
+test('approved new-style image replaces a legacy image once and then remains stable',()=>{const old={native:{type:'illustration',policy:'world-illustration-low-v1',id:'old'},plan:null};const {result,rerender}=renderHook(({candidate})=>useIllustrationSelection('story',candidate,true,false),{initialProps:{candidate:old}});const next={native:{type:'illustration',policy:'world-three-families-v2',id:'new'},plan:null};rerender({candidate:next});expect(result.current).toBe(next);rerender({candidate:{native:{...next.native,id:'later'},plan:null}});expect(result.current).toBe(next);});

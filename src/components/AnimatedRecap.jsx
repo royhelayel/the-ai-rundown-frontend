@@ -47,7 +47,7 @@ function useVisualProgress(progress, duration, playing, speed, enabled) {
 const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allSources = [], category, progress = 0, charOffset = -1,
   playing = false, playbackActive = playing, duration = 0, speed = 1, onOpenSources, getStoryAction, onPresentationChange,
   reading = false, onChangeReading, onNext, onPrev, canNext = false, canPrev = false, onReadUpdate,
-  title, dateLabel, day, language='en', dailyMotion=true, onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, readerEntryDirection = 0 }, ref) {
+  title, dateLabel, day, language='en', dailyMotion=true, upcomingTexts=[], onNavigationChange, externalCount = 0, externalIndex = 0, onExternalSelect, editorial = false, readerEntryDirection = 0 }, ref) {
   const [animations] = useAnimationPreference();
   const [reduced, setReduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(() => !document.hidden);
@@ -76,7 +76,7 @@ const AnimatedRecap = forwardRef(function AnimatedRecap({ text, sourcesMap, allS
   const scenes = useMemo(() => buildRecapScenes(text, sourcesMap), [text, sourcesMap]);
   const position = scenePosition(scenes, visualProgress, charOffset);
   const audioIndex = position?.scene.index || 0;
-  const dailyFor=useDailyMotion(scenes.slice(audioIndex,audioIndex+2).map(s=>s.text),{category,day,language,enabled:dailyMotion&&animations&&!reading&&visible});
+  const dailyFor=useDailyMotion([...scenes.slice(audioIndex,audioIndex+2).map(s=>s.text),...upcomingTexts],{category,day,language,enabled:dailyMotion&&animations&&!reading&&visible});
   const animationFor = useStoryAnimations(scenes.slice(audioIndex,audioIndex+2).filter(s=>!hasExplainerMotion(s.illustration)).map(s=>s.text),animations && !reading && visible);
   // Enter reading exactly at the narrated update. Further reading is independent of
   // the paused audio cursor; returning without a swipe resumes the exact audio position.

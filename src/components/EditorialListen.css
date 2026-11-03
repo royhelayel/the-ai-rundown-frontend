@@ -186,3 +186,23 @@
  .rn-editorial-listen .rn-unified-card { min-height:240px!important; }
  .rn-editorial-listen [aria-label="Player"] { margin-top:12px!important; }
 }
+
+/* One secondary-control system: matching labels, weight and icon scale. */
+.rn-editorial-listen { --rn-dock-label:.75rem; }
+.rn-editorial-challenge .rn-btn { font-family:inherit; }
+.rn-editorial-challenge .rn-dock-button-label {
+ font-size:var(--rn-dock-label); line-height:1.2; font-weight:400;
+ letter-spacing:0; color:var(--sub); top:calc(100% + 6px);
+}
+.rn-editorial-challenge .rn-dock-goal-value {
+ font-size:var(--rn-dock-label)!important; line-height:1; font-weight:500!important;
+ font-family:inherit; letter-spacing:0!important;
+}
+.rn-editorial-challenge .rn-grouped-mode > svg { width:20px; height:20px; }
+.rn-soft-transport > .rn-btn:not(.rn-main-play) {
+ font-size:var(--rn-dock-label)!important; line-height:1.2; font-weight:500!important;
+ color:var(--sub)!important;
+}
+.rn-soft-transport > .rn-btn[aria-pressed=true] { color:var(--ink)!important; }
+.rn-soft-transport > .rn-btn:not(.rn-main-play) > svg { stroke-width:1.7; }
+.rn-soft-seek > span { font-size:var(--rn-dock-label); line-height:1.2; font-weight:400; }

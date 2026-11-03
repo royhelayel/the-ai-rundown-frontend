@@ -116,10 +116,10 @@ export default function BottomNav({
     <>
       {frac > 0 && (
         <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-          <circle cx="22" cy="22" r={R} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
+          <circle cx="22" cy="22" r={R} fill="none" stroke={editorial ? 'var(--ink)' : 'var(--accent)'} strokeWidth={editorial ? 2 : 2.5} strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} />
         </svg>
       )}
-      <span style={{ position: 'relative', fontSize: HOME_TYPE.ui, fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+      <span className={editorial ? 'rn-dock-goal-value' : undefined} style={{ position: 'relative', fontSize: editorial ? 12 : HOME_TYPE.ui, fontWeight: editorial ? 500 : 700, letterSpacing: editorial ? 0 : '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {challengeStats?.todayAudioComplete ? '✓' : exceeded ? todayCount : `${todayCount}/${dailyGoal}`}
       </span>
     </>

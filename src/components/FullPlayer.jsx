@@ -5,7 +5,7 @@ import { stagedFor } from '../lib/stagedAnimations';
 import { storyLedFor } from '../lib/storyLedAnimations';
 import useAnimationPreference from '../hooks/useAnimationPreference';
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Repeat, Repeat1, Play, Pause, Rewind, FastForward, SkipBack, SkipForward, Loader, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { colors, CATEGORY_COLORS, CATEGORY_IMAGES, CATEGORY_SHORT, UI_TRIAL,
          TYPE, WEIGHT, RADIUS, SPACE, ICON, SEMANTIC } from '../theme';
 import CategoryIcon from './CategoryIcon';
@@ -1027,12 +1027,13 @@ export default function FullPlayer({
     </article>;
 
     const canPlay = recapView ? !!recapText : storyCount > 0;
-    const navBtn = (onClick, label, Icon, disabled) => (
-      <button className="rn-btn" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label}
+    const navBtn = (onClick, label, Icon, disabled) => {
+      const TransportIcon = unified ? (Icon === Rewind ? SkipBack : SkipForward) : Icon;
+      return <button className="rn-btn" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label}
         style={{ width: unified ? 44 : 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.3 : 1 }}>
-        <Icon size={24} strokeWidth={1.9} />
-      </button>
-    );
+        <TransportIcon size={unified ? 20 : 24} strokeWidth={unified ? 1.7 : 1.9} />
+      </button>;
+    };
 
     const speedControl = (<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
                   style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,

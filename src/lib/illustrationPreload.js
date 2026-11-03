@@ -1,6 +1,6 @@
 import {BACKEND_URL} from './backend';
 const images=new Map();
-export const illustrationURL=id=>`${BACKEND_URL}/api/world-illustrations/image/${id}`;
+export const illustrationURL=id=>`${BACKEND_URL}/api/world-illustrations/image/${id}?paper=transparent-v1`;
 export const illustrationReady=id=>images.get(id)?.ready===true;
 // Keep a small decoded-image window, independent of component remounts.
 export function preloadIllustration(id){

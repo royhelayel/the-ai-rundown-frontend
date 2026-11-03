@@ -3,10 +3,8 @@
 .rn-illustrated-region{background-size:100% 100%;background-repeat:no-repeat}
 .rn-animated-recap-stage[data-scene=illustration]{min-height:0;flex:1 1 0;display:flex;justify-content:center;align-items:center;container-type:size}
 .rn-animated-recap-stage[data-scene=illustration] .rn-illustrated-news{width:min(100cqw,121.74cqh);max-width:100%;height:min(82.14cqw,100cqh);max-height:100%;flex:none}
-.rn-illustrated-news{filter:contrast(1.15) brightness(1.15);mix-blend-mode:multiply}
-/* Normalize the generated paper tint to white before blending. Multiply makes
-   white disappear into the light story surface; inversion + screen does the
-   same in dark mode. The artwork and its frame share the actual story paper. */
-:root[data-theme="dark"] .rn-illustrated-news{filter:contrast(1.15) brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .rn-illustrated-news{filter:contrast(1.15) brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}}
+/* The server removes edge-connected paper. Real alpha works on Safari too;
+   no mix-blend compositing or brightness approximation is needed. */
+:root[data-theme="dark"] .rn-illustrated-news{filter:invert(1) hue-rotate(180deg)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .rn-illustrated-news{filter:invert(1) hue-rotate(180deg)}}
 @media(prefers-reduced-motion:reduce){.rn-illustrated-region{transition:none!important}}

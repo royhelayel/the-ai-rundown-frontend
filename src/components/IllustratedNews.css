@@ -3,9 +3,10 @@
 .rn-illustrated-region{background-size:100% 100%;background-repeat:no-repeat}
 .rn-animated-recap-stage[data-scene=illustration]{min-height:0;flex:1 1 0;display:flex;justify-content:center;align-items:center;container-type:size}
 .rn-animated-recap-stage[data-scene=illustration] .rn-illustrated-news{width:min(100cqw,121.74cqh);max-width:100%;height:min(82.14cqw,100cqh);max-height:100%;flex:none}
-.rn-illustrated-news{mix-blend-mode:multiply}
-/* Whiten the generated warm paper before inversion. Pure black then blends
-   into the actual dark surface via screen, without a rectangular paper tint. */
-:root[data-theme="dark"] .rn-illustrated-news{filter:brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .rn-illustrated-news{filter:brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}}
+.rn-illustrated-news{filter:contrast(1.15) brightness(1.15);mix-blend-mode:multiply}
+/* Normalize the generated paper tint to white before blending. Multiply makes
+   white disappear into the light story surface; inversion + screen does the
+   same in dark mode. The artwork and its frame share the actual story paper. */
+:root[data-theme="dark"] .rn-illustrated-news{filter:contrast(1.15) brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .rn-illustrated-news{filter:contrast(1.15) brightness(1.15) invert(1) hue-rotate(180deg);mix-blend-mode:screen}}
 @media(prefers-reduced-motion:reduce){.rn-illustrated-region{transition:none!important}}

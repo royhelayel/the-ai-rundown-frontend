@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { CATEGORY_SHORT } from '../theme';
 import { SUMMARY_TYPES } from './SummaryTypeSelector';
 import useSheetMotion from './useSheetMotion';
+import {briefDates} from '../lib/briefDates';
+import {toUAEDate} from '../lib/uaeTime';
 
 const LENSES = [{ value: 'latest', label: 'Relevant' }, { value: 'popular', label: 'Popular' }, { value: 'interesting', label: 'Interesting' }];
 
@@ -46,9 +48,10 @@ export function BriefingDatePicker({ selectedDay, availableDays, onSelectDay, la
 }
 
 export default function GroupedBriefingHeader({ categories, activeCategory, onSelectCategory, onEditCategories,
-  lens, onChangeLens, period, onChangePeriod, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme, dateControl }) {
+  lens, onChangeLens, period, onChangePeriod, onOpenSettings, onSpeedCycle, playbackSpeed, onRepeatToggle, repeatLabel, resumeProgramme, onResumeProgramme, dateControl, selectedDay }) {
   const [sheet, setSheet] = useState(null);
-  const currentBrief = SUMMARY_TYPES.find(item => item.value === period)?.label || 'Full brief';
+  const dates=briefDates(selectedDay,toUAEDate());
+  const currentBrief = SUMMARY_TYPES.find(item => item.value === period)?.label || 'Short brief';
   const currentTopic = CATEGORY_SHORT[activeCategory] || activeCategory || 'Topics';
   return <div className="rn-grouped-header">
     <header className="rn-grouped-masthead"><Wordmark /><button className="rn-btn rn-grouped-more" aria-label="More options" title="Settings" onClick={onOpenSettings}><Ellipsis size={21} /></button></header>
@@ -60,13 +63,21 @@ export default function GroupedBriefingHeader({ categories, activeCategory, onSe
     </nav>
     {sheet && <PickerSheet key={sheet} title={sheet === 'topics' ? 'Choose your news' : sheet === 'brief' ? 'Choose your brief' : 'Options'} onClose={() => setSheet(null)}>{dismiss => <>
       {sheet === 'topics' && <>
-        <div className="rn-grouped-lenses" role="group" aria-label="News selection">{LENSES.map(item => <button key={item.value} className="rn-btn" aria-pressed={lens === item.value} onClick={() => onChangeLens?.(item.value)}>{item.label}</button>)}</div>
         <p className="rn-grouped-label">{lens === 'latest' ? 'Your topics' : 'Available topics'}</p>
-        {categories.length === 0 && <p className="rn-grouped-empty">No topics are available for this selection. Try Relevant or another date.</p>}
+        {categories.length === 0 && <p className="rn-grouped-empty">No topics are available for this selection. Choose Relevant under your brief, or try another date.</p>}
         {categories.map(cat => <button key={cat} className="rn-btn rn-grouped-option" aria-pressed={cat === activeCategory} onClick={() => dismiss(() => { setSheet(null); if (cat !== activeCategory) onSelectCategory?.(cat); })}><span>{CATEGORY_SHORT[cat] || cat}</span>{cat === activeCategory && <Check size={17} />}</button>)}
         {onEditCategories && <button className="rn-btn rn-grouped-option rn-grouped-customise" onClick={() => dismiss(() => { setSheet(null); onEditCategories(); })}><span>Customise your mix</span><SlidersHorizontal size={17} /></button>}
       </>}
-      {sheet === 'brief' && SUMMARY_TYPES.map(item => <button key={item.value} className="rn-btn rn-grouped-option" aria-label={item.label} aria-pressed={item.value === period} onClick={() => dismiss(() => { setSheet(null); if (period !== item.value) onChangePeriod?.(item.value); })}><span>{item.label}<small>{item.value === 'Daily' ? 'The essentials in less time' : item.value === 'Headlines' ? 'More detail, story by story' : item.value === 'Weekly' ? 'The week in perspective' : 'The bigger picture'}</small></span>{period === item.value && <Check size={17} />}</button>)}
+      {sheet === 'brief' && <>
+        <p className="rn-grouped-label rn-brief-day-label">For {dates.daily}</p>
+        {SUMMARY_TYPES.filter(item=>['Daily','Headlines'].includes(item.value)).map(item=><button key={item.value} className="rn-btn rn-grouped-option" aria-label={item.label} aria-pressed={item.value===period} onClick={()=>dismiss(()=>{setSheet(null);if(period!==item.value)onChangePeriod?.(item.value);})}><span>{item.label}<small>{item.value==='Daily'?'Short story summaries for the selected day':'Longer story summaries for the selected day'}</small></span>{period===item.value&&<Check size={17}/>}</button>)}
+        <p className="rn-grouped-label">Looking back</p>
+        {SUMMARY_TYPES.filter(item=>['Weekly','Monthly'].includes(item.value)).map(item=><button key={item.value} className="rn-btn rn-grouped-option" aria-label={item.label} aria-pressed={item.value===period} onClick={()=>dismiss(()=>{setSheet(null);if(period!==item.value)onChangePeriod?.(item.value);})}><span>{item.label}<small>{item.value==='Weekly'?dates.weekly:dates.monthly}</small></span>{period===item.value&&<Check size={17}/>}</button>)}
+        <section className="rn-brief-story-selection" aria-label="Story selection">
+          <p className="rn-grouped-label">Story selection</p>
+          <div className="rn-grouped-lenses" role="group" aria-label="News selection">{LENSES.map(item => <button key={item.value} className="rn-btn" aria-pressed={lens === item.value} onClick={() => onChangeLens?.(item.value)}>{item.label}</button>)}</div>
+        </section>
+      </>}
       {sheet === 'menu' && <>
         {resumeProgramme && <button className="rn-btn rn-grouped-option" onClick={() => dismiss(() => { setSheet(null); onResumeProgramme?.(); })}><span>Continue listening<small>{CATEGORY_SHORT[resumeProgramme.category] || resumeProgramme.category} · {new Date(`${resumeProgramme.day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</small></span></button>}
         <button className="rn-btn rn-grouped-option" onClick={() => dismiss(() => { setSheet(null); onOpenSettings?.(); })}><span>Settings</span><Settings2 size={18} /></button>

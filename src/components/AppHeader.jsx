@@ -67,7 +67,7 @@ export default function AppHeader({
   );
 
 
-  if (editorial) return <GroupedBriefingHeader categories={categories} activeCategory={activeCategory || recapCategory} onSelectCategory={onSelectCategory} onEditCategories={onEditCategories}
+  if (editorial) return <GroupedBriefingHeader selectedDay={effectiveDay} categories={categories} activeCategory={activeCategory || recapCategory} onSelectCategory={onSelectCategory} onEditCategories={onEditCategories}
     lens={lens} onChangeLens={onChangeLens} period={period} onChangePeriod={onChangePeriod} onOpenSettings={onOpenSettings}
     onSpeedCycle={onSpeedCycle} playbackSpeed={playbackSpeed} onRepeatToggle={onRepeatToggle} repeatLabel={repeatLabel} resumeProgramme={resumeProgramme} onResumeProgramme={onResumeProgramme} dateControl={dateControl} />;
 

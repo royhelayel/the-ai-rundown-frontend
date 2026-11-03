@@ -1021,7 +1021,7 @@ export default function FullPlayer({
           {!unified && <button className="rn-btn" onClick={() => onChangeReading?.(!readOnly)} style={{ alignSelf: 'flex-end', fontSize: HOME_TYPE.ui, minHeight: 44 }}>{readOnly ? 'Listen' : 'Read'}</button>}
           <h1 style={h1}>{topicName}</h1>
           <p style={{ fontSize: HOME_TYPE.body, lineHeight: 1.5, color: 'var(--card-sub)' }}>
-            {lens !== 'latest' ? `No ${lens === 'popular' ? 'popular' : 'interesting'} updates are available for this date and brief. Try Relevant or another date.` : recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'quick' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No full brief is available for this topic and date. Try another topic or date.'}
+            {lens !== 'latest' ? `No ${lens === 'popular' ? 'popular' : 'interesting'} updates are available for this date and brief. Try Relevant or another date.` : recapError ? 'This brief couldn’t be loaded. Try another topic or reload the page.' : recapView || recapPeriod === 'Daily' ? `No ${recapPeriod === 'Daily' ? 'shorter' : recapPeriod === 'Weekly' ? 'weekly' : 'monthly'} brief is available for ${topicName} ${recapPeriod === 'Daily' ? 'on this date' : 'yet'}. Try another topic or period.` : 'No short brief is available for this topic and date. Try another topic or date.'}
           </p>
         </div>}
     </article>;

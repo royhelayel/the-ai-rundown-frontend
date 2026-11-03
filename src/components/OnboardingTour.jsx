@@ -11,7 +11,7 @@ const SLIDES = [
   { label: 'Listen', eyebrow: 'Fresh news. Fits your day.', title: 'Your daily podcast for fresh news summaries', body: 'Catch up on news hands-free. Listen while you walk, commute or get on with your day. Your news briefs play one after another across your chosen categories. Watch the animation, or turn it off and keep listening.' },
   { label: 'Summaries', eyebrow: 'Less repetition. More understanding.', title: 'Different news outlets. One short summary.', body: 'Related coverage from different news outlets, brought together in short summaries. Get the essentials, with links to the original reporting.' },
   { label: 'Read', eyebrow: 'Stay informed. Your way.', title: 'Prefer to read?', body: 'Tap Read on any brief to pause the audio and swipe up through the updates. Tap Listen to pick up where you left off.' },
-  { label: 'Recaps', eyebrow: 'Step back. See what changed.', title: 'A brief that fits your time.', body: 'Choose Quick brief for a short daily overview, or Full brief to hear each story summary. Step back with Last week and Last month. Every option works for listening and reading.' },
+  { label: 'Recaps', eyebrow: 'Step back. See what changed.', title: 'A brief that fits your time.', body: 'Choose Shorter brief for shorter story summaries, or Short brief for a little more detail. Step back with Last week and Last month. Every option works for listening and reading.' },
   { label: 'Categories', eyebrow: 'Your interests. Your news.', title: 'Follow what matters to you.', body: 'Choose your news categories and build your own news mix. Change it whenever your interests change.' },
 ];
 
@@ -40,9 +40,9 @@ function TourPreview({ index }) {
     <p>{readingMode === 'Text only' ? 'Swipe up for the next update. Tap Listen to return to audio.' : 'Turn animation off to follow the text while the audio continues.'}</p>
   </div>;
   if (index === 3) return <div className="intro-demo">
-    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Quick brief', 'Full brief', 'Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
+    <div className="intro-choices" role="group" aria-label="Preview recap periods">{['Shorter brief', 'Short brief', 'Last week', 'Last month'].map(value => <button type="button" key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
     <span className="intro-small">WORLD · {period.toUpperCase()}</span>
-    <strong>{period === 'Quick brief' ? 'The essentials, in one go.' : period === 'Full brief' ? 'Every story, one after another.' : period === 'Last week' ? 'The week in perspective.' : 'The month in perspective.'}</strong>
+    <strong>{period === 'Shorter brief' ? 'The essentials, in one go.' : period === 'Short brief' ? 'Every story, one after another.' : period === 'Last week' ? 'The week in perspective.' : 'The month in perspective.'}</strong>
     <div className="intro-queue"><Headphones size={18} aria-hidden="true" /><span>Listen</span><span aria-hidden="true">·</span><AlignLeft size={18} aria-hidden="true" /><span>Read</span></div>
     <span className="intro-note">Recaps appear when available</span>
   </div>;

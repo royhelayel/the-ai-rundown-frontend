@@ -206,3 +206,6 @@
 .rn-soft-transport > .rn-btn[aria-pressed=true] { color:var(--ink)!important; }
 .rn-soft-transport > .rn-btn:not(.rn-main-play) > svg { stroke-width:1.7; }
 .rn-soft-seek > span { font-size:var(--rn-dock-label); line-height:1.2; font-weight:400; }
+.rn-grouped-label.rn-brief-day-label { margin-top:4px; }
+.rn-brief-story-selection { margin-top:20px; padding-top:4px; border-top:1px solid var(--line); padding-bottom:4px; }
+.rn-brief-story-selection .rn-grouped-label { margin-top:14px; }

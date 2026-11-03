@@ -81,10 +81,10 @@ test('a first-time visitor sees the onboarding tour', async () => {
 test('a returning guest defaults to the unified audio page even with no generated news', async () => {
   renderForReturningGuest();
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
-  expect(await screen.findByRole('button', { name: 'Quick brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await screen.findByRole('button', { name: 'Shorter brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.queryByRole('group', { name: 'How you take in the news' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument();
-  expect(await screen.findByText(/No quick brief is available/)).toBeInTheDocument();
+  expect(await screen.findByText(/No shorter brief is available/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
 });
 
@@ -148,8 +148,11 @@ const chooseTopic = async name => {
   userEvent.click(within(panel).getByRole('button', { name, exact: true }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 };
+const openBrief = async () => {
+  const group=await screen.findByRole('group',{name:'Summary type'});userEvent.click(within(group).getByRole('button'));return screen.findByRole('dialog',{name:'Choose your brief'});
+};
 const chooseLens = async name => {
-  const panel = await openTopics();
+  const panel = await openBrief();
   userEvent.click(within(panel).getByRole('button', { name, exact: true }));
   userEvent.click(within(panel).getByRole('button', { name: 'Close briefing options' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -172,7 +175,7 @@ test('one page supports animated audio, text/audio and text only across all four
   expect(within(screen.getByRole('region', { name: 'Swipeable news text' })).queryByLabelText('Updates in this brief')).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Player' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Play', exact: true })).not.toBeInTheDocument();
-  await chooseSummary('Quick brief', 'Last week');
+  await chooseSummary('Shorter brief', 'Last week');
   expect(await screen.findByRole('heading', { name: 'Verified weekly recap.' })).toBeInTheDocument();
   await chooseTopic('Tech');
   expect(await screen.findByText(/No weekly brief is available for Tech/)).toBeInTheDocument();
@@ -183,7 +186,7 @@ test('one page supports animated audio, text/audio and text only across all four
   expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('Verified weekly recap.');
   await chooseSummary('Last week', 'Last month');
   expect(await screen.findByText('Verified monthly recap.')).toBeInTheDocument();
-  await chooseSummary('Last month', 'Full brief');
+  await chooseSummary('Last month', 'Short brief');
   expect(await screen.findByRole('region', { name: 'Brief transcript' })).toHaveTextContent('A reported fact.');
   userEvent.click(screen.getByRole('button', { name: 'Read', exact: true }));
   expect(screen.getByRole('heading', { name: 'World News story' })).toBeInTheDocument();
@@ -201,9 +204,9 @@ test('summary preference survives reload, old reading preference no longer bypas
   installSummaryFixtures(); const first = render(<App />);
   await waitFor(() => expect(window.location.pathname).toBe('/listen'));
   await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
-  await chooseSummary('Quick brief', 'Full brief'); first.unmount();
+  await chooseSummary('Shorter brief', 'Short brief'); first.unmount();
   render(<App />);
-  expect(await screen.findByRole('button', { name: 'Full brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await screen.findByRole('button', { name: 'Short brief', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await screen.findByRole('button', { name: 'Read', exact: true })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Turn animation/ })).not.toBeInTheDocument();
 });
@@ -236,7 +239,7 @@ test('Quick and Full navigate individual stories, preserve sources and do not au
  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
  expect(screen.queryByRole('button',{name:'Pause',exact:true})).not.toBeInTheDocument();
  expect(screen.getByRole('button',{name:/Original reporting: BBC/})).toBeInTheDocument();
- await chooseSummary('Quick brief','Full brief');
+ await chooseSummary('Shorter brief','Short brief');
  expect(await screen.findByRole('heading',{name:'Another World story',exact:true})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'Read this complete update'})).not.toBeInTheDocument();
  expect(container.querySelector('.rn-unified-card')).toHaveAttribute('aria-label',expect.stringContaining('Swipe left for next story'));
@@ -263,7 +266,7 @@ test('horizontal pointer gestures skip Quick stories while vertical movement and
  expect(fireEvent.touchMove(text,{touches:[{clientX:30,clientY:110}],cancelable:true})).toBe(false);
  fireEvent.touchEnd(text,{changedTouches:[{clientX:30,clientY:110}]});
  await screen.findByRole('heading',{name:'This final sentence must remain visible.',exact:true});
- await chooseSummary('Quick brief','Full brief');
+ await chooseSummary('Shorter brief','Short brief');
  await screen.findByRole('heading',{name:'World News story',exact:true});
  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,250));});
  expect(screen.getByRole('heading',{name:'World News story',exact:true})).toBeInTheDocument();
@@ -288,7 +291,7 @@ test('listening feed choices change the stories and topics, retain Read mode and
  expect(await screen.findByRole('heading',{name:'Technology story',exact:true})).toBeInTheDocument();
  expect(screen.queryByRole('button',{name:'World',exact:true})).not.toBeInTheDocument();
  first.unmount(); render(<App />);
- const persistedChoices = await openTopics();
+ const persistedChoices = await openBrief();
  expect(within(persistedChoices).getByRole('button', {name:'Interesting',exact:true})).toHaveAttribute('aria-pressed','true');
  userEvent.click(within(persistedChoices).getByRole('button', {name:'Close briefing options'}));
  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -310,7 +313,7 @@ test('an empty ranked feed explains the selection, disables play and can return 
  expect(screen.getByRole('button',{name:'Play',exact:true})).toBeEnabled();
 });
 
-test('reopening restores a Full brief paused at its saved story and offset without a banner or autoplay',async()=>{
+test('reopening restores a Short brief paused at its saved story and offset without a banner or autoplay',async()=>{
  const now=jest.spyOn(Date,'now').mockReturnValue(Date.parse('2026-09-20T12:00:00Z'));
  installSummaryFixtures();
  const {programmeKey}=require('./audio/programmeProgress');
@@ -327,7 +330,7 @@ test('reopening restores a Full brief paused at its saved story and offset witho
  } finally { app.unmount();now.mockRestore(); }
 });
 
-test('one Play tap starts the prefetched Full brief directly without an opening cue',async()=>{
+test('one Play tap starts the prefetched Short brief directly without an opening cue',async()=>{
  installSummaryFixtures();const newsFetch=global.fetch;
  global.fetch=jest.fn((url,opts)=>String(url).endsWith('/api/tts-url')?Promise.resolve({ok:true,json:async()=>({url:'https://audio.example/'+encodeURIComponent(JSON.parse(opts.body).text)+'.mp3'})}):newsFetch(url,opts));
  const originalLoad=window.HTMLMediaElement.prototype.load;
@@ -335,7 +338,7 @@ test('one Play tap starts the prefetched Full brief directly without an opening 
  const played=[];window.HTMLMediaElement.prototype.play=jest.fn(function(){played.push(this.src);return Promise.resolve();});
  try{
   renderForReturningGuest();await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
-  await chooseSummary('Quick brief','Full brief');await screen.findByRole('heading',{name:'World News story',exact:true});
+  await chooseSummary('Shorter brief','Short brief');await screen.findByRole('heading',{name:'World News story',exact:true});
   await waitFor(()=>expect(global.fetch.mock.calls.some(([url,opts])=>String(url).endsWith('/api/tts-url')&&JSON.parse(opts.body).text==='A reported fact.')).toBe(true));
   await act(async()=>{await Promise.resolve();await Promise.resolve();});
   expect(screen.queryByRole('button',{name:'Playback speed 1×'})).not.toBeInTheDocument();

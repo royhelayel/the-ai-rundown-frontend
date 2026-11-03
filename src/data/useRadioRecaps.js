@@ -1,3 +1,4 @@
+import {recapEndDay} from '../lib/briefDates';
 import { useEffect, useMemo, useState } from 'react';
 import { storyParagraph } from '../lib/stories';
 import { cleanForTTS } from '../audio/narrationText';
@@ -12,16 +13,7 @@ export default function useRadioRecaps({ active, categories, period, day, today,
     const row = briefingData[c];
     return row && (!row.editionDay || row.editionDay === day) && (!row.language || row.language === language) ? row : null;
   };
-  const end = useMemo(() => {
-    const d = new Date(`${day || today}T00:00:00Z`);
-    if (period === 'Weekly') d.setUTCDate(d.getUTCDate() - d.getUTCDay());
-    else if (period === 'Monthly') {
-      const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
-      if (m.toISOString().slice(0, 10) > today) m.setUTCDate(0);
-      return m.toISOString().slice(0, 10);
-    }
-    return d.toISOString().slice(0, 10);
-  }, [day, today, period]);
+  const end = useMemo(() => recapEndDay(day,today,period),[day,today,period]);
   const key = `${catsKey}|${period}|${end}|${language}`;
   useEffect(() => {
     if (!active || period !== 'Daily') return;

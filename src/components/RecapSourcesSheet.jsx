@@ -41,8 +41,8 @@ export default function RecapSourcesSheet({ snapshot, onClose }) {
       </header>
       <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', padding: '0 20px 20px' }}>
         {snapshot.items.map((item, i) => <article key={i} style={{ padding: '18px 0', borderBottom: i < snapshot.items.length - 1 ? '1px solid var(--line)' : undefined }}>
-          <h3 dir="auto" style={{ margin: '0 0 12px', fontSize: HOME_TYPE.title, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-.02em' }}>{item.headline}</h3>
-          {item.summary && <p dir="auto" style={{ margin: '0 0 16px', color: 'var(--sub)', fontSize: HOME_TYPE.reading, lineHeight: 1.5 }}>{item.summary}</p>}
+          <h3 dir="auto" style={{ margin: '0 0 12px', fontSize: 'var(--rn-editorial-headline, var(--rn-home-title, 1.5rem))', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-.02em' }}>{item.headline}</h3>
+          {item.summary && <p dir="auto" style={{ margin: '0 0 16px', color: 'var(--ink)', fontSize: 'var(--rn-editorial-copy, var(--rn-home-reading, 1.125rem))', lineHeight: 1.43, letterSpacing: '-.018em' }}>{item.summary}</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 4, color: 'var(--sub)', fontSize: HOME_TYPE.ui }}>
             {(item.sources || []).map((src, j) => /^https?:\/\//.test(src.url || '')
               ? <a key={j} href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', minHeight: 44, display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}>{src.outlet || src.name || 'Source'} <span aria-hidden="true">↗</span></a>

@@ -1985,7 +1985,7 @@ const TheAIRundown = () => {
       ? (briefingLoading && !briefingData[catFromUrl])
       : newsLoading;
 
-  useProgrammeMediaSession({ active: isNarrating, paused: isPaused, title: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${recapPeriod === 'Headlines' ? 'Full brief' : recapPeriod === 'Daily' ? 'Quick brief' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'}`,
+  useProgrammeMediaSession({ active: isNarrating, paused: isPaused, title: `${CATEGORY_SHORT[selectedCategory] || selectedCategory} · ${recapPeriod === 'Headlines' ? 'Short brief' : recapPeriod === 'Daily' ? 'Shorter brief' : recapPeriod === 'Weekly' ? 'Last week' : 'Last month'}`,
     edition: editionDate, duration: narrationDurationRef.current, progress: narrationProgress, speed: playbackSpeed,
     onPlay: () => { if (isListenPath) setListenTextOnly(false); if (isPaused) narrateFnRef.current.resume(); else if (isListenPath) cueRadio(selectedCategory, true, storyIndex); },
     onPause: () => narrateFnRef.current.pause(), onStop: () => narrateFnRef.current.stop(),

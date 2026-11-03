@@ -1,3 +1,4 @@
+import {currencySpeech} from './currencySpeech';
 // The TTS narration engine: speaking, pausing, advancing through stories and categories.
 // Called once per render from TheAIRundown with that render's state, exactly as the code
 // ran when it lived inline — everything it hands back is re-created each render.
@@ -173,7 +174,8 @@ export function createNarrationEngine({
         narrationStateRef.current.browserSeek = { text: whole, offset, onDone };
         setIsAudioLoading(false); return;
       }
-      const utter = new SpeechSynthesisUtterance(text.trim());
+      const spoken=currencySpeech(text.trim());
+      const utter = new SpeechSynthesisUtterance(spoken.text);
       const utterGen = narrationGenRef.current;
       let hasBoundary = false;
       let spokenSeconds = 0;
@@ -188,7 +190,7 @@ export function createNarrationEngine({
           if (!st.active || utterGen !== narrationGenRef.current) { clearInterval(st.browserProgressTimer); return; }
           if (st.paused || hasBoundary || st.isTransition) return;
           spokenSeconds += dt;
-          const seconds = Math.max(1, text.trim().split(/\s+/).length / (2.5 * utter.rate));
+          const seconds = Math.max(1, spoken.text.split(/\s+/).length / (2.5 * utter.rate));
           const fraction = Math.min(.99, spokenSeconds / seconds);
           setNarrationProgress(Math.min(99, (offset + fraction * text.length) / Math.max(1, whole.length) * 100));
         }, 200);
@@ -207,10 +209,11 @@ export function createNarrationEngine({
       utter.onboundary = (e) => {
         if (utterGen === narrationGenRef.current && e.name === 'word' && whole.length > 0 && !narrationStateRef.current.isTransition) {
           hasBoundary = true;
-          programmeRef?.current?.speech?.((offset + e.charIndex) / whole.length);
-          narrationStateRef.current.browserCharIndex = offset + e.charIndex;
-          setNarrationCharOffset?.(offset + e.charIndex);
-          setNarrationProgress(Math.min(99, ((offset + e.charIndex) / whole.length) * 100));
+          const sourceIndex=offset+spoken.toSource(e.charIndex);
+          programmeRef?.current?.speech?.(sourceIndex / whole.length);
+          narrationStateRef.current.browserCharIndex = sourceIndex;
+          setNarrationCharOffset?.(sourceIndex);
+          setNarrationProgress(Math.min(99, (sourceIndex / whole.length) * 100));
         }
       };
       utter.onend = () => {

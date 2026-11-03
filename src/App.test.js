@@ -338,8 +338,12 @@ test('one Play tap starts the prefetched Full brief directly without an opening 
   await chooseSummary('Quick brief','Full brief');await screen.findByRole('heading',{name:'World News story',exact:true});
   await waitFor(()=>expect(global.fetch.mock.calls.some(([url,opts])=>String(url).endsWith('/api/tts-url')&&JSON.parse(opts.body).text==='A reported fact.')).toBe(true));
   await act(async()=>{await Promise.resolve();await Promise.resolve();});
+  expect(screen.queryByRole('button',{name:'Playback speed 1×'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'Repeat off'})).not.toBeInTheDocument();
   played.length=0;fireEvent.click(screen.getByRole('button',{name:'Play',exact:true}));
   // No timer, second tap or welcome/chime completion is needed for this cache hit.
+  expect(screen.getByRole('button',{name:'Playback speed 1×'})).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Repeat off'})).toBeInTheDocument();
   expect(played.some(src=>src==='https://audio.example/A%20reported%20fact..mp3')).toBe(true);
   expect(played.filter(src=>src.includes('audio.example'))).toEqual(['https://audio.example/A%20reported%20fact..mp3']);
   expect(screen.getByRole('button',{name:'Pause',exact:true})).toBeInTheDocument();

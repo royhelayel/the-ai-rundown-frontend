@@ -1034,16 +1034,16 @@ export default function FullPlayer({
       </button>
     );
 
-    const speedControl = (<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(unified || isNarrating).props}
+    const speedControl = (<button className="rn-btn" onClick={onSpeedCycle} aria-label={`Playback speed ${playbackSpeed}×`} {...whilePlaying(isNarrating).props}
                   style={{ width: 40, height: 40, fontSize: HOME_TYPE.ui, fontWeight: 650, color: playbackSpeed === 1 ? 'var(--ink)' : 'var(--accent)', flexShrink: 0,
-                    ...whilePlaying(unified || isNarrating).style, transition: 'opacity 0.25s ease' }}>
+                    ...whilePlaying(isNarrating).style, transition: 'opacity 0.25s ease' }}>
                   {playbackSpeed}×
                 </button>);
     const repeatControl = (<button className="rn-btn" onClick={() => { onRepeatToggle?.(); flashRepeatHint(); }} aria-label={REPEAT_LABEL[repeatMode || 'off']} aria-pressed={!!repeatMode}
-                  {...whilePlaying(unified || isNarrating).props}
+                  {...whilePlaying(isNarrating).props}
                   style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     background: repeatMode ? 'var(--panel)' : 'transparent', color: repeatMode ? 'var(--ink)' : 'var(--sub)',
-                    ...whilePlaying(unified || isNarrating).style, transition: 'background 0.2s ease, color 0.2s ease, opacity 0.25s ease' }}>
+                    ...whilePlaying(isNarrating).style, transition: 'background 0.2s ease, color 0.2s ease, opacity 0.25s ease' }}>
                   {repeatMode === 'one' ? <Repeat1 size={20} strokeWidth={2.1} /> : <Repeat size={20} strokeWidth={repeatMode ? 2.1 : 1.8} />}
                   {repeatMode && <span aria-hidden style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: 'currentColor' }} />}
                   {repeatHint && (

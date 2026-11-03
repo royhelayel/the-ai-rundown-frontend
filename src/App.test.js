@@ -326,3 +326,23 @@ test('reopening restores a Full brief paused at its saved story and offset witho
   expect(screen.queryByText(/Playback stopped|listening progress is saved/)).not.toBeInTheDocument();
  } finally { app.unmount();now.mockRestore(); }
 });
+
+test('one Play tap starts the prefetched Full brief directly without an opening cue',async()=>{
+ installSummaryFixtures();const newsFetch=global.fetch;
+ global.fetch=jest.fn((url,opts)=>String(url).endsWith('/api/tts-url')?Promise.resolve({ok:true,json:async()=>({url:'https://audio.example/'+encodeURIComponent(JSON.parse(opts.body).text)+'.mp3'})}):newsFetch(url,opts));
+ const originalLoad=window.HTMLMediaElement.prototype.load;
+ window.HTMLMediaElement.prototype.load=jest.fn();
+ const played=[];window.HTMLMediaElement.prototype.play=jest.fn(function(){played.push(this.src);return Promise.resolve();});
+ try{
+  renderForReturningGuest();await screen.findByRole('heading',{name:'World News daily briefing.',exact:true});
+  await chooseSummary('Quick brief','Full brief');await screen.findByRole('heading',{name:'World News story',exact:true});
+  await waitFor(()=>expect(global.fetch.mock.calls.some(([url,opts])=>String(url).endsWith('/api/tts-url')&&JSON.parse(opts.body).text==='A reported fact.')).toBe(true));
+  await act(async()=>{await Promise.resolve();await Promise.resolve();});
+  played.length=0;fireEvent.click(screen.getByRole('button',{name:'Play',exact:true}));
+  // No timer, second tap or welcome/chime completion is needed for this cache hit.
+  expect(played.some(src=>src==='https://audio.example/A%20reported%20fact..mp3')).toBe(true);
+  expect(played.filter(src=>src.includes('audio.example'))).toEqual(['https://audio.example/A%20reported%20fact..mp3']);
+  expect(screen.getByRole('button',{name:'Pause',exact:true})).toBeInTheDocument();
+  await act(async()=>{await Promise.resolve();});
+ }finally{window.HTMLMediaElement.prototype.load=originalLoad;}
+});

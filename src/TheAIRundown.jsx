@@ -1334,13 +1334,7 @@ const TheAIRundown = () => {
   const radioCategories = listenLens === 'latest' ? topicsForReading : Object.keys(radioMap);
 
   const editionDate = selectedDay ? new Date(`${selectedDay}T12:00:00Z`).toLocaleDateString(newsLanguage === 'ar' ? 'ar' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }) : '';
-  const programmeOpening = newsLanguage === 'ar' ? `أنت تستمع إلى راديو نيوز. إليك ملخص الأخبار ليوم ${editionDate}.`
-    : recapPeriod === 'Headlines' ? "You're listening to RadioNews. Here are your headlines."
-    : `This is RadioNews. Here's your ${recapPeriod === 'Daily' ? 'news mix for ' + editionDate : recapPeriod === 'Weekly' ? 'weekly news mix' : 'monthly news mix'}. First, ${CATEGORY_SHORT[selectedCategory] || selectedCategory}.`;
-  useEffect(() => {
-    if (location.pathname === '/listen' && recapPeriod === 'Headlines' && !isNarrating && Object.keys(radioMap).length) narrateFnRef.current.prefetchTTS?.(programmeOpening);
-  }, [location.pathname, programmeOpening, isNarrating, Object.keys(radioMap).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cueRadio = (cat, play = false, index = 0, opening = false) => {
+  const cueRadio = (cat, play = false, index = 0) => {
     const keepPaused=!play && narrationStateRef.current.active && narrationStateRef.current.paused;
     narrateFnRef.current.stop();
     const cats = Object.keys(radioMap);
@@ -1365,8 +1359,8 @@ const TheAIRundown = () => {
       setIsNarrating(true); setIsPaused(false); setIsAudioLoading(true);
       // Animated recaps begin with the news. Topic transitions and the single mix
       // ending are still owned by the existing programme, outside the recap content.
-      if (opening && recapPeriod === 'Headlines') narrationStateRef.current.pendingSessionOpening = programmeOpening;
-      setTimeout(() => narrateFnRef.current.narrateStory(idx), 0);
+      // Start inside the user gesture so a cached clip can play on the first tap.
+      narrateFnRef.current.narrateStory(idx);
     }
   };
   const continueProgramme = (saved = audioProgramme.resume, autoplay = true) => {
@@ -2450,7 +2444,7 @@ const TheAIRundown = () => {
           playbackSpeed={playbackSpeed}
           repeatMode={repeatMode}
           depthLevel={depthLevel}
-          onPlay={() => isListenPath ? cueRadio(selectedCategory, true, storyIndex, true) : onPlayFrom(storyIndex)}
+          onPlay={() => isListenPath ? cueRadio(selectedCategory, true, storyIndex) : onPlayFrom(storyIndex)}
           onPause={() => narrateFnRef.current.pause()}
           onResume={() => narrateFnRef.current.resume()}
           onNext={isListenPath ? () => skipRadio(1) : goNext}
@@ -2501,7 +2495,7 @@ const TheAIRundown = () => {
           isPaused={isPaused}
           isLoading={isAudioLoading}
           narrationProgress={narrationProgress}
-          onPlay={() => isListenPath ? cueRadio(selectedCategory, true, storyIndex, true) : onPlayFrom(storyIndex)}
+          onPlay={() => isListenPath ? cueRadio(selectedCategory, true, storyIndex) : onPlayFrom(storyIndex)}
           onPause={() => narrateFnRef.current.pause()}
           onResume={() => narrateFnRef.current.resume()}
           onExpand={() => setPlayerMinimized(false)}

@@ -31,7 +31,9 @@ export function narrationPlayer() {
 export function unlockNarrationAudio() {
   if (unlocked) return;
   const p = narrationPlayer();
-  if (!p || (p.src && !p.paused)) return;          // already playing something: it is unlocked
+  // A capture-phase unlock also runs before Resume. Never replace a real clip
+  // (including a paused or buffered one) with silence just before its play handler.
+  if (!p || (p.src && p.src !== silence)) return;
   try {
     silence = silence || wavUrl(new Float32Array(2205));
     p.src = silence;

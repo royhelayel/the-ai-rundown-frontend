@@ -290,7 +290,13 @@ export function createNarrationEngine({
     // their URL; the element they were made with is not played.
     const shared = narrationPlayer();
     const audio = shared || ((audioIn.ended && audioIn.src) ? new Audio(audioIn.src) : audioIn);
-    if (shared && audioIn.src) { narrationStateRef.current.ignorePauseUntil = Date.now() + 300; shared.pause(); shared.src = audioIn.src; }
+    if (shared && audioIn.src) {
+      // Detach the previous clip before replacing its source. Safari may deliver a
+      // queued pause after the new play request; that event is not a user pause.
+      shared.onpause = null; shared.onplaying = null; shared.onended = null;
+      shared.onerror = null; shared.ontimeupdate = null; shared.onloadedmetadata = null;
+      shared.pause(); shared.src = audioIn.src;
+    }
     narrationStateRef.current.audio = audio;
     narrationStateRef.current.audioFixedSpeed = fixedSpeed;
     audio.currentTime = 0;
@@ -300,11 +306,15 @@ export function createNarrationEngine({
       audio.playbackRate = fixedSpeed ? 1 : playbackSpeedRef.current;
     };
     applySpeed();
-    audio.onplaying = () => { applySpeed(); setIsAudioLoading(false); if (narrationStateRef.current.paused) audio.pause(); };
-    audio.onwaiting = () => { if (narrationStateRef.current.active && !narrationStateRef.current.paused) setIsAudioLoading(true); };
+    audio.onplaying = () => {
+      const st = narrationStateRef.current;
+      if (capturedGen !== narrationGenRef.current || !st.active || st.audio !== audio) return;
+      applySpeed(); setIsAudioLoading(false); if (st.paused) audio.pause();
+    };
+    audio.onwaiting = () => { if (capturedGen === narrationGenRef.current && narrationStateRef.current.audio === audio && narrationStateRef.current.active && !narrationStateRef.current.paused) setIsAudioLoading(true); };
     audio.onpause = () => {
       const st = narrationStateRef.current;
-      if (st.active && st.audio === audio && !audio.ended && !st.paused && Date.now() > (st.ignorePauseUntil || 0)) {
+      if (st.active && capturedGen === narrationGenRef.current && st.audio === audio && audio.paused && !audio.ended && !st.paused && !st.canceling) {
         st.paused = true; setIsPaused(true); programmeRef?.current?.flush?.();
       }
     };
@@ -593,8 +603,10 @@ export function createNarrationEngine({
     try {
       const url = await getTTSAudio(text.trim()); // shared promise — no duplicate fetch with speakText
       if (!url || ttsAudioCacheRef.current.has(text)) return;
-      const audio = new Audio(url); // loads the clip now, so the shared player finds it ready
+      const audio = new Audio();
       audio.preload = 'auto';
+      audio.src = url;
+      audio.load?.(); // Fetch bytes before Play, rather than discovering them on the tap.
       ttsAudioCacheRef.current.set(text, audio);
       if (ttsAudioCacheRef.current.size > 10) {
         const oldest = ttsAudioCacheRef.current.keys().next().value;

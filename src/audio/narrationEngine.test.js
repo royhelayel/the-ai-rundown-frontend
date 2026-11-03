@@ -148,7 +148,7 @@ test('a native audio interruption pauses the interface and flushes saved progres
   const audio = {src:'',play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};
   narrationPlayer.mockReturnValue(audio);
   const h=harness();h.cache.current.set('Recap.',{src:'https://example.com/recap.mp3'});
-  h.realSpeak('Recap.',jest.fn());h.state.ignorePauseUntil=0;audio.onpause();
+  h.realSpeak('Recap.',jest.fn());audio.paused=true;audio.onpause();
   expect(h.state.paused).toBe(true);
   expect(h.paused).toHaveBeenCalledWith(true);
   expect(h.programme.flush).toHaveBeenCalled();
@@ -206,4 +206,26 @@ test('a silently restored player can seek before loading audio without starting 
  const h=harness();h.state.paused=true;h.state.pendingResumeFraction=.4;h.state.pendingResumeAction=jest.fn();
  expect(h.fn.seek(65)).toBe(true);expect(h.state.pendingResumeFraction).toBe(.65);
  expect(h.state.pendingResumeAction).not.toHaveBeenCalled();expect(h.speak).not.toHaveBeenCalled();
+});
+
+test('a delayed source-swap pause event cannot pause a newly playing first clip',async()=>{
+ const audio={src:'blob:unlock',paused:false,ended:false,play:jest.fn(()=>Promise.resolve()),pause:jest.fn()};
+ narrationPlayer.mockReturnValue(audio);
+ try{
+  const h=harness(),done=jest.fn();h.cache.current.set('First news.',{src:'https://example.com/first.mp3'});
+  h.realSpeak('First news.',done);
+  expect(audio.play).toHaveBeenCalledTimes(1); // synchronous cache hit, before any timers or fetch
+  await Promise.resolve();
+  audio.onpause(); // old pause event arrives after the new play request
+  expect(h.state.paused).toBe(false);expect(h.paused).not.toHaveBeenCalledWith(true);
+  expect(h.programme.flush).not.toHaveBeenCalled();
+  audio.onplaying();expect(h.state.paused).toBe(false);expect(done).not.toHaveBeenCalled();
+ }finally{narrationPlayer.mockReturnValue(null);}
+});
+
+test('swapping a source detaches previous listeners before pausing the shared player',()=>{
+ const oldPause=jest.fn();const audio={src:'blob:opening',paused:false,play:jest.fn(()=>Promise.resolve()),onpause:oldPause,pause:jest.fn(function(){this.onpause?.();})};
+ narrationPlayer.mockReturnValue(audio);
+ try{const h=harness();h.cache.current.set('First news.',{src:'https://example.com/first.mp3'});h.realSpeak('First news.',jest.fn());expect(oldPause).not.toHaveBeenCalled();expect(audio.play).toHaveBeenCalledTimes(1);expect(h.state.paused).toBe(false);}
+ finally{narrationPlayer.mockReturnValue(null);}
 });
